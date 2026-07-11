@@ -3,6 +3,19 @@ import { supabase } from '../lib/supabaseClient';
 
 const DatabaseContext = createContext();
 
+const mapProfile = (dbProfile) => {
+  if (!dbProfile) return null;
+  return {
+    id: dbProfile.id,
+    email: dbProfile.email,
+    name: dbProfile.name,
+    role: dbProfile.role,
+    status: dbProfile.status,
+    creatorStatus: dbProfile.creator_status,
+    enrolledCourses: dbProfile.enrolled_courses || []
+  };
+};
+
 const SEED_USERS = [
   { id: 'u-1', email: 'admin@learnopia.edu', name: 'Dr. Arthur Pendelton', role: 'admin', status: 'active', password: 'admin123', enrolledCourses: ['c-1'] },
   { id: 'u-2', email: 'creator@learnopia.edu', name: 'Prof. Sarah Miller', role: 'creator', status: 'active', password: 'creator123', enrolledCourses: [] },
@@ -154,7 +167,7 @@ export function DatabaseProvider({ children }) {
     try {
       // 1. Users profiles
       const { data: profiles } = await supabase.from('profiles').select('*');
-      if (profiles) setUsers(profiles);
+      if (profiles) setUsers(profiles.map(mapProfile));
 
       // 2. Courses
       const { data: coursesData } = await supabase.from('courses').select('*');
@@ -218,13 +231,13 @@ export function DatabaseProvider({ children }) {
       const { data: authSession } = await supabase.auth.getSession();
       if (authSession?.session?.user) {
         const user = authSession.session.user;
-        let { data: currentProfile } = await supabase
+        let { data: dbProfile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .maybeSingle();
 
-        if (!currentProfile) {
+        if (!dbProfile) {
           const newProfile = {
             id: user.id,
             email: user.email.toLowerCase(),
@@ -234,16 +247,17 @@ export function DatabaseProvider({ children }) {
             enrolled_courses: []
           };
           await supabase.from('profiles').insert([newProfile]);
-          currentProfile = newProfile;
+          dbProfile = newProfile;
           addLog(`New user registered via Google: ${newProfile.name}`);
         }
         
-        if (currentProfile) {
-          if (currentProfile.status === 'suspended') {
+        const mapped = mapProfile(dbProfile);
+        if (mapped) {
+          if (mapped.status === 'suspended') {
             await supabase.auth.signOut();
             setCurrentUser(null);
           } else {
-            setCurrentUser(currentProfile);
+            setCurrentUser(mapped);
           }
         }
       }
@@ -340,8 +354,9 @@ export function DatabaseProvider({ children }) {
         if (createError) {
           throw new Error('Failed to initialize user database profile.');
         }
-        setCurrentUser(newProfile);
-        return newProfile;
+        const mapped = mapProfile(newProfile);
+        setCurrentUser(mapped);
+        return mapped;
       }
 
       if (profile.status === 'suspended') {
@@ -349,9 +364,10 @@ export function DatabaseProvider({ children }) {
         throw new Error('Your account has been suspended by an administrator.');
       }
 
-      setCurrentUser(profile);
-      addLog(`User logged in: ${profile.name} (${profile.role.toUpperCase()})`);
-      return profile;
+      const mapped = mapProfile(profile);
+      setCurrentUser(mapped);
+      addLog(`User logged in: ${mapped.name} (${mapped.role.toUpperCase()})`);
+      return mapped;
     } else {
       const found = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
       if (!found) throw new Error('Invalid email or password.');
@@ -438,8 +454,9 @@ export function DatabaseProvider({ children }) {
         return { requiresConfirmation: true };
       }
 
-      setCurrentUser(newProfile);
-      return newProfile;
+      const mapped = mapProfile(newProfile);
+      setCurrentUser(mapped);
+      return mapped;
     } else {
       const exists = users.find(u => u.email.toLowerCase() === email.toLowerCase());
       if (exists) throw new Error('Email is already registered.');
