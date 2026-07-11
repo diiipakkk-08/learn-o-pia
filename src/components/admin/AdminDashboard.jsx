@@ -3,14 +3,14 @@ import { useDatabase } from '../../context/DatabaseContext';
 import { Users, BookOpen, ShieldCheck, Check, Ban, Award, FileText, Shield, X } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const { users, courses, subjects, activityLogs, approveCreator, rejectCreator, makeAdmin, toggleUserStatus } = useDatabase();
+  const { currentUser, users, courses, subjects, activityLogs, approveCreator, rejectCreator, makeAdmin, toggleUserStatus, changeUserRole } = useDatabase();
   const [activeTab, setActiveTab] = useState('verification');
   const [userSearchQuery, setUserSearchQuery] = useState('');
 
   // Filter lists
   const pendingCreators = users.filter(u => u.creatorStatus === 'pending');
   const learners = users.filter(u => u.role === 'learner');
-  const admins = users.filter(u => u.role === 'admin');
+  const admins = users.filter(u => u.role === 'admin' || u.role === 'owner');
 
   // Compute metrics
   const totalCourses = courses.length;
@@ -224,39 +224,78 @@ export default function AdminDashboard() {
                           </td>
                           <td style={styles.td}>
                             <div style={{ display: 'flex', gap: '8px' }}>
-                              {/* Make Admin Button */}
-                              {u.role !== 'admin' && (
-                                <button
-                                  onClick={() => makeAdmin(u.id)}
-                                  className="btn btn-primary"
-                                  style={{ padding: '6px 10px', fontSize: '0.7rem', gap: '4px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: 'none' }}
-                                  title="Promote user to Administrator status"
-                                >
-                                  <Shield size={10} />
-                                  Make Admin
-                                </button>
-                              )}
-
-                              {/* Suspend Toggle */}
-                              {u.role !== 'admin' && (
-                                <button 
-                                  onClick={() => toggleUserStatus(u.id)}
-                                  className={u.status === 'active' ? 'btn btn-danger' : 'btn btn-secondary'}
-                                  style={{ padding: '6px 10px', fontSize: '0.7rem', gap: '4px' }}
-                                  disabled={u.status === 'pending'}
-                                >
-                                  {u.status === 'active' ? (
-                                    <>
-                                      <Ban size={10} />
-                                      Suspend
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Check size={10} />
-                                      Activate
-                                    </>
-                                  )}
-                                </button>
+                              {/* 1. Self Check */}
+                              {u.id === currentUser?.id ? (
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Current Account</span>
+                              ) : u.role === 'owner' ? (
+                                <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>System Owner</span>
+                              ) : u.role === 'admin' ? (
+                                // Admin actions depend on if current user is owner
+                                currentUser?.role === 'owner' ? (
+                                  <>
+                                    <button
+                                      onClick={() => changeUserRole(u.id, 'learner')}
+                                      className="btn btn-secondary"
+                                      style={{ padding: '6px 10px', fontSize: '0.7rem', gap: '4px' }}
+                                    >
+                                      Demote to Learner
+                                    </button>
+                                    <button
+                                      onClick={() => toggleUserStatus(u.id)}
+                                      className={u.status === 'active' ? 'btn btn-danger' : 'btn btn-secondary'}
+                                      style={{ padding: '6px 10px', fontSize: '0.7rem', gap: '4px' }}
+                                    >
+                                      {u.status === 'active' ? 'Suspend' : 'Activate'}
+                                    </button>
+                                  </>
+                                ) : (
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Admin (Protected)</span>
+                                )
+                              ) : u.role === 'creator' ? (
+                                <>
+                                  <button
+                                    onClick={() => changeUserRole(u.id, 'learner')}
+                                    className="btn btn-secondary"
+                                    style={{ padding: '6px 10px', fontSize: '0.7rem', gap: '4px' }}
+                                    title="Revoke creator credentials (demote to learner)"
+                                  >
+                                    Revoke Creator
+                                  </button>
+                                  <button
+                                    onClick={() => toggleUserStatus(u.id)}
+                                    className={u.status === 'active' ? 'btn btn-danger' : 'btn btn-secondary'}
+                                    style={{ padding: '6px 10px', fontSize: '0.7rem', gap: '4px' }}
+                                  >
+                                    {u.status === 'active' ? 'Suspend' : 'Activate'}
+                                  </button>
+                                  <button
+                                    onClick={() => makeAdmin(u.id)}
+                                    className="btn btn-primary"
+                                    style={{ padding: '6px 10px', fontSize: '0.7rem', gap: '4px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: 'none' }}
+                                  >
+                                    <Shield size={10} />
+                                    Make Admin
+                                  </button>
+                                </>
+                              ) : (
+                                // Learner status
+                                <>
+                                  <button
+                                    onClick={() => makeAdmin(u.id)}
+                                    className="btn btn-primary"
+                                    style={{ padding: '6px 10px', fontSize: '0.7rem', gap: '4px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: 'none' }}
+                                  >
+                                    <Shield size={10} />
+                                    Make Admin
+                                  </button>
+                                  <button
+                                    onClick={() => toggleUserStatus(u.id)}
+                                    className={u.status === 'active' ? 'btn btn-danger' : 'btn btn-secondary'}
+                                    style={{ padding: '6px 10px', fontSize: '0.7rem', gap: '4px' }}
+                                  >
+                                    {u.status === 'active' ? 'Suspend' : 'Activate'}
+                                  </button>
+                                </>
                               )}
                             </div>
                           </td>

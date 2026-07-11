@@ -53,9 +53,9 @@ function AppContent() {
   }, [currentUser]);
 
   // Route security check helpers
-  const isCreatorOrAdmin = currentUser && (currentUser.role === 'creator' || currentUser.role === 'admin');
+  const isCreatorOrAdmin = currentUser && (currentUser.role === 'creator' || currentUser.role === 'admin' || currentUser.role === 'owner');
   const isVerifiedCreator = currentUser && currentUser.role === 'creator' && currentUser.status === 'active';
-  const isAdmin = currentUser && currentUser.role === 'admin';
+  const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner');
 
   return (
     <div className="app-container">

@@ -115,10 +115,10 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
           {/* Section 2: Role Overview message */}
           <div className="glass-panel" style={styles.overviewBox}>
             <h3 style={styles.boxTitle}>
-              {currentUser.role === 'admin' ? (
+              {(currentUser.role === 'admin' || currentUser.role === 'owner') ? (
                 <>
                   <Shield size={18} color="var(--success)" />
-                  System Administrator Access
+                  {currentUser.role === 'owner' ? 'System Platform Owner Access' : 'System Administrator Access'}
                 </>
               ) : currentUser.role === 'creator' && currentUser.status === 'active' ? (
                 <>
@@ -133,8 +133,10 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
               )}
             </h3>
             <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: '1.5', marginTop: '10px' }}>
-              {currentUser.role === 'admin' && 
-                'You have complete control over the system database. Use the Admin Panel to verify pending creator registrations, manage student directory access, and promote developers to administrative clearances. You can also create new Degree Programs in the Studio.'}
+              {(currentUser.role === 'admin' || currentUser.role === 'owner') && 
+                (currentUser.role === 'owner' 
+                  ? 'You are the Owner of this learning portal. You have complete control over the system database, including the power to promote, demote, or suspend administrators and creators, and manage all courses.'
+                  : 'You have administrative control over the system database. Use the Admin Panel to verify pending creator registrations, manage student directory access, and promote learners. You can also manage courses in the Studio.')}
               {currentUser.role === 'creator' && currentUser.status === 'active' && 
                 'Welcome! Your creator credentials are fully verified. You can now use the Studio tab to compile standard courses, add embedded lecture playlists, and attach reference notes.'}
               {currentUser.role === 'creator' && currentUser.status === 'pending' && 

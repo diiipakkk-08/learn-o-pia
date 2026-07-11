@@ -12,8 +12,8 @@ export default function Header({
 
   if (!currentUser) return null;
 
-  const isCreatorOrAdmin = (currentUser.role === 'creator' && currentUser.status === 'active') || currentUser.role === 'admin';
-  const isAdmin = currentUser.role === 'admin';
+  const isCreatorOrAdmin = (currentUser.role === 'creator' && currentUser.status === 'active') || currentUser.role === 'admin' || currentUser.role === 'owner';
+  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'owner';
 
   const avatarInitial = currentUser.name ? currentUser.name.charAt(0).toUpperCase() : '?';
 

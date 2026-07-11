@@ -921,6 +921,23 @@ export function DatabaseProvider({ children }) {
     }
   };
 
+  const changeUserRole = async (userId, newRole) => {
+    if (isSupabaseLive) {
+      await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', userId);
+      addLog(`User role changed to ${newRole}.`);
+      syncSupabase();
+    } else {
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+      if (currentUser && currentUser.id === userId) {
+        setCurrentUser(prev => ({ ...prev, role: newRole }));
+      }
+      addLog(`User role changed to ${newRole}.`);
+    }
+  };
+
   return (
     <DatabaseContext.Provider value={{
       users,
@@ -951,7 +968,8 @@ export function DatabaseProvider({ children }) {
       approveCreator,
       rejectCreator,
       makeAdmin,
-      toggleUserStatus
+      toggleUserStatus,
+      changeUserRole
     }}>
       {children}
     </DatabaseContext.Provider>
