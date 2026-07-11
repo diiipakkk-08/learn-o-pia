@@ -312,13 +312,37 @@ export function DatabaseProvider({ children }) {
         email: email.toLowerCase(),
         password
       });
-      if (error) throw error;
+      if (error) {
+        throw new Error(error.message || 'Login failed. Please check your credentials.');
+      }
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle();
+
+      if (profileError) {
+        throw new Error(profileError.message || 'Failed to retrieve user profile.');
+      }
+
+      if (!profile) {
+        // Auto-create profile if missing
+        const newProfile = {
+          id: data.user.id,
+          email: email.toLowerCase(),
+          name: email.split('@')[0],
+          role: 'learner',
+          status: 'active',
+          enrolled_courses: []
+        };
+        const { error: createError } = await supabase.from('profiles').insert([newProfile]);
+        if (createError) {
+          throw new Error('Failed to initialize user database profile.');
+        }
+        setCurrentUser(newProfile);
+        return newProfile;
+      }
 
       if (profile.status === 'suspended') {
         await supabase.auth.signOut();
@@ -346,7 +370,7 @@ export function DatabaseProvider({ children }) {
           redirectTo: window.location.origin
         }
       });
-      if (error) throw error;
+      if (error) throw new Error(error.message || 'Google OAuth redirect failed.');
       return data;
     } else {
       // Local fallback — handles both mock login and local google authentication
@@ -383,7 +407,12 @@ export function DatabaseProvider({ children }) {
         email: email.toLowerCase(),
         password
       });
-      if (error) throw error;
+      if (error) {
+        throw new Error(error.message || 'Registration failed.');
+      }
+      if (!data || !data.user) {
+        throw new Error('Verification email sent or signup incomplete.');
+      }
 
       const newProfile = {
         id: data.user.id,
@@ -394,7 +423,11 @@ export function DatabaseProvider({ children }) {
         enrolled_courses: []
       };
 
-      await supabase.from('profiles').insert([newProfile]);
+      const { error: insertError } = await supabase.from('profiles').insert([newProfile]);
+      if (insertError) {
+        throw new Error(insertError.message || 'Profile insertion failed.');
+      }
+
       setCurrentUser(newProfile);
       addLog(`New user registered: ${name}`);
       syncSupabase();
