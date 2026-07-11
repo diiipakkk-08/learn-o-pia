@@ -140,13 +140,56 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 // Add http://localhost:5173 to Authorized JavaScript origins
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID';
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '40px', background: '#0f0e17', color: '#ff5555', minHeight: '100vh', fontFamily: 'monospace' }}>
+          <h2>System Rendering Error:</h2>
+          <pre style={{ background: '#222', padding: '20px', borderRadius: '8px', color: '#fff', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+            {this.state.error?.toString()}
+          </pre>
+          <pre style={{ color: '#aaa', marginTop: '10px', whiteSpace: 'pre-wrap' }}>
+            {this.state.error?.stack}
+          </pre>
+          <button 
+            onClick={() => {
+              localStorage.clear();
+              window.location.reload();
+            }} 
+            style={{ marginTop: '20px', padding: '10px 20px', background: '#8b5cf6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
+          >
+            Reset Cache & Reload Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <DatabaseProvider>
-        <AppContent />
-      </DatabaseProvider>
-    </GoogleOAuthProvider>
+    <ErrorBoundary>
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <DatabaseProvider>
+          <AppContent />
+        </DatabaseProvider>
+      </GoogleOAuthProvider>
+    </ErrorBoundary>
   );
 }
 
