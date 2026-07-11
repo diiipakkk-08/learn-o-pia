@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
 import { useGoogleLogin } from '@react-oauth/google';
-import { Mail, Lock, User, GraduationCap, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Mail, Lock, User, GraduationCap, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
 
 // Google "G" logo SVG
 function GoogleIcon() {
@@ -28,9 +28,12 @@ export default function Auth() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const [success, setSuccess] = useState(null);
+
   const handleQuickFill = (targetRole) => {
     setIsLogin(true);
     setError(null);
+    setSuccess(null);
     if (targetRole === 'admin') { setEmail('admin@learnopia.edu'); setPassword('admin123'); }
     else if (targetRole === 'creator') { setEmail('creator@learnopia.edu'); setPassword('creator123'); }
     else { setEmail('learner@learnopia.edu'); setPassword('learner123'); }
@@ -39,11 +42,21 @@ export default function Auth() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
     if (!email || !password || (!isLogin && !name)) { setError('Please fill in all required fields.'); return; }
     setLoading(true);
     try {
-      if (isLogin) { await login(email, password); }
-      else { await registerUser(email, name, password); }
+      if (isLogin) { 
+        await login(email, password); 
+      } else { 
+        const result = await registerUser(email, name, password); 
+        if (result && result.requiresConfirmation) {
+          setSuccess('Account registered successfully! A confirmation link has been sent to your email address. Please check your inbox and verify your email before logging in.');
+          setIsLogin(true);
+          setEmail('');
+          setPassword('');
+        }
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -55,6 +68,7 @@ export default function Auth() {
   const handleGoogleSuccess = async (tokenResponse) => {
     setGoogleLoading(true);
     setError(null);
+    setSuccess(null);
     try {
       const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
@@ -116,6 +130,14 @@ export default function Auth() {
           <div style={styles.errorAlert}>
             <AlertCircle size={14} style={{ flexShrink: 0 }} />
             <span>{error}</span>
+          </div>
+        )}
+
+        {/* Success Banner */}
+        {success && (
+          <div style={styles.successAlert}>
+            <CheckCircle size={14} style={{ flexShrink: 0 }} />
+            <span>{success}</span>
           </div>
         )}
 
@@ -271,6 +293,13 @@ const styles = {
     padding: '12px 16px',
     background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)',
     borderRadius: '10px', color: '#fca5a5', fontSize: '0.85rem', marginBottom: '16px',
+    lineHeight: '1.4', textAlign: 'left'
+  },
+  successAlert: {
+    display: 'flex', alignItems: 'center', gap: '8px',
+    padding: '12px 16px',
+    background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.25)',
+    borderRadius: '10px', color: '#a7f3d0', fontSize: '0.85rem', marginBottom: '16px',
     lineHeight: '1.4', textAlign: 'left'
   },
   googleBtn: {

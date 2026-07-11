@@ -411,8 +411,11 @@ export function DatabaseProvider({ children }) {
         throw new Error(error.message || 'Registration failed.');
       }
       if (!data || !data.user) {
-        throw new Error('Verification email sent or signup incomplete.');
+        throw new Error('Registration failed.');
       }
+
+      // Check if user requires email confirmation (confirmed_at is null)
+      const requiresConfirmation = !data.user.confirmed_at;
 
       const newProfile = {
         id: data.user.id,
@@ -428,9 +431,14 @@ export function DatabaseProvider({ children }) {
         throw new Error(insertError.message || 'Profile insertion failed.');
       }
 
-      setCurrentUser(newProfile);
       addLog(`New user registered: ${name}`);
       syncSupabase();
+
+      if (requiresConfirmation) {
+        return { requiresConfirmation: true };
+      }
+
+      setCurrentUser(newProfile);
       return newProfile;
     } else {
       const exists = users.find(u => u.email.toLowerCase() === email.toLowerCase());
