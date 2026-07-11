@@ -501,6 +501,9 @@ export function DatabaseProvider({ children }) {
       addLog(`User logged out: ${currentUser.name}`);
     }
     setCurrentUser(null);
+    localStorage.removeItem('learnopia_view');
+    localStorage.removeItem('learnopia_selected_playlist');
+    localStorage.removeItem('learnopia_selected_video');
   };
 
   const requestCreatorStatus = async (userId) => {

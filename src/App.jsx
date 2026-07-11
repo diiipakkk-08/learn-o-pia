@@ -39,18 +39,45 @@ function AccessDenied({ requiredRole, setCurrentView }) {
 
 function AppContent() {
   const { currentUser, authLoading } = useDatabase();
-  const [currentView, setCurrentView] = useState('learning');
-  const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);
-  const [selectedVideoIndex, setSelectedVideoIndex] = useState(0);
+  
+  const [currentView, setCurrentView] = useState(() => {
+    return localStorage.getItem('learnopia_view') || 'learning';
+  });
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState(() => {
+    return localStorage.getItem('learnopia_selected_playlist') || null;
+  });
+  const [selectedVideoIndex, setSelectedVideoIndex] = useState(() => {
+    const val = localStorage.getItem('learnopia_selected_video');
+    return val ? parseInt(val, 10) : 0;
+  });
+
+  // Keep localStorage in sync
+  useEffect(() => {
+    localStorage.setItem('learnopia_view', currentView);
+  }, [currentView]);
+
+  useEffect(() => {
+    if (selectedPlaylistId) {
+      localStorage.setItem('learnopia_selected_playlist', selectedPlaylistId);
+    } else {
+      localStorage.removeItem('learnopia_selected_playlist');
+    }
+  }, [selectedPlaylistId]);
+
+  useEffect(() => {
+    localStorage.setItem('learnopia_selected_video', selectedVideoIndex.toString());
+  }, [selectedVideoIndex]);
 
   // Auto redirect on login/logout
   useEffect(() => {
+    if (authLoading) return;
+    
     if (!currentUser) {
       setCurrentView('auth');
     } else {
       setCurrentView(prev => prev === 'auth' ? 'learning' : prev);
     }
-  }, [currentUser]);
+  }, [currentUser, authLoading]);
 
   if (authLoading) {
     return (
