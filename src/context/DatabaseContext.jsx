@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabaseClient';
 
 const DatabaseContext = createContext();
 
@@ -96,392 +97,508 @@ const SEED_SUBJECTS = [
       { id: 'doc-3', title: 'Physics Wave Interference Notes.pdf', url: 'https://drive.google.com', sectionName: 'Notes' },
       { id: 'doc-4', title: 'Physics Study Syllabus Organizer.pdf', url: 'https://drive.google.com', sectionName: 'Organizer' }
     ]
-  },
-  // CSE - Semester 3 (Degree)
-  {
-    id: 's-3',
-    courseId: 'c-1',
-    semester: 3,
-    title: 'Data Structures & Algorithms',
-    playlists: [
-      {
-        id: 'pl-3',
-        title: 'Core DSA Lecture Series',
-        description: 'Standard university lectures going over linear, non-linear, trees, and complexity analysis.',
-        likes: [],
-        videos: [
-          {
-            id: 'v-3',
-            title: 'Big O Complexity Analysis',
-            description: 'Understand time and space complexity scaling logarithmic, linear, and quadratic growth.',
-            youtubeId: 'RBSGKlAboiM'
-          },
-          {
-            id: 'v-4',
-            title: 'Binary Search Tree Algorithms',
-            description: 'Pre-order, in-order, and post-order DFS traversals on trees.',
-            youtubeId: 'sf_9ps74HCc'
-          }
-        ]
-      }
-    ],
-    customMaterialSections: ['Notes', 'Organizer', 'Past Year Papers'],
-    materials: [
-      { id: 'doc-5', title: 'DSA Complexity Summary.pdf', url: 'https://drive.google.com', sectionName: 'Notes' },
-      { id: 'doc-6', title: 'DSA Study Schedule Planner.pdf', url: 'https://drive.google.com', sectionName: 'Organizer' }
-    ]
-  },
-  // Standard Course - Unified Subjects (Non-Degree)
-  {
-    id: 's-4',
-    courseId: 'c-3',
-    semester: 1,
-    title: 'Backend with Node.js & Express',
-    playlists: [
-      {
-        id: 'pl-4',
-        title: 'API Development Lectures',
-        description: 'Build robust REST APIs, handle requests, and manage server routing.',
-        likes: ['u-3'],
-        videos: [
-          {
-            id: 'v-5',
-            title: 'Introduction to Express Routing',
-            description: 'Setting up routes, request parameters, and controllers.',
-            youtubeId: 'SccSCuHhbc0'
-          }
-        ]
-      }
-    ],
-    customMaterialSections: ['Notes', 'Organizer', 'Past Year Papers'],
-    materials: [
-      { id: 'doc-7', title: 'Node Express Cheat Sheet.pdf', url: 'https://drive.google.com', sectionName: 'Notes' }
-    ]
-  },
-  {
-    id: 's-5',
-    courseId: 'c-3',
-    semester: 1,
-    title: 'Frontend with React & Vite',
-    playlists: [
-      {
-        id: 'pl-5',
-        title: 'React Components & Hooks',
-        description: 'Understand components lifecycle, virtual DOM, and useState/useEffect hooks.',
-        likes: [],
-        videos: [
-          {
-            id: 'v-6',
-            title: 'Building React Components',
-            description: 'Learn component composability and prop passings.',
-            youtubeId: 'Ke90Tje7VS0'
-          }
-        ]
-      }
-    ],
-    customMaterialSections: ['Notes', 'Organizer', 'Past Year Papers'],
-    materials: [
-      { id: 'doc-8', title: 'React Hooks Quick reference.pdf', url: 'https://drive.google.com', sectionName: 'Notes' }
-    ]
   }
 ];
 
 export function DatabaseProvider({ children }) {
-  const [users, setUsers] = useState(() => {
-    const saved = localStorage.getItem('learnopia_users_stable');
-    let loaded = saved ? JSON.parse(saved) : SEED_USERS;
-    
-    // Reset/Sanitize any user role/status that was set in previous legacy tests
-    return loaded.map(u => {
+  const [users, setUsers] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [activityLogs, setActivityLogs] = useState([]);
+
+  // Check if Supabase client is active
+  const isSupabaseLive = !!supabase;
+
+  // ── Sync/Load Data ─────────────────────────────────────────────────────────
+  const syncLocal = () => {
+    const savedUsers = localStorage.getItem('learnopia_users_stable');
+    const savedCourses = localStorage.getItem('learnopia_courses_stable');
+    const savedSubjects = localStorage.getItem('learnopia_subjects_stable');
+    const savedUser = localStorage.getItem('learnopia_current_user_stable');
+    const savedLogs = localStorage.getItem('learnopia_activity_logs');
+
+    let loadedUsers = savedUsers ? JSON.parse(savedUsers) : SEED_USERS;
+    // Revert/Migrate legacy creator role states
+    loadedUsers = loadedUsers.map(u => {
       if (u.creatorStatus === 'pending' || u.creatorStatus === 'rejected') {
         return { ...u, role: 'learner', status: 'active' };
       }
-      // Revert Alex Carter (u-3) if he was set to rejected creator
       if (u.id === 'u-3' && u.role === 'creator') {
         return { ...u, role: 'learner', status: 'active', creatorStatus: 'rejected' };
       }
       return u;
     });
-  });
 
-  const [courses, setCourses] = useState(() => {
-    const saved = localStorage.getItem('learnopia_courses_stable');
-    return saved ? JSON.parse(saved) : SEED_COURSES;
-  });
-
-  const [subjects, setSubjects] = useState(() => {
-    const saved = localStorage.getItem('learnopia_subjects_stable');
-    return saved ? JSON.parse(saved) : SEED_SUBJECTS;
-  });
-
-  const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem('learnopia_current_user_stable');
-    const user = saved ? JSON.parse(saved) : null;
-    if (user) {
-      if (user.creatorStatus === 'pending' || user.creatorStatus === 'rejected') {
-        return { ...user, role: 'learner', status: 'active' };
+    setUsers(loadedUsers);
+    setCourses(savedCourses ? JSON.parse(savedCourses) : SEED_COURSES);
+    setSubjects(savedSubjects ? JSON.parse(savedSubjects) : SEED_SUBJECTS);
+    
+    let activeUser = savedUser ? JSON.parse(savedUser) : null;
+    if (activeUser) {
+      if (activeUser.creatorStatus === 'pending' || activeUser.creatorStatus === 'rejected') {
+        activeUser = { ...activeUser, role: 'learner', status: 'active' };
       }
-      if (user.id === 'u-3' && user.role === 'creator') {
-        return { ...user, role: 'learner', status: 'active', creatorStatus: 'rejected' };
+      if (activeUser.id === 'u-3' && activeUser.role === 'creator') {
+        activeUser = { ...activeUser, role: 'learner', status: 'active', creatorStatus: 'rejected' };
       }
     }
-    return user;
-  });
+    setCurrentUser(activeUser);
 
-  // Real, persistent system activity logs
-  const [activityLogs, setActivityLogs] = useState(() => {
-    const saved = localStorage.getItem('learnopia_activity_logs');
-    return saved ? JSON.parse(saved) : [
+    setActivityLogs(savedLogs ? JSON.parse(savedLogs) : [
       { id: 'init-1', event: 'Learn-o-pia system database initialized.', timestamp: new Date(Date.now() - 3600000 * 2).toISOString() }
-    ];
-  });
-
-  // Sync to stable localStorage keys
-  useEffect(() => {
-    localStorage.setItem('learnopia_users_stable', JSON.stringify(users));
-  }, [users]);
-
-  useEffect(() => {
-    localStorage.setItem('learnopia_courses_stable', JSON.stringify(courses));
-  }, [courses]);
-
-  useEffect(() => {
-    localStorage.setItem('learnopia_subjects_stable', JSON.stringify(subjects));
-  }, [subjects]);
-
-  useEffect(() => {
-    localStorage.setItem('learnopia_current_user_stable', JSON.stringify(currentUser));
-  }, [currentUser]);
-
-  useEffect(() => {
-    localStorage.setItem('learnopia_activity_logs', JSON.stringify(activityLogs));
-  }, [activityLogs]);
-
-  // Log helper
-  const addLog = (event) => {
-    setActivityLogs(prev => [
-      {
-        id: 'log-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
-        event,
-        timestamp: new Date().toISOString()
-      },
-      ...prev
-    ].slice(0, 100)); // Cap logs at 100 entries
+    ]);
   };
 
-  // Auth Operations
-  const login = (email, password) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const found = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
-        if (!found) {
-          reject(new Error('Invalid email or password.'));
-          return;
-        }
-        if (found.status === 'suspended') {
-          reject(new Error('Your account has been suspended by an administrator.'));
-          return;
-        }
-        setCurrentUser(found);
-        addLog(`User logged in: ${found.name} (${found.role.toUpperCase()})`);
-        resolve(found);
-      }, 300);
-    });
+  const syncSupabase = async () => {
+    try {
+      // 1. Users profiles
+      const { data: profiles } = await supabase.from('profiles').select('*');
+      if (profiles) setUsers(profiles);
+
+      // 2. Courses
+      const { data: coursesData } = await supabase.from('courses').select('*');
+      if (coursesData) setCourses(coursesData);
+
+      // 3. Subjects assembly (nested structure)
+      const { data: subs } = await supabase.from('subjects').select('*');
+      const { data: playlists } = await supabase.from('playlists').select('*');
+      const { data: videos } = await supabase.from('videos').select('*');
+      const { data: materials } = await supabase.from('materials').select('*');
+
+      if (subs) {
+        const assembled = subs.map(s => {
+          const subPlaylists = (playlists || [])
+            .filter(pl => pl.subject_id === s.id)
+            .map(pl => ({
+              id: pl.id,
+              title: pl.title,
+              description: pl.description,
+              likes: pl.likes || [],
+              videos: (videos || [])
+                .filter(v => v.playlist_id === pl.id)
+                .map(v => ({
+                  id: v.id,
+                  title: v.title,
+                  description: v.description,
+                  youtubeId: v.youtube_id
+                }))
+            }));
+
+          const subMaterials = (materials || [])
+            .filter(m => m.subject_id === s.id)
+            .map(m => ({
+              id: m.id,
+              title: m.title,
+              url: m.url,
+              sectionName: m.section_name
+            }));
+
+          return {
+            id: s.id,
+            courseId: s.course_id,
+            semester: s.semester,
+            title: s.title,
+            playlists: subPlaylists,
+            customMaterialSections: s.custom_material_sections || ['Notes', 'Organizer', 'Past Year Papers'],
+            materials: subMaterials
+          };
+        });
+        setSubjects(assembled);
+      }
+
+      // 4. Logs
+      const { data: logs } = await supabase
+        .from('activity_logs')
+        .select('*')
+        .order('timestamp', { ascending: false });
+      if (logs) setActivityLogs(logs);
+
+      // 5. Auth Sync
+      const { data: authSession } = await supabase.auth.getSession();
+      if (authSession?.session?.user) {
+        const { data: currentProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authSession.session.user.id)
+          .single();
+        if (currentProfile) setCurrentUser(currentProfile);
+      }
+    } catch (err) {
+      console.error('Supabase load error:', err);
+    }
   };
 
-  const loginWithGoogle = ({ name, email, picture }) => {
-    const existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (existing) {
-      if (existing.status === 'suspended') {
+  useEffect(() => {
+    if (isSupabaseLive) {
+      syncSupabase();
+    } else {
+      syncLocal();
+    }
+  }, [isSupabaseLive]);
+
+  // Save changes locally if in local mode
+  useEffect(() => {
+    if (!isSupabaseLive && users.length > 0) {
+      localStorage.setItem('learnopia_users_stable', JSON.stringify(users));
+    }
+  }, [users, isSupabaseLive]);
+
+  useEffect(() => {
+    if (!isSupabaseLive && courses.length > 0) {
+      localStorage.setItem('learnopia_courses_stable', JSON.stringify(courses));
+    }
+  }, [courses, isSupabaseLive]);
+
+  useEffect(() => {
+    if (!isSupabaseLive && subjects.length > 0) {
+      localStorage.setItem('learnopia_subjects_stable', JSON.stringify(subjects));
+    }
+  }, [subjects, isSupabaseLive]);
+
+  useEffect(() => {
+    if (!isSupabaseLive) {
+      localStorage.setItem('learnopia_current_user_stable', JSON.stringify(currentUser));
+    }
+  }, [currentUser, isSupabaseLive]);
+
+  useEffect(() => {
+    if (!isSupabaseLive && activityLogs.length > 0) {
+      localStorage.setItem('learnopia_activity_logs', JSON.stringify(activityLogs));
+    }
+  }, [activityLogs, isSupabaseLive]);
+
+  // Log Helper
+  const addLog = async (event) => {
+    if (isSupabaseLive) {
+      await supabase.from('activity_logs').insert([{ event }]);
+      syncSupabase();
+    } else {
+      setActivityLogs(prev => [
+        { id: 'log-' + Date.now(), event, timestamp: new Date().toISOString() },
+        ...prev
+      ].slice(0, 100));
+    }
+  };
+
+  // ── Database Operations ───────────────────────────────────────────────────
+
+  const login = async (email, password) => {
+    if (isSupabaseLive) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.toLowerCase(),
+        password
+      });
+      if (error) throw error;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profile.status === 'suspended') {
+        await supabase.auth.signOut();
         throw new Error('Your account has been suspended by an administrator.');
       }
-      setCurrentUser(existing);
-      addLog(`User logged in via Google: ${existing.name} (${existing.role.toUpperCase()})`);
-      return existing;
+
+      setCurrentUser(profile);
+      addLog(`User logged in: ${profile.name} (${profile.role.toUpperCase()})`);
+      return profile;
+    } else {
+      const found = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+      if (!found) throw new Error('Invalid email or password.');
+      if (found.status === 'suspended') throw new Error('Your account has been suspended.');
+      setCurrentUser(found);
+      addLog(`User logged in: ${found.name} (${found.role.toUpperCase()})`);
+      return found;
     }
-    const newUser = {
-      id: 'u-g-' + Date.now(),
-      email: email.toLowerCase(),
-      name,
-      picture,
-      role: 'learner',
-      status: 'active',
-      password: null,
-      enrolledCourses: []
-    };
-    setUsers(prev => [...prev, newUser]);
-    setCurrentUser(newUser);
-    addLog(`New user registered via Google: ${newUser.name} (${newUser.email})`);
-    return newUser;
   };
 
-  const registerUser = (email, name, password) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const exists = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-        if (exists) {
-          reject(new Error('Email is already registered.'));
-          return;
-        }
+  const loginWithGoogle = async ({ name, email, picture }) => {
+    if (isSupabaseLive) {
+      // With OAuth providers Google Sign-in flow completes externally.
+      // We upsert the user profile into Supabase
+      const { data: authSession } = await supabase.auth.getSession();
+      if (!authSession?.session?.user) return;
 
-        const newUser = {
-          id: 'u-' + (users.length + 1),
-          email: email.toLowerCase(),
-          name,
-          role: 'learner',
-          status: 'active',
-          password,
-          enrolledCourses: []
-        };
+      const userId = authSession.session.user.id;
+      const { data: existing } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-        setUsers(prev => [...prev, newUser]);
-        setCurrentUser(newUser);
-        addLog(`New user registered: ${newUser.name} (${newUser.email})`);
-        resolve(newUser);
-      }, 300);
-    });
+      if (existing) {
+        if (existing.status === 'suspended') throw new Error('Your account is suspended.');
+        setCurrentUser(existing);
+        return existing;
+      }
+
+      const newProfile = {
+        id: userId,
+        email: email.toLowerCase(),
+        name,
+        role: 'learner',
+        status: 'active',
+        enrolled_courses: []
+      };
+
+      await supabase.from('profiles').insert([newProfile]);
+      setCurrentUser(newProfile);
+      addLog(`New user registered via Google: ${name}`);
+      syncSupabase();
+      return newProfile;
+    } else {
+      const existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (existing) {
+        setCurrentUser(existing);
+        addLog(`User logged in via Google: ${existing.name}`);
+        return existing;
+      }
+      const newUser = {
+        id: 'u-g-' + Date.now(),
+        email: email.toLowerCase(),
+        name,
+        picture,
+        role: 'learner',
+        status: 'active',
+        password: null,
+        enrolledCourses: []
+      };
+      setUsers(prev => [...prev, newUser]);
+      setCurrentUser(newUser);
+      addLog(`New user registered via Google: ${newUser.name}`);
+      return newUser;
+    }
   };
 
-  const logout = () => {
+  const registerUser = async (email, name, password) => {
+    if (isSupabaseLive) {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.toLowerCase(),
+        password
+      });
+      if (error) throw error;
+
+      const newProfile = {
+        id: data.user.id,
+        email: email.toLowerCase(),
+        name,
+        role: 'learner',
+        status: 'active',
+        enrolled_courses: []
+      };
+
+      await supabase.from('profiles').insert([newProfile]);
+      setCurrentUser(newProfile);
+      addLog(`New user registered: ${name}`);
+      syncSupabase();
+      return newProfile;
+    } else {
+      const exists = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (exists) throw new Error('Email is already registered.');
+
+      const newUser = {
+        id: 'u-' + (users.length + 1),
+        email: email.toLowerCase(),
+        name,
+        role: 'learner',
+        status: 'active',
+        password,
+        enrolledCourses: []
+      };
+
+      setUsers(prev => [...prev, newUser]);
+      setCurrentUser(newUser);
+      addLog(`New user registered: ${newUser.name}`);
+      return newUser;
+    }
+  };
+
+  const logout = async () => {
+    if (isSupabaseLive) {
+      await supabase.auth.signOut();
+    }
     if (currentUser) {
       addLog(`User logged out: ${currentUser.name}`);
     }
     setCurrentUser(null);
   };
 
-  const requestCreatorStatus = (userId) => {
-    setUsers(prev => prev.map(u => {
-      if (u.id === userId) {
-        return { ...u, creatorStatus: 'pending' };
+  const requestCreatorStatus = async (userId) => {
+    if (isSupabaseLive) {
+      await supabase
+        .from('profiles')
+        .update({ creator_status: 'pending' })
+        .eq('id', userId);
+      addLog(`Creator permission requested.`);
+      syncSupabase();
+    } else {
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, creatorStatus: 'pending' } : u));
+      if (currentUser && currentUser.id === userId) {
+        setCurrentUser(prev => ({ ...prev, creatorStatus: 'pending' }));
       }
-      return u;
-    }));
-    const usr = users.find(u => u.id === userId);
-    if (usr) {
-      addLog(`Creator permission requested by: ${usr.name}`);
-    }
-    if (currentUser && currentUser.id === userId) {
-      setCurrentUser(prev => ({ ...prev, creatorStatus: 'pending' }));
+      addLog(`Creator permission requested.`);
     }
   };
 
-  const enrollInCourse = (courseId) => {
+  const enrollInCourse = async (courseId) => {
     if (!currentUser) return;
-    setUsers(prev => prev.map(u => {
-      if (u.id === currentUser.id) {
-        const alreadyEnrolled = u.enrolledCourses.includes(courseId);
-        const updated = alreadyEnrolled ? u.enrolledCourses : [...u.enrolledCourses, courseId];
-        return { ...u, enrolledCourses: updated };
-      }
-      return u;
-    }));
+    const currentEnrolled = currentUser.enrolledCourses || [];
+    if (currentEnrolled.includes(courseId)) return;
 
-    const course = courses.find(c => c.id === courseId);
-    if (course) {
-      addLog(`Student ${currentUser.name} enrolled in: "${course.title}"`);
-    }
+    const updated = [...currentEnrolled, courseId];
 
-    setCurrentUser(prev => {
-      const alreadyEnrolled = prev.enrolledCourses.includes(courseId);
-      const updated = alreadyEnrolled ? prev.enrolledCourses : [...prev.enrolledCourses, courseId];
-      return { ...prev, enrolledCourses: updated };
-    });
-  };
-
-  // Course Management
-  const addCourse = (title, department, description, price = 0, isDegree = false) => {
-    if (!currentUser || (currentUser.role !== 'creator' && currentUser.role !== 'admin')) return;
-
-    const newCourse = {
-      id: 'c-' + (courses.length + 1),
-      title,
-      department,
-      description,
-      price: parseFloat(price) || 0,
-      creatorId: currentUser.id,
-      creatorName: currentUser.name,
-      isDegree
-    };
-
-    setCourses(prev => [...prev, newCourse]);
-    addLog(`New ${isDegree ? 'Degree Program' : 'Standard Course'} created: "${title}" by ${currentUser.name}`);
-  };
-
-  const editCourse = (courseId, fields) => {
-    setCourses(prev => prev.map(c => {
-      if (c.id === courseId) {
-        const updated = { ...c, ...fields };
-        addLog(`Course updated: "${updated.title}" properties modified.`);
-        return updated;
-      }
-      return c;
-    }));
-  };
-
-  const deleteCourse = (courseId) => {
-    const target = courses.find(c => c.id === courseId);
-    setCourses(prev => prev.filter(c => c.id !== courseId));
-    if (target) {
-      addLog(`Course deleted: "${target.title}"`);
+    if (isSupabaseLive) {
+      await supabase
+        .from('profiles')
+        .update({ enrolled_courses: updated })
+        .eq('id', currentUser.id);
+      addLog(`Student enrolled in course.`);
+      syncSupabase();
+    } else {
+      setUsers(prev => prev.map(u => u.id === currentUser.id ? { ...u, enrolledCourses: updated } : u));
+      setCurrentUser(prev => ({ ...prev, enrolledCourses: updated }));
+      addLog(`Student enrolled in course.`);
     }
   };
 
-  const addSubject = (courseId, semester, title) => {
-    const newSubject = {
-      id: 's-' + (subjects.length + 1),
-      courseId,
-      semester: parseInt(semester) || 1,
-      title,
-      playlists: [],
-      customMaterialSections: ['Notes', 'Organizer', 'Past Year Papers'],
-      materials: []
-    };
-
-    setSubjects(prev => [...prev, newSubject]);
-    addLog(`Subject added: "${title}" (Semester ${semester})`);
-  };
-
-  const deleteSubject = (subjectId) => {
-    const target = subjects.find(s => s.id === subjectId);
-    setSubjects(prev => prev.filter(s => s.id !== subjectId));
-    if (target) {
-      addLog(`Subject deleted: "${target.title}"`);
+  const addCourse = async (title, department, description, price = 0, isDegree = false) => {
+    if (!currentUser) return;
+    if (isSupabaseLive) {
+      await supabase.from('courses').insert([{
+        title,
+        department,
+        description,
+        price: parseFloat(price) || 0,
+        creator_id: currentUser.id,
+        creator_name: currentUser.name,
+        is_degree: isDegree
+      }]);
+      addLog(`Course created: "${title}"`);
+      syncSupabase();
+    } else {
+      const newCourse = {
+        id: 'c-' + (courses.length + 1),
+        title,
+        department,
+        description,
+        price: parseFloat(price) || 0,
+        creatorId: currentUser.id,
+        creatorName: currentUser.name,
+        isDegree
+      };
+      setCourses(prev => [...prev, newCourse]);
+      addLog(`Course created: "${title}"`);
     }
   };
 
-  const addSubjectPlaylist = (subjectId, title, description) => {
-    setSubjects(prev => prev.map(s => {
-      if (s.id === subjectId) {
-        const newPlaylist = {
-          id: 'pl-' + Date.now(),
-          title,
-          description,
-          likes: [],
-          videos: []
-        };
-        const currentPlaylists = s.playlists || [];
-        addLog(`Playlist "${title}" added under subject "${s.title}"`);
-        return { ...s, playlists: [...currentPlaylists, newPlaylist] };
-      }
-      return s;
-    }));
+  const editCourse = async (courseId, fields) => {
+    if (isSupabaseLive) {
+      await supabase
+        .from('courses')
+        .update({
+          title: fields.title,
+          description: fields.description,
+          price: fields.price !== undefined ? parseFloat(fields.price) : undefined
+        })
+        .eq('id', courseId);
+      addLog(`Course updated.`);
+      syncSupabase();
+    } else {
+      setCourses(prev => prev.map(c => c.id === courseId ? { ...c, ...fields } : c));
+      addLog(`Course updated.`);
+    }
   };
 
-  const deleteSubjectPlaylist = (subjectId, playlistId) => {
-    setSubjects(prev => prev.map(s => {
-      if (s.id === subjectId) {
-        const currentPlaylists = s.playlists || [];
-        const playlist = currentPlaylists.find(p => p.id === playlistId);
-        if (playlist) {
-          addLog(`Playlist "${playlist.title}" deleted from subject "${s.title}"`);
+  const deleteCourse = async (courseId) => {
+    if (isSupabaseLive) {
+      await supabase.from('courses').delete().eq('id', courseId);
+      addLog(`Course deleted.`);
+      syncSupabase();
+    } else {
+      setCourses(prev => prev.filter(c => c.id !== courseId));
+      addLog(`Course deleted.`);
+    }
+  };
+
+  const addSubject = async (courseId, semester, title) => {
+    if (isSupabaseLive) {
+      await supabase.from('subjects').insert([{
+        course_id: courseId,
+        semester: parseInt(semester) || 1,
+        title,
+        custom_material_sections: ['Notes', 'Organizer', 'Past Year Papers']
+      }]);
+      addLog(`Subject added: "${title}"`);
+      syncSupabase();
+    } else {
+      const newSubject = {
+        id: 's-' + (subjects.length + 1),
+        courseId,
+        semester: parseInt(semester) || 1,
+        title,
+        playlists: [],
+        customMaterialSections: ['Notes', 'Organizer', 'Past Year Papers'],
+        materials: []
+      };
+      setSubjects(prev => [...prev, newSubject]);
+      addLog(`Subject added: "${title}"`);
+    }
+  };
+
+  const deleteSubject = async (subjectId) => {
+    if (isSupabaseLive) {
+      await supabase.from('subjects').delete().eq('id', subjectId);
+      addLog(`Subject deleted.`);
+      syncSupabase();
+    } else {
+      setSubjects(prev => prev.filter(s => s.id !== subjectId));
+      addLog(`Subject deleted.`);
+    }
+  };
+
+  const addSubjectPlaylist = async (subjectId, title, description) => {
+    if (isSupabaseLive) {
+      await supabase.from('playlists').insert([{
+        subject_id: subjectId,
+        title,
+        description,
+        likes: []
+      }]);
+      addLog(`Playlist added: "${title}"`);
+      syncSupabase();
+    } else {
+      setSubjects(prev => prev.map(s => {
+        if (s.id === subjectId) {
+          const newPlaylist = {
+            id: 'pl-' + Date.now(),
+            title,
+            description,
+            likes: [],
+            videos: []
+          };
+          return { ...s, playlists: [...(s.playlists || []), newPlaylist] };
         }
-        return { ...s, playlists: currentPlaylists.filter(p => p.id !== playlistId) };
-      }
-      return s;
-    }));
+        return s;
+      }));
+      addLog(`Playlist added: "${title}"`);
+    }
   };
 
-  const addVideoToPlaylist = (subjectId, playlistId, title, description, url) => {
+  const deleteSubjectPlaylist = async (subjectId, playlistId) => {
+    if (isSupabaseLive) {
+      await supabase.from('playlists').delete().eq('id', playlistId);
+      addLog(`Playlist deleted.`);
+      syncSupabase();
+    } else {
+      setSubjects(prev => prev.map(s => s.id === subjectId ? { ...s, playlists: (s.playlists || []).filter(p => p.id !== playlistId) } : s));
+      addLog(`Playlist deleted.`);
+    }
+  };
+
+  const addVideoToPlaylist = async (subjectId, playlistId, title, description, url) => {
     let videoId = '';
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
@@ -492,187 +609,243 @@ export function DatabaseProvider({ children }) {
       throw new Error('Please submit a valid YouTube video link.');
     }
 
-    setSubjects(prev => prev.map(s => {
-      if (s.id === subjectId) {
-        const updatedPlaylists = s.playlists.map(pl => {
-          if (pl.id === playlistId) {
-            const newVideo = {
-              id: 'v-' + Date.now(),
-              title,
-              description,
-              youtubeId: videoId
-            };
-            addLog(`Video "${title}" embedded in playlist "${pl.title}"`);
-            return { ...pl, videos: [...pl.videos, newVideo] };
-          }
-          return pl;
-        });
-        return { ...s, playlists: updatedPlaylists };
-      }
-      return s;
-    }));
-  };
-
-  const deleteVideoFromPlaylist = (subjectId, playlistId, videoId) => {
-    setSubjects(prev => prev.map(s => {
-      if (s.id === subjectId) {
-        const updatedPlaylists = s.playlists.map(pl => {
-          if (pl.id === playlistId) {
-            const targetVideo = pl.videos.find(v => v.id === videoId);
-            if (targetVideo) {
-              addLog(`Video "${targetVideo.title}" removed from playlist "${pl.title}"`);
+    if (isSupabaseLive) {
+      await supabase.from('videos').insert([{
+        playlist_id: playlistId,
+        title,
+        description,
+        youtube_id: videoId
+      }]);
+      addLog(`Video added: "${title}"`);
+      syncSupabase();
+    } else {
+      setSubjects(prev => prev.map(s => {
+        if (s.id === subjectId) {
+          const updatedPlaylists = (s.playlists || []).map(pl => {
+            if (pl.id === playlistId) {
+              const newVideo = { id: 'v-' + Date.now(), title, description, youtubeId: videoId };
+              return { ...pl, videos: [...(pl.videos || []), newVideo] };
             }
-            return { ...pl, videos: pl.videos.filter(v => v.id !== videoId) };
-          }
-          return pl;
-        });
-        return { ...s, playlists: updatedPlaylists };
-      }
-      return s;
-    }));
-  };
-
-  const addSubjectMaterialSection = (subjectId, sectionName) => {
-    setSubjects(prev => prev.map(s => {
-      if (s.id === subjectId) {
-        const currentSections = s.customMaterialSections || ['Notes', 'Organizer', 'Past Year Papers'];
-        if (currentSections.includes(sectionName)) return s;
-        addLog(`Material section folder "${sectionName}" created for subject "${s.title}"`);
-        return {
-          ...s,
-          customMaterialSections: [...currentSections, sectionName]
-        };
-      }
-      return s;
-    }));
-  };
-
-  const deleteSubjectMaterialSection = (subjectId, sectionName) => {
-    setSubjects(prev => prev.map(s => {
-      if (s.id === subjectId) {
-        const currentSections = s.customMaterialSections || ['Notes', 'Organizer', 'Past Year Papers'];
-        const currentMaterials = s.materials || [];
-        addLog(`Material section folder "${sectionName}" deleted from subject "${s.title}"`);
-        return {
-          ...s,
-          customMaterialSections: currentSections.filter(name => name !== sectionName),
-          materials: currentMaterials.filter(m => m.sectionName !== sectionName)
-        };
-      }
-      return s;
-    }));
-  };
-
-  const addSubjectMaterial = (subjectId, title, url, sectionName) => {
-    setSubjects(prev => prev.map(s => {
-      if (s.id === subjectId) {
-        const newDoc = {
-          id: 'doc-' + Date.now(),
-          title,
-          url,
-          sectionName
-        };
-        const currentMaterials = s.materials || [];
-        addLog(`Document link "${title}" attached to section "${sectionName}" in subject "${s.title}"`);
-        return { ...s, materials: [...currentMaterials, newDoc] };
-      }
-      return s;
-    }));
-  };
-
-  const deleteSubjectMaterial = (subjectId, materialId) => {
-    setSubjects(prev => prev.map(s => {
-      if (s.id === subjectId) {
-        const currentMaterials = s.materials || [];
-        const doc = currentMaterials.find(d => d.id === materialId);
-        if (doc) {
-          addLog(`Document "${doc.title}" deleted from subject "${s.title}"`);
+            return pl;
+          });
+          return { ...s, playlists: updatedPlaylists };
         }
-        return { ...s, materials: currentMaterials.filter(d => d.id !== materialId) };
-      }
-      return s;
-    }));
+        return s;
+      }));
+      addLog(`Video added: "${title}"`);
+    }
   };
 
-  // Playlist Liking System
-  const togglePlaylistLike = (subjectId, playlistId) => {
-    if (!currentUser) return;
-    setSubjects(prev => prev.map(s => {
-      if (s.id === subjectId) {
-        const updatedPlaylists = s.playlists.map(p => {
-          if (p.id === playlistId) {
-            const hasLiked = p.likes?.includes(currentUser.id);
-            const newLikes = hasLiked
-              ? p.likes.filter(id => id !== currentUser.id)
-              : [...(p.likes || []), currentUser.id];
-            
-            if (hasLiked) {
-              addLog(`Student ${currentUser.name} unliked playlist "${p.title}"`);
-            } else {
-              addLog(`Student ${currentUser.name} liked playlist "${p.title}"`);
+  const deleteVideoFromPlaylist = async (subjectId, playlistId, videoId) => {
+    if (isSupabaseLive) {
+      await supabase.from('videos').delete().eq('id', videoId);
+      addLog(`Video deleted.`);
+      syncSupabase();
+    } else {
+      setSubjects(prev => prev.map(s => {
+        if (s.id === subjectId) {
+          const updatedPlaylists = (s.playlists || []).map(pl => {
+            if (pl.id === playlistId) {
+              return { ...pl, videos: (pl.videos || []).filter(v => v.id !== videoId) };
             }
-            return { ...p, likes: newLikes };
-          }
-          return p;
-        });
-        return { ...s, playlists: updatedPlaylists };
-      }
-      return s;
-    }));
+            return pl;
+          });
+          return { ...s, playlists: updatedPlaylists };
+        }
+        return s;
+      }));
+      addLog(`Video deleted.`);
+    }
   };
 
-  // Admin Dashboard Actions
-  const approveCreator = (userId) => {
-    setUsers(prev => prev.map(u => {
-      if (u.id === userId) {
-        return { ...u, role: 'creator', status: 'active', creatorStatus: 'approved' };
+  const addSubjectMaterialSection = async (subjectId, sectionName) => {
+    if (isSupabaseLive) {
+      const sub = subjects.find(s => s.id === subjectId);
+      if (!sub) return;
+      const current = sub.customMaterialSections || [];
+      if (current.includes(sectionName)) return;
+
+      await supabase
+        .from('subjects')
+        .update({ custom_material_sections: [...current, sectionName] })
+        .eq('id', subjectId);
+      addLog(`Section folder created: "${sectionName}"`);
+      syncSupabase();
+    } else {
+      setSubjects(prev => prev.map(s => {
+        if (s.id === subjectId) {
+          const current = s.customMaterialSections || ['Notes', 'Organizer', 'Past Year Papers'];
+          if (current.includes(sectionName)) return s;
+          return { ...s, customMaterialSections: [...current, sectionName] };
+        }
+        return s;
+      }));
+      addLog(`Section folder created: "${sectionName}"`);
+    }
+  };
+
+  const deleteSubjectMaterialSection = async (subjectId, sectionName) => {
+    if (isSupabaseLive) {
+      const sub = subjects.find(s => s.id === subjectId);
+      if (!sub) return;
+      const current = sub.customMaterialSections || [];
+
+      // Delete material links belonging to this section from database
+      await supabase.from('materials').delete().eq('subject_id', subjectId).eq('section_name', sectionName);
+
+      await supabase
+        .from('subjects')
+        .update({ custom_material_sections: current.filter(n => n !== sectionName) })
+        .eq('id', subjectId);
+
+      addLog(`Section folder deleted.`);
+      syncSupabase();
+    } else {
+      setSubjects(prev => prev.map(s => {
+        if (s.id === subjectId) {
+          const current = s.customMaterialSections || ['Notes', 'Organizer', 'Past Year Papers'];
+          const currentMaterials = s.materials || [];
+          return {
+            ...s,
+            customMaterialSections: current.filter(n => n !== sectionName),
+            materials: currentMaterials.filter(m => m.sectionName !== sectionName)
+          };
+        }
+        return s;
+      }));
+      addLog(`Section folder deleted.`);
+    }
+  };
+
+  const addSubjectMaterial = async (subjectId, title, url, sectionName) => {
+    if (isSupabaseLive) {
+      await supabase.from('materials').insert([{
+        subject_id: subjectId,
+        title,
+        url,
+        section_name: sectionName
+      }]);
+      addLog(`Document attached: "${title}"`);
+      syncSupabase();
+    } else {
+      setSubjects(prev => prev.map(s => {
+        if (s.id === subjectId) {
+          const newDoc = { id: 'doc-' + Date.now(), title, url, sectionName };
+          return { ...s, materials: [...(s.materials || []), newDoc] };
+        }
+        return s;
+      }));
+      addLog(`Document attached: "${title}"`);
+    }
+  };
+
+  const deleteSubjectMaterial = async (subjectId, materialId) => {
+    if (isSupabaseLive) {
+      await supabase.from('materials').delete().eq('id', materialId);
+      addLog(`Document deleted.`);
+      syncSupabase();
+    } else {
+      setSubjects(prev => prev.map(s => s.id === subjectId ? { ...s, materials: (s.materials || []).filter(m => m.id !== materialId) } : s));
+      addLog(`Document deleted.`);
+    }
+  };
+
+  const togglePlaylistLike = async (subjectId, playlistId) => {
+    if (!currentUser) return;
+    const sub = subjects.find(s => s.id === subjectId);
+    if (!sub) return;
+    const pl = (sub.playlists || []).find(p => p.id === playlistId);
+    if (!pl) return;
+
+    const likes = pl.likes || [];
+    const hasLiked = likes.includes(currentUser.id);
+    const updatedLikes = hasLiked
+      ? likes.filter(id => id !== currentUser.id)
+      : [...likes, currentUser.id];
+
+    if (isSupabaseLive) {
+      await supabase
+        .from('playlists')
+        .update({ likes: updatedLikes })
+        .eq('id', playlistId);
+      addLog(hasLiked ? 'Unliked playlist.' : 'Liked playlist.');
+      syncSupabase();
+    } else {
+      setSubjects(prev => prev.map(s => {
+        if (s.id === subjectId) {
+          const updated = (s.playlists || []).map(p => p.id === playlistId ? { ...p, likes: updatedLikes } : p);
+          return { ...s, playlists: updated };
+        }
+        return s;
+      }));
+      addLog(hasLiked ? 'Unliked playlist.' : 'Liked playlist.');
+    }
+  };
+
+  const approveCreator = async (userId) => {
+    if (isSupabaseLive) {
+      await supabase
+        .from('profiles')
+        .update({ role: 'creator', status: 'active', creator_status: 'approved' })
+        .eq('id', userId);
+      addLog(`Creator approved.`);
+      syncSupabase();
+    } else {
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: 'creator', status: 'active', creatorStatus: 'approved' } : u));
+      if (currentUser && currentUser.id === userId) {
+        setCurrentUser(prev => ({ ...prev, role: 'creator', status: 'active', creatorStatus: 'approved' }));
       }
-      return u;
-    }));
+      addLog(`Creator approved.`);
+    }
+  };
+
+  const rejectCreator = async (userId) => {
+    if (isSupabaseLive) {
+      await supabase
+        .from('profiles')
+        .update({ creator_status: 'rejected' })
+        .eq('id', userId);
+      addLog(`Creator rejected.`);
+      syncSupabase();
+    } else {
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, creatorStatus: 'rejected' } : u));
+      if (currentUser && currentUser.id === userId) {
+        setCurrentUser(prev => ({ ...prev, creatorStatus: 'rejected' }));
+      }
+      addLog(`Creator rejected.`);
+    }
+  };
+
+  const makeAdmin = async (userId) => {
+    if (isSupabaseLive) {
+      await supabase
+        .from('profiles')
+        .update({ role: 'admin', status: 'active' })
+        .eq('id', userId);
+      addLog(`Promoted user to admin.`);
+      syncSupabase();
+    } else {
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: 'admin', status: 'active' } : u));
+      addLog(`Promoted user to admin.`);
+    }
+  };
+
+  const toggleUserStatus = async (userId) => {
     const target = users.find(u => u.id === userId);
-    if (target) {
-      addLog(`Creator request APPROVED for: ${target.name}`);
-    }
-    if (currentUser && currentUser.id === userId) {
-      setCurrentUser(prev => ({ ...prev, role: 'creator', status: 'active', creatorStatus: 'approved' }));
-    }
-  };
+    if (!target) return;
+    const newStatus = target.status === 'active' ? 'suspended' : 'active';
 
-  const rejectCreator = (userId) => {
-    setUsers(prev => prev.map(u => {
-      if (u.id === userId) {
-        return { ...u, creatorStatus: 'rejected' };
-      }
-      return u;
-    }));
-    const target = users.find(u => u.id === userId);
-    if (target) {
-      addLog(`Creator request REJECTED for: ${target.name}`);
+    if (isSupabaseLive) {
+      await supabase
+        .from('profiles')
+        .update({ status: newStatus })
+        .eq('id', userId);
+      addLog(`User status changed to ${newStatus}.`);
+      syncSupabase();
+    } else {
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: newStatus } : u));
+      addLog(`User status changed to ${newStatus}.`);
     }
-    if (currentUser && currentUser.id === userId) {
-      setCurrentUser(prev => ({ ...prev, creatorStatus: 'rejected' }));
-    }
-  };
-
-  const makeAdmin = (userId) => {
-    setUsers(prev => prev.map(u => {
-      if (u.id === userId) {
-        addLog(`User "${u.name}" promoted to Admin role`);
-        return { ...u, role: 'admin', status: 'active' };
-      }
-      return u;
-    }));
-  };
-
-  const toggleUserStatus = (userId) => {
-    setUsers(prev => prev.map(u => {
-      if (u.id === userId) {
-        const newStatus = u.status === 'active' ? 'suspended' : 'active';
-        addLog(`User "${u.name}" account status set to ${newStatus.toUpperCase()}`);
-        return { ...u, status: newStatus };
-      }
-      return u;
-    }));
   };
 
   return (
