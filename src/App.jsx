@@ -43,6 +43,15 @@ function AppContent() {
   const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);
   const [selectedVideoIndex, setSelectedVideoIndex] = useState(0);
 
+  // Auto redirect on login/logout
+  useEffect(() => {
+    if (!currentUser) {
+      setCurrentView('auth');
+    } else {
+      setCurrentView(prev => prev === 'auth' ? 'learning' : prev);
+    }
+  }, [currentUser]);
+
   if (authLoading) {
     return (
       <div style={styles.loadingContainer}>
@@ -53,15 +62,6 @@ function AppContent() {
       </div>
     );
   }
-
-  // Auto redirect on login/logout
-  useEffect(() => {
-    if (!currentUser) {
-      setCurrentView('auth');
-    } else {
-      setCurrentView(prev => prev === 'auth' ? 'learning' : prev);
-    }
-  }, [currentUser]);
 
   // Route security check helpers
   const isCreatorOrAdmin = currentUser && (currentUser.role === 'creator' || currentUser.role === 'admin' || currentUser.role === 'owner');
