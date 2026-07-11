@@ -30,14 +30,6 @@ export default function Auth() {
 
   const [success, setSuccess] = useState(null);
 
-  const handleQuickFill = (targetRole) => {
-    setIsLogin(true);
-    setError(null);
-    setSuccess(null);
-    if (targetRole === 'admin') { setEmail('admin@learnopia.edu'); setPassword('admin123'); }
-    else if (targetRole === 'creator') { setEmail('creator@learnopia.edu'); setPassword('creator123'); }
-    else { setEmail('learner@learnopia.edu'); setPassword('learner123'); }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -248,20 +240,6 @@ export default function Auth() {
             {loading ? <span style={styles.spinner} /> : isLogin ? 'Sign In' : 'Create Account'}
           </button>
         </form>
-
-        {/* Developer Quick Fills */}
-        {isLogin && (
-          <div style={styles.quickFillContainer}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '8px', textAlign: 'center' }}>
-              ⚡ Developer Quick Fills (Skip setup)
-            </span>
-            <div style={styles.quickFillGrid}>
-              <button onClick={() => handleQuickFill('learner')} style={styles.quickFillBtn}>Test Student</button>
-              <button onClick={() => handleQuickFill('creator')} style={styles.quickFillBtn}>Test Creator</button>
-              <button onClick={() => handleQuickFill('admin')} style={styles.quickFillBtn}>Test Admin</button>
-            </div>
-          </div>
-        )}
 
       </div>
     </div>

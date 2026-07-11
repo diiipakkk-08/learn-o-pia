@@ -38,17 +38,28 @@ function AccessDenied({ requiredRole, setCurrentView }) {
 }
 
 function AppContent() {
-  const { currentUser } = useDatabase();
+  const { currentUser, authLoading } = useDatabase();
   const [currentView, setCurrentView] = useState('learning');
   const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);
   const [selectedVideoIndex, setSelectedVideoIndex] = useState(0);
+
+  if (authLoading) {
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.spinner}></div>
+        <p style={{ marginTop: '16px', color: 'var(--text-secondary)', fontSize: '0.8rem', letterSpacing: '0.08em', fontWeight: 600 }}>
+          LOADING SYSTEM PROFILE...
+        </p>
+      </div>
+    );
+  }
 
   // Auto redirect on login/logout
   useEffect(() => {
     if (!currentUser) {
       setCurrentView('auth');
     } else {
-      setCurrentView('learning');
+      setCurrentView(prev => prev === 'auth' ? 'learning' : prev);
     }
   }, [currentUser]);
 
@@ -149,5 +160,21 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     textAlign: 'center'
+  },
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '100vh',
+    background: '#0c0b14'
+  },
+  spinner: {
+    width: '40px',
+    height: '40px',
+    border: '3px solid rgba(139, 92, 246, 0.1)',
+    borderTopColor: 'var(--primary)',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite'
   }
 };

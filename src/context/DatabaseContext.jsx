@@ -119,6 +119,7 @@ export function DatabaseProvider({ children }) {
   const [subjects, setSubjects] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [activityLogs, setActivityLogs] = useState([]);
+  const [authLoading, setAuthLoading] = useState(true);
 
   // Check if Supabase client is active
   const isSupabaseLive = !!supabase;
@@ -161,6 +162,7 @@ export function DatabaseProvider({ children }) {
     setActivityLogs(savedLogs ? JSON.parse(savedLogs) : [
       { id: 'init-1', event: 'Learn-o-pia system database initialized.', timestamp: new Date(Date.now() - 3600000 * 2).toISOString() }
     ]);
+    setAuthLoading(false);
   };
 
   const syncSupabase = async () => {
@@ -263,6 +265,8 @@ export function DatabaseProvider({ children }) {
       }
     } catch (err) {
       console.error('Supabase load error:', err);
+    } finally {
+      setAuthLoading(false);
     }
   };
 
@@ -963,6 +967,7 @@ export function DatabaseProvider({ children }) {
       courses,
       subjects,
       currentUser,
+      authLoading,
       activityLogs,
       login,
       loginWithGoogle,

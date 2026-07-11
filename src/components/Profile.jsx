@@ -173,7 +173,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
                 <h3 style={{ fontSize: '1.1rem', color: 'var(--warning)', margin: 0 }}>Application Pending</h3>
               </div>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                Your request is waiting on admin approval. To speed this up, you can log out and log back in using the **Test Admin** quick-fill credentials (`admin@learnopia.edu` / `admin123`) to approve yourself instantly.
+                Your request is waiting on administrator audit. You will unlock course creation immediately upon approval.
               </p>
             </div>
           )}
