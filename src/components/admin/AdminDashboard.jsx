@@ -3,7 +3,7 @@ import { useDatabase } from '../../context/DatabaseContext';
 import { Users, BookOpen, ShieldCheck, Check, Ban, Award, FileText, Shield, X } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const { currentUser, users, courses, subjects, activityLogs, approveCreator, rejectCreator, makeAdmin, toggleUserStatus, changeUserRole } = useDatabase();
+  const { currentUser, users, courses, subjects, activityLogs, approveCreator, rejectCreator, makeAdmin, toggleUserStatus, changeUserRole, pruneActivityLogs } = useDatabase();
   const [activeTab, setActiveTab] = useState('verification');
   const [userSearchQuery, setUserSearchQuery] = useState('');
 
@@ -311,8 +311,40 @@ export default function AdminDashboard() {
           {/* TAB 3: Real Platform Activity Logs */}
           {activeTab === 'logs' && (
             <div style={styles.pane}>
-              <h3 style={styles.paneTitle}>Platform Activity Logs</h3>
-              <p style={styles.paneSub}>A chronological trace of user signups, creator status approvals, and course creations.</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <h3 style={styles.paneTitle}>Platform Activity Logs</h3>
+                  <p style={styles.paneSub}>A chronological trace of user updates, database modifications, and creator approvals.</p>
+                </div>
+                
+                {/* Pruning Console */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Prune Logs:</span>
+                  <select 
+                    id="log-prune-period"
+                    className="form-input" 
+                    style={{ padding: '4px 8px', fontSize: '0.75rem', width: '140px', background: '#1c1929', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}
+                  >
+                    <option value="1h">Older than 1 hour</option>
+                    <option value="1d">Older than 1 day</option>
+                    <option value="1w">Older than 1 week</option>
+                    <option value="1m">Older than 1 month</option>
+                    <option value="all">Delete All Logs</option>
+                  </select>
+                  <button 
+                    onClick={() => {
+                      const sel = document.getElementById('log-prune-period');
+                      if (sel && window.confirm(`Are you sure you want to delete logs for: ${sel.options[sel.selectedIndex].text}?`)) {
+                        pruneActivityLogs(sel.value);
+                      }
+                    }}
+                    className="btn btn-danger"
+                    style={{ padding: '6px 12px', fontSize: '0.75rem' }}
+                  >
+                    Prune
+                  </button>
+                </div>
+              </div>
               
               <div style={styles.logsContainer}>
                 {(!activityLogs || activityLogs.length === 0) ? (

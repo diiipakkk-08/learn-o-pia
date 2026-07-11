@@ -863,50 +863,62 @@ export function DatabaseProvider({ children }) {
   };
 
   const approveCreator = async (userId) => {
+    const targetUser = users.find(u => u.id === userId);
+    const adminName = currentUser ? `${currentUser.name} (${currentUser.email})` : 'System';
+    const targetName = targetUser ? `${targetUser.name} (${targetUser.email})` : `User ID ${userId}`;
+
     if (isSupabaseLive) {
       await supabase
         .from('profiles')
         .update({ role: 'creator', status: 'active', creator_status: 'approved' })
         .eq('id', userId);
-      addLog(`Creator approved.`);
+      addLog(`Creator clearance for user ${targetName} APPROVED by ${adminName}`);
       syncSupabase();
     } else {
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: 'creator', status: 'active', creatorStatus: 'approved' } : u));
       if (currentUser && currentUser.id === userId) {
         setCurrentUser(prev => ({ ...prev, role: 'creator', status: 'active', creatorStatus: 'approved' }));
       }
-      addLog(`Creator approved.`);
+      addLog(`Creator clearance for user ${targetName} APPROVED by ${adminName}`);
     }
   };
 
   const rejectCreator = async (userId) => {
+    const targetUser = users.find(u => u.id === userId);
+    const adminName = currentUser ? `${currentUser.name} (${currentUser.email})` : 'System';
+    const targetName = targetUser ? `${targetUser.name} (${targetUser.email})` : `User ID ${userId}`;
+
     if (isSupabaseLive) {
       await supabase
         .from('profiles')
         .update({ creator_status: 'rejected' })
         .eq('id', userId);
-      addLog(`Creator rejected.`);
+      addLog(`Creator clearance for user ${targetName} REJECTED by ${adminName}`);
       syncSupabase();
     } else {
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, creatorStatus: 'rejected' } : u));
       if (currentUser && currentUser.id === userId) {
         setCurrentUser(prev => ({ ...prev, creatorStatus: 'rejected' }));
       }
-      addLog(`Creator rejected.`);
+      addLog(`Creator clearance for user ${targetName} REJECTED by ${adminName}`);
     }
   };
 
   const makeAdmin = async (userId) => {
+    const targetUser = users.find(u => u.id === userId);
+    const adminName = currentUser ? `${currentUser.name} (${currentUser.email})` : 'System';
+    const targetName = targetUser ? `${targetUser.name} (${targetUser.email})` : `User ID ${userId}`;
+
     if (isSupabaseLive) {
       await supabase
         .from('profiles')
         .update({ role: 'admin', status: 'active' })
         .eq('id', userId);
-      addLog(`Promoted user to admin.`);
+      addLog(`User ${targetName} promoted to Admin status by ${adminName}`);
       syncSupabase();
     } else {
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: 'admin', status: 'active' } : u));
-      addLog(`Promoted user to admin.`);
+      addLog(`User ${targetName} promoted to Admin status by ${adminName}`);
     }
   };
 
@@ -914,21 +926,27 @@ export function DatabaseProvider({ children }) {
     const target = users.find(u => u.id === userId);
     if (!target) return;
     const newStatus = target.status === 'active' ? 'suspended' : 'active';
+    const adminName = currentUser ? `${currentUser.name} (${currentUser.email})` : 'System';
+    const targetName = `${target.name} (${target.email})`;
 
     if (isSupabaseLive) {
       await supabase
         .from('profiles')
         .update({ status: newStatus })
         .eq('id', userId);
-      addLog(`User status changed to ${newStatus}.`);
+      addLog(`User account ${targetName} status changed to ${newStatus.toUpperCase()} by ${adminName}`);
       syncSupabase();
     } else {
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: newStatus } : u));
-      addLog(`User status changed to ${newStatus}.`);
+      addLog(`User account ${targetName} status changed to ${newStatus.toUpperCase()} by ${adminName}`);
     }
   };
 
   const changeUserRole = async (userId, newRole) => {
+    const targetUser = users.find(u => u.id === userId);
+    const adminName = currentUser ? `${currentUser.name} (${currentUser.email})` : 'System';
+    const targetName = targetUser ? `${targetUser.name} (${targetUser.email})` : `User ID ${userId}`;
+
     if (isSupabaseLive) {
       const updates = { role: newRole };
       if (newRole === 'learner') {
@@ -938,7 +956,7 @@ export function DatabaseProvider({ children }) {
         .from('profiles')
         .update(updates)
         .eq('id', userId);
-      addLog(`User role changed to ${newRole}.`);
+      addLog(`Role of user ${targetName} changed to ${newRole.toUpperCase()} by ${adminName}`);
       syncSupabase();
     } else {
       setUsers(prev => prev.map(u => {
@@ -960,7 +978,47 @@ export function DatabaseProvider({ children }) {
           return updated;
         });
       }
-      addLog(`User role changed to ${newRole}.`);
+      addLog(`Role of user ${targetName} changed to ${newRole.toUpperCase()} by ${adminName}`);
+    }
+  };
+
+  const pruneActivityLogs = async (period) => {
+    let boundaryDate = null;
+    const now = new Date();
+    
+    if (period === '1h') {
+      boundaryDate = new Date(now.getTime() - 60 * 60 * 1000);
+    } else if (period === '1d') {
+      boundaryDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    } else if (period === '1w') {
+      boundaryDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (period === '1m') {
+      boundaryDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    }
+
+    const adminName = currentUser ? `${currentUser.name} (${currentUser.email})` : 'System';
+
+    if (isSupabaseLive) {
+      if (period === 'all') {
+        await supabase
+          .from('activity_logs')
+          .delete()
+          .gte('timestamp', new Date(0).toISOString());
+      } else if (boundaryDate) {
+        await supabase
+          .from('activity_logs')
+          .delete()
+          .lt('timestamp', boundaryDate.toISOString());
+      }
+      await addLog(`Activity logs cleared (Period: ${period}) by Admin ${adminName}`);
+      syncSupabase();
+    } else {
+      if (period === 'all') {
+        setActivityLogs([]);
+      } else if (boundaryDate) {
+        setActivityLogs(prev => prev.filter(log => new Date(log.timestamp) >= boundaryDate));
+      }
+      addLog(`Activity logs cleared (Period: ${period}) by Admin ${adminName}`);
     }
   };
 
@@ -996,7 +1054,8 @@ export function DatabaseProvider({ children }) {
       rejectCreator,
       makeAdmin,
       toggleUserStatus,
-      changeUserRole
+      changeUserRole,
+      pruneActivityLogs
     }}>
       {children}
     </DatabaseContext.Provider>
