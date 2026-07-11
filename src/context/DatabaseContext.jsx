@@ -338,7 +338,7 @@ export function DatabaseProvider({ children }) {
     }
   };
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (googleUser = null) => {
     if (isSupabaseLive) {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -349,11 +349,31 @@ export function DatabaseProvider({ children }) {
       if (error) throw error;
       return data;
     } else {
-      // Local fallback — mock user login
-      const defaultStudent = users.find(u => u.email === 'learner@learnopia.edu') || SEED_USERS[2];
-      setCurrentUser(defaultStudent);
-      addLog(`User logged in via Google (Mock): ${defaultStudent.name}`);
-      return defaultStudent;
+      // Local fallback — handles both mock login and local google authentication
+      const email = googleUser?.email || 'learner@learnopia.edu';
+      const name = googleUser?.name || 'Alex Carter';
+      const picture = googleUser?.picture || null;
+      
+      const existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (existing) {
+        setCurrentUser(existing);
+        addLog(`User logged in via Google: ${existing.name}`);
+        return existing;
+      }
+      const newUser = {
+        id: 'u-g-' + Date.now(),
+        email: email.toLowerCase(),
+        name,
+        picture,
+        role: 'learner',
+        status: 'active',
+        password: null,
+        enrolledCourses: []
+      };
+      setUsers(prev => [...prev, newUser]);
+      setCurrentUser(newUser);
+      addLog(`New user registered via Google: ${newUser.name}`);
+      return newUser;
     }
   };
 
