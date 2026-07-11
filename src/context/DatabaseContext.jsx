@@ -173,7 +173,19 @@ export function DatabaseProvider({ children }) {
 
       // 2. Courses
       const { data: coursesData } = await supabase.from('courses').select('*');
-      if (coursesData) setCourses(coursesData);
+      if (coursesData) {
+        setCourses(coursesData.map(c => ({
+          id: c.id,
+          title: c.title,
+          department: c.department,
+          description: c.description,
+          price: c.price,
+          creatorId: c.creator_id,
+          creatorName: c.creator_name,
+          isDegree: c.is_degree,
+          author: c.author
+        })));
+      }
 
       // 3. Subjects assembly (nested structure)
       const { data: subs } = await supabase.from('subjects').select('*');
@@ -190,6 +202,7 @@ export function DatabaseProvider({ children }) {
               title: pl.title,
               description: pl.description,
               likes: pl.likes || [],
+              author: pl.author,
               videos: (videos || [])
                 .filter(v => v.playlist_id === pl.id)
                 .map(v => ({
@@ -206,7 +219,8 @@ export function DatabaseProvider({ children }) {
               id: m.id,
               title: m.title,
               url: m.url,
-              sectionName: m.section_name
+              sectionName: m.section_name,
+              author: m.author
             }));
 
           return {
@@ -568,7 +582,7 @@ export function DatabaseProvider({ children }) {
     }
   };
 
-  const addCourse = async (title, department, description, price = 0, isDegree = false) => {
+  const addCourse = async (title, department, description, price = 0, isDegree = false, author = '') => {
     if (!currentUser) return;
     if (isSupabaseLive) {
       await supabase.from('courses').insert([{
@@ -578,7 +592,8 @@ export function DatabaseProvider({ children }) {
         price: parseFloat(price) || 0,
         creator_id: currentUser.id,
         creator_name: currentUser.name,
-        is_degree: isDegree
+        is_degree: isDegree,
+        author: author || currentUser.name
       }]);
       addLog(`Course created: "${title}"`);
       syncSupabase();
@@ -591,7 +606,8 @@ export function DatabaseProvider({ children }) {
         price: parseFloat(price) || 0,
         creatorId: currentUser.id,
         creatorName: currentUser.name,
-        isDegree
+        isDegree,
+        author: author || currentUser.name
       };
       setCourses(prev => [...prev, newCourse]);
       addLog(`Course created: "${title}"`);
@@ -600,13 +616,16 @@ export function DatabaseProvider({ children }) {
 
   const editCourse = async (courseId, fields) => {
     if (isSupabaseLive) {
+      const updates = {};
+      if (fields.title !== undefined) updates.title = fields.title;
+      if (fields.description !== undefined) updates.description = fields.description;
+      if (fields.price !== undefined) updates.price = parseFloat(fields.price) || 0;
+      if (fields.author !== undefined) updates.author = fields.author;
+      if (fields.department !== undefined) updates.department = fields.department;
+
       await supabase
         .from('courses')
-        .update({
-          title: fields.title,
-          description: fields.description,
-          price: fields.price !== undefined ? parseFloat(fields.price) : undefined
-        })
+        .update(updates)
         .eq('id', courseId);
       addLog(`Course updated.`);
       syncSupabase();
@@ -663,13 +682,14 @@ export function DatabaseProvider({ children }) {
     }
   };
 
-  const addSubjectPlaylist = async (subjectId, title, description) => {
+  const addSubjectPlaylist = async (subjectId, title, description, author = '') => {
     if (isSupabaseLive) {
       await supabase.from('playlists').insert([{
         subject_id: subjectId,
         title,
         description,
-        likes: []
+        likes: [],
+        author: author || currentUser?.name || ''
       }]);
       addLog(`Playlist added: "${title}"`);
       syncSupabase();
@@ -681,7 +701,8 @@ export function DatabaseProvider({ children }) {
             title,
             description,
             likes: [],
-            videos: []
+            videos: [],
+            author: author || currentUser?.name || ''
           };
           return { ...s, playlists: [...(s.playlists || []), newPlaylist] };
         }
@@ -821,20 +842,21 @@ export function DatabaseProvider({ children }) {
     }
   };
 
-  const addSubjectMaterial = async (subjectId, title, url, sectionName) => {
+  const addSubjectMaterial = async (subjectId, title, url, sectionName, author = '') => {
     if (isSupabaseLive) {
       await supabase.from('materials').insert([{
         subject_id: subjectId,
         title,
         url,
-        section_name: sectionName
+        section_name: sectionName,
+        author: author || currentUser?.name || ''
       }]);
       addLog(`Document attached: "${title}"`);
       syncSupabase();
     } else {
       setSubjects(prev => prev.map(s => {
         if (s.id === subjectId) {
-          const newDoc = { id: 'doc-' + Date.now(), title, url, sectionName };
+          const newDoc = { id: 'doc-' + Date.now(), title, url, sectionName, author: author || currentUser?.name || '' };
           return { ...s, materials: [...(s.materials || []), newDoc] };
         }
         return s;

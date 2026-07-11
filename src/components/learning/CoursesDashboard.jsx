@@ -172,7 +172,7 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
                   </div>
 
                   <div style={styles.cardFooter}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>By: {course.creatorName}</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>By: {course.author || course.creatorName}</span>
                     {isEnrolled ? (
                       <button 
                         onClick={() => handleOpenCourse(course.id)}

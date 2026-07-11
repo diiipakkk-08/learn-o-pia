@@ -354,9 +354,16 @@ export default function LearningPlayer({
                                   {pl.description}
                                 </p>
                               )}
-                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                                {pl.videos.length} Lectures inside
-                              </span>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '6px' }}>
+                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                  {pl.videos.length} Lectures inside
+                                </span>
+                                {pl.author && (
+                                  <span style={{ fontSize: '0.72rem', color: 'var(--primary)', fontWeight: 500 }}>
+                                    By: {pl.author}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             <button 
                               onClick={() => handleSelectPlaylist(pl.id)} 
@@ -385,7 +392,14 @@ export default function LearningPlayer({
                         <div key={doc.id} style={styles.docItem}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <FileText size={16} color="#f59e0b" />
-                            <span style={{ fontSize: '0.85rem', color: '#ffffff' }}>{doc.title}</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+                              <span style={{ fontSize: '0.85rem', color: '#ffffff' }}>{doc.title}</span>
+                              {doc.author && (
+                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                  Credits: {doc.author}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <a href={doc.url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={styles.docBtn}>
                             <Download size={12} />

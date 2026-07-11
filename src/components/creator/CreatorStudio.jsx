@@ -175,6 +175,9 @@ export default function CreatorStudio() {
   const [resourceTitle, setResourceTitle] = useState('');
   const [resourceUrl, setResourceUrl] = useState('');
   const [resourceSection, setResourceSection] = useState('');
+  const [courseAuthor, setCourseAuthor] = useState('');
+  const [playlistAuthor, setPlaylistAuthor] = useState('');
+  const [resourceAuthor, setResourceAuthor] = useState('');
 
   const isAdmin = currentUser.role === 'admin' || currentUser.role === 'owner';
 
@@ -194,8 +197,8 @@ export default function CreatorStudio() {
   const handleCreateCourse = (e) => {
     e.preventDefault();
     if (!courseTitle.trim() || !courseDesc.trim()) return;
-    addCourse(courseTitle, courseDept, courseDesc, coursePrice, isAdmin ? (courseType === 'degree') : false);
-    setCourseTitle(''); setCourseDesc(''); setCoursePrice(0); setShowCourseForm(false);
+    addCourse(courseTitle, courseDept, courseDesc, coursePrice, isAdmin ? (courseType === 'degree') : false, courseAuthor);
+    setCourseTitle(''); setCourseDesc(''); setCoursePrice(0); setCourseAuthor(''); setShowCourseForm(false);
   };
   const handleCreateSubject = (e) => {
     e.preventDefault();
@@ -206,8 +209,8 @@ export default function CreatorStudio() {
   const handleCreatePlaylist = (e) => {
     e.preventDefault();
     if (!playlistTitle.trim() || !activeSubject) return;
-    addSubjectPlaylist(activeSubject.id, playlistTitle, playlistDesc);
-    setPlaylistTitle(''); setPlaylistDesc(''); setShowPlaylistForm(false);
+    addSubjectPlaylist(activeSubject.id, playlistTitle, playlistDesc, playlistAuthor);
+    setPlaylistTitle(''); setPlaylistDesc(''); setPlaylistAuthor(''); setShowPlaylistForm(false);
   };
   const handleAddVideo = (e) => {
     e.preventDefault(); setVideoError(null);
@@ -220,8 +223,8 @@ export default function CreatorStudio() {
   const handleAddMaterial = (e) => {
     e.preventDefault();
     if (!resourceTitle.trim() || !resourceUrl.trim() || !activeSubject || !resourceSection) return;
-    addSubjectMaterial(activeSubject.id, resourceTitle, resourceUrl, resourceSection);
-    setResourceTitle(''); setResourceUrl('');
+    addSubjectMaterial(activeSubject.id, resourceTitle, resourceUrl, resourceSection, resourceAuthor);
+    setResourceTitle(''); setResourceUrl(''); setResourceAuthor('');
   };
   const handleAddSection = (e) => {
     e.preventDefault();
@@ -311,17 +314,14 @@ export default function CreatorStudio() {
                   <label className="form-label">{isAdmin && courseType === 'degree' ? 'Degree Title' : 'Course Title'}</label>
                   <input type="text" value={courseTitle} onChange={e => setCourseTitle(e.target.value)} placeholder="e.g. B.Tech Computer Science" className="form-input" required />
                 </div>
-                <CustomStudioSelect
-                  label="Department"
-                  value={courseDept}
-                  options={[
-                    { label: 'Computer Science', value: 'Computer Science' },
-                    { label: 'Information Technology', value: 'Information Technology' },
-                    { label: 'Mathematics', value: 'Mathematics' },
-                    { label: 'Physics', value: 'Physics' }
-                  ]}
-                  onChange={val => setCourseDept(val)}
-                />
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Department</label>
+                  <input type="text" value={courseDept} onChange={e => setCourseDept(e.target.value)} placeholder="e.g. Computer Science, Mechanical Engineering, Fine Arts" className="form-input" required />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Author / Organization Credits</label>
+                  <input type="text" value={courseAuthor} onChange={e => setCourseAuthor(e.target.value)} placeholder="e.g. Training to Infinity, Prof. Sarah Miller" className="form-input" />
+                </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Price (INR / 0 for Free)</label>
                   <input type="number" min="0" value={coursePrice} onChange={e => setCoursePrice(e.target.value)} placeholder="499" className="form-input" />
@@ -359,6 +359,10 @@ export default function CreatorStudio() {
                     </div>
                     <div style={{ marginBottom: '6px' }}>
                       <InlineEdit value={activeCourse.title} onSave={v => editCourse(activeCourse.id, { title: v })} inputStyle={{ fontSize: '1.1rem', fontWeight: 700, color: '#ffffff' }} />
+                    </div>
+                    <div style={{ marginBottom: '6px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      <span>Credits: </span>
+                      <InlineEdit value={activeCourse.author || activeCourse.creatorName || ''} onSave={v => editCourse(activeCourse.id, { author: v })} inputStyle={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 600 }} />
                     </div>
                     <div style={{ marginBottom: '6px' }}>
                       <InlineEdit value={activeCourse.description} onSave={v => editCourse(activeCourse.id, { description: v })} multiline inputStyle={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }} />
@@ -501,6 +505,10 @@ export default function CreatorStudio() {
                                 <label className="form-label" style={{ fontSize: '0.75rem' }}>Description (optional)</label>
                                 <input type="text" value={playlistDesc} onChange={e => setPlaylistDesc(e.target.value)} placeholder="Brief description..." className="form-input" style={{ padding: '8px 12px', fontSize: '0.85rem' }} />
                               </div>
+                              <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label className="form-label" style={{ fontSize: '0.75rem' }}>Playlist Author / Credits</label>
+                                <input type="text" value={playlistAuthor} onChange={e => setPlaylistAuthor(e.target.value)} placeholder="e.g. Training to Infinity" className="form-input" style={{ padding: '8px 12px', fontSize: '0.85rem' }} />
+                              </div>
                               <div style={{ display: 'flex', gap: '10px' }}>
                                 <button type="submit" className="btn btn-primary" style={{ padding: '9px 16px', fontSize: '0.85rem' }}>Create</button>
                                 <button type="button" onClick={() => setShowPlaylistForm(false)} className="btn btn-secondary" style={{ padding: '9px 16px', fontSize: '0.85rem' }}>Cancel</button>
@@ -551,6 +559,10 @@ export default function CreatorStudio() {
                                 <div className="form-group" style={{ marginBottom: '8px' }}>
                                   <label className="form-label" style={{ fontSize: '0.75rem' }}>Resource URL</label>
                                   <input type="text" value={resourceUrl} onChange={e => setResourceUrl(e.target.value)} placeholder="Google Drive / any link..." className="form-input" style={{ padding: '6px 10px', fontSize: '0.8rem' }} required />
+                                </div>
+                                <div className="form-group" style={{ marginBottom: '8px' }}>
+                                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Resource Author / Credits</label>
+                                  <input type="text" value={resourceAuthor} onChange={e => setResourceAuthor(e.target.value)} placeholder="e.g. Prof. Sarah Miller" className="form-input" style={{ padding: '6px 10px', fontSize: '0.8rem' }} />
                                 </div>
                                 <div style={{ marginBottom: '10px' }}>
                                   <CustomStudioSelect
