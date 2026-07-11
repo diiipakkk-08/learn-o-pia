@@ -118,13 +118,23 @@ export default function Auth() {
         {/* ── Google Sign-In Button (always visible) ── */}
         <button
           type="button"
-          onClick={() => {
-            if (!import.meta.env.VITE_GOOGLE_CLIENT_ID) {
-              setError('Google Sign-In needs setup. Add VITE_GOOGLE_CLIENT_ID to your .env file. See console for details.');
-              console.info('[Learn-o-pia] To enable Google Sign-In:\n1. Go to https://console.cloud.google.com\n2. Create OAuth 2.0 credentials → Web Application\n3. Add http://localhost:5173 to Authorized JavaScript origins\n4. Create .env file with: VITE_GOOGLE_CLIENT_ID=your_client_id');
-              return;
+          onClick={async () => {
+            const isSupabaseLive = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
+            if (isSupabaseLive) {
+              setGoogleLoading(true);
+              try {
+                await loginWithGoogle();
+              } catch (err) {
+                setError('Google redirect failed: ' + err.message);
+                setGoogleLoading(false);
+              }
+            } else {
+              if (!import.meta.env.VITE_GOOGLE_CLIENT_ID) {
+                setError('Google Sign-In needs setup. Add VITE_GOOGLE_CLIENT_ID to your .env file.');
+                return;
+              }
+              googleLogin();
             }
-            googleLogin();
           }}
           disabled={googleLoading}
           style={styles.googleBtn}

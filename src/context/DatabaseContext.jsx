@@ -217,12 +217,35 @@ export function DatabaseProvider({ children }) {
       // 5. Auth Sync
       const { data: authSession } = await supabase.auth.getSession();
       if (authSession?.session?.user) {
-        const { data: currentProfile } = await supabase
+        const user = authSession.session.user;
+        let { data: currentProfile } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', authSession.session.user.id)
-          .single();
-        if (currentProfile) setCurrentUser(currentProfile);
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (!currentProfile) {
+          const newProfile = {
+            id: user.id,
+            email: user.email.toLowerCase(),
+            name: user.user_metadata?.full_name || user.email.split('@')[0],
+            role: 'learner',
+            status: 'active',
+            enrolled_courses: []
+          };
+          await supabase.from('profiles').insert([newProfile]);
+          currentProfile = newProfile;
+          addLog(`New user registered via Google: ${newProfile.name}`);
+        }
+        
+        if (currentProfile) {
+          if (currentProfile.status === 'suspended') {
+            await supabase.auth.signOut();
+            setCurrentUser(null);
+          } else {
+            setCurrentUser(currentProfile);
+          }
+        }
       }
     } catch (err) {
       console.error('Supabase load error:', err);
@@ -315,61 +338,22 @@ export function DatabaseProvider({ children }) {
     }
   };
 
-  const loginWithGoogle = async ({ name, email, picture }) => {
+  const loginWithGoogle = async () => {
     if (isSupabaseLive) {
-      // With OAuth providers Google Sign-in flow completes externally.
-      // We upsert the user profile into Supabase
-      const { data: authSession } = await supabase.auth.getSession();
-      if (!authSession?.session?.user) return;
-
-      const userId = authSession.session.user.id;
-      const { data: existing } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (existing) {
-        if (existing.status === 'suspended') throw new Error('Your account is suspended.');
-        setCurrentUser(existing);
-        return existing;
-      }
-
-      const newProfile = {
-        id: userId,
-        email: email.toLowerCase(),
-        name,
-        role: 'learner',
-        status: 'active',
-        enrolled_courses: []
-      };
-
-      await supabase.from('profiles').insert([newProfile]);
-      setCurrentUser(newProfile);
-      addLog(`New user registered via Google: ${name}`);
-      syncSupabase();
-      return newProfile;
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
+      return data;
     } else {
-      const existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-      if (existing) {
-        setCurrentUser(existing);
-        addLog(`User logged in via Google: ${existing.name}`);
-        return existing;
-      }
-      const newUser = {
-        id: 'u-g-' + Date.now(),
-        email: email.toLowerCase(),
-        name,
-        picture,
-        role: 'learner',
-        status: 'active',
-        password: null,
-        enrolledCourses: []
-      };
-      setUsers(prev => [...prev, newUser]);
-      setCurrentUser(newUser);
-      addLog(`New user registered via Google: ${newUser.name}`);
-      return newUser;
+      // Local fallback — mock user login
+      const defaultStudent = users.find(u => u.email === 'learner@learnopia.edu') || SEED_USERS[2];
+      setCurrentUser(defaultStudent);
+      addLog(`User logged in via Google (Mock): ${defaultStudent.name}`);
+      return defaultStudent;
     }
   };
 
