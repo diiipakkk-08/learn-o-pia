@@ -544,6 +544,30 @@ export function DatabaseProvider({ children }) {
     }
   };
 
+  const removeUserEnrollment = async (userId, courseId) => {
+    const target = users.find(u => u.id === userId);
+    if (!target) return;
+    const currentEnrolled = target.enrolledCourses || [];
+    const updated = currentEnrolled.filter(id => id !== courseId);
+
+    if (isSupabaseLive) {
+      await supabase
+        .from('profiles')
+        .update({ enrolled_courses: updated })
+        .eq('id', userId);
+      const adminName = currentUser ? `${currentUser.name} (${currentUser.email})` : 'System';
+      addLog(`Enrollment of student ${target.name} (${target.email}) was REMOVED by ${adminName}`);
+      syncSupabase();
+    } else {
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, enrolledCourses: updated } : u));
+      if (currentUser && currentUser.id === userId) {
+        setCurrentUser(prev => ({ ...prev, enrolledCourses: updated }));
+      }
+      const adminName = currentUser ? `${currentUser.name} (${currentUser.email})` : 'System';
+      addLog(`Enrollment of student ${target.name} (${target.email}) was REMOVED by ${adminName}`);
+    }
+  };
+
   const addCourse = async (title, department, description, price = 0, isDegree = false) => {
     if (!currentUser) return;
     if (isSupabaseLive) {
@@ -1036,6 +1060,7 @@ export function DatabaseProvider({ children }) {
       logout,
       requestCreatorStatus,
       enrollInCourse,
+      removeUserEnrollment,
       addCourse,
       editCourse,
       deleteCourse,

@@ -141,7 +141,8 @@ export default function CreatorStudio() {
     addSubjectPlaylist, deleteSubjectPlaylist,
     addVideoToPlaylist, deleteVideoFromPlaylist,
     addSubjectMaterialSection, deleteSubjectMaterialSection,
-    addSubjectMaterial, deleteSubjectMaterial
+    addSubjectMaterial, deleteSubjectMaterial,
+    removeUserEnrollment
   } = useDatabase();
 
   const [activeCourseId, setActiveCourseId] = useState(null);
@@ -175,7 +176,7 @@ export default function CreatorStudio() {
   const [resourceUrl, setResourceUrl] = useState('');
   const [resourceSection, setResourceSection] = useState('');
 
-  const isAdmin = currentUser.role === 'admin';
+  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'owner';
 
   const myCourses = courses.filter(c => isAdmin ? true : (c.creatorId === currentUser.id && !c.isDegree));
   const activeCourse = courses.find(c => c.id === activeCourseId);
@@ -400,7 +401,22 @@ export default function CreatorStudio() {
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{u.email}</div>
                         </div>
                       </div>
-                      <span className={`badge badge-${u.role}`} style={{ fontSize: '0.6rem' }}>{u.role}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span className={`badge badge-${u.role}`} style={{ fontSize: '0.6rem' }}>{u.role}</span>
+                        {(currentUser.role === 'admin' || currentUser.role === 'owner') && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Are you sure you want to remove ${u.name} from this course?`)) {
+                                removeUserEnrollment(u.id, activeCourse.id);
+                              }
+                            }}
+                            className="btn btn-danger"
+                            style={{ padding: '4px 8px', fontSize: '0.65rem', borderRadius: '4px' }}
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
