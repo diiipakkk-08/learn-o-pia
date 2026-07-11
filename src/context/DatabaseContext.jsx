@@ -923,16 +923,35 @@ export function DatabaseProvider({ children }) {
 
   const changeUserRole = async (userId, newRole) => {
     if (isSupabaseLive) {
+      const updates = { role: newRole };
+      if (newRole === 'learner') {
+        updates.creator_status = null;
+      }
       await supabase
         .from('profiles')
-        .update({ role: newRole })
+        .update(updates)
         .eq('id', userId);
       addLog(`User role changed to ${newRole}.`);
       syncSupabase();
     } else {
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+      setUsers(prev => prev.map(u => {
+        if (u.id === userId) {
+          const updated = { ...u, role: newRole };
+          if (newRole === 'learner') {
+            updated.creatorStatus = null;
+          }
+          return updated;
+        }
+        return u;
+      }));
       if (currentUser && currentUser.id === userId) {
-        setCurrentUser(prev => ({ ...prev, role: newRole }));
+        setCurrentUser(prev => {
+          const updated = { ...prev, role: newRole };
+          if (newRole === 'learner') {
+            updated.creatorStatus = null;
+          }
+          return updated;
+        });
       }
       addLog(`User role changed to ${newRole}.`);
     }
