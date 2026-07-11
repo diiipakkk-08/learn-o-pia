@@ -59,13 +59,13 @@ export default function Auth() {
         headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
       });
       const profile = await res.json();
-      loginWithGoogle({
+      await loginWithGoogle({
         name: profile.name,
         email: profile.email,
         picture: profile.picture
       });
     } catch (err) {
-      setError('Google Sign-In failed. Please try again or use email login.');
+      setError('Google Sign-In failed: ' + err.message);
     } finally {
       setGoogleLoading(false);
     }
