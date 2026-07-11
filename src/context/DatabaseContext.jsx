@@ -419,6 +419,17 @@ export function DatabaseProvider({ children }) {
 
   const registerUser = async (email, name, password) => {
     if (isSupabaseLive) {
+      // Pre-check if email already exists in profiles to prevent user enumeration fake UUID issues
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email.toLowerCase())
+        .maybeSingle();
+
+      if (existingProfile) {
+        throw new Error('This email address is already registered. Please sign in instead.');
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email: email.toLowerCase(),
         password
