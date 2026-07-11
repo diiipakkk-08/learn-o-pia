@@ -58,7 +58,9 @@ export default function Auth() {
         }
       }
     } catch (err) {
-      setError(err.message);
+      console.error('[Learnopia Auth Error]', err);
+      const msg = err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err)) || 'An unexpected authentication error occurred.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
