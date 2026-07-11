@@ -19,6 +19,7 @@ export default function Auth() {
   const { login, loginWithGoogle, registerUser } = useDatabase();
 
   const [isLogin, setIsLogin] = useState(true);
+  const isSupabaseLive = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -86,9 +87,12 @@ export default function Auth() {
             <GraduationCap size={32} color="#ffffff" />
           </div>
           <h1 style={{ fontSize: '1.8rem', margin: '12px 0 4px 0' }}>Learn-o-pia</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '14px' }}>
             {isLogin ? 'Sign in to access courses and resources' : 'Register a new learning account'}
           </p>
+          <div style={{ display: 'inline-block', padding: '4px 10px', borderRadius: '12px', fontSize: '0.72rem', fontWeight: 600, background: isSupabaseLive ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)', border: isSupabaseLive ? '1px solid rgba(16,185,129,0.25)' : '1px solid rgba(245,158,11,0.25)', color: isSupabaseLive ? '#10b981' : '#f59e0b' }}>
+            {isSupabaseLive ? '● Connected to Supabase' : '○ Local Mock Storage'}
+          </div>
         </div>
 
         {/* Tab Toggle */}
