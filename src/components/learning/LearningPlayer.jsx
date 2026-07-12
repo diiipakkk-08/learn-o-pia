@@ -103,6 +103,13 @@ export default function LearningPlayer({
   
   const [activeCategory, setActiveCategory] = useState('playlists');
   const [activePlaylistId, setActivePlaylistId] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const course = courses.find(c => c.id === playlistId);
   const isDegree = course?.isDegree;
@@ -191,9 +198,9 @@ export default function LearningPlayer({
       </div>
 
       {/* Top Bar Selectors: Custom Semester Dropdown + Subject Chips */}
-      <div className="yt-selector-row glass-panel">
+      <div className="yt-selector-row glass-panel" style={{ flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? '12px' : '16px' }}>
         {isDegree && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Semester:</span>
             
             {/* Custom semester dropdown */}
@@ -204,24 +211,44 @@ export default function LearningPlayer({
           </div>
         )}
 
-        {/* Subjects selector chips */}
-        <div className="yt-subject-chips-row">
-          {currentSubjects.length === 0 ? (
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '10px' }}>
-              {isDegree ? `No subjects added for Semester ${activeSemester}` : 'No subjects added for this course'}
-            </span>
-          ) : (
-            currentSubjects.map(sub => (
-              <button
-                key={sub.id}
-                onClick={() => setActiveSubjectId(sub.id)}
-                className={`yt-subject-chip ${activeSubjectId === sub.id ? 'active' : ''}`}
-              >
-                {sub.title}
-              </button>
-            ))
-          )}
-        </div>
+        {isMobile ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap' }}>Subject:</span>
+            <select
+              value={activeSubjectId || ''}
+              onChange={(e) => setActiveSubjectId(e.target.value || null)}
+              className="yt-select-dropdown"
+              style={{ width: '100%', maxWidth: '240px' }}
+            >
+              {currentSubjects.length === 0 ? (
+                <option value="" style={{ background: '#11121c', color: '#fff' }}>No subjects</option>
+              ) : (
+                currentSubjects.map(sub => (
+                  <option key={sub.id} value={sub.id} style={{ background: '#11121c', color: '#fff' }}>{sub.title}</option>
+                ))
+              )}
+            </select>
+          </div>
+        ) : (
+          /* Subjects selector chips */
+          <div className="yt-subject-chips-row">
+            {currentSubjects.length === 0 ? (
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '10px' }}>
+                {isDegree ? `No subjects added for Semester ${activeSemester}` : 'No subjects added for this course'}
+              </span>
+            ) : (
+              currentSubjects.map(sub => (
+                <button
+                  key={sub.id}
+                  onClick={() => setActiveSubjectId(sub.id)}
+                  className={`yt-subject-chip ${activeSubjectId === sub.id ? 'active' : ''}`}
+                >
+                  {sub.title}
+                </button>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       {/* Main Content Workspace splits */}
@@ -262,6 +289,22 @@ export default function LearningPlayer({
                   </div>
                 ))}
               </div>
+            </div>
+          ) : isMobile ? (
+            /* MOBILE DROP-DOWN FOR SECTIONS/TABS */
+            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Section / Category:</label>
+              <select
+                value={activeCategory}
+                onChange={(e) => setActiveCategory(e.target.value)}
+                className="yt-select-dropdown"
+                style={{ width: '100%' }}
+              >
+                <option value="playlists" style={{ background: '#11121c', color: '#fff' }}>Playlists</option>
+                {(activeSubject?.customMaterialSections || ['Notes', 'Organizer', 'Past Year Papers']).map(section => (
+                  <option key={section} value={section} style={{ background: '#11121c', color: '#fff' }}>{section}</option>
+                ))}
+              </select>
             </div>
           ) : (
             /* STANDARD VIEW: Playlists + Dynamic Material Sections */
