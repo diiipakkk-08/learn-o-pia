@@ -97,6 +97,9 @@ function AppContent() {
 
   return (
     <div className="app-container">
+      <div style={{ background: '#ef4444', color: 'white', padding: '10px', textAlign: 'center', fontWeight: 'bold', zIndex: 99999, position: 'relative' }}>
+        Diagnostic Check: Frontend Code Version 2.0 (Active)
+      </div>
       {/* Global Header Nav */}
       {currentUser && (
         <Header 

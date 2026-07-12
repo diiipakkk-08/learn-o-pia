@@ -31,7 +31,15 @@ export default function Header({
   const avatarInitial = currentUser.name ? currentUser.name.charAt(0).toUpperCase() : '?';
 
   return (
-    <header style={{ ...styles.header, position: 'relative' }} className="glass-panel">
+    <div style={{ 
+      ...styles.header, 
+      position: 'relative', 
+      flexDirection: 'row', 
+      alignItems: 'center', 
+      justifyContent: 'space-between',
+      boxSizing: 'border-box',
+      width: '100%' 
+    }} className="glass-panel">
       <div style={styles.left}>
         {/* Logo */}
         <div style={styles.logo} onClick={() => setCurrentView('learning')}>
@@ -214,7 +222,7 @@ export default function Header({
           </div>
         </div>
       )}
-    </header>
+    </div>
   );
 }
 

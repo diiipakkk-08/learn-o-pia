@@ -214,7 +214,8 @@ export function DatabaseProvider({ children }) {
                   title: v.title,
                   description: v.description,
                   youtubeId: v.youtube_id,
-                  position: v.position
+                  position: v.position,
+                  likes: v.likes || []
                 }))
             }));
 
@@ -939,6 +940,65 @@ export function DatabaseProvider({ children }) {
     }
   };
 
+  const toggleVideoLike = async (subjectId, playlistId, videoId) => {
+    if (!currentUser) return;
+    const sub = subjects.find(s => s.id === subjectId);
+    if (!sub) return;
+    const pl = (sub.playlists || []).find(p => p.id === playlistId);
+    if (!pl) return;
+    const vid = (pl.videos || []).find(v => v.id === videoId);
+    if (!vid) return;
+
+    const likes = vid.likes || [];
+    const hasLiked = likes.includes(currentUser.id);
+    const updatedLikes = hasLiked
+      ? likes.filter(id => id !== currentUser.id)
+      : [...likes, currentUser.id];
+
+    if (isSupabaseLive) {
+      try {
+        const { error } = await supabase
+          .from('videos')
+          .update({ likes: updatedLikes })
+          .eq('id', videoId);
+        if (error) throw error;
+        addLog(hasLiked ? 'Unliked video.' : 'Liked video.');
+        syncSupabase();
+      } catch (err) {
+        console.warn('Could not update video likes in Supabase (column may be missing):', err);
+        // Fallback to local state update so it still works in the UI
+        setSubjects(prev => prev.map(s => {
+          if (s.id === subjectId) {
+            const updatedPlaylists = (s.playlists || []).map(p => {
+              if (p.id === playlistId) {
+                const updatedVids = (p.videos || []).map(v => v.id === videoId ? { ...v, likes: updatedLikes } : v);
+                return { ...p, videos: updatedVids };
+              }
+              return p;
+            });
+            return { ...s, playlists: updatedPlaylists };
+          }
+          return s;
+        }));
+      }
+    } else {
+      setSubjects(prev => prev.map(s => {
+        if (s.id === subjectId) {
+          const updatedPlaylists = (s.playlists || []).map(p => {
+            if (p.id === playlistId) {
+              const updatedVids = (p.videos || []).map(v => v.id === videoId ? { ...v, likes: updatedLikes } : v);
+              return { ...p, videos: updatedVids };
+            }
+            return p;
+          });
+          return { ...s, playlists: updatedPlaylists };
+        }
+        return s;
+      }));
+      addLog(hasLiked ? 'Unliked video.' : 'Liked video.');
+    }
+  };
+
   const approveCreator = async (userId) => {
     const targetUser = users.find(u => u.id === userId);
     const adminName = currentUser ? `${currentUser.name} (${currentUser.email})` : 'System';
@@ -1282,6 +1342,7 @@ export function DatabaseProvider({ children }) {
       addSubjectMaterial,
       deleteSubjectMaterial,
       togglePlaylistLike,
+      toggleVideoLike,
       approveCreator,
       rejectCreator,
       makeAdmin,
