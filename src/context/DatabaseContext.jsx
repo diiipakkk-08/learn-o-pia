@@ -661,13 +661,24 @@ export function DatabaseProvider({ children }) {
     const newPosition = siblings.length;
 
     if (isSupabaseLive) {
-      await supabase.from('subjects').insert([{
-        course_id: courseId,
-        semester: semVal,
-        title,
-        custom_material_sections: ['Notes', 'Organizer', 'Past Year Papers'],
-        position: newPosition
-      }]);
+      try {
+        const { error } = await supabase.from('subjects').insert([{
+          course_id: courseId,
+          semester: semVal,
+          title,
+          custom_material_sections: ['Notes', 'Organizer', 'Past Year Papers'],
+          position: newPosition
+        }]);
+        if (error) throw error;
+      } catch (err) {
+        console.warn("Retrying subject insert without 'position' column:", err);
+        await supabase.from('subjects').insert([{
+          course_id: courseId,
+          semester: semVal,
+          title,
+          custom_material_sections: ['Notes', 'Organizer', 'Past Year Papers']
+        }]);
+      }
       addLog(`Subject added: "${title}"`);
       syncSupabase();
     } else {
@@ -703,14 +714,26 @@ export function DatabaseProvider({ children }) {
     const newPosition = siblings.length;
 
     if (isSupabaseLive) {
-      await supabase.from('playlists').insert([{
-        subject_id: subjectId,
-        title,
-        description,
-        likes: [],
-        author: author || currentUser?.name || '',
-        position: newPosition
-      }]);
+      try {
+        const { error } = await supabase.from('playlists').insert([{
+          subject_id: subjectId,
+          title,
+          description,
+          likes: [],
+          author: author || currentUser?.name || '',
+          position: newPosition
+        }]);
+        if (error) throw error;
+      } catch (err) {
+        console.warn("Retrying playlist insert without 'position' column:", err);
+        await supabase.from('playlists').insert([{
+          subject_id: subjectId,
+          title,
+          description,
+          likes: [],
+          author: author || currentUser?.name || ''
+        }]);
+      }
       addLog(`Playlist added: "${title}"`);
       syncSupabase();
     } else {
@@ -761,13 +784,24 @@ export function DatabaseProvider({ children }) {
     const newPosition = siblings.length;
 
     if (isSupabaseLive) {
-      await supabase.from('videos').insert([{
-        playlist_id: playlistId,
-        title,
-        description,
-        youtube_id: videoId,
-        position: newPosition
-      }]);
+      try {
+        const { error } = await supabase.from('videos').insert([{
+          playlist_id: playlistId,
+          title,
+          description,
+          youtube_id: videoId,
+          position: newPosition
+        }]);
+        if (error) throw error;
+      } catch (err) {
+        console.warn("Retrying video insert without 'position' column:", err);
+        await supabase.from('videos').insert([{
+          playlist_id: playlistId,
+          title,
+          description,
+          youtube_id: videoId
+        }]);
+      }
       addLog(`Video added: "${title}"`);
       syncSupabase();
     } else {
@@ -875,14 +909,26 @@ export function DatabaseProvider({ children }) {
     const newPosition = siblings.length;
 
     if (isSupabaseLive) {
-      await supabase.from('materials').insert([{
-        subject_id: subjectId,
-        title,
-        url,
-        section_name: sectionName,
-        author: author || currentUser?.name || '',
-        position: newPosition
-      }]);
+      try {
+        const { error } = await supabase.from('materials').insert([{
+          subject_id: subjectId,
+          title,
+          url,
+          section_name: sectionName,
+          author: author || currentUser?.name || '',
+          position: newPosition
+        }]);
+        if (error) throw error;
+      } catch (err) {
+        console.warn("Retrying material insert without 'position' column:", err);
+        await supabase.from('materials').insert([{
+          subject_id: subjectId,
+          title,
+          url,
+          section_name: sectionName,
+          author: author || currentUser?.name || ''
+        }]);
+      }
       addLog(`Document attached: "${title}"`);
       syncSupabase();
     } else {
