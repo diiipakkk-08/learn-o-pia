@@ -185,7 +185,11 @@ export default function CreatorStudio() {
   const myCourses = courses.filter(c => isAdmin ? true : (c.creatorId === currentUser.id && !c.isDegree));
   const activeCourse = courses.find(c => c.id === activeCourseId);
   const isDegree = activeCourse?.isDegree;
-  const courseSubjects = activeCourse ? subjects.filter(s => s.courseId === activeCourse.id) : [];
+  const courseSubjects = activeCourse 
+    ? subjects
+        .filter(s => s.courseId === activeCourse.id)
+        .sort((a, b) => (a.position || 0) - (b.position || 0))
+    : [];
   const semesterSubjects = courseSubjects.filter(s => s.semester === selectedSemester);
   const activeSubjectsList = isDegree ? semesterSubjects : courseSubjects;
   const activeSubject = subjects.find(s => s.id === activeSubjectId);

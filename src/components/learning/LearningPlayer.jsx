@@ -108,14 +108,17 @@ export default function LearningPlayer({
   const isDegree = course?.isDegree;
 
   // Filter subjects based on program type
-  const currentSubjects = isDegree 
+  const currentSubjects = (isDegree 
     ? subjects.filter(s => s.courseId === playlistId && s.semester === activeSemester)
-    : subjects.filter(s => s.courseId === playlistId);
+    : subjects.filter(s => s.courseId === playlistId))
+    .sort((a, b) => (a.position || 0) - (b.position || 0));
 
   // Auto select subject when semester, course, or course subjects change
   useEffect(() => {
     if (isDegree) {
-      const semSubs = subjects.filter(s => s.courseId === playlistId && s.semester === activeSemester);
+      const semSubs = subjects
+        .filter(s => s.courseId === playlistId && s.semester === activeSemester)
+        .sort((a, b) => (a.position || 0) - (b.position || 0));
       if (semSubs.length > 0) {
         setActiveSubjectId(semSubs[0].id);
         setActivePlaylistId(null);
@@ -125,7 +128,9 @@ export default function LearningPlayer({
         setActivePlaylistId(null);
       }
     } else {
-      const courseSubs = subjects.filter(s => s.courseId === playlistId);
+      const courseSubs = subjects
+        .filter(s => s.courseId === playlistId)
+        .sort((a, b) => (a.position || 0) - (b.position || 0));
       if (courseSubs.length > 0) {
         setActiveSubjectId(courseSubs[0].id);
         setActivePlaylistId(null);
