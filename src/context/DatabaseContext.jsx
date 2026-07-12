@@ -1180,20 +1180,22 @@ export function DatabaseProvider({ children }) {
     normalizedSiblings[idx].position = normalizedSiblings[targetIdx].position;
     normalizedSiblings[targetIdx].position = temp;
 
+    // 1. Optimistic UI update (update local state immediately)
+    setSubjects(prev => prev.map(item => {
+      const match = normalizedSiblings.find(ns => ns.id === item.id);
+      return match ? { ...item, position: match.position } : item;
+    }));
+
+    // 2. Persist to Supabase if live
     if (isSupabaseLive) {
       try {
         for (const s of normalizedSiblings) {
-          await supabase.from('subjects').update({ position: s.position }).eq('id', s.id);
+          const { error } = await supabase.from('subjects').update({ position: s.position }).eq('id', s.id);
+          if (error) throw error;
         }
-        syncSupabase();
       } catch (err) {
-        console.error("Failed to reorder subjects", err);
+        console.error("Failed to reorder subjects in Supabase (make sure the 'position' column exists):", err);
       }
-    } else {
-      setSubjects(prev => prev.map(item => {
-        const match = normalizedSiblings.find(ns => ns.id === item.id);
-        return match ? { ...item, position: match.position } : item;
-      }));
     }
   };
 
@@ -1214,26 +1216,28 @@ export function DatabaseProvider({ children }) {
     normalizedSiblings[idx].position = normalizedSiblings[targetIdx].position;
     normalizedSiblings[targetIdx].position = temp;
 
+    // 1. Optimistic UI update
+    setSubjects(prev => prev.map(s => {
+      if (s.id === subjectId) {
+        const updatedPlaylists = s.playlists.map(pl => {
+          const match = normalizedSiblings.find(ns => ns.id === pl.id);
+          return match ? { ...pl, position: match.position } : pl;
+        });
+        return { ...s, playlists: updatedPlaylists };
+      }
+      return s;
+    }));
+
+    // 2. Persist to Supabase if live
     if (isSupabaseLive) {
       try {
         for (const p of normalizedSiblings) {
-          await supabase.from('playlists').update({ position: p.position }).eq('id', p.id);
+          const { error } = await supabase.from('playlists').update({ position: p.position }).eq('id', p.id);
+          if (error) throw error;
         }
-        syncSupabase();
       } catch (err) {
-        console.error("Failed to reorder playlists", err);
+        console.error("Failed to reorder playlists in Supabase (make sure the 'position' column exists):", err);
       }
-    } else {
-      setSubjects(prev => prev.map(s => {
-        if (s.id === subjectId) {
-          const updatedPlaylists = s.playlists.map(pl => {
-            const match = normalizedSiblings.find(ns => ns.id === pl.id);
-            return match ? { ...pl, position: match.position } : pl;
-          });
-          return { ...s, playlists: updatedPlaylists };
-        }
-        return s;
-      }));
     }
   };
 
@@ -1255,32 +1259,34 @@ export function DatabaseProvider({ children }) {
     normalizedSiblings[idx].position = normalizedSiblings[targetIdx].position;
     normalizedSiblings[targetIdx].position = temp;
 
+    // 1. Optimistic UI update
+    setSubjects(prev => prev.map(s => {
+      if (s.id === subjectId) {
+        const updatedPlaylists = s.playlists.map(pl => {
+          if (pl.id === playlistId) {
+            const updatedVideos = pl.videos.map(v => {
+              const match = normalizedSiblings.find(ns => ns.id === v.id);
+              return match ? { ...v, position: match.position } : v;
+            });
+            return { ...pl, videos: updatedVideos };
+          }
+          return pl;
+        });
+        return { ...s, playlists: updatedPlaylists };
+      }
+      return s;
+    }));
+
+    // 2. Persist to Supabase if live
     if (isSupabaseLive) {
       try {
         for (const v of normalizedSiblings) {
-          await supabase.from('videos').update({ position: v.position }).eq('id', v.id);
+          const { error } = await supabase.from('videos').update({ position: v.position }).eq('id', v.id);
+          if (error) throw error;
         }
-        syncSupabase();
       } catch (err) {
-        console.error("Failed to reorder videos", err);
+        console.error("Failed to reorder videos in Supabase (make sure the 'position' column exists):", err);
       }
-    } else {
-      setSubjects(prev => prev.map(s => {
-        if (s.id === subjectId) {
-          const updatedPlaylists = s.playlists.map(pl => {
-            if (pl.id === playlistId) {
-              const updatedVideos = pl.videos.map(v => {
-                const match = normalizedSiblings.find(ns => ns.id === v.id);
-                return match ? { ...v, position: match.position } : v;
-              });
-              return { ...pl, videos: updatedVideos };
-            }
-            return pl;
-          });
-          return { ...s, playlists: updatedPlaylists };
-        }
-        return s;
-      }));
     }
   };
 
