@@ -220,7 +220,7 @@ export default function LearningPlayer({
       </div>
 
       {/* Main Content Workspace splits */}
-      <div style={styles.workspaceGrid}>
+      <div className="workspace-grid">
         
         {/* LEFT COLUMN: Asset Sidebar Menu or Video Chapters List */}
         <div style={styles.sidebarPanel} className="glass-panel">

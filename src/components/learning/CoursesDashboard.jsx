@@ -150,7 +150,7 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
             <p style={{ color: 'var(--text-muted)' }}>Try adjusting your keywords.</p>
           </div>
         ) : (
-          <div style={styles.grid}>
+          <div style={styles.grid} className="courses-dashboard-grid">
             {filteredCourses.map(course => {
               const isEnrolled = currentUser.enrolledCourses.includes(course.id) || currentUser.role === 'admin';
               return (
@@ -207,7 +207,7 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
             <p style={{ color: 'var(--text-muted)' }}>No reference documents match your filters.</p>
           </div>
         ) : (
-          <div style={styles.grid}>
+          <div style={styles.grid} className="courses-dashboard-grid">
             {filteredMaterials.map(resource => (
               <div key={resource.id} className="glass-panel" style={styles.materialCard}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>

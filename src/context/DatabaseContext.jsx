@@ -194,33 +194,40 @@ export function DatabaseProvider({ children }) {
       const { data: materials } = await supabase.from('materials').select('*');
 
       if (subs) {
-        const assembled = subs.map(s => {
+        const sortedSubs = [...subs].sort((a, b) => (a.position || 0) - (b.position || 0));
+        const assembled = sortedSubs.map(s => {
           const subPlaylists = (playlists || [])
             .filter(pl => pl.subject_id === s.id)
+            .sort((a, b) => (a.position || 0) - (b.position || 0))
             .map(pl => ({
               id: pl.id,
               title: pl.title,
               description: pl.description,
               likes: pl.likes || [],
               author: pl.author,
+              position: pl.position,
               videos: (videos || [])
                 .filter(v => v.playlist_id === pl.id)
+                .sort((a, b) => (a.position || 0) - (b.position || 0))
                 .map(v => ({
                   id: v.id,
                   title: v.title,
                   description: v.description,
-                  youtubeId: v.youtube_id
+                  youtubeId: v.youtube_id,
+                  position: v.position
                 }))
             }));
 
           const subMaterials = (materials || [])
             .filter(m => m.subject_id === s.id)
+            .sort((a, b) => (a.position || 0) - (b.position || 0))
             .map(m => ({
               id: m.id,
               title: m.title,
               url: m.url,
               sectionName: m.section_name,
-              author: m.author
+              author: m.author,
+              position: m.position
             }));
 
           return {
@@ -228,6 +235,7 @@ export function DatabaseProvider({ children }) {
             courseId: s.course_id,
             semester: s.semester,
             title: s.title,
+            position: s.position,
             playlists: subPlaylists,
             customMaterialSections: s.custom_material_sections || ['Notes', 'Organizer', 'Past Year Papers'],
             materials: subMaterials
@@ -647,12 +655,17 @@ export function DatabaseProvider({ children }) {
   };
 
   const addSubject = async (courseId, semester, title) => {
+    const semVal = parseInt(semester) || 1;
+    const siblings = subjects.filter(s => s.courseId === courseId && s.semester === semVal);
+    const newPosition = siblings.length;
+
     if (isSupabaseLive) {
       await supabase.from('subjects').insert([{
         course_id: courseId,
-        semester: parseInt(semester) || 1,
+        semester: semVal,
         title,
-        custom_material_sections: ['Notes', 'Organizer', 'Past Year Papers']
+        custom_material_sections: ['Notes', 'Organizer', 'Past Year Papers'],
+        position: newPosition
       }]);
       addLog(`Subject added: "${title}"`);
       syncSupabase();
@@ -660,11 +673,12 @@ export function DatabaseProvider({ children }) {
       const newSubject = {
         id: 's-' + (subjects.length + 1),
         courseId,
-        semester: parseInt(semester) || 1,
+        semester: semVal,
         title,
         playlists: [],
         customMaterialSections: ['Notes', 'Organizer', 'Past Year Papers'],
-        materials: []
+        materials: [],
+        position: newPosition
       };
       setSubjects(prev => [...prev, newSubject]);
       addLog(`Subject added: "${title}"`);
@@ -683,13 +697,18 @@ export function DatabaseProvider({ children }) {
   };
 
   const addSubjectPlaylist = async (subjectId, title, description, author = '') => {
+    const subject = subjects.find(s => s.id === subjectId);
+    const siblings = subject ? (subject.playlists || []) : [];
+    const newPosition = siblings.length;
+
     if (isSupabaseLive) {
       await supabase.from('playlists').insert([{
         subject_id: subjectId,
         title,
         description,
         likes: [],
-        author: author || currentUser?.name || ''
+        author: author || currentUser?.name || '',
+        position: newPosition
       }]);
       addLog(`Playlist added: "${title}"`);
       syncSupabase();
@@ -702,7 +721,8 @@ export function DatabaseProvider({ children }) {
             description,
             likes: [],
             videos: [],
-            author: author || currentUser?.name || ''
+            author: author || currentUser?.name || '',
+            position: newPosition
           };
           return { ...s, playlists: [...(s.playlists || []), newPlaylist] };
         }
@@ -734,12 +754,18 @@ export function DatabaseProvider({ children }) {
       throw new Error('Please submit a valid YouTube video link.');
     }
 
+    const subject = subjects.find(s => s.id === subjectId);
+    const playlist = subject ? (subject.playlists || []).find(p => p.id === playlistId) : null;
+    const siblings = playlist ? (playlist.videos || []) : [];
+    const newPosition = siblings.length;
+
     if (isSupabaseLive) {
       await supabase.from('videos').insert([{
         playlist_id: playlistId,
         title,
         description,
-        youtube_id: videoId
+        youtube_id: videoId,
+        position: newPosition
       }]);
       addLog(`Video added: "${title}"`);
       syncSupabase();
@@ -748,7 +774,7 @@ export function DatabaseProvider({ children }) {
         if (s.id === subjectId) {
           const updatedPlaylists = (s.playlists || []).map(pl => {
             if (pl.id === playlistId) {
-              const newVideo = { id: 'v-' + Date.now(), title, description, youtubeId: videoId };
+              const newVideo = { id: 'v-' + Date.now(), title, description, youtubeId: videoId, position: newPosition };
               return { ...pl, videos: [...(pl.videos || []), newVideo] };
             }
             return pl;
@@ -843,20 +869,25 @@ export function DatabaseProvider({ children }) {
   };
 
   const addSubjectMaterial = async (subjectId, title, url, sectionName, author = '') => {
+    const subject = subjects.find(s => s.id === subjectId);
+    const siblings = subject ? (subject.materials || []).filter(m => m.sectionName === sectionName) : [];
+    const newPosition = siblings.length;
+
     if (isSupabaseLive) {
       await supabase.from('materials').insert([{
         subject_id: subjectId,
         title,
         url,
         section_name: sectionName,
-        author: author || currentUser?.name || ''
+        author: author || currentUser?.name || '',
+        position: newPosition
       }]);
       addLog(`Document attached: "${title}"`);
       syncSupabase();
     } else {
       setSubjects(prev => prev.map(s => {
         if (s.id === subjectId) {
-          const newDoc = { id: 'doc-' + Date.now(), title, url, sectionName, author: author || currentUser?.name || '' };
+          const newDoc = { id: 'doc-' + Date.now(), title, url, sectionName, author: author || currentUser?.name || '', position: newPosition };
           return { ...s, materials: [...(s.materials || []), newDoc] };
         }
         return s;
@@ -1068,6 +1099,160 @@ export function DatabaseProvider({ children }) {
     }
   };
 
+  const reorderSubject = async (subjectId, direction) => {
+    const subject = subjects.find(s => s.id === subjectId);
+    if (!subject) return;
+    const courseId = subject.courseId;
+    const semester = subject.semester;
+
+    const siblings = subjects
+      .filter(s => s.courseId === courseId && s.semester === semester)
+      .sort((a, b) => (a.position || 0) - (b.position || 0));
+
+    const idx = siblings.findIndex(s => s.id === subjectId);
+    if (idx === -1) return;
+
+    let targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= siblings.length) return;
+
+    const normalizedSiblings = siblings.map((s, index) => ({ ...s, position: index }));
+    const temp = normalizedSiblings[idx].position;
+    normalizedSiblings[idx].position = normalizedSiblings[targetIdx].position;
+    normalizedSiblings[targetIdx].position = temp;
+
+    if (isSupabaseLive) {
+      try {
+        for (const s of normalizedSiblings) {
+          await supabase.from('subjects').update({ position: s.position }).eq('id', s.id);
+        }
+        syncSupabase();
+      } catch (err) {
+        console.error("Failed to reorder subjects", err);
+      }
+    } else {
+      setSubjects(prev => prev.map(item => {
+        const match = normalizedSiblings.find(ns => ns.id === item.id);
+        return match ? { ...item, position: match.position } : item;
+      }));
+    }
+  };
+
+  const reorderPlaylist = async (subjectId, playlistId, direction) => {
+    const subject = subjects.find(s => s.id === subjectId);
+    if (!subject) return;
+    const playlistsList = subject.playlists || [];
+    const siblings = [...playlistsList].sort((a, b) => (a.position || 0) - (b.position || 0));
+
+    const idx = siblings.findIndex(p => p.id === playlistId);
+    if (idx === -1) return;
+
+    let targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= siblings.length) return;
+
+    const normalizedSiblings = siblings.map((p, index) => ({ ...p, position: index }));
+    const temp = normalizedSiblings[idx].position;
+    normalizedSiblings[idx].position = normalizedSiblings[targetIdx].position;
+    normalizedSiblings[targetIdx].position = temp;
+
+    if (isSupabaseLive) {
+      try {
+        for (const p of normalizedSiblings) {
+          await supabase.from('playlists').update({ position: p.position }).eq('id', p.id);
+        }
+        syncSupabase();
+      } catch (err) {
+        console.error("Failed to reorder playlists", err);
+      }
+    } else {
+      setSubjects(prev => prev.map(s => {
+        if (s.id === subjectId) {
+          const updatedPlaylists = s.playlists.map(pl => {
+            const match = normalizedSiblings.find(ns => ns.id === pl.id);
+            return match ? { ...pl, position: match.position } : pl;
+          });
+          return { ...s, playlists: updatedPlaylists };
+        }
+        return s;
+      }));
+    }
+  };
+
+  const reorderVideo = async (subjectId, playlistId, videoId, direction) => {
+    const subject = subjects.find(s => s.id === subjectId);
+    if (!subject) return;
+    const playlist = (subject.playlists || []).find(p => p.id === playlistId);
+    if (!playlist) return;
+
+    const siblings = [...(playlist.videos || [])].sort((a, b) => (a.position || 0) - (b.position || 0));
+    const idx = siblings.findIndex(v => v.id === videoId);
+    if (idx === -1) return;
+
+    let targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= siblings.length) return;
+
+    const normalizedSiblings = siblings.map((v, index) => ({ ...v, position: index }));
+    const temp = normalizedSiblings[idx].position;
+    normalizedSiblings[idx].position = normalizedSiblings[targetIdx].position;
+    normalizedSiblings[targetIdx].position = temp;
+
+    if (isSupabaseLive) {
+      try {
+        for (const v of normalizedSiblings) {
+          await supabase.from('videos').update({ position: v.position }).eq('id', v.id);
+        }
+        syncSupabase();
+      } catch (err) {
+        console.error("Failed to reorder videos", err);
+      }
+    } else {
+      setSubjects(prev => prev.map(s => {
+        if (s.id === subjectId) {
+          const updatedPlaylists = s.playlists.map(pl => {
+            if (pl.id === playlistId) {
+              const updatedVideos = pl.videos.map(v => {
+                const match = normalizedSiblings.find(ns => ns.id === v.id);
+                return match ? { ...v, position: match.position } : v;
+              });
+              return { ...pl, videos: updatedVideos };
+            }
+            return pl;
+          });
+          return { ...s, playlists: updatedPlaylists };
+        }
+        return s;
+      }));
+    }
+  };
+
+  const reorderMaterialSection = async (subjectId, sectionName, direction) => {
+    const subject = subjects.find(s => s.id === subjectId);
+    if (!subject) return;
+    const sections = [...(subject.customMaterialSections || ['Notes', 'Organizer', 'Past Year Papers'])];
+    const idx = sections.indexOf(sectionName);
+    if (idx === -1) return;
+
+    let targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= sections.length) return;
+
+    const temp = sections[idx];
+    sections[idx] = sections[targetIdx];
+    sections[targetIdx] = temp;
+
+    if (isSupabaseLive) {
+      try {
+        await supabase
+          .from('subjects')
+          .update({ custom_material_sections: sections })
+          .eq('id', subjectId);
+        syncSupabase();
+      } catch (err) {
+        console.error("Failed to reorder material sections", err);
+      }
+    } else {
+      setSubjects(prev => prev.map(s => s.id === subjectId ? { ...s, customMaterialSections: sections } : s));
+    }
+  };
+
   return (
     <DatabaseContext.Provider value={{
       users,
@@ -1102,7 +1287,11 @@ export function DatabaseProvider({ children }) {
       makeAdmin,
       toggleUserStatus,
       changeUserRole,
-      pruneActivityLogs
+      pruneActivityLogs,
+      reorderSubject,
+      reorderPlaylist,
+      reorderVideo,
+      reorderMaterialSection
     }}>
       {children}
     </DatabaseContext.Provider>

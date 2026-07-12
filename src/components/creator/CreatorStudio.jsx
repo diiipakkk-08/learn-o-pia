@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { useDatabase } from '../../context/DatabaseContext';
 import {
   Plus, BookOpen, Trash2, Film, FolderPlus, ChevronDown,
-  Pencil, Check, X, Users, AlertCircle
+  Pencil, Check, X, Users, AlertCircle, ArrowUp, ArrowDown
 } from 'lucide-react';
 
 // ── Portal Dropdown ─────────────────────────────────────────────────────────
@@ -142,7 +142,8 @@ export default function CreatorStudio() {
     addVideoToPlaylist, deleteVideoFromPlaylist,
     addSubjectMaterialSection, deleteSubjectMaterialSection,
     addSubjectMaterial, deleteSubjectMaterial,
-    removeUserEnrollment
+    removeUserEnrollment,
+    reorderSubject, reorderPlaylist, reorderVideo, reorderMaterialSection
   } = useDatabase();
 
   const [activeCourseId, setActiveCourseId] = useState(null);
@@ -254,7 +255,7 @@ export default function CreatorStudio() {
       </section>
 
       {/* Main Grid */}
-      <div style={styles.mainGrid}>
+      <div className="studio-main-grid">
 
         {/* LEFT: Course List */}
         <div style={styles.leftColumn} className="glass-panel">
@@ -435,8 +436,7 @@ export default function CreatorStudio() {
                       <div style={styles.semTabs}>
                         {[1,2,3,4,5,6,7,8].map(sem => (
                           <button key={sem} onClick={() => { setSelectedSemester(sem); setActiveSubjectId(null); setActivePlaylistId(null); }}
-                            className={`yt-chip ${selectedSemester === sem ? 'active' : ''}`}
-                            style={{ fontSize: '0.78rem', padding: '6px 14px' }}>
+                            className={`yt-chip ${selectedSemester === sem ? 'active' : ''}`}>
                             Sem {sem}
                           </button>
                         ))}
@@ -459,7 +459,7 @@ export default function CreatorStudio() {
                   )}
 
                   {/* Subjects split */}
-                  <div style={styles.subjectsWorkspaceGrid}>
+                  <div className="subjects-workspace-grid">
 
                     {/* Subject sidebar */}
                     <div className="glass-panel" style={styles.subjectBox}>
@@ -467,10 +467,30 @@ export default function CreatorStudio() {
                       <div style={styles.boxList}>
                         {activeSubjectsList.length === 0 ? (
                           <p style={styles.emptyText}>No subjects yet.</p>
-                        ) : activeSubjectsList.map(sub => (
+                        ) : activeSubjectsList.map((sub, index) => (
                           <div key={sub.id} onClick={() => { setActiveSubjectId(sub.id); setActivePlaylistId(null); }}
                             style={{ ...styles.subjectListItem, background: activeSubjectId === sub.id ? 'rgba(139,92,246,0.1)' : 'transparent', borderLeftColor: activeSubjectId === sub.id ? 'var(--primary)' : 'transparent' }}>
                             <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#fff' }}>{sub.title}</span>
+                            
+                            <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto', marginRight: '6px' }}>
+                              <button 
+                                disabled={index === 0} 
+                                onClick={e => { e.stopPropagation(); reorderSubject(sub.id, 'up'); }}
+                                style={{ background: 'transparent', border: 'none', cursor: index === 0 ? 'not-allowed' : 'pointer', color: index === 0 ? 'var(--text-muted)' : 'var(--primary)', padding: '2px', display: 'flex', alignItems: 'center' }}
+                                title="Move Up"
+                              >
+                                <ArrowUp size={12} />
+                              </button>
+                              <button 
+                                disabled={index === activeSubjectsList.length - 1} 
+                                onClick={e => { e.stopPropagation(); reorderSubject(sub.id, 'down'); }}
+                                style={{ background: 'transparent', border: 'none', cursor: index === activeSubjectsList.length - 1 ? 'not-allowed' : 'pointer', color: index === activeSubjectsList.length - 1 ? 'var(--text-muted)' : 'var(--primary)', padding: '2px', display: 'flex', alignItems: 'center' }}
+                                title="Move Down"
+                              >
+                                <ArrowDown size={12} />
+                              </button>
+                            </div>
+
                             <button onClick={e => { e.stopPropagation(); deleteSubject(sub.id); if (activeSubjectId === sub.id) setActiveSubjectId(null); }} style={styles.deleteIconBtn}>
                               <Trash2 size={12} />
                             </button>
@@ -581,26 +601,64 @@ export default function CreatorStudio() {
                           </div>
 
                           {/* Content lists */}
-                          <div style={styles.enrolledListsGrid}>
+                          <div className="enrolled-lists-grid">
                             {/* Playlists */}
                             <div className="glass-panel" style={{ ...styles.enrolledCard, gridColumn: 'span 2' }}>
                               <h4 style={styles.enrolledHeading}>Playlists & Videos ({activeSubject.playlists?.length || 0})</h4>
                               <div style={styles.enrolledListBody}>
                                 {(!activeSubject.playlists || activeSubject.playlists.length === 0) ? (
                                   <p style={styles.emptyEnrolledText}>No playlists created yet.</p>
-                                ) : activeSubject.playlists.map(pl => (
+                                ) : activeSubject.playlists.map((pl, plIdx) => (
                                   <div key={pl.id} style={{ borderBottom: '1px dashed rgba(255,255,255,0.06)', paddingBottom: '8px', marginBottom: '8px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '6px 12px', borderRadius: '4px' }}>
                                       <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
                                         <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#fff' }}>📁 {pl.title} ({pl.videos.length} videos)</span>
                                         {pl.description && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>{pl.description}</span>}
                                       </div>
+                                      
+                                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center', marginRight: '8px', marginLeft: 'auto' }}>
+                                        <button 
+                                          disabled={plIdx === 0}
+                                          onClick={() => reorderPlaylist(activeSubject.id, pl.id, 'up')}
+                                          style={{ background: 'transparent', border: 'none', cursor: plIdx === 0 ? 'not-allowed' : 'pointer', color: plIdx === 0 ? 'var(--text-muted)' : 'var(--primary)', padding: '2px' }}
+                                          title="Move Playlist Up"
+                                        >
+                                          <ArrowUp size={12} />
+                                        </button>
+                                        <button 
+                                          disabled={plIdx === activeSubject.playlists.length - 1}
+                                          onClick={() => reorderPlaylist(activeSubject.id, pl.id, 'down')}
+                                          style={{ background: 'transparent', border: 'none', cursor: plIdx === activeSubject.playlists.length - 1 ? 'not-allowed' : 'pointer', color: plIdx === activeSubject.playlists.length - 1 ? 'var(--text-muted)' : 'var(--primary)', padding: '2px' }}
+                                          title="Move Playlist Down"
+                                        >
+                                          <ArrowDown size={12} />
+                                        </button>
+                                      </div>
+
                                       <button onClick={() => deleteSubjectPlaylist(activeSubject.id, pl.id)} style={styles.deleteIconBtn}><Trash2 size={12} /></button>
                                     </div>
                                     <div style={{ paddingLeft: '20px', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                      {pl.videos.map((vid, idx) => (
-                                        <div key={vid.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                                          <span>📺 {idx + 1}. {vid.title}</span>
+                                      {pl.videos.map((vid, vidIdx) => (
+                                        <div key={vid.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'var(--text-secondary)', padding: '2px 0' }}>
+                                          <span style={{ textAlign: 'left' }}>📺 {vidIdx + 1}. {vid.title}</span>
+                                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center', marginLeft: 'auto', marginRight: '6px' }}>
+                                            <button 
+                                              disabled={vidIdx === 0}
+                                              onClick={() => reorderVideo(activeSubject.id, pl.id, vid.id, 'up')}
+                                              style={{ background: 'transparent', border: 'none', cursor: vidIdx === 0 ? 'not-allowed' : 'pointer', color: vidIdx === 0 ? 'var(--text-muted)' : 'var(--primary)', padding: '1px' }}
+                                              title="Move Video Up"
+                                            >
+                                              <ArrowUp size={10} />
+                                            </button>
+                                            <button 
+                                              disabled={vidIdx === pl.videos.length - 1}
+                                              onClick={() => reorderVideo(activeSubject.id, pl.id, vid.id, 'down')}
+                                              style={{ background: 'transparent', border: 'none', cursor: vidIdx === pl.videos.length - 1 ? 'not-allowed' : 'pointer', color: vidIdx === pl.videos.length - 1 ? 'var(--text-muted)' : 'var(--primary)', padding: '1px' }}
+                                              title="Move Video Down"
+                                            >
+                                              <ArrowDown size={10} />
+                                            </button>
+                                          </div>
                                           <button onClick={() => deleteVideoFromPlaylist(activeSubject.id, pl.id, vid.id)} style={styles.deleteIconBtn}><Trash2 size={10} /></button>
                                         </div>
                                       ))}
@@ -626,7 +684,7 @@ export default function CreatorStudio() {
                                 </form>
                               )}
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '320px', overflowY: 'auto' }}>
-                                {(activeSubject.customMaterialSections || ['Notes', 'Organizer', 'Past Year Papers']).map(section => {
+                                {(activeSubject.customMaterialSections || ['Notes', 'Organizer', 'Past Year Papers']).map((section, secIdx, secArr) => {
                                   const sectionDocs = (activeSubject.materials || []).filter(m => m.sectionName === section);
                                   return (
                                     <div key={section}>
@@ -634,6 +692,26 @@ export default function CreatorStudio() {
                                         <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                                           📂 {section} ({sectionDocs.length})
                                         </span>
+                                        
+                                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center', marginLeft: 'auto', marginRight: '8px' }}>
+                                          <button 
+                                            disabled={secIdx === 0}
+                                            onClick={() => reorderMaterialSection(activeSubject.id, section, 'up')}
+                                            style={{ background: 'transparent', border: 'none', cursor: secIdx === 0 ? 'not-allowed' : 'pointer', color: secIdx === 0 ? 'var(--text-muted)' : 'var(--primary)', padding: '2px', display: 'flex', alignItems: 'center' }}
+                                            title="Move Section Up"
+                                          >
+                                            <ArrowUp size={11} />
+                                          </button>
+                                          <button 
+                                            disabled={secIdx === secArr.length - 1}
+                                            onClick={() => reorderMaterialSection(activeSubject.id, section, 'down')}
+                                            style={{ background: 'transparent', border: 'none', cursor: secIdx === secArr.length - 1 ? 'not-allowed' : 'pointer', color: secIdx === secArr.length - 1 ? 'var(--text-muted)' : 'var(--primary)', padding: '2px', display: 'flex', alignItems: 'center' }}
+                                            title="Move Section Down"
+                                          >
+                                            <ArrowDown size={11} />
+                                          </button>
+                                        </div>
+
                                         <button onClick={() => deleteSubjectMaterialSection(activeSubject.id, section)} style={{ ...styles.deleteIconBtn, color: 'rgba(255,100,100,0.6)' }} title={`Delete "${section}"`}>
                                           <Trash2 size={10} />
                                         </button>
