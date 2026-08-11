@@ -104,6 +104,7 @@ export default function LearningPlayer({
   const [activeCategory, setActiveCategory] = useState('playlists');
   const [activePlaylistId, setActivePlaylistId] = useState(null);
   const [videoSearchQuery, setVideoSearchQuery] = useState('');
+  const [materialSearchQuery, setMaterialSearchQuery] = useState('');
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   useEffect(() => {

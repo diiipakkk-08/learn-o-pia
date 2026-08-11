@@ -5,7 +5,8 @@ import { fuzzyMatch } from '../utils/fuzzySearch';
 
 export default function Header({
   currentView,
-  setCurrentView
+  setCurrentView,
+  setSelectedPlaylistId
 }) {
   const { currentUser, logout } = useDatabase();
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -41,7 +42,15 @@ export default function Header({
     }} className="glass-panel">
       <div style={styles.left}>
         {/* Logo */}
-        <div style={styles.logo} onClick={() => setCurrentView('learning')}>
+        <div 
+          style={{ ...styles.logo, cursor: 'pointer' }} 
+          onClick={() => {
+            if (setSelectedPlaylistId) setSelectedPlaylistId(null);
+            setCurrentView('learning');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          title="Return to Learn-o-pia Main Website"
+        >
           <div style={styles.logoIcon}>
             <GraduationCap size={20} color="#ffffff" />
           </div>
