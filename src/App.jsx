@@ -96,14 +96,15 @@ function AppContent() {
   const isVerifiedCreator = currentUser && currentUser.role === 'creator' && currentUser.status === 'active';
   const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner');
 
-  // Enforce 404 Maintenance Mode for all learners and creators
-  if (maintenanceMode && !isAdmin) {
+  const [showAdminAuth, setShowAdminAuth] = useState(false);
+
+  // Enforce 404 Maintenance Mode for all learners and creators (unless admin is logging in)
+  if (maintenanceMode && !isAdmin && !showAdminAuth) {
     return (
       <Maintenance404 
         onAdminClick={() => {
-          if (!currentUser) setCurrentView('auth');
-          else if (isAdmin) setCurrentView('admin');
-          else setCurrentView('auth');
+          setShowAdminAuth(true);
+          setCurrentView('auth');
         }}
       />
     );
