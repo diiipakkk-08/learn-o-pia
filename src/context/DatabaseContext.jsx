@@ -42,12 +42,12 @@ const fetchWithTimeout = async (url, options = {}, timeoutMs = 3500) => {
   }
 };
 
-export const fetchYoutubePlaylistVideos = async (playlistId) => {
+const fetchYoutubePlaylistVideosFallback = async (playlistId) => {
   if (!playlistId) return [];
 
   let bestVideoList = [];
 
-  // Provider 1: Piped & Invidious Open APIs (Returns ALL videos without limits)
+  // Provider 1: Piped & Invidious Open APIs
   const openApiInstances = [
     `https://api.piped.video/playlists/${playlistId}`,
     `https://pipedapi.kavin.rocks/playlists/${playlistId}`,
@@ -61,7 +61,6 @@ export const fetchYoutubePlaylistVideos = async (playlistId) => {
       const res = await fetchWithTimeout(apiUrl, { headers: { 'Accept': 'application/json' } }, 3500);
       if (res.ok) {
         const data = await res.json();
-        // Handle Piped format: { relatedStreams: [ { url: "/watch?v=...", title: "..." } ] }
         if (data && Array.isArray(data.relatedStreams) && data.relatedStreams.length > 0) {
           const vids = data.relatedStreams.map((item, idx) => {
             let vId = '';
@@ -83,7 +82,6 @@ export const fetchYoutubePlaylistVideos = async (playlistId) => {
             bestVideoList = vids;
           }
         }
-        // Handle Invidious format: { videos: [ { videoId: "...", title: "..." } ] }
         if (data && Array.isArray(data.videos) && data.videos.length > 0) {
           const vids = data.videos.map((item, idx) => ({
             id: 'yt-v-' + Date.now() + '-' + idx,
@@ -107,56 +105,7 @@ export const fetchYoutubePlaylistVideos = async (playlistId) => {
     return bestVideoList;
   }
 
-  // Provider 2: Scrape raw YouTube Playlist HTML via AllOrigins / CorsProxy
-  const htmlProxies = [
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.youtube.com/playlist?list=${playlistId}`)}`,
-    `https://corsproxy.io/?${encodeURIComponent(`https://www.youtube.com/playlist?list=${playlistId}`)}`
-  ];
-
-  for (const proxyUrl of htmlProxies) {
-    try {
-      const response = await fetchWithTimeout(proxyUrl, {}, 4500);
-      const htmlText = await response.text();
-
-      const videoMap = new Map();
-      const videoIdMatches = [...htmlText.matchAll(/"playlistVideoRenderer":\{"videoId":"([A-Za-z0-9_-]{11})"/g)];
-      
-      if (videoIdMatches.length > 0) {
-        videoIdMatches.forEach((m, idx) => {
-          const vId = m[1];
-          if (!videoMap.has(vId)) {
-            const pos = m.index;
-            const slice = htmlText.substring(pos, pos + 1500);
-            const titleM = slice.match(/"title":\{"runs":\[\{"text":"([^"]+)"\}/) 
-              || slice.match(/"title":\{"simpleText":"([^"]+)"\}/) 
-              || slice.match(/"text":"([^"]+)"/);
-            const title = titleM ? titleM[1].replace(/\\u0026/g, '&').replace(/\\"/g, '"') : `Lecture ${idx + 1}`;
-            videoMap.set(vId, title);
-          }
-        });
-
-        const scrapedVids = Array.from(videoMap.entries()).map(([vId, title], idx) => ({
-          id: 'yt-v-' + Date.now() + '-' + idx,
-          title: title || `Lecture ${idx + 1}`,
-          description: '',
-          youtubeId: vId,
-          position: idx,
-          likes: []
-        }));
-
-        if (scrapedVids.length > bestVideoList.length) {
-          bestVideoList = scrapedVids;
-        }
-      }
-    } catch (err) {}
-    if (bestVideoList.length >= 20) break;
-  }
-
-  if (bestVideoList.length > 0) {
-    return bestVideoList;
-  }
-
-  // Provider 3: Fallback rss2json
+  // Provider 2: Fallback rss2json
   try {
     const rssUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistId}`;
     const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
@@ -185,6 +134,147 @@ export const fetchYoutubePlaylistVideos = async (playlistId) => {
   } catch (err) {}
 
   return bestVideoList;
+};
+
+export const fetchYoutubePlaylistVideos = async (playlistId) => {
+  if (!playlistId) return [];
+
+  // Try Native YouTube iFrame Player API in Browser
+  const nativeResult = await new Promise((resolve) => {
+    let resolved = false;
+
+    const timeoutTimer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        resolve(null);
+      }
+    }, 7000);
+
+    // Ensure YT iFrame API is loaded
+    if (typeof window !== 'undefined') {
+      if (!window.YT) {
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        if (firstScriptTag && firstScriptTag.parentNode) {
+          firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        } else if (document.head) {
+          document.head.appendChild(tag);
+        }
+      }
+
+      let container = document.getElementById('temp-yt-importer-container');
+      if (!container && document.body) {
+        container = document.createElement('div');
+        container.id = 'temp-yt-importer-container';
+        container.style.position = 'fixed';
+        container.style.top = '-9999px';
+        container.style.left = '-9999px';
+        container.style.width = '1px';
+        container.style.height = '1px';
+        container.style.opacity = '0.01';
+        container.style.pointerEvents = 'none';
+        document.body.appendChild(container);
+      }
+
+      const playerDivId = 'temp-yt-player-' + Date.now();
+      const playerDiv = document.createElement('div');
+      playerDiv.id = playerDivId;
+      if (container) container.appendChild(playerDiv);
+
+      let attempts = 0;
+      const checkYT = () => {
+        if (resolved) return;
+        attempts++;
+        if (window.YT && window.YT.Player) {
+          try {
+            const player = new window.YT.Player(playerDivId, {
+              height: '100',
+              width: '100',
+              playerVars: {
+                listType: 'playlist',
+                list: playlistId,
+                autoplay: 0
+              },
+              events: {
+                onReady: async (event) => {
+                  if (resolved) return;
+                  try {
+                    const videoIds = event.target.getPlaylist();
+                    if (Array.isArray(videoIds) && videoIds.length > 0) {
+                      resolved = true;
+                      clearTimeout(timeoutTimer);
+                      try { player.destroy(); playerDiv.remove(); } catch (e) {}
+
+                      // Fetch titles in parallel via oembed
+                      const formatted = await Promise.all(
+                        videoIds.map(async (vId, idx) => {
+                          let title = `Lecture ${idx + 1}`;
+                          try {
+                            const oeRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${vId}&format=json`);
+                            if (oeRes.ok) {
+                              const oeData = await oeRes.json();
+                              if (oeData.title) title = oeData.title;
+                            }
+                          } catch (e) {}
+
+                          return {
+                            id: 'yt-v-' + Date.now() + '-' + idx,
+                            title,
+                            description: '',
+                            youtubeId: vId,
+                            position: idx,
+                            likes: []
+                          };
+                        })
+                      );
+                      resolve(formatted);
+                      return;
+                    }
+                  } catch (err) {
+                    console.warn("Native YT Player error:", err);
+                  }
+                },
+                onError: () => {
+                  if (!resolved) {
+                    resolved = true;
+                    clearTimeout(timeoutTimer);
+                    try { player.destroy(); playerDiv.remove(); } catch (e) {}
+                    resolve(null);
+                  }
+                }
+              }
+            });
+          } catch (e) {
+            if (!resolved) {
+              resolved = true;
+              clearTimeout(timeoutTimer);
+              resolve(null);
+            }
+          }
+        } else if (attempts < 30) {
+          setTimeout(checkYT, 200);
+        } else {
+          if (!resolved) {
+            resolved = true;
+            clearTimeout(timeoutTimer);
+            resolve(null);
+          }
+        }
+      };
+
+      checkYT();
+    } else {
+      resolve(null);
+    }
+  });
+
+  if (nativeResult && nativeResult.length > 0) {
+    console.log(`Native YT iFrame API extracted ${nativeResult.length} videos!`);
+    return nativeResult;
+  }
+
+  return await fetchYoutubePlaylistVideosFallback(playlistId);
 };
 
 const mapProfile = (dbProfile) => {
