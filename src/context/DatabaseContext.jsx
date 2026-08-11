@@ -6,17 +6,26 @@ const DatabaseContext = createContext();
 export const extractYoutubePlaylistId = (url) => {
   if (!url) return '';
   const trimmed = url.trim();
+  
+  // 1. Match ?list=... or &list=...
   const match = trimmed.match(/[?&]list=([^#&]+)/);
   if (match && match[1]) {
     return match[1];
   }
+
+  // 2. Match embed/videoseries?list=...
   const matchEmbed = trimmed.match(/embed\/videoseries\?list=([^#&]+)/);
   if (matchEmbed && matchEmbed[1]) {
     return matchEmbed[1];
   }
-  if (!trimmed.includes('/') && !trimmed.includes('?') && trimmed.length > 5) {
-    return trimmed;
+
+  // 3. Raw Playlist ID: Must contain NO spaces and match valid YouTube playlist ID format
+  if (!trimmed.includes(' ') && !trimmed.includes('/') && !trimmed.includes('?')) {
+    if (/^(PL|FL|UU|RD|LL|LM|OLAK)[A-Za-z0-9_-]+$/.test(trimmed) || (/^[A-Za-z0-9_-]{16,}$/.test(trimmed))) {
+      return trimmed;
+    }
   }
+
   return '';
 };
 
