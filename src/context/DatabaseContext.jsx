@@ -45,72 +45,47 @@ const fetchWithTimeout = async (url, options = {}, timeoutMs = 3500) => {
 export const fetchYoutubePlaylistVideos = async (playlistId) => {
   if (!playlistId) return [];
 
-  // Method 1: Scrape raw YouTube Playlist HTML via AllOrigins / Proxy (Direct & Fast)
-  try {
-    const playlistUrl = `https://www.youtube.com/playlist?list=${playlistId}`;
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(playlistUrl)}`;
-    const response = await fetchWithTimeout(proxyUrl, {}, 4000);
-    const htmlText = await response.text();
+  let bestVideoList = [];
 
-    const videoMatches = [];
-    const regex = /"playlistVideoRenderer":\{"videoId":"([^"]+)".*?"title":\{"runs":\[\{"text":"([^"]+)"\}/g;
-    let match;
-    while ((match = regex.exec(htmlText)) !== null) {
-      videoMatches.push({
-        youtubeId: match[1],
-        title: match[2]
-      });
-    }
-
-    if (videoMatches.length > 0) {
-      console.log(`Scraped ${videoMatches.length} videos from YouTube HTML!`);
-      return videoMatches.map((item, idx) => ({
-        id: 'yt-v-' + Date.now() + '-' + idx,
-        title: item.title || `Lecture ${idx + 1}`,
-        description: '',
-        youtubeId: item.youtubeId,
-        position: idx,
-        likes: []
-      }));
-    }
-  } catch (err) {
-    console.warn("YouTube HTML scraper failed:", err);
-  }
-
-  // Method 2: Piped & Invidious Open APIs with 2.5s timeout per instance
+  // Provider 1: Piped & Invidious Open APIs (Returns ALL videos without limits)
   const openApiInstances = [
     `https://api.piped.video/playlists/${playlistId}`,
     `https://pipedapi.kavin.rocks/playlists/${playlistId}`,
     `https://inv.tux.pizza/api/v1/playlists/${playlistId}`,
-    `https://invidious.nerdvpn.de/api/v1/playlists/${playlistId}`
+    `https://invidious.nerdvpn.de/api/v1/playlists/${playlistId}`,
+    `https://vid.puffyan.us/api/v1/playlists/${playlistId}`
   ];
 
   for (const apiUrl of openApiInstances) {
     try {
-      const res = await fetchWithTimeout(apiUrl, { headers: { 'Accept': 'application/json' } }, 2500);
+      const res = await fetchWithTimeout(apiUrl, { headers: { 'Accept': 'application/json' } }, 3500);
       if (res.ok) {
         const data = await res.json();
+        // Handle Piped format: { relatedStreams: [ { url: "/watch?v=...", title: "..." } ] }
         if (data && Array.isArray(data.relatedStreams) && data.relatedStreams.length > 0) {
-          const videos = data.relatedStreams.map((item, idx) => {
-            let videoId = '';
+          const vids = data.relatedStreams.map((item, idx) => {
+            let vId = '';
             if (item.url) {
-              const match = item.url.match(/[?&]v=([^#&]+)/);
-              if (match && match[1]) videoId = match[1];
+              const m = item.url.match(/[?&]v=([^#&]+)/);
+              if (m && m[1]) vId = m[1];
             }
             return {
               id: 'yt-v-' + Date.now() + '-' + idx,
               title: item.title || `Lecture ${idx + 1}`,
               description: '',
-              youtubeId: videoId,
+              youtubeId: vId,
               position: idx,
               likes: []
             };
           }).filter(v => v.youtubeId);
 
-          if (videos.length > 0) return videos;
+          if (vids.length > bestVideoList.length) {
+            bestVideoList = vids;
+          }
         }
+        // Handle Invidious format: { videos: [ { videoId: "...", title: "..." } ] }
         if (data && Array.isArray(data.videos) && data.videos.length > 0) {
-          const videos = data.videos.map((item, idx) => ({
+          const vids = data.videos.map((item, idx) => ({
             id: 'yt-v-' + Date.now() + '-' + idx,
             title: item.title || `Lecture ${idx + 1}`,
             description: item.description || '',
@@ -119,15 +94,69 @@ export const fetchYoutubePlaylistVideos = async (playlistId) => {
             likes: []
           })).filter(v => v.youtubeId);
 
-          if (videos.length > 0) return videos;
+          if (vids.length > bestVideoList.length) {
+            bestVideoList = vids;
+          }
         }
       }
-    } catch (err) {
-      // timeout or network error, proceed to next
-    }
+    } catch (e) {}
+    if (bestVideoList.length >= 20) break;
   }
 
-  // Method 3: Fallback rss2json (with 3s timeout)
+  if (bestVideoList.length >= 20) {
+    return bestVideoList;
+  }
+
+  // Provider 2: Scrape raw YouTube Playlist HTML via AllOrigins / CorsProxy
+  const htmlProxies = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.youtube.com/playlist?list=${playlistId}`)}`,
+    `https://corsproxy.io/?${encodeURIComponent(`https://www.youtube.com/playlist?list=${playlistId}`)}`
+  ];
+
+  for (const proxyUrl of htmlProxies) {
+    try {
+      const response = await fetchWithTimeout(proxyUrl, {}, 4500);
+      const htmlText = await response.text();
+
+      const videoMap = new Map();
+      const videoIdMatches = [...htmlText.matchAll(/"playlistVideoRenderer":\{"videoId":"([A-Za-z0-9_-]{11})"/g)];
+      
+      if (videoIdMatches.length > 0) {
+        videoIdMatches.forEach((m, idx) => {
+          const vId = m[1];
+          if (!videoMap.has(vId)) {
+            const pos = m.index;
+            const slice = htmlText.substring(pos, pos + 1500);
+            const titleM = slice.match(/"title":\{"runs":\[\{"text":"([^"]+)"\}/) 
+              || slice.match(/"title":\{"simpleText":"([^"]+)"\}/) 
+              || slice.match(/"text":"([^"]+)"/);
+            const title = titleM ? titleM[1].replace(/\\u0026/g, '&').replace(/\\"/g, '"') : `Lecture ${idx + 1}`;
+            videoMap.set(vId, title);
+          }
+        });
+
+        const scrapedVids = Array.from(videoMap.entries()).map(([vId, title], idx) => ({
+          id: 'yt-v-' + Date.now() + '-' + idx,
+          title: title || `Lecture ${idx + 1}`,
+          description: '',
+          youtubeId: vId,
+          position: idx,
+          likes: []
+        }));
+
+        if (scrapedVids.length > bestVideoList.length) {
+          bestVideoList = scrapedVids;
+        }
+      }
+    } catch (err) {}
+    if (bestVideoList.length >= 20) break;
+  }
+
+  if (bestVideoList.length > 0) {
+    return bestVideoList;
+  }
+
+  // Provider 3: Fallback rss2json
   try {
     const rssUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistId}`;
     const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
@@ -153,11 +182,9 @@ export const fetchYoutubePlaylistVideos = async (playlistId) => {
         };
       }).filter(v => v.youtubeId);
     }
-  } catch (err) {
-    console.warn("rss2json fetch failed:", err);
-  }
+  } catch (err) {}
 
-  return [];
+  return bestVideoList;
 };
 
 const mapProfile = (dbProfile) => {
