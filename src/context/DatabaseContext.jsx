@@ -32,7 +32,98 @@ export const extractYoutubePlaylistId = (url) => {
 export const fetchYoutubePlaylistVideos = async (playlistId) => {
   if (!playlistId) return [];
 
-  // 1. Primary: rss2json API
+  // Method 1: Piped & Invidious Open APIs (Returns ALL videos without limits)
+  const openApiInstances = [
+    `https://api.piped.video/playlists/${playlistId}`,
+    `https://pipedapi.kavin.rocks/playlists/${playlistId}`,
+    `https://inv.tux.pizza/api/v1/playlists/${playlistId}`,
+    `https://invidious.nerdvpn.de/api/v1/playlists/${playlistId}`,
+    `https://vid.puffyan.us/api/v1/playlists/${playlistId}`
+  ];
+
+  for (const apiUrl of openApiInstances) {
+    try {
+      const res = await fetch(apiUrl, { headers: { 'Accept': 'application/json' } });
+      if (res.ok) {
+        const data = await res.json();
+        // Handle Piped format: { relatedStreams: [ { url: "/watch?v=...", title: "..." } ] }
+        if (data && Array.isArray(data.relatedStreams) && data.relatedStreams.length > 0) {
+          const videos = data.relatedStreams.map((item, idx) => {
+            let videoId = '';
+            if (item.url) {
+              const match = item.url.match(/[?&]v=([^#&]+)/);
+              if (match && match[1]) videoId = match[1];
+            }
+            return {
+              id: 'yt-v-' + Date.now() + '-' + idx,
+              title: item.title || `Lecture ${idx + 1}`,
+              description: '',
+              youtubeId: videoId,
+              position: idx,
+              likes: []
+            };
+          }).filter(v => v.youtubeId);
+
+          if (videos.length > 0) {
+            console.log(`Fetched ${videos.length} videos from Piped API!`);
+            return videos;
+          }
+        }
+        // Handle Invidious format: { videos: [ { videoId: "...", title: "..." } ] }
+        if (data && Array.isArray(data.videos) && data.videos.length > 0) {
+          const videos = data.videos.map((item, idx) => ({
+            id: 'yt-v-' + Date.now() + '-' + idx,
+            title: item.title || `Lecture ${idx + 1}`,
+            description: item.description || '',
+            youtubeId: item.videoId,
+            position: idx,
+            likes: []
+          })).filter(v => v.youtubeId);
+
+          if (videos.length > 0) {
+            console.log(`Fetched ${videos.length} videos from Invidious API!`);
+            return videos;
+          }
+        }
+      }
+    } catch (err) {
+      // try next provider
+    }
+  }
+
+  // Method 2: Scrape raw YouTube Playlist HTML via AllOrigins / Proxy
+  try {
+    const playlistUrl = `https://www.youtube.com/playlist?list=${playlistId}`;
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(playlistUrl)}`;
+    const response = await fetch(proxyUrl);
+    const htmlText = await response.text();
+
+    const videoMatches = [];
+    const regex = /"playlistVideoRenderer":\{"videoId":"([^"]+)".*?"title":\{"runs":\[\{"text":"([^"]+)"\}/g;
+    let match;
+    while ((match = regex.exec(htmlText)) !== null) {
+      videoMatches.push({
+        youtubeId: match[1],
+        title: match[2]
+      });
+    }
+
+    if (videoMatches.length > 0) {
+      console.log(`Scraped ${videoMatches.length} videos from YouTube HTML!`);
+      return videoMatches.map((item, idx) => ({
+        id: 'yt-v-' + Date.now() + '-' + idx,
+        title: item.title || `Lecture ${idx + 1}`,
+        description: '',
+        youtubeId: item.youtubeId,
+        position: idx,
+        likes: []
+      }));
+    }
+  } catch (err) {
+    console.warn("YouTube HTML scraper failed:", err);
+  }
+
+  // Method 3: Fallback rss2json (up to 15 videos)
   try {
     const rssUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistId}`;
     const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
@@ -59,35 +150,7 @@ export const fetchYoutubePlaylistVideos = async (playlistId) => {
       }).filter(v => v.youtubeId);
     }
   } catch (err) {
-    console.warn("rss2json fetch failed, trying proxy fallback:", err);
-  }
-
-  // 2. Fallback: allorigins proxy DOMParser
-  try {
-    const rssUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistId}`;
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`;
-    const res = await fetch(proxyUrl);
-    const xmlText = await res.text();
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-    const entries = Array.from(xmlDoc.querySelectorAll("entry"));
-    
-    if (entries.length > 0) {
-      return entries.map((entry, idx) => {
-        const videoId = entry.querySelector("videoId")?.textContent || entry.querySelector("yt\\:videoId")?.textContent || '';
-        const title = entry.querySelector("title")?.textContent || `Lecture ${idx + 1}`;
-        return {
-          id: 'yt-v-' + (Date.now() + idx),
-          title,
-          description: '',
-          youtubeId: videoId,
-          position: idx,
-          likes: []
-        };
-      }).filter(v => v.youtubeId);
-    }
-  } catch (err) {
-    console.warn("Proxy XML fetch failed:", err);
+    console.warn("rss2json fetch failed:", err);
   }
 
   return [];
