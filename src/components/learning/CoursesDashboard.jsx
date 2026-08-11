@@ -17,6 +17,23 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
   subjects.forEach(subject => {
     const parentCourse = courses.find(c => c.id === subject.courseId);
     
+    // Flatten subject.materials (PDFs, Syllabus, Notes, Organizers uploaded by creators)
+    if (subject.materials && Array.isArray(subject.materials)) {
+      subject.materials.forEach(mat => {
+        allResources.push({
+          id: mat.id,
+          title: mat.title,
+          url: mat.url,
+          author: mat.author,
+          type: mat.sectionName || 'Study Material',
+          sectionName: mat.sectionName || 'Study Material',
+          subjectTitle: subject.title,
+          semester: subject.semester,
+          courseTitle: parentCourse ? parentCourse.title : 'General'
+        });
+      });
+    }
+
     // Flatten Notes
     if (subject.notes) {
       subject.notes.forEach(res => {
@@ -24,7 +41,8 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
           id: res.id,
           title: res.title,
           url: res.url,
-          type: 'notes',
+          type: 'Notes',
+          sectionName: 'Notes',
           subjectTitle: subject.title,
           semester: subject.semester,
           courseTitle: parentCourse ? parentCourse.title : 'General'
@@ -39,7 +57,8 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
           id: res.id,
           title: res.title,
           url: res.url,
-          type: 'organizers',
+          type: 'Organizers',
+          sectionName: 'Organizer',
           subjectTitle: subject.title,
           semester: subject.semester,
           courseTitle: parentCourse ? parentCourse.title : 'General'
@@ -54,7 +73,8 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
           id: res.id,
           title: res.title,
           url: res.url,
-          type: 'pastPapers',
+          type: 'Past Papers',
+          sectionName: 'Past Year Papers',
           subjectTitle: subject.title,
           semester: subject.semester,
           courseTitle: parentCourse ? parentCourse.title : 'General'

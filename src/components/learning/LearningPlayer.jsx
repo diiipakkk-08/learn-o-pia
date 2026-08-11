@@ -298,9 +298,18 @@ export default function LearningPlayer({
                 className={`yt-sidebar-tab ${activeCategory === 'playlists' ? 'active' : ''}`}
               >
                 <Play size={14} />
-                Playlists
+                Video Playlists
               </button>
-              {(activeSubject?.customMaterialSections || ['Notes', 'Organizer', 'Past Year Papers']).map(section => (
+
+              <button
+                onClick={() => { setActiveCategory('all-materials'); setActivePlaylistId(null); }}
+                className={`yt-sidebar-tab ${activeCategory === 'all-materials' ? 'active' : ''}`}
+              >
+                <FileText size={14} color="#f59e0b" />
+                All Materials & PDFs
+              </button>
+
+              {(activeSubject?.customMaterialSections || ['Syllabus', 'Notes', 'Organizer', 'Past Year Papers']).map(section => (
                 <button
                   key={section}
                   onClick={() => { setActiveCategory(section); setActivePlaylistId(null); }}
@@ -626,30 +635,140 @@ export default function LearningPlayer({
 
                 {/* Dynamic section documents rendering */}
                 {activeCategory !== 'playlists' && (() => {
-                  const sectionDocs = (activeSubject.materials || []).filter(m => m.sectionName === activeCategory);
-                  return sectionDocs.length === 0 ? (
-                    <p style={styles.emptyText}>No files uploaded to "{activeCategory}" yet.</p>
-                  ) : (
-                    <div style={styles.documentList}>
-                      {sectionDocs.map(doc => (
-                        <div key={doc.id} style={styles.docItem}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <FileText size={16} color="#f59e0b" />
-                            <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                              <span style={{ fontSize: '0.85rem', color: '#ffffff' }}>{doc.title}</span>
-                              {doc.author && (
-                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                  Credits: {doc.author}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <a href={doc.url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={styles.docBtn}>
-                            <Download size={12} />
-                            Download
-                          </a>
+                  const allDocs = activeSubject.materials || [];
+                  const sectionDocs = allDocs.filter(doc => {
+                    const matchesCategory = activeCategory === 'all-materials' ||
+                      (doc.sectionName && doc.sectionName.toLowerCase() === activeCategory.toLowerCase()) ||
+                      (doc.type && doc.type.toLowerCase() === activeCategory.toLowerCase());
+
+                    const matchesQuery = !materialSearchQuery.trim() ||
+                      doc.title.toLowerCase().includes(materialSearchQuery.toLowerCase()) ||
+                      (doc.sectionName && doc.sectionName.toLowerCase().includes(materialSearchQuery.toLowerCase())) ||
+                      (doc.author && doc.author.toLowerCase().includes(materialSearchQuery.toLowerCase()));
+
+                    return matchesCategory && matchesQuery;
+                  });
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      {/* Search Bar for Documents */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                        <h4 style={{ fontSize: '1.05rem', color: '#ffffff', margin: 0, fontWeight: 700 }}>
+                          {activeCategory === 'all-materials' ? 'All Study Materials & PDFs' : activeCategory} ({sectionDocs.length})
+                        </h4>
+                        
+                        <input
+                          type="text"
+                          placeholder="Search syllabus, notes, PDFs..."
+                          value={materialSearchQuery}
+                          onChange={(e) => setMaterialSearchQuery(e.target.value)}
+                          className="form-input"
+                          style={{
+                            maxWidth: '300px',
+                            width: '100%',
+                            padding: '8px 14px',
+                            fontSize: '0.82rem',
+                            borderRadius: '8px',
+                            background: 'rgba(255,255,255,0.03)',
+                            border: '1px solid rgba(255,255,255,0.08)'
+                          }}
+                        />
+                      </div>
+
+                      {sectionDocs.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '40px 20px', background: 'rgba(255,255,255,0.01)', borderRadius: '12px', border: '1px border-dashed rgba(255,255,255,0.08)' }}>
+                          <FileText size={36} color="var(--text-muted)" style={{ marginBottom: '10px' }} />
+                          <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+                            No files found for "{activeCategory === 'all-materials' ? 'Study Materials' : activeCategory}".
+                          </p>
+                          {materialSearchQuery && (
+                            <button onClick={() => setMaterialSearchQuery('')} className="btn btn-secondary" style={{ marginTop: '10px', fontSize: '0.78rem' }}>
+                              Clear Search Filter
+                            </button>
+                          )}
                         </div>
-                      ))}
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
+                          {sectionDocs.map(doc => (
+                            <div
+                              key={doc.id}
+                              style={{
+                                padding: '16px',
+                                background: 'rgba(255,255,255,0.02)',
+                                border: '1px solid rgba(255,255,255,0.06)',
+                                borderRadius: '12px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'space-between',
+                                gap: '12px',
+                                transition: 'all 0.2s'
+                              }}
+                              className="lecture-item-hover"
+                            >
+                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                                <div style={{
+                                  background: 'rgba(239, 68, 68, 0.15)',
+                                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                                  borderRadius: '10px',
+                                  padding: '10px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0
+                                }}>
+                                  <FileText size={22} color="#ef4444" />
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left', minWidth: 0, flex: 1 }}>
+                                  <span style={{ fontSize: '0.9rem', color: '#ffffff', fontWeight: 600, lineHeight: '1.3' }}>
+                                    {doc.title}
+                                  </span>
+                                  
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+                                    <span style={{
+                                      fontSize: '0.68rem',
+                                      background: 'rgba(139,92,246,0.15)',
+                                      color: 'var(--primary)',
+                                      padding: '2px 8px',
+                                      borderRadius: '10px',
+                                      fontWeight: 600
+                                    }}>
+                                      {doc.sectionName || 'Study Material'}
+                                    </span>
+                                    {doc.author && (
+                                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                        By: {doc.author}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                                <a
+                                  href={doc.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="btn btn-secondary"
+                                  style={{ flex: 1, padding: '8px 12px', fontSize: '0.78rem', justifyContent: 'center' }}
+                                >
+                                  View / Open
+                                </a>
+                                <a
+                                  href={doc.url}
+                                  download
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="btn btn-primary"
+                                  style={{ padding: '8px 12px', fontSize: '0.78rem', justifyContent: 'center' }}
+                                >
+                                  <Download size={14} />
+                                </a>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
@@ -678,8 +797,9 @@ export default function LearningPlayer({
                 className="yt-select-dropdown"
                 style={{ width: '100%' }}
               >
-                <option value="playlists" style={{ background: '#11121c', color: '#fff' }}>Playlists</option>
-                {(activeSubject?.customMaterialSections || ['Notes', 'Organizer', 'Past Year Papers']).map(section => (
+                <option value="playlists" style={{ background: '#11121c', color: '#fff' }}>Video Playlists</option>
+                <option value="all-materials" style={{ background: '#11121c', color: '#fff' }}>All Materials & PDFs</option>
+                {(activeSubject?.customMaterialSections || ['Syllabus', 'Notes', 'Organizer', 'Past Year Papers']).map(section => (
                   <option key={section} value={section} style={{ background: '#11121c', color: '#fff' }}>{section}</option>
                 ))}
               </select>
