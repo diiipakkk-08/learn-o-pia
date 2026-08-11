@@ -236,11 +236,16 @@ export default function CreatorStudio() {
         return;
       }
       setIsCreatingPlaylist(true);
-      fetchedVideos = await fetchYoutubePlaylistVideos(ytPlaylistId);
-      setIsCreatingPlaylist(false);
+      try {
+        fetchedVideos = await fetchYoutubePlaylistVideos(ytPlaylistId);
+      } catch (err) {
+        console.warn("Auto-fetch error:", err);
+      } finally {
+        setIsCreatingPlaylist(false);
+      }
     }
 
-    addSubjectPlaylist(activeSubject.id, playlistTitle.trim(), playlistDesc.trim(), playlistAuthor.trim(), ytPlaylistId, fetchedVideos);
+    await addSubjectPlaylist(activeSubject.id, playlistTitle.trim(), playlistDesc.trim(), playlistAuthor.trim(), ytPlaylistId, fetchedVideos);
     setPlaylistTitle('');
     setPlaylistDesc('');
     setPlaylistAuthor('');
@@ -611,7 +616,21 @@ export default function CreatorStudio() {
                                 <input type="text" value={playlistAuthor} onChange={e => setPlaylistAuthor(e.target.value)} placeholder="e.g. Training to Infinity" className="form-input" style={{ padding: '8px 12px', fontSize: '0.85rem' }} />
                               </div>
                               <div style={{ display: 'flex', gap: '10px' }}>
-                                <button type="submit" className="btn btn-primary" style={{ padding: '9px 16px', fontSize: '0.85rem' }}>Create Playlist</button>
+                                <button 
+                                   type="submit" 
+                                   disabled={isCreatingPlaylist}
+                                   className="btn btn-primary" 
+                                   style={{ padding: '9px 16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', opacity: isCreatingPlaylist ? 0.7 : 1 }}
+                                 >
+                                   {isCreatingPlaylist ? (
+                                     <>
+                                       <span style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></span>
+                                       Saving Playlist & Videos...
+                                     </>
+                                   ) : (
+                                     'Create Playlist'
+                                   )}
+                                 </button>
                                 <button type="button" onClick={() => { setShowPlaylistForm(false); setPlaylistError(''); }} className="btn btn-secondary" style={{ padding: '9px 16px', fontSize: '0.85rem' }}>Cancel</button>
                               </div>
                             </form>

@@ -29,73 +29,27 @@ export const extractYoutubePlaylistId = (url) => {
   return '';
 };
 
+const fetchWithTimeout = async (url, options = {}, timeoutMs = 3500) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
+  }
+};
+
 export const fetchYoutubePlaylistVideos = async (playlistId) => {
   if (!playlistId) return [];
 
-  // Method 1: Piped & Invidious Open APIs (Returns ALL videos without limits)
-  const openApiInstances = [
-    `https://api.piped.video/playlists/${playlistId}`,
-    `https://pipedapi.kavin.rocks/playlists/${playlistId}`,
-    `https://inv.tux.pizza/api/v1/playlists/${playlistId}`,
-    `https://invidious.nerdvpn.de/api/v1/playlists/${playlistId}`,
-    `https://vid.puffyan.us/api/v1/playlists/${playlistId}`
-  ];
-
-  for (const apiUrl of openApiInstances) {
-    try {
-      const res = await fetch(apiUrl, { headers: { 'Accept': 'application/json' } });
-      if (res.ok) {
-        const data = await res.json();
-        // Handle Piped format: { relatedStreams: [ { url: "/watch?v=...", title: "..." } ] }
-        if (data && Array.isArray(data.relatedStreams) && data.relatedStreams.length > 0) {
-          const videos = data.relatedStreams.map((item, idx) => {
-            let videoId = '';
-            if (item.url) {
-              const match = item.url.match(/[?&]v=([^#&]+)/);
-              if (match && match[1]) videoId = match[1];
-            }
-            return {
-              id: 'yt-v-' + Date.now() + '-' + idx,
-              title: item.title || `Lecture ${idx + 1}`,
-              description: '',
-              youtubeId: videoId,
-              position: idx,
-              likes: []
-            };
-          }).filter(v => v.youtubeId);
-
-          if (videos.length > 0) {
-            console.log(`Fetched ${videos.length} videos from Piped API!`);
-            return videos;
-          }
-        }
-        // Handle Invidious format: { videos: [ { videoId: "...", title: "..." } ] }
-        if (data && Array.isArray(data.videos) && data.videos.length > 0) {
-          const videos = data.videos.map((item, idx) => ({
-            id: 'yt-v-' + Date.now() + '-' + idx,
-            title: item.title || `Lecture ${idx + 1}`,
-            description: item.description || '',
-            youtubeId: item.videoId,
-            position: idx,
-            likes: []
-          })).filter(v => v.youtubeId);
-
-          if (videos.length > 0) {
-            console.log(`Fetched ${videos.length} videos from Invidious API!`);
-            return videos;
-          }
-        }
-      }
-    } catch (err) {
-      // try next provider
-    }
-  }
-
-  // Method 2: Scrape raw YouTube Playlist HTML via AllOrigins / Proxy
+  // Method 1: Scrape raw YouTube Playlist HTML via AllOrigins / Proxy (Direct & Fast)
   try {
     const playlistUrl = `https://www.youtube.com/playlist?list=${playlistId}`;
     const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(playlistUrl)}`;
-    const response = await fetch(proxyUrl);
+    const response = await fetchWithTimeout(proxyUrl, {}, 4000);
     const htmlText = await response.text();
 
     const videoMatches = [];
@@ -123,11 +77,61 @@ export const fetchYoutubePlaylistVideos = async (playlistId) => {
     console.warn("YouTube HTML scraper failed:", err);
   }
 
-  // Method 3: Fallback rss2json (up to 15 videos)
+  // Method 2: Piped & Invidious Open APIs with 2.5s timeout per instance
+  const openApiInstances = [
+    `https://api.piped.video/playlists/${playlistId}`,
+    `https://pipedapi.kavin.rocks/playlists/${playlistId}`,
+    `https://inv.tux.pizza/api/v1/playlists/${playlistId}`,
+    `https://invidious.nerdvpn.de/api/v1/playlists/${playlistId}`
+  ];
+
+  for (const apiUrl of openApiInstances) {
+    try {
+      const res = await fetchWithTimeout(apiUrl, { headers: { 'Accept': 'application/json' } }, 2500);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.relatedStreams) && data.relatedStreams.length > 0) {
+          const videos = data.relatedStreams.map((item, idx) => {
+            let videoId = '';
+            if (item.url) {
+              const match = item.url.match(/[?&]v=([^#&]+)/);
+              if (match && match[1]) videoId = match[1];
+            }
+            return {
+              id: 'yt-v-' + Date.now() + '-' + idx,
+              title: item.title || `Lecture ${idx + 1}`,
+              description: '',
+              youtubeId: videoId,
+              position: idx,
+              likes: []
+            };
+          }).filter(v => v.youtubeId);
+
+          if (videos.length > 0) return videos;
+        }
+        if (data && Array.isArray(data.videos) && data.videos.length > 0) {
+          const videos = data.videos.map((item, idx) => ({
+            id: 'yt-v-' + Date.now() + '-' + idx,
+            title: item.title || `Lecture ${idx + 1}`,
+            description: item.description || '',
+            youtubeId: item.videoId,
+            position: idx,
+            likes: []
+          })).filter(v => v.youtubeId);
+
+          if (videos.length > 0) return videos;
+        }
+      }
+    } catch (err) {
+      // timeout or network error, proceed to next
+    }
+  }
+
+  // Method 3: Fallback rss2json (with 3s timeout)
   try {
     const rssUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistId}`;
     const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
-    const res = await fetch(apiUrl);
+    const res = await fetchWithTimeout(apiUrl, {}, 3000);
     const data = await res.json();
 
     if (data.status === 'ok' && Array.isArray(data.items) && data.items.length > 0) {
