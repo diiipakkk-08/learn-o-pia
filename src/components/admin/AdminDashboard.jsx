@@ -3,78 +3,22 @@ import { useDatabase } from '../../context/DatabaseContext';
 import { Users, BookOpen, ShieldCheck, Check, Ban, Award, FileText, Shield, X, Wrench } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const { currentUser, users, courses, subjects, activityLogs, approveCreator, rejectCreator, makeAdmin, toggleUserStatus, changeUserRole, pruneActivityLogs, maintenanceMode, toggleMaintenanceMode } = useDatabase();
+  const { currentUser, users, courses, subjects, activityLogs, approveCreator, rejectCreator, makeAdmin, toggleUserStatus, changeUserRole, pruneActivityLogs } = useDatabase();
   const [activeTab, setActiveTab] = useState('verification');
   const [userSearchQuery, setUserSearchQuery] = useState('');
 
-  // Filter lists
-  const pendingCreators = users.filter(u => u.creatorStatus === 'pending');
-  const learners = users.filter(u => u.role === 'learner');
-  const admins = users.filter(u => u.role === 'admin' || u.role === 'owner');
-
-  // Compute metrics
   const totalCourses = courses.length;
   const totalVideos = subjects.reduce((acc, s) => {
     const plVideos = s.playlists ? s.playlists.reduce((sum, pl) => sum + pl.videos.length, 0) : 0;
     return acc + plVideos;
   }, 0);
   const totalUsers = users.length;
+  const learners = users.filter(u => u.role === 'learner');
+  const admins = users.filter(u => u.role === 'admin');
+  const pendingCreators = users.filter(u => u.status === 'pending');
 
   return (
     <div className="animate-fade-in" style={styles.container}>
-      
-      {/* Platform Maintenance Mode Control Banner */}
-      <div style={{
-        padding: '16px 20px',
-        background: maintenanceMode ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.08)',
-        border: maintenanceMode ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(16, 185, 129, 0.2)',
-        borderRadius: '16px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '12px'
-      }} className="glass-panel">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left' }}>
-          <div style={{
-            background: maintenanceMode ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)',
-            padding: '10px',
-            borderRadius: '12px',
-            display: 'flex'
-          }}>
-            <Wrench size={22} color={maintenanceMode ? '#ef4444' : '#10b981'} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '1rem', fontWeight: 700, color: '#ffffff' }}>
-                Platform Status: {maintenanceMode ? 'UNDER CONSTRUCTION (404 Active)' : 'ONLINE - NORMAL OPERATION'}
-              </span>
-            </div>
-            <span style={{ fontSize: '0.8rem', color: maintenanceMode ? '#ef4444' : 'var(--text-secondary)' }}>
-              {maintenanceMode 
-                ? '🔴 Maintenance Mode is ON. All learners and creators are seeing the 404 Under Construction page.' 
-                : '🟢 Website is LIVE and accessible to all students and creators.'}
-            </span>
-          </div>
-        </div>
-
-        <button
-          onClick={() => toggleMaintenanceMode(!maintenanceMode)}
-          className={maintenanceMode ? 'btn btn-secondary' : 'btn btn-primary'}
-          style={{
-            padding: '10px 18px',
-            fontSize: '0.85rem',
-            fontWeight: 700,
-            background: maintenanceMode ? '#ef4444' : 'linear-gradient(135deg, #10b981, #059669)',
-            borderColor: 'transparent',
-            color: '#ffffff',
-            cursor: 'pointer'
-          }}
-        >
-          {maintenanceMode ? '🟢 Turn Maintenance OFF (Go Live)' : '🔴 Turn Maintenance ON (404 Page)'}
-        </button>
-      </div>
-
       {/* Metrics Header widgets */}
       <div style={styles.statsGrid}>
         <div className="glass-panel" style={styles.statCard}>

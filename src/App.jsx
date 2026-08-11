@@ -3,7 +3,7 @@ import { DatabaseProvider, useDatabase } from './context/DatabaseContext';
 import Auth from './components/Auth';
 import Header from './components/Header';
 import Profile from './components/Profile';
-import Maintenance404 from './components/Maintenance404';
+import NotFound404 from './components/NotFound404';
 
 // Shared Learning Views
 import CoursesDashboard from './components/learning/CoursesDashboard';
@@ -39,7 +39,7 @@ function AccessDenied({ requiredRole, setCurrentView }) {
 }
 
 function AppContent() {
-  const { currentUser, authLoading, maintenanceMode } = useDatabase();
+  const { currentUser, authLoading } = useDatabase();
   
   const [currentView, setCurrentView] = useState(() => {
     return localStorage.getItem('learnopia_view') || 'learning';
@@ -51,7 +51,6 @@ function AppContent() {
     const val = localStorage.getItem('learnopia_selected_video');
     return val ? parseInt(val, 10) : 0;
   });
-  const [showAdminAuth, setShowAdminAuth] = useState(false);
 
   // Keep localStorage in sync
   useEffect(() => {
@@ -97,52 +96,8 @@ function AppContent() {
   const isVerifiedCreator = currentUser && currentUser.role === 'creator' && currentUser.status === 'active';
   const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner');
 
-  // Enforce 404 Maintenance Mode for all learners and creators (unless admin is logging in)
-  if (maintenanceMode && !isAdmin && !showAdminAuth) {
-    return (
-      <Maintenance404 
-        onAdminClick={() => {
-          setShowAdminAuth(true);
-          setCurrentView('auth');
-        }}
-      />
-    );
-  }
-
   return (
     <div className="app-container">
-      {/* Top Banner Alert for Admin when Maintenance Mode is ON */}
-      {maintenanceMode && isAdmin && (
-        <div style={{
-          background: '#ef4444',
-          color: '#ffffff',
-          padding: '8px 16px',
-          textAlign: 'center',
-          fontSize: '0.82rem',
-          fontWeight: 700,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '12px',
-          zIndex: 10000
-        }}>
-          <span>🚨 PLATFORM MAINTENANCE MODE IS ON (Learners & Creators are seeing the 404 Under Construction page)</span>
-          <button 
-            onClick={() => setCurrentView('admin')} 
-            style={{
-              background: 'rgba(255,255,255,0.2)',
-              border: '1px solid rgba(255,255,255,0.4)',
-              color: '#ffffff',
-              padding: '3px 10px',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '0.78rem'
-            }}
-          >
-            Admin Control Switch
-          </button>
-        </div>
-      )}
 
       {/* Global Header Nav */}
       {currentUser && (
@@ -199,6 +154,11 @@ function AppContent() {
               ) : (
                 <AccessDenied requiredRole="Admin" setCurrentView={setCurrentView} />
               )
+            )}
+
+            {/* Standard 404 Fallback for unrecognized views */}
+            {!['learning', 'learning-player', 'profile', 'studio', 'admin', 'auth'].includes(currentView) && (
+              <NotFound404 setCurrentView={setCurrentView} />
             )}
           </>
         )}

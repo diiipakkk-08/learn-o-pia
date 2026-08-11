@@ -394,15 +394,6 @@ export function DatabaseProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [activityLogs, setActivityLogs] = useState([]);
   const [authLoading, setAuthLoading] = useState(true);
-  const [maintenanceMode, setMaintenanceMode] = useState(() => {
-    return localStorage.getItem('learnopia_maintenance_mode') === 'true';
-  });
-
-  const toggleMaintenanceMode = async (status) => {
-    const newStatus = typeof status === 'boolean' ? status : !maintenanceMode;
-    setMaintenanceMode(newStatus);
-    localStorage.setItem('learnopia_maintenance_mode', newStatus ? 'true' : 'false');
-  };
 
   // Check if Supabase client is active
   const isSupabaseLive = !!supabase;
@@ -1752,9 +1743,7 @@ export function DatabaseProvider({ children }) {
       reorderVideo,
       reorderMaterialSection,
       extractYoutubePlaylistId,
-      importVideosToExistingPlaylist,
-      maintenanceMode,
-      toggleMaintenanceMode
+      importVideosToExistingPlaylist
     }}>
       {children}
     </DatabaseContext.Provider>
