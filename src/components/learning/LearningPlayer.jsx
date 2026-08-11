@@ -346,176 +346,134 @@ export default function LearningPlayer({
                 const currentSrc = isEmbedMode 
                   ? `https://www.youtube.com/embed/videoseries?list=${ytPlId}&rel=0&modestbranding=1`
                   : getVideoSrc(activeVideo);
-                const isLiked = isEmbedMode
-                  ? activePlaylist?.likes?.includes(currentUser?.id)
-                  : activeVideo?.likes?.includes(currentUser?.id);
-                const likeCount = isEmbedMode
-                  ? activePlaylist?.likes?.length || 0
-                  : activeVideo?.likes?.length || 0;
-                const handleToggleLike = () => {
-                  if (isEmbedMode) {
-                    togglePlaylistLike(activeSubject.id, activePlaylist.id);
-                  } else if (activeVideo) {
-                    toggleVideoLike(activeSubject.id, activePlaylist.id, activeVideo.id);
-                  }
-                };
 
                 return (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'left' }}>
-                    <button 
-                      onClick={() => setActivePlaylistId(null)} 
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        background: 'transparent',
-                        border: 'none',
-                        color: 'var(--text-secondary)',
-                        cursor: 'pointer',
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                        padding: 0,
-                        width: 'fit-content'
-                      }}
-                    >
-                      <ArrowLeft size={14} />
-                      Back to Syllabus Assets
-                    </button>
+                  <div className="classroom-grid animate-fade-in" style={{ textAlign: 'left' }}>
+                    {/* LEFT COLUMN: Video Theatre Stage & Details */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <button 
+                        onClick={() => setActivePlaylistId(null)} 
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          padding: 0,
+                          width: 'fit-content'
+                        }}
+                      >
+                        <ArrowLeft size={14} />
+                        Back to Syllabus Assets
+                      </button>
 
-                    <div style={styles.playerWrapper} className="glass-panel">
-                      <iframe
-                        src={currentSrc}
-                        title={currentTitle || 'Video Player'}
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        style={styles.iframe}
-                      ></iframe>
-                    </div>
-
-                    {/* Video Info Row with Title, Navigation Controls and Big Clickable Like Button */}
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '16px',
-                      flexWrap: 'wrap',
-                      marginTop: '4px'
-                    }}>
-                      <div>
-                        <h3 style={{ fontSize: '1.3rem', color: '#ffffff', margin: 0, fontWeight: 700 }}>
-                          {currentTitle}
-                        </h3>
-                        {activePlaylist.videos && activePlaylist.videos.length > 0 && (
-                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '3px', display: 'block' }}>
-                            Video {activeVideoIndex + 1} of {activePlaylist.videos.length}
-                          </span>
-                        )}
+                      <div style={styles.playerWrapper} className="glass-panel">
+                        <iframe
+                          src={currentSrc}
+                          title={currentTitle || 'Video Player'}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          style={styles.iframe}
+                        ></iframe>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      {/* Video Title & Navigation Row */}
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '16px',
+                        flexWrap: 'wrap',
+                        marginTop: '4px'
+                      }}>
+                        <div>
+                          <h3 style={{ fontSize: '1.3rem', color: '#ffffff', margin: 0, fontWeight: 700 }}>
+                            {currentTitle}
+                          </h3>
+                          {activePlaylist.videos && activePlaylist.videos.length > 0 && (
+                            <span style={{ fontSize: '0.8rem', color: 'var(--primary)', marginTop: '4px', display: 'inline-block', fontWeight: 600 }}>
+                              Lecture {activeVideoIndex + 1} of {activePlaylist.videos.length}
+                            </span>
+                          )}
+                        </div>
+
                         {activePlaylist.videos && activePlaylist.videos.length > 1 && (
-                          <div style={{ display: 'flex', gap: '6px' }}>
+                          <div style={{ display: 'flex', gap: '8px' }}>
                             <button
                               disabled={activeVideoIndex === 0}
-                              onClick={() => setActiveVideoIndex(idx => Math.max(0, idx - 1))}
+                              onClick={() => {
+                                setActiveVideoIndex(idx => Math.max(0, idx - 1));
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
                               className="btn btn-secondary"
-                              style={{ padding: '6px 12px', fontSize: '0.78rem', opacity: activeVideoIndex === 0 ? 0.4 : 1, cursor: activeVideoIndex === 0 ? 'not-allowed' : 'pointer' }}
+                              style={{ padding: '8px 14px', fontSize: '0.82rem', opacity: activeVideoIndex === 0 ? 0.4 : 1, cursor: activeVideoIndex === 0 ? 'not-allowed' : 'pointer' }}
                             >
                               ◄ Previous
                             </button>
                             <button
                               disabled={activeVideoIndex === activePlaylist.videos.length - 1}
-                              onClick={() => setActiveVideoIndex(idx => Math.min(activePlaylist.videos.length - 1, idx + 1))}
+                              onClick={() => {
+                                setActiveVideoIndex(idx => Math.min(activePlaylist.videos.length - 1, idx + 1));
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
                               className="btn btn-primary"
-                              style={{ padding: '6px 12px', fontSize: '0.78rem', opacity: activeVideoIndex === activePlaylist.videos.length - 1 ? 0.4 : 1, cursor: activeVideoIndex === activePlaylist.videos.length - 1 ? 'not-allowed' : 'pointer' }}
+                              style={{ padding: '8px 14px', fontSize: '0.82rem', opacity: activeVideoIndex === activePlaylist.videos.length - 1 ? 0.4 : 1, cursor: activeVideoIndex === activePlaylist.videos.length - 1 ? 'not-allowed' : 'pointer' }}
                             >
                               Next ►
                             </button>
                           </div>
                         )}
-                        
-                        <button
-                          onClick={handleToggleLike}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '8px 16px',
-                            background: isLiked ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.04)',
-                            border: isLiked ? '1px solid rgba(139,92,246,0.4)' : '1px solid rgba(255,255,255,0.08)',
-                            borderRadius: '10px',
-                            color: isLiked ? 'var(--primary)' : 'var(--text-secondary)',
-                            cursor: 'pointer',
-                            fontSize: '0.88rem',
-                            fontWeight: 600,
-                            transition: 'all 0.2s',
-                            outline: 'none'
-                          }}
-                          title="Like this"
-                        >
-                          <ThumbsUp size={16} fill={isLiked ? 'var(--primary)' : 'transparent'} />
-                          <span>{likeCount} Likes</span>
-                        </button>
                       </div>
+
+                      {currentDesc && (
+                        <p style={{
+                          fontSize: '0.88rem',
+                          color: 'var(--text-secondary)',
+                          lineHeight: '1.5',
+                          margin: '4px 0 12px 0',
+                          background: 'rgba(255,255,255,0.02)',
+                          padding: '12px 16px',
+                          borderRadius: '10px',
+                          borderLeft: '3px solid var(--primary)'
+                        }}>
+                          {currentDesc}
+                        </p>
+                      )}
                     </div>
 
-                    {currentDesc && (
-                      <p style={{
-                        fontSize: '0.88rem',
-                        color: 'var(--text-secondary)',
-                        lineHeight: '1.5',
-                        margin: '4px 0 12px 0',
-                        background: 'rgba(255,255,255,0.01)',
-                        padding: '12px 16px',
-                        borderRadius: '8px',
-                        borderLeft: '3px solid var(--primary)'
-                      }}>
-                        {currentDesc}
-                      </p>
-                    )}
-
-                    {/* Playlist Chapters Section (if custom videos exist) */}
-                    {(activePlaylist.videos && activePlaylist.videos.length > 0) && (
-                      <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '20px', marginTop: '10px' }}>
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          flexWrap: 'wrap',
-                          gap: '12px',
-                          marginBottom: '16px'
-                        }}>
-                          <h4 style={{ fontSize: '1.05rem', color: '#ffffff', margin: 0, fontWeight: 600 }}>
-                            Playlist Lectures ({filteredVideos.length})
+                    {/* RIGHT COLUMN: Dedicated Scrollable Playlist Queue Sidebar */}
+                    {activePlaylist.videos && activePlaylist.videos.length > 0 && (
+                      <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px', borderRadius: '14px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <h4 style={{ fontSize: '1rem', color: '#ffffff', margin: 0, fontWeight: 700 }}>
+                            Playlist Queue ({activePlaylist.videos.length})
                           </h4>
-                          
-                          <div style={{ position: 'relative', width: '100%', maxWidth: '280px' }}>
-                            <input
-                              type="text"
-                              placeholder="Search videos in this playlist..."
-                              value={videoSearchQuery}
-                              onChange={(e) => setVideoSearchQuery(e.target.value)}
-                              className="yt-select-dropdown"
-                              style={{
-                                width: '100%',
-                                padding: '8px 12px',
-                                background: 'rgba(255, 255, 255, 0.04)',
-                                border: '1px solid rgba(255,255,255,0.08)',
-                                borderRadius: '8px',
-                                color: '#ffffff',
-                                fontSize: '0.82rem',
-                                outline: 'none',
-                                cursor: 'text'
-                              }}
-                            />
-                          </div>
                         </div>
 
-                        {/* Chapters List */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <input
+                          type="text"
+                          placeholder="Filter videos in playlist..."
+                          value={videoSearchQuery}
+                          onChange={(e) => setVideoSearchQuery(e.target.value)}
+                          className="form-input"
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            fontSize: '0.8rem',
+                            borderRadius: '8px',
+                            background: 'rgba(255,255,255,0.03)',
+                            border: '1px solid rgba(255,255,255,0.08)'
+                          }}
+                        />
+
+                        <div className="custom-playlist-scroll" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           {filteredVideos.length === 0 ? (
-                            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>No lectures match your search.</p>
+                            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', padding: '12px 0' }}>No lectures match your search.</p>
                           ) : (
                             filteredVideos.map((vid) => {
                               const originalIndex = activePlaylist.videos.findIndex(v => v.id === vid.id);
@@ -523,46 +481,63 @@ export default function LearningPlayer({
                               return (
                                 <div
                                   key={vid.id}
-                                  onClick={() => setActiveVideoIndex(originalIndex)}
+                                  onClick={() => {
+                                    setActiveVideoIndex(originalIndex);
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                  }}
+                                  className={`lecture-item-hover ${isActive ? 'active-lecture-item' : ''}`}
                                   style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    padding: '12px 16px',
-                                    background: isActive ? 'rgba(139,92,246,0.1)' : 'rgba(255,255,255,0.02)',
-                                    border: isActive ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(255,255,255,0.04)',
-                                    borderRadius: '8px',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s'
+                                    gap: '10px',
+                                    padding: '10px 12px',
+                                    background: isActive ? 'linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(168,85,247,0.15) 100%)' : 'rgba(255,255,255,0.02)',
+                                    border: isActive ? '1px solid rgba(139,92,246,0.5)' : '1px solid rgba(255,255,255,0.04)',
+                                    borderRadius: '10px',
+                                    cursor: 'pointer'
                                   }}
                                 >
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left' }}>
-                                    <span style={{ fontSize: '0.85rem', color: isActive ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 600 }}>
-                                      {originalIndex + 1}.
+                                  <span style={{
+                                    fontSize: '0.75rem',
+                                    fontWeight: 700,
+                                    color: isActive ? '#ffffff' : 'var(--text-muted)',
+                                    background: isActive ? 'var(--primary)' : 'rgba(255,255,255,0.06)',
+                                    minWidth: '22px',
+                                    height: '22px',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}>
+                                    {originalIndex + 1}
+                                  </span>
+
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0 }}>
+                                    <span style={{
+                                      fontSize: '0.83rem',
+                                      color: isActive ? '#ffffff' : 'var(--text-secondary)',
+                                      fontWeight: isActive ? 700 : 500,
+                                      whiteSpace: 'nowrap',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis'
+                                    }}>
+                                      {vid.title}
                                     </span>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                      <span style={{ fontSize: '0.88rem', color: isActive ? '#ffffff' : 'var(--text-secondary)', fontWeight: 500 }}>
-                                        {vid.title}
-                                      </span>
-                                      {vid.description && (
-                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                          {vid.description}
-                                        </span>
-                                      )}
-                                    </div>
                                   </div>
-                                  
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                      <ThumbsUp size={12} fill={vid.likes?.includes(currentUser?.id) ? 'var(--primary)' : 'transparent'} />
-                                      {vid.likes?.length || 0}
+
+                                  {isActive && (
+                                    <span style={{
+                                      fontSize: '0.65rem',
+                                      background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                                      color: '#ffffff',
+                                      padding: '2px 8px',
+                                      borderRadius: '12px',
+                                      fontWeight: 700,
+                                      letterSpacing: '0.04em'
+                                    }}>
+                                      PLAYING
                                     </span>
-                                    {isActive && (
-                                      <span style={{ fontSize: '0.7rem', background: 'var(--primary)', color: '#ffffff', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
-                                        PLAYING
-                                      </span>
-                                    )}
-                                  </div>
+                                  )}
                                 </div>
                               );
                             })

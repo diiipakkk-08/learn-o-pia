@@ -1,16 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
-import { GraduationCap, LogOut, BookOpen, Film, Shield, User, Menu, X } from 'lucide-react';
+import { GraduationCap, LogOut, BookOpen, Film, Shield, User, Menu, X, Search, Play, FileText } from 'lucide-react';
+import { fuzzyMatch } from '../utils/fuzzySearch';
 
 export default function Header({
   currentView,
   setCurrentView,
+  setSelectedCourseId,
+  setSelectedSubjectId,
   setSelectedPlaylistId,
   setSelectedVideoIndex
 }) {
-  const { currentUser, logout } = useDatabase();
+  const { currentUser, courses, logout } = useDatabase();
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const searchRef = useRef(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -23,12 +31,83 @@ export default function Header({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Handle outside click to close search dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setIsSearchOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Instant Typo-Tolerant Search Logic
+  useEffect(() => {
+    if (!searchQuery.trim() || !courses) {
+      setSearchResults([]);
+      setIsSearchOpen(false);
+      return;
+    }
+
+    const q = searchQuery.trim();
+    const results = [];
+
+    (courses || []).forEach(c => {
+      if (fuzzyMatch(q, c.title) || fuzzyMatch(q, c.department)) {
+        results.push({ type: 'course', title: c.title, category: c.department || 'Course', courseId: c.id });
+      }
+
+      (c.subjects || []).forEach(s => {
+        if (fuzzyMatch(q, s.title)) {
+          results.push({ type: 'subject', title: s.title, category: `Subject in ${c.title}`, courseId: c.id, subjectId: s.id });
+        }
+
+        (s.playlists || []).forEach(p => {
+          if (fuzzyMatch(q, p.title) || fuzzyMatch(q, p.description)) {
+            results.push({ type: 'playlist', title: p.title, category: `Playlist in ${s.title}`, courseId: c.id, subjectId: s.id, playlistId: p.id });
+          }
+
+          (p.videos || []).forEach((v, vIdx) => {
+            if (fuzzyMatch(q, v.title) || fuzzyMatch(q, v.description)) {
+              results.push({
+                type: 'video',
+                title: v.title,
+                category: `Lecture ${vIdx + 1} in ${p.title}`,
+                courseId: c.id,
+                subjectId: s.id,
+                playlistId: p.id,
+                videoIndex: vIdx
+              });
+            }
+          });
+        });
+      });
+    });
+
+    setSearchResults(results.slice(0, 7)); // top 7 fuzzy matches
+    setIsSearchOpen(true);
+  }, [searchQuery, courses]);
+
   if (!currentUser) return null;
 
   const isCreatorOrAdmin = (currentUser.role === 'creator' && currentUser.status === 'active') || currentUser.role === 'admin' || currentUser.role === 'owner';
   const isAdmin = currentUser.role === 'admin' || currentUser.role === 'owner';
 
   const avatarInitial = currentUser.name ? currentUser.name.charAt(0).toUpperCase() : '?';
+
+  const handleSelectResult = (item) => {
+    setIsSearchOpen(false);
+    setSearchQuery('');
+
+    if (item.courseId && setSelectedCourseId) setSelectedCourseId(item.courseId);
+    if (item.subjectId && setSelectedSubjectId) setSelectedSubjectId(item.subjectId);
+    if (item.playlistId && setSelectedPlaylistId) setSelectedPlaylistId(item.playlistId);
+    if (item.videoIndex !== undefined && setSelectedVideoIndex) setSelectedVideoIndex(item.videoIndex);
+
+    setCurrentView('learning-player');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div style={{ 
@@ -94,6 +173,93 @@ export default function Header({
           </nav>
         )}
       </div>
+
+      {/* Middle: Typo-Tolerant Global Search Bar */}
+      {!isMobile && (
+        <div ref={searchRef} style={{ position: 'relative', width: '100%', maxWidth: '380px', margin: '0 16px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '20px',
+            padding: '6px 14px',
+            transition: 'all 0.2s',
+            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.2)'
+          }}>
+            <Search size={15} color="var(--text-muted)" />
+            <input
+              type="text"
+              placeholder="Search courses, lectures, topics..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => searchQuery.trim() && setIsSearchOpen(true)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                color: '#ffffff',
+                fontSize: '0.82rem',
+                width: '100%'
+              }}
+            />
+            {searchQuery && (
+              <X size={14} color="var(--text-muted)" style={{ cursor: 'pointer' }} onClick={() => { setSearchQuery(''); setIsSearchOpen(false); }} />
+            )}
+          </div>
+
+          {/* Dropdown Floating Results */}
+          {isSearchOpen && searchResults.length > 0 && (
+            <div style={{
+              position: 'absolute',
+              top: 'calc(100% + 8px)',
+              left: 0,
+              right: 0,
+              background: '#12141e',
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+              borderRadius: '12px',
+              boxShadow: '0 12px 32px rgba(0,0,0,0.5)',
+              zIndex: 1000,
+              padding: '8px 0',
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: '360px',
+              overflowY: 'auto'
+            }} className="glass-panel animate-fade-in">
+              <div style={{ padding: '6px 14px 4px 14px', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'left' }}>
+                Smart Search Suggestions ({searchResults.length})
+              </div>
+              {searchResults.map((item, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => handleSelectResult(item)}
+                  style={{
+                    padding: '10px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    borderBottom: idx === searchResults.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.03)',
+                    transition: 'all 0.15s'
+                  }}
+                  className="lecture-item-hover"
+                >
+                  {item.type === 'video' ? <Play size={14} color="var(--primary)" /> : <BookOpen size={14} color="var(--secondary)" />}
+                  <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', minWidth: 0, flex: 1 }}>
+                    <span style={{ fontSize: '0.84rem', color: '#ffffff', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {item.title}
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      {item.category}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Desktop User Options */}
       {!isMobile && (
