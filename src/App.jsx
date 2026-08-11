@@ -51,6 +51,7 @@ function AppContent() {
     const val = localStorage.getItem('learnopia_selected_video');
     return val ? parseInt(val, 10) : 0;
   });
+  const [showAdminAuth, setShowAdminAuth] = useState(false);
 
   // Keep localStorage in sync
   useEffect(() => {
@@ -95,8 +96,6 @@ function AppContent() {
   const isCreatorOrAdmin = currentUser && (currentUser.role === 'creator' || currentUser.role === 'admin' || currentUser.role === 'owner');
   const isVerifiedCreator = currentUser && currentUser.role === 'creator' && currentUser.status === 'active';
   const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner');
-
-  const [showAdminAuth, setShowAdminAuth] = useState(false);
 
   // Enforce 404 Maintenance Mode for all learners and creators (unless admin is logging in)
   if (maintenanceMode && !isAdmin && !showAdminAuth) {
