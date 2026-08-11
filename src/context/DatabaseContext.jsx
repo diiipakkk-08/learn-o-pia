@@ -862,6 +862,53 @@ export function DatabaseProvider({ children }) {
     }
   };
 
+  const importVideosToExistingPlaylist = async (subjectId, playlistId, youtubePlaylistUrl) => {
+    const ytPlId = extractYoutubePlaylistId(youtubePlaylistUrl);
+    if (!ytPlId) throw new Error('Please provide a valid YouTube Playlist link or ID.');
+
+    const fetchedVideos = await fetchYoutubePlaylistVideos(ytPlId);
+    if (!fetchedVideos || fetchedVideos.length === 0) {
+      throw new Error('Could not fetch videos from this YouTube playlist link.');
+    }
+
+    if (isSupabaseLive) {
+      const videoInserts = fetchedVideos.map((v, idx) => ({
+        playlist_id: playlistId,
+        title: v.title,
+        description: v.description || '',
+        youtube_id: v.youtubeId,
+        position: idx
+      }));
+      const { error } = await supabase.from('videos').insert(videoInserts);
+      if (error) {
+        console.warn("Retrying video inserts:", error);
+      }
+      addLog(`Imported ${fetchedVideos.length} videos into playlist.`);
+      syncSupabase();
+    } else {
+      setSubjects(prev => prev.map(s => {
+        if (s.id === subjectId) {
+          const updatedPlaylists = (s.playlists || []).map(pl => {
+            if (pl.id === playlistId) {
+              const currentVids = pl.videos || [];
+              const startPos = currentVids.length;
+              const formattedNewVids = fetchedVideos.map((fv, idx) => ({
+                ...fv,
+                position: startPos + idx
+              }));
+              return { ...pl, videos: [...currentVids, ...formattedNewVids] };
+            }
+            return pl;
+          });
+          return { ...s, playlists: updatedPlaylists };
+        }
+        return s;
+      }));
+      addLog(`Imported ${fetchedVideos.length} videos into playlist.`);
+    }
+    return fetchedVideos.length;
+  };
+
   const deleteSubjectPlaylist = async (subjectId, playlistId) => {
     if (isSupabaseLive) {
       await supabase.from('playlists').delete().eq('id', playlistId);
@@ -1511,7 +1558,8 @@ export function DatabaseProvider({ children }) {
       reorderPlaylist,
       reorderVideo,
       reorderMaterialSection,
-      extractYoutubePlaylistId
+      extractYoutubePlaylistId,
+      importVideosToExistingPlaylist
     }}>
       {children}
     </DatabaseContext.Provider>

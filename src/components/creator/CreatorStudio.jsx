@@ -143,7 +143,8 @@ export default function CreatorStudio() {
     addSubjectMaterialSection, deleteSubjectMaterialSection,
     addSubjectMaterial, deleteSubjectMaterial,
     removeUserEnrollment,
-    reorderSubject, reorderPlaylist, reorderVideo, reorderMaterialSection
+    reorderSubject, reorderPlaylist, reorderVideo, reorderMaterialSection,
+    importVideosToExistingPlaylist
   } = useDatabase();
 
   const [activeCourseId, setActiveCourseId] = useState(null);
@@ -151,6 +152,11 @@ export default function CreatorStudio() {
   const [activeSubjectId, setActiveSubjectId] = useState(null);
   const [activePlaylistId, setActivePlaylistId] = useState(null);
   const [studioTab, setStudioTab] = useState('content');
+
+  const [importingPlId, setImportingPlId] = useState(null);
+  const [importUrl, setImportUrl] = useState('');
+  const [importStatus, setImportStatus] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
 
   const [showCourseForm, setShowCourseForm] = useState(false);
   const [courseTitle, setCourseTitle] = useState('');
@@ -693,7 +699,17 @@ export default function CreatorStudio() {
                                         {pl.description && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>{pl.description}</span>}
                                       </div>
                                       
-                                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center', marginRight: '8px', marginLeft: 'auto' }}>
+                                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginRight: '8px', marginLeft: 'auto' }}>
+                                        <button 
+                                          type="button"
+                                          onClick={() => { setImportingPlId(importingPlId === pl.id ? null : pl.id); setImportUrl(''); setImportStatus(''); }}
+                                          className="btn btn-secondary"
+                                          style={{ padding: '3px 8px', fontSize: '0.68rem', borderColor: 'rgba(139,92,246,0.3)', color: 'var(--primary)' }}
+                                          title="Import all videos from a YouTube Playlist link directly into database once"
+                                        >
+                                          + Import YT Playlist
+                                        </button>
+
                                         <button 
                                           disabled={plIdx === 0}
                                           onClick={() => reorderPlaylist(activeSubject.id, pl.id, 'up')}
@@ -714,6 +730,54 @@ export default function CreatorStudio() {
 
                                       <button onClick={() => deleteSubjectPlaylist(activeSubject.id, pl.id)} style={styles.deleteIconBtn}><Trash2 size={12} /></button>
                                     </div>
+
+                                    {/* Inline YouTube Playlist Bulk Importer */}
+                                    {importingPlId === pl.id && (
+                                      <div style={{ margin: '8px 0 8px 12px', padding: '10px 14px', background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.25)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)' }}>
+                                          Import & Save All Videos from YouTube Playlist into Database (Once in a Lifetime)
+                                        </span>
+                                        {importStatus && <span style={{ fontSize: '0.72rem', color: '#10b981' }}>{importStatus}</span>}
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                          <input 
+                                            type="text" 
+                                            placeholder="https://www.youtube.com/playlist?list=PLr6-S4ER..." 
+                                            value={importUrl} 
+                                            onChange={e => setImportUrl(e.target.value)} 
+                                            className="form-input" 
+                                            style={{ flex: 1, padding: '6px 10px', fontSize: '0.78rem' }} 
+                                          />
+                                          <button 
+                                            type="button"
+                                            disabled={isImporting}
+                                            onClick={async () => {
+                                              if (!importUrl.trim()) return;
+                                              setIsImporting(true);
+                                              setImportStatus('Fetching videos from YouTube & saving to database...');
+                                              try {
+                                                const count = await importVideosToExistingPlaylist(activeSubject.id, pl.id, importUrl.trim());
+                                                alert(`Success! Saved ${count} videos into "${pl.title}" in database.`);
+                                                setImportingPlId(null);
+                                                setImportUrl('');
+                                                setImportStatus('');
+                                              } catch (err) {
+                                                alert(err.message);
+                                                setImportStatus('');
+                                              } finally {
+                                                setIsImporting(false);
+                                              }
+                                            }}
+                                            className="btn btn-primary"
+                                            style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+                                          >
+                                            {isImporting ? 'Saving...' : 'Save Videos to DB'}
+                                          </button>
+                                          <button type="button" onClick={() => { setImportingPlId(null); setImportUrl(''); setImportStatus(''); }} className="btn btn-secondary" style={{ padding: '6px 10px', fontSize: '0.78rem' }}>
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
                                     <div style={{ paddingLeft: '20px', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                       {pl.videos.map((vid, vidIdx) => (
                                         <div key={vid.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'var(--text-secondary)', padding: '2px 0' }}>
