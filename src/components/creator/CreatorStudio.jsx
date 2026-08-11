@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { useDatabase } from '../../context/DatabaseContext';
+import { useDatabase, extractYoutubePlaylistId } from '../../context/DatabaseContext';
 import {
   Plus, BookOpen, Trash2, Film, FolderPlus, ChevronDown,
   Pencil, Check, X, Users, AlertCircle, ArrowUp, ArrowDown
@@ -164,6 +164,9 @@ export default function CreatorStudio() {
   const [showPlaylistForm, setShowPlaylistForm] = useState(false);
   const [playlistTitle, setPlaylistTitle] = useState('');
   const [playlistDesc, setPlaylistDesc] = useState('');
+  const [playlistType, setPlaylistType] = useState('embed'); // 'embed' | 'custom'
+  const [youtubePlaylistUrl, setYoutubePlaylistUrl] = useState('');
+  const [playlistError, setPlaylistError] = useState('');
 
   const [videoTitle, setVideoTitle] = useState('');
   const [videoDesc, setVideoDesc] = useState('');
@@ -213,9 +216,25 @@ export default function CreatorStudio() {
   };
   const handleCreatePlaylist = (e) => {
     e.preventDefault();
+    setPlaylistError('');
     if (!playlistTitle.trim() || !activeSubject) return;
-    addSubjectPlaylist(activeSubject.id, playlistTitle, playlistDesc, playlistAuthor);
-    setPlaylistTitle(''); setPlaylistDesc(''); setPlaylistAuthor(''); setShowPlaylistForm(false);
+
+    let ytPlaylistId = '';
+    if (playlistType === 'embed') {
+      ytPlaylistId = extractYoutubePlaylistId(youtubePlaylistUrl);
+      if (!ytPlaylistId) {
+        setPlaylistError('Please provide a valid YouTube Playlist link or ID (e.g. https://www.youtube.com/playlist?list=PLr6-S4ER...)');
+        return;
+      }
+    }
+
+    addSubjectPlaylist(activeSubject.id, playlistTitle.trim(), playlistDesc.trim(), playlistAuthor.trim(), ytPlaylistId);
+    setPlaylistTitle('');
+    setPlaylistDesc('');
+    setPlaylistAuthor('');
+    setYoutubePlaylistUrl('');
+    setPlaylistError('');
+    setShowPlaylistForm(false);
   };
   const handleAddVideo = (e) => {
     e.preventDefault(); setVideoError(null);
@@ -521,10 +540,56 @@ export default function CreatorStudio() {
                           {showPlaylistForm && (
                             <form onSubmit={handleCreatePlaylist} className="glass-panel animate-fade-in" style={{ ...styles.formWorkspace, display: 'flex', flexDirection: 'column', gap: '12px' }}>
                               <h4 style={{ fontSize: '1rem', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '6px' }}>New Playlist</h4>
+                              
+                              {playlistError && (
+                                <div style={styles.formError}>
+                                  <AlertCircle size={14} />
+                                  <span>{playlistError}</span>
+                                </div>
+                              )}
+
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setPlaylistType('embed')}
+                                  className={`btn ${playlistType === 'embed' ? 'btn-primary' : 'btn-secondary'}`}
+                                  style={{ flex: 1, padding: '7px 10px', fontSize: '0.78rem' }}
+                                >
+                                  Embed YouTube Playlist
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setPlaylistType('custom')}
+                                  className={`btn ${playlistType === 'custom' ? 'btn-primary' : 'btn-secondary'}`}
+                                  style={{ flex: 1, padding: '7px 10px', fontSize: '0.78rem' }}
+                                >
+                                  Custom Playlist
+                                </button>
+                              </div>
+
                               <div className="form-group" style={{ marginBottom: 0 }}>
                                 <label className="form-label" style={{ fontSize: '0.75rem' }}>Playlist Title</label>
-                                <input type="text" value={playlistTitle} onChange={e => setPlaylistTitle(e.target.value)} placeholder="e.g. Lecture Series" className="form-input" style={{ padding: '8px 12px', fontSize: '0.85rem' }} required />
+                                <input type="text" value={playlistTitle} onChange={e => setPlaylistTitle(e.target.value)} placeholder="e.g. Full Lecture Series" className="form-input" style={{ padding: '8px 12px', fontSize: '0.85rem' }} required />
                               </div>
+
+                              {playlistType === 'embed' && (
+                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                  <label className="form-label" style={{ fontSize: '0.75rem' }}>YouTube Playlist Link or ID</label>
+                                  <input 
+                                    type="text" 
+                                    value={youtubePlaylistUrl} 
+                                    onChange={e => setYoutubePlaylistUrl(e.target.value)} 
+                                    placeholder="https://www.youtube.com/playlist?list=PLr6-S4ER..." 
+                                    className="form-input" 
+                                    style={{ padding: '8px 12px', fontSize: '0.85rem' }} 
+                                    required 
+                                  />
+                                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '3px', display: 'block' }}>
+                                    Embeds the full YouTube playlist directly via YouTube player.
+                                  </span>
+                                </div>
+                              )}
+
                               <div className="form-group" style={{ marginBottom: 0 }}>
                                 <label className="form-label" style={{ fontSize: '0.75rem' }}>Description (optional)</label>
                                 <input type="text" value={playlistDesc} onChange={e => setPlaylistDesc(e.target.value)} placeholder="Brief description..." className="form-input" style={{ padding: '8px 12px', fontSize: '0.85rem' }} />
@@ -534,8 +599,8 @@ export default function CreatorStudio() {
                                 <input type="text" value={playlistAuthor} onChange={e => setPlaylistAuthor(e.target.value)} placeholder="e.g. Training to Infinity" className="form-input" style={{ padding: '8px 12px', fontSize: '0.85rem' }} />
                               </div>
                               <div style={{ display: 'flex', gap: '10px' }}>
-                                <button type="submit" className="btn btn-primary" style={{ padding: '9px 16px', fontSize: '0.85rem' }}>Create</button>
-                                <button type="button" onClick={() => setShowPlaylistForm(false)} className="btn btn-secondary" style={{ padding: '9px 16px', fontSize: '0.85rem' }}>Cancel</button>
+                                <button type="submit" className="btn btn-primary" style={{ padding: '9px 16px', fontSize: '0.85rem' }}>Create Playlist</button>
+                                <button type="button" onClick={() => { setShowPlaylistForm(false); setPlaylistError(''); }} className="btn btn-secondary" style={{ padding: '9px 16px', fontSize: '0.85rem' }}>Cancel</button>
                               </div>
                             </form>
                           )}
@@ -616,7 +681,9 @@ export default function CreatorStudio() {
                                   <div key={pl.id} style={{ borderBottom: '1px dashed rgba(255,255,255,0.06)', paddingBottom: '8px', marginBottom: '8px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '6px 12px', borderRadius: '4px' }}>
                                       <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#fff' }}>📁 {pl.title} ({pl.videos.length} videos)</span>
+                                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#fff' }}>
+                                          📁 {pl.title} {pl.youtubePlaylistId ? '(YouTube Embed Playlist)' : `(${pl.videos?.length || 0} videos)`}
+                                        </span>
                                         {pl.description && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>{pl.description}</span>}
                                       </div>
                                       

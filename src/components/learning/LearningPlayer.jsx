@@ -300,186 +300,212 @@ export default function LearningPlayer({
         {/* CENTER/RIGHT PANEL: Active Workspace (Takes full width on mobile stack) */}
         <div style={{ ...styles.mainWorkspace, flex: 1, minWidth: 0, width: '100%' }}>
           {activeSubject ? (
-            activePlaylistId && activeVideo ? (
-              /* A. ACTIVE VIDEO CLASSROOM VIEW (Full Width Theatre Layout) */
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'left' }}>
-                <button 
-                  onClick={() => setActivePlaylistId(null)} 
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    padding: 0,
-                    width: 'fit-content'
-                  }}
-                >
-                  <ArrowLeft size={14} />
-                  Back to Syllabus Assets
-                </button>
+            (activePlaylistId && (activeVideo || activePlaylist?.youtubePlaylistId)) ? (
+              /* A. ACTIVE VIDEO / PLAYLIST CLASSROOM VIEW (Full Width Theatre Layout) */
+              (() => {
+                const isEmbedMode = activePlaylist?.youtubePlaylistId && (!activePlaylist.videos || activePlaylist.videos.length === 0 || !activeVideo);
+                const currentTitle = isEmbedMode ? activePlaylist.title : activeVideo?.title;
+                const currentDesc = isEmbedMode ? activePlaylist.description : activeVideo?.description;
+                const currentSrc = isEmbedMode 
+                  ? `https://www.youtube.com/embed/videoseries?list=${activePlaylist.youtubePlaylistId}&rel=0&modestbranding=1`
+                  : getVideoSrc(activeVideo);
+                const isLiked = isEmbedMode
+                  ? activePlaylist?.likes?.includes(currentUser?.id)
+                  : activeVideo?.likes?.includes(currentUser?.id);
+                const likeCount = isEmbedMode
+                  ? activePlaylist?.likes?.length || 0
+                  : activeVideo?.likes?.length || 0;
+                const handleToggleLike = () => {
+                  if (isEmbedMode) {
+                    togglePlaylistLike(activeSubject.id, activePlaylist.id);
+                  } else if (activeVideo) {
+                    toggleVideoLike(activeSubject.id, activePlaylist.id, activeVideo.id);
+                  }
+                };
 
-                <div style={styles.playerWrapper} className="glass-panel">
-                  <iframe
-                    src={getVideoSrc(activeVideo)}
-                    title={activeVideo.title}
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    style={styles.iframe}
-                  ></iframe>
-                </div>
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'left' }}>
+                    <button 
+                      onClick={() => setActivePlaylistId(null)} 
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-secondary)',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        padding: 0,
+                        width: 'fit-content'
+                      }}
+                    >
+                      <ArrowLeft size={14} />
+                      Back to Syllabus Assets
+                    </button>
 
-                {/* Video Info Row with Title and Big Clickable Like Button */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: '16px',
-                  flexWrap: 'wrap',
-                  marginTop: '4px'
-                }}>
-                  <h3 style={{ fontSize: '1.3rem', color: '#ffffff', margin: 0, fontWeight: 700 }}>
-                    {activeVideo.title}
-                  </h3>
-                  
-                  <button
-                    onClick={() => toggleVideoLike(activeSubject.id, activePlaylist.id, activeVideo.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '8px 16px',
-                      background: activeVideo.likes?.includes(currentUser?.id) ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.04)',
-                      border: activeVideo.likes?.includes(currentUser?.id) ? '1px solid rgba(139,92,246,0.4)' : '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: '10px',
-                      color: activeVideo.likes?.includes(currentUser?.id) ? 'var(--primary)' : 'var(--text-secondary)',
-                      cursor: 'pointer',
-                      fontSize: '0.88rem',
-                      fontWeight: 600,
-                      transition: 'all 0.2s',
-                      outline: 'none'
-                    }}
-                    title="Like this video"
-                  >
-                    <ThumbsUp size={16} fill={activeVideo.likes?.includes(currentUser?.id) ? 'var(--primary)' : 'transparent'} />
-                    <span>{activeVideo.likes?.length || 0} Likes</span>
-                  </button>
-                </div>
-
-                {activeVideo.description && (
-                  <p style={{
-                    fontSize: '0.88rem',
-                    color: 'var(--text-secondary)',
-                    lineHeight: '1.5',
-                    margin: '4px 0 12px 0',
-                    background: 'rgba(255,255,255,0.01)',
-                    padding: '12px 16px',
-                    borderRadius: '8px',
-                    borderLeft: '3px solid var(--primary)'
-                  }}>
-                    {activeVideo.description}
-                  </p>
-                )}
-
-                {/* Playlist Chapters Section with Search Filter */}
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '20px', marginTop: '10px' }}>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: '12px',
-                    marginBottom: '16px'
-                  }}>
-                    <h4 style={{ fontSize: '1.05rem', color: '#ffffff', margin: 0, fontWeight: 600 }}>
-                      Playlist Lectures ({filteredVideos.length})
-                    </h4>
-                    
-                    <div style={{ position: 'relative', width: '100%', maxWidth: '280px' }}>
-                      <input
-                        type="text"
-                        placeholder="Search videos in this playlist..."
-                        value={videoSearchQuery}
-                        onChange={(e) => setVideoSearchQuery(e.target.value)}
-                        className="yt-select-dropdown"
-                        style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          background: 'rgba(255, 255, 255, 0.04)',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                          borderRadius: '8px',
-                          color: '#ffffff',
-                          fontSize: '0.82rem',
-                          outline: 'none',
-                          cursor: 'text'
-                        }}
-                      />
+                    <div style={styles.playerWrapper} className="glass-panel">
+                      <iframe
+                        src={currentSrc}
+                        title={currentTitle || 'Video Player'}
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        style={styles.iframe}
+                      ></iframe>
                     </div>
-                  </div>
 
-                  {/* Chapters List */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {filteredVideos.length === 0 ? (
-                      <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>No lectures match your search.</p>
-                    ) : (
-                      filteredVideos.map((vid) => {
-                        const originalIndex = activePlaylist.videos.findIndex(v => v.id === vid.id);
-                        const isActive = activeVideoIndex === originalIndex;
-                        return (
-                          <div
-                            key={vid.id}
-                            onClick={() => setActiveVideoIndex(originalIndex)}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '12px 16px',
-                              background: isActive ? 'rgba(139,92,246,0.1)' : 'rgba(255,255,255,0.02)',
-                              border: isActive ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(255,255,255,0.04)',
-                              borderRadius: '8px',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s'
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left' }}>
-                              <span style={{ fontSize: '0.85rem', color: isActive ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 600 }}>
-                                {originalIndex + 1}.
-                              </span>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                <span style={{ fontSize: '0.88rem', color: isActive ? '#ffffff' : 'var(--text-secondary)', fontWeight: 500 }}>
-                                  {vid.title}
-                                </span>
-                                {vid.description && (
-                                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                    {vid.description}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <ThumbsUp size={12} fill={vid.likes?.includes(currentUser?.id) ? 'var(--primary)' : 'transparent'} />
-                                {vid.likes?.length || 0}
-                              </span>
-                              {isActive && (
-                                <span style={{ fontSize: '0.7rem', background: 'var(--primary)', color: '#ffffff', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
-                                  PLAYING
-                                </span>
-                              )}
-                            </div>
+                    {/* Video Info Row with Title and Big Clickable Like Button */}
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '16px',
+                      flexWrap: 'wrap',
+                      marginTop: '4px'
+                    }}>
+                      <h3 style={{ fontSize: '1.3rem', color: '#ffffff', margin: 0, fontWeight: 700 }}>
+                        {currentTitle}
+                      </h3>
+                      
+                      <button
+                        onClick={handleToggleLike}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '8px 16px',
+                          background: isLiked ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.04)',
+                          border: isLiked ? '1px solid rgba(139,92,246,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                          borderRadius: '10px',
+                          color: isLiked ? 'var(--primary)' : 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          fontSize: '0.88rem',
+                          fontWeight: 600,
+                          transition: 'all 0.2s',
+                          outline: 'none'
+                        }}
+                        title="Like this"
+                      >
+                        <ThumbsUp size={16} fill={isLiked ? 'var(--primary)' : 'transparent'} />
+                        <span>{likeCount} Likes</span>
+                      </button>
+                    </div>
+
+                    {currentDesc && (
+                      <p style={{
+                        fontSize: '0.88rem',
+                        color: 'var(--text-secondary)',
+                        lineHeight: '1.5',
+                        margin: '4px 0 12px 0',
+                        background: 'rgba(255,255,255,0.01)',
+                        padding: '12px 16px',
+                        borderRadius: '8px',
+                        borderLeft: '3px solid var(--primary)'
+                      }}>
+                        {currentDesc}
+                      </p>
+                    )}
+
+                    {/* Playlist Chapters Section (if custom videos exist) */}
+                    {(activePlaylist.videos && activePlaylist.videos.length > 0) && (
+                      <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '20px', marginTop: '10px' }}>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '12px',
+                          marginBottom: '16px'
+                        }}>
+                          <h4 style={{ fontSize: '1.05rem', color: '#ffffff', margin: 0, fontWeight: 600 }}>
+                            Playlist Lectures ({filteredVideos.length})
+                          </h4>
+                          
+                          <div style={{ position: 'relative', width: '100%', maxWidth: '280px' }}>
+                            <input
+                              type="text"
+                              placeholder="Search videos in this playlist..."
+                              value={videoSearchQuery}
+                              onChange={(e) => setVideoSearchQuery(e.target.value)}
+                              className="yt-select-dropdown"
+                              style={{
+                                width: '100%',
+                                padding: '8px 12px',
+                                background: 'rgba(255, 255, 255, 0.04)',
+                                border: '1px solid rgba(255,255,255,0.08)',
+                                borderRadius: '8px',
+                                color: '#ffffff',
+                                fontSize: '0.82rem',
+                                outline: 'none',
+                                cursor: 'text'
+                              }}
+                            />
                           </div>
-                        );
-                      })
+                        </div>
+
+                        {/* Chapters List */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {filteredVideos.length === 0 ? (
+                            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>No lectures match your search.</p>
+                          ) : (
+                            filteredVideos.map((vid) => {
+                              const originalIndex = activePlaylist.videos.findIndex(v => v.id === vid.id);
+                              const isActive = activeVideoIndex === originalIndex;
+                              return (
+                                <div
+                                  key={vid.id}
+                                  onClick={() => setActiveVideoIndex(originalIndex)}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '12px 16px',
+                                    background: isActive ? 'rgba(139,92,246,0.1)' : 'rgba(255,255,255,0.02)',
+                                    border: isActive ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(255,255,255,0.04)',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left' }}>
+                                    <span style={{ fontSize: '0.85rem', color: isActive ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 600 }}>
+                                      {originalIndex + 1}.
+                                    </span>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                      <span style={{ fontSize: '0.88rem', color: isActive ? '#ffffff' : 'var(--text-secondary)', fontWeight: 500 }}>
+                                        {vid.title}
+                                      </span>
+                                      {vid.description && (
+                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                          {vid.description}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                      <ThumbsUp size={12} fill={vid.likes?.includes(currentUser?.id) ? 'var(--primary)' : 'transparent'} />
+                                      {vid.likes?.length || 0}
+                                    </span>
+                                    {isActive && (
+                                      <span style={{ fontSize: '0.7rem', background: 'var(--primary)', color: '#ffffff', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                                        PLAYING
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
-                </div>
-              </div>
+                );
+              })()
             ) : (
               /* B. LIST VIEWS FOR SELECTED CATEGORY */
               <div className="glass-panel" style={styles.assetListPanel}>
@@ -531,7 +557,7 @@ export default function LearningPlayer({
                               )}
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '6px' }}>
                                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                                  {pl.videos.length} Lectures inside
+                                  {pl.youtubePlaylistId ? '▶ Full YouTube Playlist Embed' : `${pl.videos?.length || 0} Lectures inside`}
                                 </span>
                                 {pl.author && (
                                   <span style={{ fontSize: '0.72rem', color: 'var(--primary)', fontWeight: 500 }}>
@@ -544,7 +570,7 @@ export default function LearningPlayer({
                               onClick={() => handleSelectPlaylist(pl.id)} 
                               className="btn btn-primary"
                               style={{ padding: '6px 12px', fontSize: '0.75rem', marginTop: '12px' }}
-                              disabled={pl.videos.length === 0}
+                              disabled={!pl.youtubePlaylistId && (!pl.videos || pl.videos.length === 0)}
                             >
                               <Play size={10} fill="#ffffff" />
                               <span>Start Lessons</span>

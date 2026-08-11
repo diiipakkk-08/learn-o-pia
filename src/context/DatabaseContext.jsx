@@ -3,6 +3,23 @@ import { supabase } from '../lib/supabaseClient';
 
 const DatabaseContext = createContext();
 
+export const extractYoutubePlaylistId = (url) => {
+  if (!url) return '';
+  const trimmed = url.trim();
+  const match = trimmed.match(/[?&]list=([^#&]+)/);
+  if (match && match[1]) {
+    return match[1];
+  }
+  const matchEmbed = trimmed.match(/embed\/videoseries\?list=([^#&]+)/);
+  if (matchEmbed && matchEmbed[1]) {
+    return matchEmbed[1];
+  }
+  if (!trimmed.includes('/') && !trimmed.includes('?') && trimmed.length > 5) {
+    return trimmed;
+  }
+  return '';
+};
+
 const mapProfile = (dbProfile) => {
   if (!dbProfile) return null;
   return {
@@ -206,6 +223,7 @@ export function DatabaseProvider({ children }) {
               likes: pl.likes || [],
               author: pl.author,
               position: pl.position,
+              youtubePlaylistId: pl.youtube_playlist_id || pl.youtubePlaylistId || '',
               videos: (videos || [])
                 .filter(v => v.playlist_id === pl.id)
                 .sort((a, b) => (a.position || 0) - (b.position || 0))
@@ -708,7 +726,7 @@ export function DatabaseProvider({ children }) {
     }
   };
 
-  const addSubjectPlaylist = async (subjectId, title, description, author = '') => {
+  const addSubjectPlaylist = async (subjectId, title, description, author = '', youtubePlaylistId = '') => {
     const subject = subjects.find(s => s.id === subjectId);
     const siblings = subject ? (subject.playlists || []) : [];
     const newPosition = siblings.length;
@@ -721,11 +739,12 @@ export function DatabaseProvider({ children }) {
           description,
           likes: [],
           author: author || currentUser?.name || '',
-          position: newPosition
+          position: newPosition,
+          youtube_playlist_id: youtubePlaylistId || null
         }]);
         if (error) throw error;
       } catch (err) {
-        console.warn("Retrying playlist insert without 'position' column:", err);
+        console.warn("Retrying playlist insert without optional columns:", err);
         await supabase.from('playlists').insert([{
           subject_id: subjectId,
           title,
@@ -746,7 +765,8 @@ export function DatabaseProvider({ children }) {
             likes: [],
             videos: [],
             author: author || currentUser?.name || '',
-            position: newPosition
+            position: newPosition,
+            youtubePlaylistId: youtubePlaylistId || ''
           };
           return { ...s, playlists: [...(s.playlists || []), newPlaylist] };
         }
@@ -1404,7 +1424,8 @@ export function DatabaseProvider({ children }) {
       reorderSubject,
       reorderPlaylist,
       reorderVideo,
-      reorderMaterialSection
+      reorderMaterialSection,
+      extractYoutubePlaylistId
     }}>
       {children}
     </DatabaseContext.Provider>
