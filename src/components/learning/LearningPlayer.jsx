@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { useDatabase } from '../../context/DatabaseContext';
+import { useDatabase, extractYoutubePlaylistId } from '../../context/DatabaseContext';
 import { Play, FileText, ChevronLeft, BookOpen, AlertCircle, ArrowLeft, Download, List, ChevronDown, ThumbsUp } from 'lucide-react';
 
 // Portal Dropdown — renders in document.body to escape backdrop-filter ancestors
@@ -300,14 +300,34 @@ export default function LearningPlayer({
         {/* CENTER/RIGHT PANEL: Active Workspace (Takes full width on mobile stack) */}
         <div style={{ ...styles.mainWorkspace, flex: 1, minWidth: 0, width: '100%' }}>
           {activeSubject ? (
-            (activePlaylistId && (activeVideo || activePlaylist?.youtubePlaylistId)) ? (
+            (activePlaylistId && activePlaylist) ? (
               /* A. ACTIVE VIDEO / PLAYLIST CLASSROOM VIEW (Full Width Theatre Layout) */
               (() => {
-                const isEmbedMode = activePlaylist?.youtubePlaylistId && (!activePlaylist.videos || activePlaylist.videos.length === 0 || !activeVideo);
+                const ytPlId = activePlaylist.youtubePlaylistId 
+                  || extractYoutubePlaylistId(activePlaylist.description) 
+                  || extractYoutubePlaylistId(activePlaylist.title);
+
+                const isEmbedMode = Boolean(ytPlId) && (!activePlaylist.videos || activePlaylist.videos.length === 0 || !activeVideo);
+
+                if (!activeVideo && !ytPlId) {
+                  return (
+                    <div style={{ textAlign: 'center', padding: '60px 20px' }} className="glass-panel">
+                      <BookOpen size={48} color="var(--text-muted)" style={{ marginBottom: '16px' }} />
+                      <h3 style={{ fontSize: '1.2rem', color: '#fff', marginBottom: '8px' }}>{activePlaylist.title}</h3>
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', maxWidth: '400px', margin: '0 auto 20px auto' }}>
+                        {activePlaylist.description || 'No videos or YouTube playlist links have been added to this section yet.'}
+                      </p>
+                      <button onClick={() => setActivePlaylistId(null)} className="btn btn-primary">
+                        Back to Syllabus Assets
+                      </button>
+                    </div>
+                  );
+                }
+
                 const currentTitle = isEmbedMode ? activePlaylist.title : activeVideo?.title;
                 const currentDesc = isEmbedMode ? activePlaylist.description : activeVideo?.description;
                 const currentSrc = isEmbedMode 
-                  ? `https://www.youtube.com/embed/videoseries?list=${activePlaylist.youtubePlaylistId}&rel=0&modestbranding=1`
+                  ? `https://www.youtube.com/embed/videoseries?list=${ytPlId}&rel=0&modestbranding=1`
                   : getVideoSrc(activeVideo);
                 const isLiked = isEmbedMode
                   ? activePlaylist?.likes?.includes(currentUser?.id)
@@ -521,6 +541,7 @@ export default function LearningPlayer({
                     <div style={styles.playlistsListGrid}>
                       {activeSubject.playlists.map(pl => {
                         const hasLiked = pl.likes?.includes(currentUser?.id);
+                        const ytPlId = pl.youtubePlaylistId || extractYoutubePlaylistId(pl.description) || extractYoutubePlaylistId(pl.title);
                         return (
                           <div key={pl.id} style={styles.playlistCard}>
                             <div>
@@ -557,7 +578,7 @@ export default function LearningPlayer({
                               )}
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '6px' }}>
                                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                                  {pl.youtubePlaylistId ? '▶ Full YouTube Playlist Embed' : `${pl.videos?.length || 0} Lectures inside`}
+                                  {ytPlId ? '▶ Full YouTube Playlist Embed' : `${pl.videos?.length || 0} Lectures inside`}
                                 </span>
                                 {pl.author && (
                                   <span style={{ fontSize: '0.72rem', color: 'var(--primary)', fontWeight: 500 }}>
@@ -570,7 +591,6 @@ export default function LearningPlayer({
                               onClick={() => handleSelectPlaylist(pl.id)} 
                               className="btn btn-primary"
                               style={{ padding: '6px 12px', fontSize: '0.75rem', marginTop: '12px' }}
-                              disabled={!pl.youtubePlaylistId && (!pl.videos || pl.videos.length === 0)}
                             >
                               <Play size={10} fill="#ffffff" />
                               <span>Start Lessons</span>
