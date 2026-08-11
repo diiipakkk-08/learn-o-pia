@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { useDatabase, extractYoutubePlaylistId } from '../../context/DatabaseContext';
+import { useDatabase, extractYoutubePlaylistId, fetchYoutubePlaylistVideos } from '../../context/DatabaseContext';
 import {
   Plus, BookOpen, Trash2, Film, FolderPlus, ChevronDown,
   Pencil, Check, X, Users, AlertCircle, ArrowUp, ArrowDown
@@ -214,21 +214,27 @@ export default function CreatorStudio() {
     addSubject(activeCourse.id, isDegree ? selectedSemester : 1, subjectTitle);
     setSubjectTitle(''); setShowSubjectForm(false);
   };
-  const handleCreatePlaylist = (e) => {
+  const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false);
+
+  const handleCreatePlaylist = async (e) => {
     e.preventDefault();
     setPlaylistError('');
     if (!playlistTitle.trim() || !activeSubject) return;
 
     let ytPlaylistId = '';
+    let fetchedVideos = [];
     if (playlistType === 'embed') {
       ytPlaylistId = extractYoutubePlaylistId(youtubePlaylistUrl);
       if (!ytPlaylistId) {
         setPlaylistError('Please provide a valid YouTube Playlist link or ID (e.g. https://www.youtube.com/playlist?list=PLr6-S4ER...)');
         return;
       }
+      setIsCreatingPlaylist(true);
+      fetchedVideos = await fetchYoutubePlaylistVideos(ytPlaylistId);
+      setIsCreatingPlaylist(false);
     }
 
-    addSubjectPlaylist(activeSubject.id, playlistTitle.trim(), playlistDesc.trim(), playlistAuthor.trim(), ytPlaylistId);
+    addSubjectPlaylist(activeSubject.id, playlistTitle.trim(), playlistDesc.trim(), playlistAuthor.trim(), ytPlaylistId, fetchedVideos);
     setPlaylistTitle('');
     setPlaylistDesc('');
     setPlaylistAuthor('');

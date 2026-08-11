@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { useDatabase, extractYoutubePlaylistId } from '../../context/DatabaseContext';
+import { useDatabase, extractYoutubePlaylistId, fetchYoutubePlaylistVideos } from '../../context/DatabaseContext';
 import { Play, FileText, ChevronLeft, BookOpen, AlertCircle, ArrowLeft, Download, List, ChevronDown, ThumbsUp } from 'lucide-react';
 
 // Portal Dropdown — renders in document.body to escape backdrop-filter ancestors
@@ -169,7 +169,24 @@ export default function LearningPlayer({
 
   const activeSubject = currentSubjects.find(s => s.id === activeSubjectId);
   const activePlaylist = activeSubject?.playlists?.find(p => p.id === activePlaylistId);
-  const activeVideo = activePlaylist?.videos[activeVideoIndex];
+  const activeVideo = activePlaylist?.videos ? activePlaylist.videos[activeVideoIndex] : null;
+
+  useEffect(() => {
+    if (activePlaylist && (!activePlaylist.videos || activePlaylist.videos.length === 0)) {
+      const ytPlId = activePlaylist.youtubePlaylistId 
+        || extractYoutubePlaylistId(activePlaylist.description) 
+        || extractYoutubePlaylistId(activePlaylist.title);
+
+      if (ytPlId) {
+        fetchYoutubePlaylistVideos(ytPlId).then(fetched => {
+          if (fetched && fetched.length > 0) {
+            activePlaylist.videos = fetched;
+            setActiveVideoIndex(0);
+          }
+        });
+      }
+    }
+  }, [activePlaylistId, activePlaylist]);
 
   const filteredVideos = activePlaylist
     ? (activePlaylist.videos || []).filter(v => 
@@ -376,7 +393,7 @@ export default function LearningPlayer({
                       ></iframe>
                     </div>
 
-                    {/* Video Info Row with Title and Big Clickable Like Button */}
+                    {/* Video Info Row with Title, Navigation Controls and Big Clickable Like Button */}
                     <div style={{
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -385,32 +402,62 @@ export default function LearningPlayer({
                       flexWrap: 'wrap',
                       marginTop: '4px'
                     }}>
-                      <h3 style={{ fontSize: '1.3rem', color: '#ffffff', margin: 0, fontWeight: 700 }}>
-                        {currentTitle}
-                      </h3>
-                      
-                      <button
-                        onClick={handleToggleLike}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          padding: '8px 16px',
-                          background: isLiked ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.04)',
-                          border: isLiked ? '1px solid rgba(139,92,246,0.4)' : '1px solid rgba(255,255,255,0.08)',
-                          borderRadius: '10px',
-                          color: isLiked ? 'var(--primary)' : 'var(--text-secondary)',
-                          cursor: 'pointer',
-                          fontSize: '0.88rem',
-                          fontWeight: 600,
-                          transition: 'all 0.2s',
-                          outline: 'none'
-                        }}
-                        title="Like this"
-                      >
-                        <ThumbsUp size={16} fill={isLiked ? 'var(--primary)' : 'transparent'} />
-                        <span>{likeCount} Likes</span>
-                      </button>
+                      <div>
+                        <h3 style={{ fontSize: '1.3rem', color: '#ffffff', margin: 0, fontWeight: 700 }}>
+                          {currentTitle}
+                        </h3>
+                        {activePlaylist.videos && activePlaylist.videos.length > 0 && (
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '3px', display: 'block' }}>
+                            Video {activeVideoIndex + 1} of {activePlaylist.videos.length}
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        {activePlaylist.videos && activePlaylist.videos.length > 1 && (
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                              disabled={activeVideoIndex === 0}
+                              onClick={() => setActiveVideoIndex(idx => Math.max(0, idx - 1))}
+                              className="btn btn-secondary"
+                              style={{ padding: '6px 12px', fontSize: '0.78rem', opacity: activeVideoIndex === 0 ? 0.4 : 1, cursor: activeVideoIndex === 0 ? 'not-allowed' : 'pointer' }}
+                            >
+                              ◄ Previous
+                            </button>
+                            <button
+                              disabled={activeVideoIndex === activePlaylist.videos.length - 1}
+                              onClick={() => setActiveVideoIndex(idx => Math.min(activePlaylist.videos.length - 1, idx + 1))}
+                              className="btn btn-primary"
+                              style={{ padding: '6px 12px', fontSize: '0.78rem', opacity: activeVideoIndex === activePlaylist.videos.length - 1 ? 0.4 : 1, cursor: activeVideoIndex === activePlaylist.videos.length - 1 ? 'not-allowed' : 'pointer' }}
+                            >
+                              Next ►
+                            </button>
+                          </div>
+                        )}
+                        
+                        <button
+                          onClick={handleToggleLike}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '8px 16px',
+                            background: isLiked ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.04)',
+                            border: isLiked ? '1px solid rgba(139,92,246,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                            borderRadius: '10px',
+                            color: isLiked ? 'var(--primary)' : 'var(--text-secondary)',
+                            cursor: 'pointer',
+                            fontSize: '0.88rem',
+                            fontWeight: 600,
+                            transition: 'all 0.2s',
+                            outline: 'none'
+                          }}
+                          title="Like this"
+                        >
+                          <ThumbsUp size={16} fill={isLiked ? 'var(--primary)' : 'transparent'} />
+                          <span>{likeCount} Likes</span>
+                        </button>
+                      </div>
                     </div>
 
                     {currentDesc && (

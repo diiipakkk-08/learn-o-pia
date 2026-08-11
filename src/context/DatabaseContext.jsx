@@ -20,6 +20,70 @@ export const extractYoutubePlaylistId = (url) => {
   return '';
 };
 
+export const fetchYoutubePlaylistVideos = async (playlistId) => {
+  if (!playlistId) return [];
+
+  // 1. Primary: rss2json API
+  try {
+    const rssUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistId}`;
+    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
+    const res = await fetch(apiUrl);
+    const data = await res.json();
+
+    if (data.status === 'ok' && Array.isArray(data.items) && data.items.length > 0) {
+      return data.items.map((item, idx) => {
+        let videoId = '';
+        if (item.guid && item.guid.includes('yt:video:')) {
+          videoId = item.guid.replace('yt:video:', '');
+        } else if (item.link) {
+          const match = item.link.match(/[?&]v=([^#&]+)/);
+          if (match && match[1]) videoId = match[1];
+        }
+        return {
+          id: 'yt-v-' + (Date.now() + idx),
+          title: item.title || `Lecture ${idx + 1}`,
+          description: item.description ? item.description.substring(0, 200) : '',
+          youtubeId: videoId,
+          position: idx,
+          likes: []
+        };
+      }).filter(v => v.youtubeId);
+    }
+  } catch (err) {
+    console.warn("rss2json fetch failed, trying proxy fallback:", err);
+  }
+
+  // 2. Fallback: allorigins proxy DOMParser
+  try {
+    const rssUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistId}`;
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`;
+    const res = await fetch(proxyUrl);
+    const xmlText = await res.text();
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+    const entries = Array.from(xmlDoc.querySelectorAll("entry"));
+    
+    if (entries.length > 0) {
+      return entries.map((entry, idx) => {
+        const videoId = entry.querySelector("videoId")?.textContent || entry.querySelector("yt\\:videoId")?.textContent || '';
+        const title = entry.querySelector("title")?.textContent || `Lecture ${idx + 1}`;
+        return {
+          id: 'yt-v-' + (Date.now() + idx),
+          title,
+          description: '',
+          youtubeId: videoId,
+          position: idx,
+          likes: []
+        };
+      }).filter(v => v.youtubeId);
+    }
+  } catch (err) {
+    console.warn("Proxy XML fetch failed:", err);
+  }
+
+  return [];
+};
+
 const mapProfile = (dbProfile) => {
   if (!dbProfile) return null;
   return {
@@ -726,14 +790,15 @@ export function DatabaseProvider({ children }) {
     }
   };
 
-  const addSubjectPlaylist = async (subjectId, title, description, author = '', youtubePlaylistId = '') => {
+  const addSubjectPlaylist = async (subjectId, title, description, author = '', youtubePlaylistId = '', initialVideos = []) => {
     const subject = subjects.find(s => s.id === subjectId);
     const siblings = subject ? (subject.playlists || []) : [];
     const newPosition = siblings.length;
+    const plId = 'pl-' + Date.now();
 
     if (isSupabaseLive) {
       try {
-        const { error } = await supabase.from('playlists').insert([{
+        const { data, error } = await supabase.from('playlists').insert([{
           subject_id: subjectId,
           title,
           description,
@@ -741,8 +806,20 @@ export function DatabaseProvider({ children }) {
           author: author || currentUser?.name || '',
           position: newPosition,
           youtube_playlist_id: youtubePlaylistId || null
-        }]);
+        }]).select();
         if (error) throw error;
+        
+        const createdPlId = (data && data[0] && data[0].id) ? data[0].id : plId;
+        if (initialVideos.length > 0) {
+          const videoInserts = initialVideos.map((v, idx) => ({
+            playlist_id: createdPlId,
+            title: v.title,
+            description: v.description || '',
+            youtube_id: v.youtubeId,
+            position: idx
+          }));
+          await supabase.from('videos').insert(videoInserts);
+        }
       } catch (err) {
         console.warn("Retrying playlist insert without optional columns:", err);
         await supabase.from('playlists').insert([{
@@ -759,11 +836,11 @@ export function DatabaseProvider({ children }) {
       setSubjects(prev => prev.map(s => {
         if (s.id === subjectId) {
           const newPlaylist = {
-            id: 'pl-' + Date.now(),
+            id: plId,
             title,
             description,
             likes: [],
-            videos: [],
+            videos: initialVideos,
             author: author || currentUser?.name || '',
             position: newPosition,
             youtubePlaylistId: youtubePlaylistId || ''
