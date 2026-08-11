@@ -4,6 +4,8 @@ import Auth from './components/Auth';
 import Header from './components/Header';
 import Profile from './components/Profile';
 import NotFound404 from './components/NotFound404';
+import LandingPage from './components/LandingPage';
+import About from './components/About';
 
 // Shared Learning Views
 import CoursesDashboard from './components/learning/CoursesDashboard';
@@ -42,7 +44,7 @@ function AppContent() {
   const { currentUser, authLoading } = useDatabase();
   
   const [currentView, setCurrentView] = useState(() => {
-    return localStorage.getItem('learnopia_view') || 'learning';
+    return localStorage.getItem('learnopia_view') || 'landing';
   });
   const [selectedPlaylistId, setSelectedPlaylistId] = useState(() => {
     return localStorage.getItem('learnopia_selected_playlist') || null;
@@ -51,6 +53,7 @@ function AppContent() {
     const val = localStorage.getItem('learnopia_selected_video');
     return val ? parseInt(val, 10) : 0;
   });
+  const [isNavLoading, setIsNavLoading] = useState(false);
 
   // Keep localStorage in sync
   useEffect(() => {
@@ -69,23 +72,23 @@ function AppContent() {
     localStorage.setItem('learnopia_selected_video', selectedVideoIndex.toString());
   }, [selectedVideoIndex]);
 
-  // Auto redirect on login/logout
-  useEffect(() => {
-    if (authLoading) return;
-    
-    if (!currentUser) {
-      setCurrentView('auth');
-    } else {
-      setCurrentView(prev => prev === 'auth' ? 'learning' : prev);
-    }
-  }, [currentUser, authLoading]);
+  // Handle Logo Click with smooth 1.2s loading buffer
+  const handleLogoClick = () => {
+    setIsNavLoading(true);
+    if (setSelectedPlaylistId) setSelectedPlaylistId(null);
+    setTimeout(() => {
+      setCurrentView('landing');
+      setIsNavLoading(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 1200);
+  };
 
-  if (authLoading) {
+  if (authLoading || isNavLoading) {
     return (
       <div style={styles.loadingContainer}>
         <div style={styles.spinner}></div>
-        <p style={{ marginTop: '16px', color: 'var(--text-secondary)', fontSize: '0.8rem', letterSpacing: '0.08em', fontWeight: 600 }}>
-          LOADING SYSTEM PROFILE...
+        <p style={{ marginTop: '16px', color: '#8b5cf6', fontSize: '0.82rem', letterSpacing: '0.08em', fontWeight: 700 }}>
+          {isNavLoading ? 'LOADING LEARN-O-PIA HOMEPAGE...' : 'LOADING SYSTEM PROFILE...'}
         </p>
       </div>
     );
@@ -106,16 +109,35 @@ function AppContent() {
           setCurrentView={setCurrentView} 
           setSelectedPlaylistId={setSelectedPlaylistId}
           setSelectedVideoIndex={setSelectedVideoIndex}
+          onLogoClick={handleLogoClick}
         />
       )}
 
       {/* Main Container Viewport */}
       <main className="main-content">
-        {!currentUser ? (
+        {currentView === 'landing' && (
+          <LandingPage 
+            setCurrentView={setCurrentView} 
+            onOpenAuth={() => setCurrentView('auth')}
+          />
+        )}
+        {currentView === 'about' && (
+          <About setCurrentView={setCurrentView} />
+        )}
+        {['results-404', 'attendance-404', 'discussions-404'].includes(currentView) && (
+          <NotFound404 setCurrentView={setCurrentView} />
+        )}
+
+        {/* Auth Page */}
+        {currentView === 'auth' && (
+          <Auth />
+        )}
+
+        {/* Authenticated Workspace Views */}
+        {!currentUser && !['landing', 'about', 'results-404', 'attendance-404', 'discussions-404', 'auth'].includes(currentView) ? (
           <Auth />
         ) : (
           <>
-            {/* View router mapping */}
             {currentView === 'learning' && (
               <CoursesDashboard 
                 setSelectedPlaylistId={setSelectedPlaylistId} 
@@ -157,7 +179,7 @@ function AppContent() {
             )}
 
             {/* Standard 404 Fallback for unrecognized views */}
-            {!['learning', 'learning-player', 'profile', 'studio', 'admin', 'auth'].includes(currentView) && (
+            {!['landing', 'about', 'results-404', 'attendance-404', 'discussions-404', 'learning', 'learning-player', 'profile', 'studio', 'admin', 'auth'].includes(currentView) && (
               <NotFound404 setCurrentView={setCurrentView} />
             )}
           </>

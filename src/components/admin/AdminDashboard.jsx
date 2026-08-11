@@ -198,13 +198,21 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {users
-                      .filter(u => 
-                        u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
-                        u.email.toLowerCase().includes(userSearchQuery.toLowerCase())
-                      )
-                      .map(u => (
-                        <tr key={u.id} style={styles.tableRow}>
+                    {(() => {
+                      const roleRank = { owner: 1, admin: 2, creator: 3, learner: 4 };
+                      return [...users]
+                        .filter(u => 
+                          (u.name || '').toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+                          (u.email || '').toLowerCase().includes(userSearchQuery.toLowerCase())
+                        )
+                        .sort((a, b) => {
+                          const rankA = roleRank[a.role] || 99;
+                          const rankB = roleRank[b.role] || 99;
+                          if (rankA !== rankB) return rankA - rankB;
+                          return (a.name || '').localeCompare(b.name || '');
+                        })
+                        .map(u => (
+                          <tr key={u.id} style={styles.tableRow}>
                           <td style={styles.td}><strong>{u.name}</strong></td>
                           <td style={styles.td}>{u.email}</td>
                           <td style={styles.td}>
@@ -296,8 +304,8 @@ export default function AdminDashboard() {
                             </div>
                           </td>
                         </tr>
-                      ))
-                    }
+                      ));
+                    })()}
                   </tbody>
                 </table>
               </div>

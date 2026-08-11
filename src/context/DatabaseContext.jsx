@@ -813,9 +813,15 @@ export function DatabaseProvider({ children }) {
       addLog(`Creator permission requested.`);
       syncSupabase();
     } else {
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, creatorStatus: 'pending' } : u));
+      setUsers(prev => {
+        const next = prev.map(u => u.id === userId ? { ...u, creatorStatus: 'pending' } : u);
+        localStorage.setItem('learnopia_users_stable', JSON.stringify(next));
+        return next;
+      });
       if (currentUser && currentUser.id === userId) {
-        setCurrentUser(prev => ({ ...prev, creatorStatus: 'pending' }));
+        const updatedUser = { ...currentUser, creatorStatus: 'pending' };
+        setCurrentUser(updatedUser);
+        localStorage.setItem('learnopia_current_user_stable', JSON.stringify(updatedUser));
       }
       addLog(`Creator permission requested.`);
     }
@@ -1395,9 +1401,15 @@ export function DatabaseProvider({ children }) {
       addLog(`Creator clearance for user ${targetName} APPROVED by ${adminName}`);
       syncSupabase();
     } else {
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: 'creator', status: 'active', creatorStatus: 'approved' } : u));
+      setUsers(prev => {
+        const next = prev.map(u => u.id === userId ? { ...u, role: 'creator', status: 'active', creatorStatus: 'approved' } : u);
+        localStorage.setItem('learnopia_users_stable', JSON.stringify(next));
+        return next;
+      });
       if (currentUser && currentUser.id === userId) {
-        setCurrentUser(prev => ({ ...prev, role: 'creator', status: 'active', creatorStatus: 'approved' }));
+        const updatedUser = { ...currentUser, role: 'creator', status: 'active', creatorStatus: 'approved' };
+        setCurrentUser(updatedUser);
+        localStorage.setItem('learnopia_current_user_stable', JSON.stringify(updatedUser));
       }
       addLog(`Creator clearance for user ${targetName} APPROVED by ${adminName}`);
     }
@@ -1416,9 +1428,15 @@ export function DatabaseProvider({ children }) {
       addLog(`Creator clearance for user ${targetName} REJECTED by ${adminName}`);
       syncSupabase();
     } else {
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, creatorStatus: 'rejected' } : u));
+      setUsers(prev => {
+        const next = prev.map(u => u.id === userId ? { ...u, creatorStatus: 'rejected' } : u);
+        localStorage.setItem('learnopia_users_stable', JSON.stringify(next));
+        return next;
+      });
       if (currentUser && currentUser.id === userId) {
-        setCurrentUser(prev => ({ ...prev, creatorStatus: 'rejected' }));
+        const updatedUser = { ...currentUser, creatorStatus: 'rejected' };
+        setCurrentUser(updatedUser);
+        localStorage.setItem('learnopia_current_user_stable', JSON.stringify(updatedUser));
       }
       addLog(`Creator clearance for user ${targetName} REJECTED by ${adminName}`);
     }

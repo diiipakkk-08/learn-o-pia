@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
-import { GraduationCap, LogOut, BookOpen, Film, Shield, User, Menu, X, Search, Play, FileText } from 'lucide-react';
+import { GraduationCap, LogOut, BookOpen, Film, Shield, User, Menu, X, Search, Play, FileText, Info, BarChart2, Calendar, MessageSquare } from 'lucide-react';
 import { fuzzyMatch } from '../utils/fuzzySearch';
 
 export default function Header({
   currentView,
   setCurrentView,
-  setSelectedPlaylistId
+  setSelectedPlaylistId,
+  onLogoClick
 }) {
   const { currentUser, logout } = useDatabase();
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -30,6 +31,16 @@ export default function Header({
 
   const avatarInitial = currentUser.name ? currentUser.name.charAt(0).toUpperCase() : '?';
 
+  const handleBrandClick = () => {
+    if (onLogoClick) {
+      onLogoClick();
+    } else {
+      if (setSelectedPlaylistId) setSelectedPlaylistId(null);
+      setCurrentView('landing');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   return (
     <div style={{ 
       ...styles.header, 
@@ -44,11 +55,7 @@ export default function Header({
         {/* Logo */}
         <div 
           style={{ ...styles.logo, cursor: 'pointer' }} 
-          onClick={() => {
-            if (setSelectedPlaylistId) setSelectedPlaylistId(null);
-            setCurrentView('learning');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onClick={handleBrandClick}
           title="Return to Learn-o-pia Main Website"
         >
           <div style={styles.logoIcon}>
@@ -70,6 +77,54 @@ export default function Header({
             >
               <BookOpen size={15} />
               Learning
+            </button>
+
+            <button
+              onClick={() => setCurrentView('about')}
+              style={{
+                ...styles.navBtn,
+                background: currentView === 'about' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                color: currentView === 'about' ? '#ffffff' : 'var(--text-secondary)'
+              }}
+            >
+              <Info size={15} />
+              About
+            </button>
+
+            <button
+              onClick={() => setCurrentView('results-404')}
+              style={{
+                ...styles.navBtn,
+                background: currentView === 'results-404' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                color: currentView === 'results-404' ? '#ffffff' : 'var(--text-secondary)'
+              }}
+            >
+              <BarChart2 size={15} />
+              Results
+            </button>
+
+            <button
+              onClick={() => setCurrentView('attendance-404')}
+              style={{
+                ...styles.navBtn,
+                background: currentView === 'attendance-404' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                color: currentView === 'attendance-404' ? '#ffffff' : 'var(--text-secondary)'
+              }}
+            >
+              <Calendar size={15} />
+              Attendance
+            </button>
+
+            <button
+              onClick={() => setCurrentView('discussions-404')}
+              style={{
+                ...styles.navBtn,
+                background: currentView === 'discussions-404' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                color: currentView === 'discussions-404' ? '#ffffff' : 'var(--text-secondary)'
+              }}
+            >
+              <MessageSquare size={15} />
+              Discussions
             </button>
 
             {isCreatorOrAdmin && (
