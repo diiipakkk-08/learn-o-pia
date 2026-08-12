@@ -15,7 +15,7 @@ function GoogleIcon() {
   );
 }
 
-export default function Auth() {
+export default function Auth({ setCurrentView }) {
   const { login, loginWithGoogle, registerUser } = useDatabase();
 
   const [isLogin, setIsLogin] = useState(true);
@@ -40,6 +40,7 @@ export default function Auth() {
     try {
       if (isLogin) { 
         await login(email, password); 
+        if (setCurrentView) setCurrentView('learning');
       } else { 
         const result = await registerUser(email, name, password); 
         if (result && result.requiresConfirmation) {
@@ -47,6 +48,8 @@ export default function Auth() {
           setIsLogin(true);
           setEmail('');
           setPassword('');
+        } else {
+          if (setCurrentView) setCurrentView('learning');
         }
       }
     } catch (err) {
@@ -73,6 +76,7 @@ export default function Auth() {
         email: profile.email,
         picture: profile.picture
       });
+      if (setCurrentView) setCurrentView('learning');
     } catch (err) {
       setError('Google Sign-In failed: ' + err.message);
     } finally {

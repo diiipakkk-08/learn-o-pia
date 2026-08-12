@@ -101,17 +101,25 @@ a:hover {
 }
 
 /* Global Helper Classes */
-.glass-panel {
-  background: var(--bg-surface);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  box-shadow: var(--glass-shadow);
+/* Claymorphism & Premium UI Classes */
+.glass-panel, .clay-panel {
+  background: rgba(17, 18, 28, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 20px;
+  box-shadow: 
+    8px 12px 28px rgba(0, 0, 0, 0.45),
+    inset -4px -4px 10px rgba(0, 0, 0, 0.4),
+    inset 4px 4px 10px rgba(255, 255, 255, 0.08);
   transition: var(--transition-smooth);
 }
-.glass-panel:hover {
-  border-color: rgba(255, 255, 255, 0.12);
+.glass-panel:hover, .clay-panel:hover {
+  border-color: rgba(139, 92, 246, 0.35);
+  box-shadow: 
+    10px 16px 36px rgba(0, 0, 0, 0.55),
+    inset -4px -4px 10px rgba(0, 0, 0, 0.4),
+    inset 4px 4px 10px rgba(255, 255, 255, 0.12);
 }
 
 .gradient-text {
@@ -128,46 +136,56 @@ a:hover {
   background-clip: text;
 }
 
-/* Buttons */
+/* Claymorphic 3D Pressable Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   font-family: var(--font-heading);
-  font-size: 0.95rem;
-  font-weight: 500;
+  font-size: 0.92rem;
+  font-weight: 600;
   padding: 10px 20px;
-  border-radius: 10px;
+  border-radius: 14px;
   border: 1px solid transparent;
   cursor: pointer;
-  transition: var(--transition-smooth);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
 }
 
 .btn-primary {
-  background: var(--primary);
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
   color: #ffffff;
-  box-shadow: 0 4px 14px 0 var(--primary-glow);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 
+    4px 6px 18px rgba(99, 102, 241, 0.4),
+    inset -2px -2px 6px rgba(0, 0, 0, 0.35),
+    inset 2px 2px 6px rgba(255, 255, 255, 0.35);
 }
 .btn-primary:hover {
-  background: var(--primary-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px 0 var(--primary-glow);
+  transform: translateY(-2px);
+  box-shadow: 
+    6px 10px 24px rgba(99, 102, 241, 0.55),
+    inset -2px -2px 6px rgba(0, 0, 0, 0.35),
+    inset 2px 2px 6px rgba(255, 255, 255, 0.45);
 }
 .btn-primary:active {
-  transform: translateY(0);
+  transform: translateY(1px);
 }
 
 .btn-secondary {
   background: rgba(255, 255, 255, 0.06);
   color: var(--text-primary);
-  border: 1px solid var(--border-color);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 
+    4px 6px 16px rgba(0, 0, 0, 0.3),
+    inset -2px -2px 6px rgba(0, 0, 0, 0.25),
+    inset 2px 2px 6px rgba(255, 255, 255, 0.1);
 }
 .btn-secondary:hover {
   background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
+  border-color: rgba(139, 92, 246, 0.4);
+  transform: translateY(-2px);
 }
 
 .btn-danger {

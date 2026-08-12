@@ -72,6 +72,14 @@ function AppContent() {
     localStorage.setItem('learnopia_selected_video', selectedVideoIndex.toString());
   }, [selectedVideoIndex]);
 
+  // Auto redirect to learning workspace when user logs in while on auth page
+  useEffect(() => {
+    if (authLoading) return;
+    if (currentUser && currentView === 'auth') {
+      setCurrentView('learning');
+    }
+  }, [currentUser, authLoading, currentView]);
+
   // Handle Logo Click with smooth 1.2s loading buffer
   const handleLogoClick = () => {
     setIsNavLoading(true);
@@ -128,12 +136,12 @@ function AppContent() {
 
         {/* Auth Page */}
         {currentView === 'auth' && (
-          <Auth />
+          <Auth setCurrentView={setCurrentView} />
         )}
 
         {/* Authenticated Workspace Views */}
         {!currentUser && !['landing', 'about', 'results-404', 'attendance-404', 'discussions-404', 'auth'].includes(currentView) ? (
-          <Auth />
+          <Auth setCurrentView={setCurrentView} />
         ) : (
           <>
             {currentView === 'learning' && (
