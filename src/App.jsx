@@ -103,15 +103,13 @@ function AppContent() {
     <div className="app-container">
 
       {/* Global Header Nav */}
-      {currentUser && (
-        <Header 
-          currentView={currentView} 
-          setCurrentView={setCurrentView} 
-          setSelectedPlaylistId={setSelectedPlaylistId}
-          setSelectedVideoIndex={setSelectedVideoIndex}
-          onLogoClick={handleLogoClick}
-        />
-      )}
+      <Header 
+        currentView={currentView} 
+        setCurrentView={setCurrentView} 
+        setSelectedPlaylistId={setSelectedPlaylistId}
+        setSelectedVideoIndex={setSelectedVideoIndex}
+        onLogoClick={handleLogoClick}
+      />
 
       {/* Main Container Viewport */}
       <main className="main-content">

@@ -24,12 +24,10 @@ export default function Header({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  if (!currentUser) return null;
+  const isCreatorOrAdmin = currentUser && ((currentUser.role === 'creator' && currentUser.status === 'active') || currentUser.role === 'admin' || currentUser.role === 'owner');
+  const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner');
 
-  const isCreatorOrAdmin = (currentUser.role === 'creator' && currentUser.status === 'active') || currentUser.role === 'admin' || currentUser.role === 'owner';
-  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'owner';
-
-  const avatarInitial = currentUser.name ? currentUser.name.charAt(0).toUpperCase() : '?';
+  const avatarInitial = currentUser && currentUser.name ? currentUser.name.charAt(0).toUpperCase() : '?';
 
   const handleBrandClick = () => {
     if (onLogoClick) {
@@ -161,31 +159,52 @@ export default function Header({
       {/* Desktop User Options */}
       {!isMobile && (
         <div style={styles.right}>
-          <button
-            onClick={() => setCurrentView('profile')}
-            style={{
-              ...styles.userInfoBtn,
-              background: currentView === 'profile' ? 'rgba(139,92,246,0.12)' : 'transparent',
-              borderColor: currentView === 'profile' ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.06)'
-            }}
-            title="View Profile"
-          >
-            {currentUser.picture ? (
-              <img src={currentUser.picture} alt={currentUser.name} style={styles.avatarImg} referrerPolicy="no-referrer" />
-            ) : (
-              <div style={styles.avatarInitial}>{avatarInitial}</div>
-            )}
-            <div style={styles.userText}>
-              <span style={styles.userName}>{currentUser.name}</span>
-              <span className={`badge badge-${currentUser.role}`} style={{ fontSize: '0.55rem', padding: '2px 6px', marginTop: '2px', display: 'inline-block', width: 'fit-content' }}>
-                {currentUser.role}
-              </span>
-            </div>
-          </button>
+          {currentUser ? (
+            <>
+              <button
+                onClick={() => setCurrentView('profile')}
+                style={{
+                  ...styles.userInfoBtn,
+                  background: currentView === 'profile' ? 'rgba(139,92,246,0.12)' : 'transparent',
+                  borderColor: currentView === 'profile' ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.06)'
+                }}
+                title="View Profile"
+              >
+                {currentUser.picture ? (
+                  <img src={currentUser.picture} alt={currentUser.name} style={styles.avatarImg} referrerPolicy="no-referrer" />
+                ) : (
+                  <div style={styles.avatarInitial}>{avatarInitial}</div>
+                )}
+                <div style={styles.userText}>
+                  <span style={styles.userName}>{currentUser.name}</span>
+                  <span className={`badge badge-${currentUser.role}`} style={{ fontSize: '0.55rem', padding: '2px 6px', marginTop: '2px', display: 'inline-block', width: 'fit-content' }}>
+                    {currentUser.role}
+                  </span>
+                </div>
+              </button>
 
-          <button onClick={logout} style={styles.logoutBtn} title="Sign Out">
-            <LogOut size={15} />
-          </button>
+              <button onClick={logout} style={styles.logoutBtn} title="Sign Out">
+                <LogOut size={15} />
+              </button>
+            </>
+          ) : (
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setCurrentView('auth')}
+                className="btn btn-secondary"
+                style={{ padding: '6px 14px', fontSize: '0.82rem', borderRadius: '10px' }}
+              >
+                Log In
+              </button>
+              <button
+                onClick={() => setCurrentView('auth')}
+                className="btn btn-primary"
+                style={{ padding: '6px 16px', fontSize: '0.82rem', borderRadius: '10px' }}
+              >
+                Get Started
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -223,6 +242,54 @@ export default function Header({
             Learning
           </button>
 
+          <button
+            onClick={() => { setCurrentView('about'); setMenuOpen(false); }}
+            style={{
+              ...styles.mobileMenuBtn,
+              background: currentView === 'about' ? 'rgba(255,255,255,0.05)' : 'transparent',
+              color: currentView === 'about' ? '#ffffff' : 'var(--text-secondary)'
+            }}
+          >
+            <Info size={16} />
+            About
+          </button>
+
+          <button
+            onClick={() => { setCurrentView('results-404'); setMenuOpen(false); }}
+            style={{
+              ...styles.mobileMenuBtn,
+              background: currentView === 'results-404' ? 'rgba(255,255,255,0.05)' : 'transparent',
+              color: currentView === 'results-404' ? '#ffffff' : 'var(--text-secondary)'
+            }}
+          >
+            <BarChart2 size={16} />
+            Results
+          </button>
+
+          <button
+            onClick={() => { setCurrentView('attendance-404'); setMenuOpen(false); }}
+            style={{
+              ...styles.mobileMenuBtn,
+              background: currentView === 'attendance-404' ? 'rgba(255,255,255,0.05)' : 'transparent',
+              color: currentView === 'attendance-404' ? '#ffffff' : 'var(--text-secondary)'
+            }}
+          >
+            <Calendar size={16} />
+            Attendance
+          </button>
+
+          <button
+            onClick={() => { setCurrentView('discussions-404'); setMenuOpen(false); }}
+            style={{
+              ...styles.mobileMenuBtn,
+              background: currentView === 'discussions-404' ? 'rgba(255,255,255,0.05)' : 'transparent',
+              color: currentView === 'discussions-404' ? '#ffffff' : 'var(--text-secondary)'
+            }}
+          >
+            <MessageSquare size={16} />
+            Discussions
+          </button>
+
           {isCreatorOrAdmin && (
             <button
               onClick={() => { setCurrentView('studio'); setMenuOpen(false); }}
@@ -251,38 +318,52 @@ export default function Header({
             </button>
           )}
 
-          <button
-            onClick={() => { setCurrentView('profile'); setMenuOpen(false); }}
-            style={{
-              ...styles.mobileMenuBtn,
-              background: currentView === 'profile' ? 'rgba(255,255,255,0.05)' : 'transparent',
-              color: currentView === 'profile' ? '#ffffff' : 'var(--text-secondary)'
-            }}
-          >
-            <User size={16} />
-            Account
-          </button>
+          {currentUser ? (
+            <>
+              <button
+                onClick={() => { setCurrentView('profile'); setMenuOpen(false); }}
+                style={{
+                  ...styles.mobileMenuBtn,
+                  background: currentView === 'profile' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                  color: currentView === 'profile' ? '#ffffff' : 'var(--text-secondary)'
+                }}
+              >
+                <User size={16} />
+                Account
+              </button>
 
-          <div style={styles.mobileProfileDivider} />
+              <div style={styles.mobileProfileDivider} />
 
-          <div style={styles.mobileProfileRow}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {currentUser.picture ? (
-                <img src={currentUser.picture} alt={currentUser.name} style={styles.avatarImg} referrerPolicy="no-referrer" />
-              ) : (
-                <div style={styles.avatarInitial}>{avatarInitial}</div>
-              )}
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>{currentUser.name}</span>
-                <span className={`badge badge-${currentUser.role}`} style={{ fontSize: '0.55rem', padding: '2px 6px', marginTop: '2px', display: 'inline-block', width: 'fit-content' }}>
-                  {currentUser.role}
-                </span>
+              <div style={styles.mobileProfileRow}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {currentUser.picture ? (
+                    <img src={currentUser.picture} alt={currentUser.name} style={styles.avatarImg} referrerPolicy="no-referrer" />
+                  ) : (
+                    <div style={styles.avatarInitial}>{avatarInitial}</div>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>{currentUser.name}</span>
+                    <span className={`badge badge-${currentUser.role}`} style={{ fontSize: '0.55rem', padding: '2px 6px', marginTop: '2px', display: 'inline-block', width: 'fit-content' }}>
+                      {currentUser.role}
+                    </span>
+                  </div>
+                </div>
+                <button onClick={() => { logout(); setMenuOpen(false); }} style={styles.logoutBtn} title="Sign Out">
+                  <LogOut size={15} />
+                </button>
               </div>
+            </>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+              <button
+                onClick={() => { setCurrentView('auth'); setMenuOpen(false); }}
+                className="btn btn-primary"
+                style={{ width: '100%', padding: '10px', fontSize: '0.85rem' }}
+              >
+                Log In / Get Started
+              </button>
             </div>
-            <button onClick={() => { logout(); setMenuOpen(false); }} style={styles.logoutBtn} title="Sign Out">
-              <LogOut size={15} />
-            </button>
-          </div>
+          )}
         </div>
       )}
     </div>

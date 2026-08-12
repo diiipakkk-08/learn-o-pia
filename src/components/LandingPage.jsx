@@ -27,105 +27,6 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
       `
     }} className="animate-fade-in">
 
-      {/* TOP NAVIGATION BAR FOR LANDING PAGE */}
-      <header style={{
-        padding: '16px 28px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-        backdropFilter: 'blur(20px)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        background: 'rgba(10, 11, 16, 0.85)'
-      }}>
-        {/* Brand Logo */}
-        <div
-          onClick={() => setCurrentView('landing')}
-          style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
-        >
-          <div style={{
-            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-            padding: '8px',
-            borderRadius: '12px',
-            display: 'flex'
-          }}>
-            <GraduationCap size={22} color="#ffffff" />
-          </div>
-          <span style={{ fontSize: '1.35rem', fontWeight: 800, color: '#ffffff', fontFamily: 'var(--font-heading)' }}>
-            Learn-o-pia
-          </span>
-        </div>
-
-        {/* Nav Links */}
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <button
-            onClick={() => setCurrentView('learning')}
-            style={styles.navLink}
-          >
-            Learning Workspace
-          </button>
-          <button
-            onClick={() => setCurrentView('about')}
-            style={styles.navLink}
-          >
-            About
-          </button>
-          <button
-            onClick={() => setCurrentView('results-404')}
-            style={styles.navLink}
-          >
-            Results
-          </button>
-          <button
-            onClick={() => setCurrentView('attendance-404')}
-            style={styles.navLink}
-          >
-            Attendance
-          </button>
-          <button
-            onClick={() => setCurrentView('discussions-404')}
-            style={styles.navLink}
-          >
-            Discussions
-          </button>
-        </nav>
-
-        {/* Auth CTAs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {!currentUser ? (
-            <>
-              <button
-                onClick={() => setCurrentView('auth')}
-                className="btn btn-secondary"
-                style={{ padding: '8px 16px', fontSize: '0.85rem', borderRadius: '10px' }}
-              >
-                <LogIn size={15} />
-                Log In
-              </button>
-              <button
-                onClick={() => setCurrentView('auth')}
-                className="btn btn-primary"
-                style={{ padding: '8px 18px', fontSize: '0.85rem', borderRadius: '10px' }}
-              >
-                <UserPlus size={15} />
-                Get Started
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={() => setCurrentView('learning')}
-              className="btn btn-primary"
-              style={{ padding: '8px 18px', fontSize: '0.85rem', borderRadius: '10px' }}
-            >
-              Go to Workspace
-              <ArrowRight size={15} />
-            </button>
-          )}
-        </div>
-      </header>
-
       {/* HERO SECTION */}
       <section style={{
         maxWidth: '1200px',
@@ -157,24 +58,24 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
           fontSize: '3.2rem',
           fontWeight: 800,
           lineHeight: 1.15,
-          maxWidth: '900px',
+          maxWidth: '920px',
           margin: 0,
           background: 'linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #8b5cf6 100%)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
           fontFamily: 'var(--font-heading)'
         }}>
-          Master University Engineering & Science Curricula
+          Master Knowledge Without YouTube Distractions
         </h1>
 
         <p style={{
           fontSize: '1.15rem',
           color: 'var(--text-secondary, #9ca3af)',
-          maxWidth: '720px',
+          maxWidth: '780px',
           lineHeight: 1.6,
           margin: 0
         }}>
-          Curated video lecture playlists, verified Syllabus PDFs, past organizers, and reference notes — organized by semester and department in a distraction-free theatre player.
+          A 100% focus zone engineered for every particular learner — across all degree programs, sciences, competitive exams, and skill tracks. Zero ads, zero Shorts, zero algorithm traps.
         </p>
 
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '10px' }}>
