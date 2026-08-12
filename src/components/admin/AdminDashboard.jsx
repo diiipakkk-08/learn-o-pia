@@ -15,7 +15,7 @@ export default function AdminDashboard() {
   const totalUsers = users.length;
   const learners = users.filter(u => u.role === 'learner');
   const admins = users.filter(u => u.role === 'admin');
-  const pendingCreators = users.filter(u => u.status === 'pending');
+  const pendingCreators = users.filter(u => u.creatorStatus === 'pending' || (u.role === 'creator' && u.status === 'pending'));
 
   return (
     <div className="animate-fade-in" style={styles.container}>
@@ -137,7 +137,9 @@ export default function AdminDashboard() {
                           <td style={styles.td}><strong>{creator.name}</strong></td>
                           <td style={styles.td}>{creator.email}</td>
                           <td style={styles.td}>
-                            <span className="badge badge-creator" style={{ fontSize: '0.6rem' }}>{creator.status}</span>
+                            <span className="badge badge-creator" style={{ fontSize: '0.65rem', textTransform: 'capitalize' }}>
+                              {creator.creatorStatus || creator.status}
+                            </span>
                           </td>
                           <td style={styles.td}>
                             <div style={{ display: 'flex', gap: '8px' }}>
