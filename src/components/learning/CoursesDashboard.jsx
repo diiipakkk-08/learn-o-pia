@@ -389,15 +389,17 @@ const styles = {
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-    gap: '24px'
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '20px',
+    alignItems: 'stretch'
   },
   card: {
     padding: '24px',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
-    minHeight: '230px',
+    height: '100%',
+    minHeight: '220px',
     textAlign: 'left'
   },
   cardHeader: {

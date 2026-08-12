@@ -115,14 +115,15 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
         margin: '0 auto',
         padding: '40px 20px',
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-        gap: '24px'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: '20px',
+        alignItems: 'stretch'
       }}>
         <div className="glass-panel" style={styles.featureCard}>
           <div style={{ background: 'rgba(99, 102, 241, 0.15)', padding: '12px', borderRadius: '14px', width: 'fit-content' }}>
             <Play size={26} color="#6366f1" />
           </div>
-          <h3 style={{ fontSize: '1.25rem', margin: 0, color: '#ffffff' }}>Distraction-Free Theatre Stage</h3>
+          <h3 style={{ fontSize: '1.25rem', margin: '12px 0 6px 0', color: '#ffffff' }}>Distraction-Free Theatre Stage</h3>
           <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
             Pinned sticky video stage on the left with an auto-scrolling lecture queue on the right. Pure learning without video recommendations or ads.
           </p>
@@ -132,7 +133,7 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
           <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '12px', borderRadius: '14px', width: 'fit-content' }}>
             <FileText size={26} color="#10b981" />
           </div>
-          <h3 style={{ fontSize: '1.25rem', margin: 0, color: '#ffffff' }}>Verified Study Notes & PDFs</h3>
+          <h3 style={{ fontSize: '1.25rem', margin: '12px 0 6px 0', color: '#ffffff' }}>Verified Study Notes & PDFs</h3>
           <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
             Instant access to Syllabus PDFs, Organizers, Lecture Notes, and Formula Sheets uploaded by professors and top educators.
           </p>
@@ -142,7 +143,7 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
           <div style={{ background: 'rgba(139, 92, 246, 0.15)', padding: '12px', borderRadius: '14px', width: 'fit-content' }}>
             <Shield size={26} color="#8b5cf6" />
           </div>
-          <h3 style={{ fontSize: '1.25rem', margin: 0, color: '#ffffff' }}>Educator Creator Studio</h3>
+          <h3 style={{ fontSize: '1.25rem', margin: '12px 0 6px 0', color: '#ffffff' }}>Educator Creator Studio</h3>
           <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
             Professors and creators can import 100% of YouTube playlist lecture series with one click and structure degree programs.
           </p>
@@ -169,8 +170,9 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-          gap: '20px'
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '20px',
+          alignItems: 'stretch'
         }}>
           {courses.slice(0, 4).map(course => (
             <div
