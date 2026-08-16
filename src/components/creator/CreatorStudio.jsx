@@ -135,16 +135,16 @@ function InlineEdit({ value, onSave, multiline = false, inputStyle = {} }) {
 // ── Main Component ───────────────────────────────────────────────────────────
 export default function CreatorStudio() {
   const {
-    courses, subjects, users, currentUser,
+    currentUser, courses, subjects, users,
     addCourse, editCourse, deleteCourse,
-    addSubject, deleteSubject,
+    addSubject, updateSubjectDetails, deleteSubject,
     addSubjectPlaylist, deleteSubjectPlaylist,
     addVideoToPlaylist, deleteVideoFromPlaylist,
     addSubjectMaterialSection, deleteSubjectMaterialSection,
     addSubjectMaterial, deleteSubjectMaterial,
     removeUserEnrollment,
     reorderSubject, reorderPlaylist, reorderVideo, reorderMaterialSection,
-    importVideosToExistingPlaylist, updateSubjectDetails
+    importVideosToExistingPlaylist, addStandaloneResource
   } = useDatabase();
 
   const [activeCourseId, setActiveCourseId] = useState(null);
@@ -152,6 +152,37 @@ export default function CreatorStudio() {
   const [activeSubjectId, setActiveSubjectId] = useState(null);
   const [activePlaylistId, setActivePlaylistId] = useState(null);
   const [studioTab, setStudioTab] = useState('content');
+
+  // Standalone Resource Form State
+  const [showStandaloneForm, setShowStandaloneForm] = useState(false);
+  const [resTitle, setResTitle] = useState('');
+  const [resUrl, setResUrl] = useState('');
+  const [resCategory, setResCategory] = useState('Formula Sheet & Quick Reference');
+  const [resDesc, setResDesc] = useState('');
+  const [resSuccess, setResSuccess] = useState('');
+
+  const handlePublishStandaloneResource = (e) => {
+    e.preventDefault();
+    if (!resTitle.trim() || !resUrl.trim()) return;
+
+    if (typeof addStandaloneResource === 'function') {
+      addStandaloneResource({
+        title: resTitle.trim(),
+        url: resUrl.trim(),
+        type: 'pdf',
+        category: resCategory,
+        description: resDesc.trim(),
+        author: getUserDesignation(currentUser)
+      });
+    }
+
+    setResTitle('');
+    setResUrl('');
+    setResDesc('');
+    setShowStandaloneForm(false);
+    setResSuccess('Standalone resource published to the Open Learning Feed!');
+    setTimeout(() => setResSuccess(''), 3500);
+  };
 
   // Edit Subject Details state
   const [showSubjectEditForm, setShowSubjectEditForm] = useState(false);
