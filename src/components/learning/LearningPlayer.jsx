@@ -7,7 +7,6 @@ import {
   ChevronLeft,
   BookOpen,
   ChevronDown,
-  ChevronUp,
   Share2,
   Check,
   Download,
@@ -22,7 +21,8 @@ import {
   SkipBack,
   SkipForward,
   UserCheck,
-  Award
+  Folder,
+  ListVideo
 } from 'lucide-react';
 
 const TYPE_LABEL = {
@@ -73,7 +73,7 @@ function SemesterPortalMenu({ triggerRef, menuRef, isOpen, value, onChange, onCl
             padding: '8px 14px',
             fontSize: '0.8rem',
             textAlign: 'left',
-            background: value === s ? 'var(--primary-hover)' : 'transparent',
+            background: value === s ? 'var(--primary)' : 'transparent',
             color: '#fff',
             fontWeight: value === s ? 700 : 400,
             border: 'none',
@@ -110,7 +110,7 @@ function CustomSemesterDropdown({ value, onChange }) {
   }, [isOpen]);
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', display: 'inline-block' }}>
       <div
         ref={triggerRef}
         className="purple-semester-trigger"
@@ -173,7 +173,6 @@ export default function LearningPlayer({
   const [sidebarTab, setSidebarTab] = useState('playlist'); // 'playlist' | 'materials' | 'info'
   const [mainTab, setMainTab] = useState('overview'); // 'overview' | 'materials' | 'notes'
   const [mobileTab, setMobileTab] = useState('playlist'); // 'playlist' | 'materials' | 'overview'
-  const [collapsedModules, setCollapsedModules] = useState({});
 
   const [shareCopied, setShareCopied] = useState(false);
   const [userNotes, setUserNotes] = useState({});
@@ -244,18 +243,46 @@ export default function LearningPlayer({
     return vids;
   }, [activeSubject]);
 
+  const playlistVideos = activePlaylist?.videos || [];
+
   const activeVideo = useMemo(() => {
-    if (activePlaylist?.videos && activePlaylist.videos.length > 0) {
-      return activePlaylist.videos[activeVideoIndex] || activePlaylist.videos[0];
+    if (playlistVideos && playlistVideos.length > 0) {
+      return playlistVideos[activeVideoIndex] || playlistVideos[0];
     }
     return allSubjectVideos[0] || null;
-  }, [activePlaylist, activeVideoIndex, allSubjectVideos]);
+  }, [playlistVideos, activeVideoIndex, allSubjectVideos]);
 
   // Specific materials attached to active video
   const activeVideoMaterials = useMemo(() => {
     if (!activeSubject || !activeSubject.materials) return [];
-    return activeSubject.materials.filter((m) => m.videoId === activeVideo?.id || m.type === 'notes');
+    return activeSubject.materials.filter((m) => m.videoId === activeVideo?.id);
   }, [activeSubject, activeVideo]);
+
+  // Group all course materials by Section Divisions for the Guides Tab
+  const groupedMaterialsBySection = useMemo(() => {
+    if (!activeSubject) return {};
+    const customSections = activeSubject.customMaterialSections || ['Notes', 'Organizer', 'Past Year Papers', 'Syllabus'];
+    const mats = activeSubject.materials || [];
+
+    const grouped = {};
+    customSections.forEach((sec) => {
+      grouped[sec] = [];
+    });
+
+    mats.forEach((m) => {
+      const secName = m.sectionName || m.type || 'Notes';
+      const matchedKey = Object.keys(grouped).find(
+        (k) => k.toLowerCase() === secName.toLowerCase()
+      ) || secName;
+
+      if (!grouped[matchedKey]) {
+        grouped[matchedKey] = [];
+      }
+      grouped[matchedKey].push(m);
+    });
+
+    return grouped;
+  }, [activeSubject]);
 
   // Load saved note when active video changes
   useEffect(() => {
@@ -291,15 +318,7 @@ export default function LearningPlayer({
     return `https://www.youtube.com/embed/${video.youtubeId}?rel=0&modestbranding=1&autoplay=1`;
   };
 
-  const toggleModuleCollapse = (modId) => {
-    setCollapsedModules((prev) => ({
-      ...prev,
-      [modId]: !prev[modId]
-    }));
-  };
-
-  const handlePlayVideo = (plId, vIdx, videoId) => {
-    setActivePlaylistId(plId);
+  const handlePlayVideo = (vIdx, videoId) => {
     setActiveVideoIndex(vIdx);
     if (videoId) {
       setWatchedVideos((prev) => {
@@ -311,8 +330,8 @@ export default function LearningPlayer({
   };
 
   const handleNextVideo = () => {
-    if (!activePlaylist?.videos) return;
-    if (activeVideoIndex < activePlaylist.videos.length - 1) {
+    if (!playlistVideos) return;
+    if (activeVideoIndex < playlistVideos.length - 1) {
       setActiveVideoIndex(activeVideoIndex + 1);
     }
   };
@@ -339,35 +358,21 @@ export default function LearningPlayer({
     }
   };
 
-  // Stats calculation
-  const totalLecturesCount = allSubjectVideos.length;
+  // Stats calculation for current active playlist
   const watchedCount = useMemo(() => {
-    return allSubjectVideos.filter((v) => watchedVideos.has(v.id)).length;
-  }, [allSubjectVideos, watchedVideos]);
+    return playlistVideos.filter((v) => watchedVideos.has(v.id)).length;
+  }, [playlistVideos, watchedVideos]);
 
-  const progressPercent = totalLecturesCount > 0 ? Math.round((watchedCount / totalLecturesCount) * 100) : 0;
+  const progressPercent = playlistVideos.length > 0 ? Math.round((watchedCount / playlistVideos.length) * 100) : 0;
 
-  // Filter playlists by search query
-  const filteredPlaylists = useMemo(() => {
-    if (!activeSubject || !activeSubject.playlists) return [];
-    if (!videoSearchQuery.trim()) return activeSubject.playlists;
+  // Filter video rows in active playlist by search query
+  const filteredPlaylistVideos = useMemo(() => {
+    if (!playlistVideos) return [];
+    if (!videoSearchQuery.trim()) return playlistVideos;
 
     const q = videoSearchQuery.toLowerCase().trim();
-    return activeSubject.playlists
-      .map((playlist) => {
-        const matchingVideos = (playlist.videos || []).filter((v) =>
-          v.title.toLowerCase().includes(q)
-        );
-        if (playlist.title.toLowerCase().includes(q) || matchingVideos.length > 0) {
-          return {
-            ...playlist,
-            videos: matchingVideos.length > 0 ? matchingVideos : playlist.videos
-          };
-        }
-        return null;
-      })
-      .filter(Boolean);
-  }, [activeSubject, videoSearchQuery]);
+    return playlistVideos.filter((v) => v.title.toLowerCase().includes(q));
+  }, [playlistVideos, videoSearchQuery]);
 
   if (!course) {
     return (
@@ -391,9 +396,9 @@ export default function LearningPlayer({
 
   return (
     <div className="animate-fade-in oracle-workspace-container" style={styles.container}>
-      {/* ── TOP FLEX ROW: Back (Leftmost) + Purple Semester Dropdown + Subjects Chips (Rightmost) ── */}
+      {/* ── TOP BAR: 1 SINGLE HORIZONTAL FLEX LINE (< Back + Semester Dropdown on Left, Subjects on Right) ── */}
       <div className="glass-panel" style={styles.topFlexRow}>
-        {/* Left flex group containing Back button and Purple Semester Dropdown */}
+        {/* Leftmost Flex Group: Back button + Purple Semester Dropdown side-by-side */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
           <button onClick={() => setCurrentView('learning')} style={styles.backBtn}>
             <ChevronLeft size={15} /> Back
@@ -404,8 +409,8 @@ export default function LearningPlayer({
           )}
         </div>
 
-        {/* Right flex group containing Subject Chips */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto', overflowX: 'auto' }}>
+        {/* Rightmost Flex Group: Subject Selector Chips */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', flexShrink: 0 }}>
           {isMobile ? (
             <select
               value={activeSubjectId || ''}
@@ -447,13 +452,13 @@ export default function LearningPlayer({
             className={`mobile-tab-pill ${mobileTab === 'playlist' ? 'active' : ''}`}
             onClick={() => setMobileTab('playlist')}
           >
-            <PlayCircle size={15} /> Playlist ({allSubjectVideos.length})
+            <PlayCircle size={15} /> Playlist ({playlistVideos.length})
           </button>
           <button
             className={`mobile-tab-pill ${mobileTab === 'materials' ? 'active' : ''}`}
             onClick={() => setMobileTab('materials')}
           >
-            <FileText size={15} /> Materials ({activeSubjectMaterials?.length || 0})
+            <FileText size={15} /> Materials ({activeVideoMaterials.length})
           </button>
           <button
             className={`mobile-tab-pill ${mobileTab === 'overview' ? 'active' : ''}`}
@@ -491,7 +496,7 @@ export default function LearningPlayer({
                   <div className="now-playing-text">
                     <h3 className="now-playing-h">{activeVideo.title}</h3>
                     <span className="now-playing-sub">
-                      Module {activePlaylist?.title ? activePlaylist.title : '1'} · Lecture {(activeVideoIndex || 0) + 1} of {activePlaylist?.videos?.length || allSubjectVideos.length}
+                      Module {activePlaylist?.title ? activePlaylist.title : '1'} · Lecture {(activeVideoIndex || 0) + 1} of {playlistVideos.length}
                     </span>
                   </div>
                 </div>
@@ -514,9 +519,9 @@ export default function LearningPlayer({
                     type="button"
                     className="circle-action-btn"
                     onClick={handleNextVideo}
-                    disabled={!activePlaylist?.videos || activeVideoIndex >= activePlaylist.videos.length - 1}
+                    disabled={activeVideoIndex >= playlistVideos.length - 1}
                     title="Next Lecture"
-                    style={{ opacity: !activePlaylist?.videos || activeVideoIndex >= activePlaylist.videos.length - 1 ? 0.4 : 1 }}
+                    style={{ opacity: activeVideoIndex >= playlistVideos.length - 1 ? 0.4 : 1 }}
                   >
                     <SkipForward size={16} />
                   </button>
@@ -535,7 +540,7 @@ export default function LearningPlayer({
             )}
           </div>
 
-          {/* 3. Playlist Details & Action Tabs Below Player */}
+          {/* 3. Playlist Overview & Video Materials Below Player */}
           {activePlaylist && (
             <div className="subject-meta-hub glass-panel">
               <div className="action-tabs-bar" style={{ marginBottom: '14px', paddingBottom: '12px' }}>
@@ -561,27 +566,30 @@ export default function LearningPlayer({
 
               {/* Tab Contents */}
               <div className="action-tab-body">
-                {/* Overview Below Video: Focused strictly on Active Playlist Details */}
+                {/* Playlist Overview Below Video: Title, Description, Playlist Owner / Channel Credit */}
                 {mainTab === 'overview' && (
                   <div className="tab-pane-content">
-                    <h3 style={{ fontSize: '1.1rem', marginBottom: '6px' }}>{activePlaylist.title}</h3>
-                    <p className="tab-pane-desc">
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: '4px' }}>{activePlaylist.title}</h3>
+                    <p className="tab-pane-desc" style={{ marginBottom: '16px' }}>
                       {activePlaylist.description || `Lecture series playlist for ${activeSubject?.title || 'this subject'}.`}
                     </p>
 
-                    {/* Extra Custom Overview Info from Creator Studio */}
-                    {activePlaylist.extraInfo && (
-                      <div style={{ padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)', marginBottom: '16px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                        <strong style={{ color: '#ffffff', display: 'block', marginBottom: '4px' }}>Instructor & Playlist Notes:</strong>
-                        {activePlaylist.extraInfo}
+                    <div className="stats-cards-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                      {/* Playlist Owner / Creator Channel Credit */}
+                      <div className="stat-card-box">
+                        <UserCheck size={18} color="var(--primary)" />
+                        <div>
+                          <strong style={{ color: '#ffffff' }}>
+                            {activePlaylist.author || activeSubject?.author || course?.author || 'Take It Easy (MAKAUT)'}
+                          </strong>
+                          <span>Playlist Owner / Creator</span>
+                        </div>
                       </div>
-                    )}
 
-                    <div className="stats-cards-grid">
                       <div className="stat-card-box">
                         <Clock size={18} color="var(--primary)" />
                         <div>
-                          <strong>{activePlaylist.videos?.length || 0} Video Lectures</strong>
+                          <strong>{playlistVideos.length} Video Lectures</strong>
                           <span>Playlist Length</span>
                         </div>
                       </div>
@@ -594,6 +602,14 @@ export default function LearningPlayer({
                         </div>
                       </div>
                     </div>
+
+                    {/* Extra Instructor Overview Notes if provided */}
+                    {activePlaylist.extraInfo && (
+                      <div style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)', marginTop: '16px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        <strong style={{ color: '#ffffff', display: 'block', marginBottom: '4px' }}>Instructor & Playlist Notes:</strong>
+                        {activePlaylist.extraInfo}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -657,7 +673,7 @@ export default function LearningPlayer({
         </div>
 
         {/* ========================================================= */}
-        {/* RIGHT COLUMN: Playlists Accordion & Course Guides Hub      */}
+        {/* RIGHT COLUMN: Single Playlist Dropdown & Sectioned Guides */}
         {/* ========================================================= */}
         <div className={`oracle-sidebar-col ${isMobile && mobileTab !== 'playlist' && mobileTab !== 'materials' ? 'mobile-hidden' : ''}`}>
           <div className="oracle-sidebar-card glass-panel">
@@ -683,15 +699,39 @@ export default function LearningPlayer({
               </button>
             </div>
 
-            {/* PLAYLIST TAB CONTENT */}
+            {/* PLAYLIST TAB CONTENT: Single Playlist Select Dropdown + Videos List */}
             {sidebarTab === 'playlist' && (
               <div className="sidebar-tab-pane">
+                {/* ── SINGLE PLAYLIST SELECT DROPDOWN (Switches Playlist Series) ── */}
+                {activeSubject?.playlists && activeSubject.playlists.length > 0 && (
+                  <div style={{ marginBottom: '12px' }}>
+                    <label className="form-label" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
+                      Select Playlist Series
+                    </label>
+                    <select
+                      value={activePlaylistId || ''}
+                      onChange={(e) => {
+                        setActivePlaylistId(e.target.value);
+                        setActiveVideoIndex(0);
+                      }}
+                      className="form-input"
+                      style={{ width: '100%', padding: '8px 12px', fontSize: '0.83rem', fontWeight: 600, background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(139,92,246,0.3)', color: '#ffffff' }}
+                    >
+                      {activeSubject.playlists.map((pl, idx) => (
+                        <option key={pl.id} value={pl.id} style={{ background: '#11121c', color: '#ffffff' }}>
+                          {idx + 1}. {pl.title} ({pl.videos?.length || 0} videos)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {/* Search Box */}
-                <div className="playlist-search-wrap">
+                <div className="playlist-search-wrap" style={{ marginBottom: '10px' }}>
                   <Search size={15} className="search-icon-fixed" />
                   <input
                     type="text"
-                    placeholder="Search playlist…"
+                    placeholder="Search videos in playlist…"
                     value={videoSearchQuery}
                     onChange={(e) => setVideoSearchQuery(e.target.value)}
                     className="form-input playlist-search-input"
@@ -704,7 +744,7 @@ export default function LearningPlayer({
                 </div>
 
                 {/* Toggles Bar */}
-                <div className="playlist-toggles-bar">
+                <div className="playlist-toggles-bar" style={{ marginBottom: '12px' }}>
                   <label className="checkbox-toggle-label">
                     <input
                       type="checkbox"
@@ -724,75 +764,53 @@ export default function LearningPlayer({
                   </label>
                 </div>
 
-                {/* Collapsible Playlists / Modules Accordion */}
-                <div className="playlist-modules-accordion">
-                  {filteredPlaylists.length > 0 ? (
-                    filteredPlaylists.map((playlist, pIdx) => {
-                      const isCollapsed = !!collapsedModules[playlist.id];
-                      return (
-                        <div key={playlist.id} className="accordion-module-group">
-                          <button
-                            type="button"
-                            className="module-header-toggle"
-                            onClick={() => toggleModuleCollapse(playlist.id)}
-                          >
-                            <span className="module-name-txt">
-                              <strong>
-                                {pIdx + 1}. {playlist.title}
-                              </strong>
-                            </span>
-                            {isCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-                          </button>
+                {/* Videos List for Selected Playlist */}
+                <div className="playlist-modules-accordion" style={{ maxHeight: '420px', overflowY: 'auto' }}>
+                  <ul className="module-vids-ul" style={{ margin: 0 }}>
+                    {filteredPlaylistVideos.length > 0 ? (
+                      filteredPlaylistVideos.map((video, vIdx) => {
+                        const isCurrent = activeVideo?.id === video.id || activeVideoIndex === vIdx;
+                        const isWatched = watchedVideos.has(video.id);
 
-                          {!isCollapsed && (
-                            <ul className="module-vids-ul">
-                              {(playlist.videos || []).map((video, vIdx) => {
-                                const isCurrent = activeVideo?.id === video.id || (activePlaylistId === playlist.id && activeVideoIndex === vIdx);
-                                const isWatched = watchedVideos.has(video.id);
+                        return (
+                          <li key={video.id || vIdx}>
+                            <button
+                              type="button"
+                              className={`video-row-item ${isCurrent ? 'active-playing' : ''}`}
+                              onClick={() => handlePlayVideo(vIdx, video.id)}
+                            >
+                              <span className="video-circle-status">
+                                {isCurrent ? (
+                                  <PlayCircle size={16} className="ic-playing-glow" />
+                                ) : isWatched && showSkillChecks ? (
+                                  <CheckCircle2 size={16} className="ic-watched-green" />
+                                ) : (
+                                  <Circle size={16} className="ic-unplayed-ring" />
+                                )}
+                              </span>
 
-                                return (
-                                  <li key={video.id || vIdx}>
-                                    <button
-                                      type="button"
-                                      className={`video-row-item ${isCurrent ? 'active-playing' : ''}`}
-                                      onClick={() => handlePlayVideo(playlist.id, vIdx, video.id)}
-                                    >
-                                      <span className="video-circle-status">
-                                        {isCurrent ? (
-                                          <PlayCircle size={16} className="ic-playing-glow" />
-                                        ) : isWatched && showSkillChecks ? (
-                                          <CheckCircle2 size={16} className="ic-watched-green" />
-                                        ) : (
-                                          <Circle size={16} className="ic-unplayed-ring" />
-                                        )}
-                                      </span>
-
-                                      <div className="video-row-details">
-                                        <span className="vid-title-text">{video.title}</span>
-                                        <span className="vid-duration-sub">{video.duration || '8m'}</span>
-                                      </div>
-                                    </button>
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          )}
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="empty-playlist-box">
-                      <p>No lectures match search.</p>
-                    </div>
-                  )}
+                              <div className="video-row-details">
+                                <span className="vid-title-text">{video.title}</span>
+                                <span className="vid-duration-sub">{video.duration || '8m'}</span>
+                              </div>
+                            </button>
+                          </li>
+                        );
+                      })
+                    ) : (
+                      <div className="empty-playlist-box">
+                        <p>No videos match search in this playlist.</p>
+                      </div>
+                    )}
+                  </ul>
                 </div>
 
                 {/* Progress Footer */}
                 <div className="sidebar-progress-footer">
                   <div className="dur-summary-row">
-                    <span className="dur-lbl">Course Progress</span>
+                    <span className="dur-lbl">Playlist Progress</span>
                     <span className="dur-val">
-                      {watchedCount} / {totalLecturesCount} Watched
+                      {watchedCount} / {playlistVideos.length} Watched
                     </span>
                   </div>
 
@@ -808,30 +826,51 @@ export default function LearningPlayer({
               </div>
             )}
 
-            {/* GUIDES TAB: Contains ALL course materials (syllabi, notes, pyqs, organizers) */}
+            {/* GUIDES TAB: Categorized and Divided by Section Headers (Notes, Organizer, PYQ, Syllabus) */}
             {sidebarTab === 'materials' && (
               <div className="sidebar-tab-pane">
-                <div className="pane-head-info">
+                <div className="pane-head-info" style={{ marginBottom: '12px' }}>
                   <h4>Entire Course Guides & PDFs</h4>
                   <p>All Syllabi, Notes, Organizers, and Past Year Papers for this course.</p>
                 </div>
 
-                {activeSubject?.materials && activeSubject.materials.length > 0 ? (
-                  <div className="sidebar-mat-list">
-                    {activeSubject.materials.map((mat) => (
-                      <a
-                        key={mat.id}
-                        href={mat.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="sidebar-mat-card"
-                      >
-                        <FileText size={18} color="var(--primary)" />
-                        <div>
-                          <strong>{mat.title}</strong>
-                          <span className="mat-type-sub">{TYPE_LABEL[mat.type] || mat.type}</span>
+                {Object.keys(groupedMaterialsBySection).length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {Object.entries(groupedMaterialsBySection).map(([sectionTitle, files]) => (
+                      <div key={sectionTitle} style={{ textAlign: 'left' }}>
+                        {/* Section Division Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', paddingBottom: '4px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                          <Folder size={14} color="#f59e0b" />
+                          <strong style={{ fontSize: '0.8rem', color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                            {sectionTitle} ({files.length})
+                          </strong>
                         </div>
-                      </a>
+
+                        {files.length > 0 ? (
+                          <div className="sidebar-mat-list" style={{ gap: '6px' }}>
+                            {files.map((mat) => (
+                              <a
+                                key={mat.id}
+                                href={mat.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="sidebar-mat-card"
+                                style={{ padding: '8px 12px' }}
+                              >
+                                <FileText size={16} color="var(--primary)" />
+                                <div>
+                                  <strong style={{ fontSize: '0.82rem' }}>{mat.title}</strong>
+                                  <span className="mat-type-sub" style={{ fontSize: '0.7rem' }}>{TYPE_LABEL[mat.type] || mat.type || sectionTitle}</span>
+                                </div>
+                              </a>
+                            ))}
+                          </div>
+                        ) : (
+                          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: '4px 0 0 12px' }}>
+                            No files uploaded.
+                          </p>
+                        )}
+                      </div>
                     ))}
                   </div>
                 ) : (
@@ -840,7 +879,7 @@ export default function LearningPlayer({
               </div>
             )}
 
-            {/* RIGHT SIDEBAR OVERVIEW TAB: Academic Credits & Playlist Owner Info */}
+            {/* RIGHT SIDEBAR OVERVIEW TAB: Academic Credits & Subject Info */}
             {sidebarTab === 'info' && (
               <div className="sidebar-tab-pane">
                 <div className="pane-head-info">
@@ -857,11 +896,11 @@ export default function LearningPlayer({
                   </div>
                   <div className="meta-info-row">
                     <span className="lbl">Playlist Owner</span>
-                    <span className="val">{activeSubject?.author || course.author || 'University Faculty'}</span>
+                    <span className="val">{activeSubject?.author || course.author || 'designed by team OpenSeas'}</span>
                   </div>
                   <div className="meta-info-row">
                     <span className="lbl">Department</span>
-                    <span className="val">{course.department || 'Engineering'}</span>
+                    <span className="val">{course.department || 'CSE/IT'}</span>
                   </div>
                   <div className="meta-info-row">
                     <span className="lbl">Semester</span>
