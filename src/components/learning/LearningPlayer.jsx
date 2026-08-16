@@ -393,17 +393,18 @@ export default function LearningPlayer({
     <div className="animate-fade-in oracle-workspace-container" style={styles.container}>
       {/* ── TOP FLEX ROW: Back (Leftmost) + Purple Semester Dropdown + Subjects Chips (Rightmost) ── */}
       <div className="glass-panel" style={styles.topFlexRow}>
-        {/* Leftmost: Back button */}
-        <button onClick={() => setCurrentView('learning')} style={styles.backBtn}>
-          <ChevronLeft size={15} /> Back
-        </button>
+        {/* Left flex group containing Back button and Purple Semester Dropdown */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+          <button onClick={() => setCurrentView('learning')} style={styles.backBtn}>
+            <ChevronLeft size={15} /> Back
+          </button>
 
-        {/* Beside Back: Purple Semester Dropdown */}
-        {isDegree && (
-          <CustomSemesterDropdown value={activeSemester} onChange={(s) => setActiveSemester(s)} />
-        )}
+          {isDegree && (
+            <CustomSemesterDropdown value={activeSemester} onChange={(s) => setActiveSemester(s)} />
+          )}
+        </div>
 
-        {/* Rightmost: Subject Chips Selector */}
+        {/* Right flex group containing Subject Chips */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto', overflowX: 'auto' }}>
           {isMobile ? (
             <select
@@ -892,11 +893,13 @@ const styles = {
   topFlexRow: {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: '12px',
-    padding: '6px 12px',
+    padding: '8px 14px',
     borderRadius: '12px',
     boxSizing: 'border-box',
-    width: '100%'
+    width: '100%',
+    flexWrap: 'nowrap'
   },
   backBtn: {
     display: 'inline-flex',

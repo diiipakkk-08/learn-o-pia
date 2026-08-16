@@ -989,6 +989,30 @@ export function DatabaseProvider({ children }) {
     }
   };
 
+  const updateSubjectDetails = async (subjectId, details) => {
+    if (isSupabaseLive) {
+      try {
+        await supabase.from('subjects').update({
+          code: details.code,
+          credits: details.credits,
+          author: details.author,
+          department: details.department,
+          overview_info: details.overviewInfo
+        }).eq('id', subjectId);
+      } catch (e) {
+        console.warn('Could not update subject details in DB:', e);
+      }
+      syncSupabase();
+    } else {
+      setSubjects((prev) =>
+        prev.map((s) =>
+          s.id === subjectId ? { ...s, ...details } : s
+        )
+      );
+      addLog(`Subject details updated.`);
+    }
+  };
+
   const addSubjectPlaylist = async (subjectId, title, description, author = '', youtubePlaylistId = '', initialVideos = [], extraInfo = '') => {
     const subject = subjects.find(s => s.id === subjectId);
     const siblings = subject ? (subject.playlists || []) : [];
@@ -1740,6 +1764,7 @@ export function DatabaseProvider({ children }) {
       editCourse,
       deleteCourse,
       addSubject,
+      updateSubjectDetails,
       deleteSubject,
       addSubjectPlaylist,
       deleteSubjectPlaylist,

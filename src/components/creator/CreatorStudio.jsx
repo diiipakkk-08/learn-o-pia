@@ -144,7 +144,7 @@ export default function CreatorStudio() {
     addSubjectMaterial, deleteSubjectMaterial,
     removeUserEnrollment,
     reorderSubject, reorderPlaylist, reorderVideo, reorderMaterialSection,
-    importVideosToExistingPlaylist
+    importVideosToExistingPlaylist, updateSubjectDetails
   } = useDatabase();
 
   const [activeCourseId, setActiveCourseId] = useState(null);
@@ -152,6 +152,14 @@ export default function CreatorStudio() {
   const [activeSubjectId, setActiveSubjectId] = useState(null);
   const [activePlaylistId, setActivePlaylistId] = useState(null);
   const [studioTab, setStudioTab] = useState('content');
+
+  // Edit Subject Details state
+  const [showSubjectEditForm, setShowSubjectEditForm] = useState(false);
+  const [editSubjectCode, setEditSubjectCode] = useState('');
+  const [editSubjectCredits, setEditSubjectCredits] = useState('');
+  const [editSubjectAuthor, setEditSubjectAuthor] = useState('');
+  const [editSubjectDept, setEditSubjectDept] = useState('');
+  const [editSubjectOverviewInfo, setEditSubjectOverviewInfo] = useState('');
 
   const [importingPlId, setImportingPlId] = useState(null);
   const [importUrl, setImportUrl] = useState('');
@@ -250,9 +258,32 @@ export default function CreatorStudio() {
     setPlaylistDesc('');
     setPlaylistAuthor('');
     setYoutubePlaylistUrl('');
-    setPlaylistError('');
     setShowPlaylistForm(false);
   };
+
+  const handleOpenEditSubject = () => {
+    if (!activeSubject) return;
+    setEditSubjectCode(activeSubject.code || '');
+    setEditSubjectCredits(activeSubject.credits || '4 Credits');
+    setEditSubjectAuthor(activeSubject.author || 'designed by team OpenSeas');
+    setEditSubjectDept(activeSubject.department || 'CSE/IT');
+    setEditSubjectOverviewInfo(activeSubject.overviewInfo || '');
+    setShowSubjectEditForm(true);
+  };
+
+  const handleSaveSubjectDetails = (e) => {
+    e.preventDefault();
+    if (!activeSubject) return;
+    updateSubjectDetails(activeSubject.id, {
+      code: editSubjectCode,
+      credits: editSubjectCredits,
+      author: editSubjectAuthor,
+      department: editSubjectDept,
+      overviewInfo: editSubjectOverviewInfo
+    });
+    setShowSubjectEditForm(false);
+  };
+
   const handleAddVideo = (e) => {
     e.preventDefault(); setVideoError(null);
     if (!videoTitle.trim() || !videoUrl.trim() || !activeSubject || !activePlaylistId) return;
@@ -544,15 +575,62 @@ export default function CreatorStudio() {
                       {activeSubject ? (
                         <>
                           {/* Subject header */}
-                          <div className="glass-panel" style={{ padding: '12px 16px', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div className="glass-panel" style={{ padding: '12px 16px', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                             <div>
                               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Active Subject:</span>
                               <h4 style={{ fontSize: '0.95rem', color: '#fff', marginTop: '2px' }}>{activeSubject.title}</h4>
                             </div>
-                            <button onClick={() => setShowPlaylistForm(!showPlaylistForm)} className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
-                              <Plus size={12} /> Create Playlist
-                            </button>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button onClick={handleOpenEditSubject} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
+                                <Pencil size={12} /> Edit Overview & Metadata
+                              </button>
+                              <button onClick={() => setShowPlaylistForm(!showPlaylistForm)} className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
+                                <Plus size={12} /> Create Playlist
+                              </button>
+                            </div>
                           </div>
+
+                          {showSubjectEditForm && (
+                            <form onSubmit={handleSaveSubjectDetails} className="glass-panel animate-fade-in" style={{ ...styles.formWorkspace, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                              <h4 style={{ fontSize: '1rem', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '6px' }}>Edit Subject Overview & Metadata</h4>
+                              
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Subject Code</label>
+                                  <input type="text" value={editSubjectCode} onChange={e => setEditSubjectCode(e.target.value)} placeholder="e.g. BS-PH101" className="form-input" style={{ padding: '8px 12px', fontSize: '0.85rem' }} />
+                                </div>
+                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Academic Credits</label>
+                                  <input type="text" value={editSubjectCredits} onChange={e => setEditSubjectCredits(e.target.value)} placeholder="e.g. 4 Credits" className="form-input" style={{ padding: '8px 12px', fontSize: '0.85rem' }} />
+                                </div>
+                              </div>
+
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Playlist Owner / Educator</label>
+                                  <input type="text" value={editSubjectAuthor} onChange={e => setEditSubjectAuthor(e.target.value)} placeholder="e.g. designed by team OpenSeas" className="form-input" style={{ padding: '8px 12px', fontSize: '0.85rem' }} />
+                                </div>
+                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Department</label>
+                                  <input type="text" value={editSubjectDept} onChange={e => setEditSubjectDept(e.target.value)} placeholder="e.g. CSE/IT" className="form-input" style={{ padding: '8px 12px', fontSize: '0.85rem' }} />
+                                </div>
+                              </div>
+
+                              <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label className="form-label" style={{ fontSize: '0.75rem' }}>Custom Overview Notes & Details (Displays in Overview Section)</label>
+                                <textarea value={editSubjectOverviewInfo} onChange={e => setEditSubjectOverviewInfo(e.target.value)} rows={3} placeholder="Add custom notes, prerequisites, course outcomes, or formatting details..." className="form-input" style={{ padding: '8px 12px', fontSize: '0.85rem' }} />
+                              </div>
+
+                              <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                                <button type="submit" className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+                                  Save Overview Details
+                                </button>
+                                <button type="button" onClick={() => setShowSubjectEditForm(false)} className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+                                  Cancel
+                                </button>
+                              </div>
+                            </form>
+                          )}
 
                           {showPlaylistForm && (
                             <form onSubmit={handleCreatePlaylist} className="glass-panel animate-fade-in" style={{ ...styles.formWorkspace, display: 'flex', flexDirection: 'column', gap: '12px' }}>
