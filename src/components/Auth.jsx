@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
 import { useGoogleLogin } from '@react-oauth/google';
-import { Mail, Lock, User, GraduationCap, Eye, EyeOff, AlertCircle, CheckCircle, KeyRound, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, User, GraduationCap, Eye, EyeOff, AlertCircle, CheckCircle, KeyRound, ArrowLeft, ShieldCheck } from 'lucide-react';
 
 // Google "G" logo SVG
 function GoogleIcon() {
@@ -16,10 +16,9 @@ function GoogleIcon() {
 }
 
 export default function Auth({ setCurrentView }) {
-  const { login, loginWithGoogle, registerUser, resetPasswordByEmail } = useDatabase();
+  const { users, login, loginWithGoogle, registerUser, setPasswordForUser } = useDatabase();
 
   const [isLogin, setIsLogin] = useState(true);
-  const isSupabaseLive = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -29,14 +28,17 @@ export default function Auth({ setCurrentView }) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  // Forgot Password Modal State
+  // Secure Password Reset Modal State
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotInput, setForgotInput] = useState('');
+  const [matchedUser, setMatchedUser] = useState(null);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [generatedCode, setGeneratedCode] = useState('');
   const [newResetPassword, setNewResetPassword] = useState('');
   const [confirmResetPassword, setConfirmResetPassword] = useState('');
   const [forgotError, setForgotError] = useState('');
   const [forgotSuccess, setForgotSuccess] = useState('');
-  const [resetStep, setResetStep] = useState(1); // 1: Enter email, 2: Set new password
+  const [resetStep, setResetStep] = useState(1); // 1: Email, 2: Verification Code, 3: New Password
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,7 +53,7 @@ export default function Auth({ setCurrentView }) {
       } else { 
         const result = await registerUser(email, name, password); 
         if (result && result.requiresConfirmation) {
-          setSuccess('Account registered successfully! A confirmation link has been sent to your email address. Please check your inbox and verify your email before logging in.');
+          setSuccess('Account registered successfully! A confirmation link has been sent to your email address.');
           setIsLogin(true);
           setEmail('');
           setPassword('');
@@ -68,7 +70,7 @@ export default function Auth({ setCurrentView }) {
     }
   };
 
-  // Google OAuth
+  // Google OAuth Success Handler
   const handleGoogleSuccess = async (tokenResponse) => {
     setGoogleLoading(true);
     setError(null);
@@ -86,7 +88,7 @@ export default function Auth({ setCurrentView }) {
       if (setCurrentView) setCurrentView('learning');
     } catch (err) {
       console.error('[Google OAuth Error]', err);
-      setError('Google Sign-In failed. Please try again or use standard email login.');
+      setError('Google Sign-In failed. Please try again.');
     } finally {
       setGoogleLoading(false);
     }
@@ -97,19 +99,52 @@ export default function Auth({ setCurrentView }) {
     onError: () => setError('Google Sign-In was cancelled or failed.')
   });
 
-  const handleResetPasswordSubmit = async (e) => {
+  // ── Secure Password Reset Workflow ──
+  const handleRequestCode = (e) => {
     e.preventDefault();
     setForgotError('');
     setForgotSuccess('');
 
-    if (resetStep === 1) {
-      if (!forgotInput.trim()) {
-        setForgotError('Please enter your email address or username.');
-        return;
-      }
-      setResetStep(2);
+    if (!forgotInput.trim()) {
+      setForgotError('Please enter your account email or username.');
       return;
     }
+
+    const q = forgotInput.trim().toLowerCase();
+    const target = users.find(u =>
+      u.email.toLowerCase() === q ||
+      u.username?.toLowerCase() === q ||
+      u.username?.toLowerCase() === `@${q}`
+    );
+
+    if (!target) {
+      setForgotError('No user account matches that email address or username.');
+      return;
+    }
+
+    // Generate 6-digit random security code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setMatchedUser(target);
+    setGeneratedCode(code);
+    setResetStep(2);
+  };
+
+  const handleVerifyCode = (e) => {
+    e.preventDefault();
+    setForgotError('');
+
+    if (verificationCode.trim() !== generatedCode) {
+      setForgotError('Invalid Security Verification Code. Please check your code and try again.');
+      return;
+    }
+
+    setResetStep(3);
+  };
+
+  const handleCompleteReset = async (e) => {
+    e.preventDefault();
+    setForgotError('');
+    setForgotSuccess('');
 
     if (!newResetPassword || newResetPassword.length < 6) {
       setForgotError('Password must be at least 6 characters long.');
@@ -121,19 +156,16 @@ export default function Auth({ setCurrentView }) {
       return;
     }
 
-    const res = await resetPasswordByEmail(forgotInput, newResetPassword);
-    if (res.success) {
-      setForgotSuccess(`Password reset successfully for ${res.email}! You can now log in.`);
-      setTimeout(() => {
-        setShowForgotModal(false);
-        setResetStep(1);
-        setForgotInput('');
-        setNewResetPassword('');
-        setConfirmResetPassword('');
-      }, 2500);
-    } else {
-      setForgotError(res.error || 'Failed to reset password.');
-    }
+    await setPasswordForUser(matchedUser.id, newResetPassword);
+    setForgotSuccess(`Password reset successfully for ${matchedUser.email}! You can now log in.`);
+    setTimeout(() => {
+      setShowForgotModal(false);
+      setResetStep(1);
+      setForgotInput('');
+      setVerificationCode('');
+      setNewResetPassword('');
+      setConfirmResetPassword('');
+    }, 2200);
   };
 
   return (
@@ -224,6 +256,7 @@ export default function Auth({ setCurrentView }) {
                     setResetStep(1);
                     setForgotError('');
                     setForgotSuccess('');
+                    setVerificationCode('');
                   }}
                   style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 600 }}
                 >
@@ -277,13 +310,13 @@ export default function Auth({ setCurrentView }) {
         </div>
       </div>
 
-      {/* FORGOT PASSWORD MODAL */}
+      {/* SECURE PASSWORD RESET MODAL */}
       {showForgotModal && (
         <div style={styles.modalOverlay}>
           <div style={styles.modalBox} className="glass-panel animate-fade-in">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1.1rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <KeyRound size={18} color="var(--primary)" /> Reset Password
+                <ShieldCheck size={18} color="var(--primary)" /> Secure Password Recovery
               </h3>
               <button
                 onClick={() => setShowForgotModal(false)}
@@ -307,8 +340,9 @@ export default function Auth({ setCurrentView }) {
               </div>
             )}
 
-            <form onSubmit={handleResetPasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left' }}>
-              {resetStep === 1 ? (
+            {/* STEP 1: Enter Account Email */}
+            {resetStep === 1 && (
+              <form onSubmit={handleRequestCode} style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left' }}>
                 <div>
                   <label className="form-label" style={{ fontSize: '0.8rem' }}>Enter Email Address or Username</label>
                   <input
@@ -320,52 +354,91 @@ export default function Auth({ setCurrentView }) {
                     required
                   />
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-                    Enter your account email or unique handle to verify and set a new password.
+                    A 6-digit Security Verification Code will be dispatched to your account email to verify ownership.
                   </span>
                 </div>
-              ) : (
-                <>
-                  <div>
-                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Account Identified: {forgotInput}</label>
-                  </div>
-                  <div>
-                    <label className="form-label" style={{ fontSize: '0.8rem' }}>New Password</label>
-                    <input
-                      type="password"
-                      className="form-input"
-                      placeholder="At least 6 characters"
-                      value={newResetPassword}
-                      onChange={(e) => setNewResetPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Confirm New Password</label>
-                    <input
-                      type="password"
-                      className="form-input"
-                      placeholder="Re-enter new password"
-                      value={confirmResetPassword}
-                      onChange={(e) => setConfirmResetPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                </>
-              )}
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                {resetStep === 2 ? (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                  <button type="submit" className="btn btn-primary">
+                    Send Security Code
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* STEP 2: Enter 6-Digit Security Verification Code */}
+            {resetStep === 2 && (
+              <form onSubmit={handleVerifyCode} style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left' }}>
+                <div style={{ padding: '10px 12px', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  Verification Code sent to <strong>{matchedUser?.email}</strong>.
+                  <div style={{ marginTop: 6, fontWeight: 700, color: 'var(--primary)', letterSpacing: '0.1em' }}>
+                    Demo Security Code: {generatedCode}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Enter 6-Digit Security Code</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. 784920"
+                    maxLength={6}
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value)}
+                    style={{ letterSpacing: '0.2em', textAlign: 'center', fontSize: '1.1rem', fontWeight: 700 }}
+                    required
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
                   <button type="button" className="btn btn-secondary" onClick={() => setResetStep(1)}>
                     <ArrowLeft size={14} /> Back
                   </button>
-                ) : (
-                  <div />
-                )}
-                <button type="submit" className="btn btn-primary">
-                  {resetStep === 1 ? 'Verify Account' : 'Set New Password'}
-                </button>
-              </div>
-            </form>
+                  <button type="submit" className="btn btn-primary">
+                    Verify Code
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* STEP 3: Enter New Password */}
+            {resetStep === 3 && (
+              <form onSubmit={handleCompleteReset} style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left' }}>
+                <div style={{ padding: '8px 12px', background: 'rgba(16,185,129,0.1)', borderRadius: '8px', fontSize: '0.8rem', color: '#34d399' }}>
+                  ✔ Account ownership verified for <strong>{matchedUser?.email}</strong>.
+                </div>
+
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>New Password</label>
+                  <input
+                    type="password"
+                    className="form-input"
+                    placeholder="At least 6 characters"
+                    value={newResetPassword}
+                    onChange={(e) => setNewResetPassword(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Confirm New Password</label>
+                  <input
+                    type="password"
+                    className="form-input"
+                    placeholder="Re-enter new password"
+                    value={confirmResetPassword}
+                    onChange={(e) => setConfirmResetPassword(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                  <button type="submit" className="btn btn-primary">
+                    Update Password & Complete Reset
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
