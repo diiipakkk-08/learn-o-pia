@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useDatabase, getUserDesignation } from '../context/DatabaseContext';
-import { User, Mail, Award, Shield, FileText, CheckCircle2, Clock, LogOut, Play, BookOpen, Lock, Edit3, Link as LinkIcon, Phone, Building, Sparkles, Check, AlertCircle, KeyRound } from 'lucide-react';
+import { User, Mail, Award, Shield, FileText, CheckCircle2, Clock, LogOut, Play, BookOpen, Lock, Edit3, Link as LinkIcon, Phone, Building, Sparkles, Check, AlertCircle, KeyRound, Scale } from 'lucide-react';
+import TermsModal from './TermsModal';
 
 export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
   const { currentUser, courses, setPasswordForUser, updateUserProfile, logout } = useDatabase();
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordBox, setShowPasswordBox] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   // Edit Profile Form State
   const [name, setName] = useState(currentUser?.name || '');
@@ -106,18 +108,23 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button className="btn btn-secondary" onClick={() => setIsEditing(!isEditing)}>
             <Edit3 size={15} /> {isEditing ? 'Cancel Edit' : 'Edit Profile'}
           </button>
           <button className="btn btn-secondary" onClick={() => setShowPasswordBox(!showPasswordBox)}>
             <KeyRound size={15} /> {currentUser.password ? 'Change Password' : 'Set Password'}
           </button>
+          <button className="btn btn-secondary" onClick={() => setShowTermsModal(true)}>
+            <Scale size={15} color="var(--primary)" /> Policies & Terms
+          </button>
           <button onClick={logout} className="btn btn-secondary" style={{ color: 'var(--error)' }}>
             <LogOut size={15} /> Sign Out
           </button>
         </div>
       </div>
+
+      <TermsModal isOpen={showTermsModal} onClose={() => setShowTermsModal(false)} />
 
       {saveSuccess && (
         <div style={{ padding: '12px', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', color: '#10b981', marginBottom: '20px', textAlign: 'left', fontSize: '0.88rem' }}>

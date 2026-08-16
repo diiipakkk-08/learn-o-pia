@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
 import { useGoogleLogin } from '@react-oauth/google';
-import { Mail, Lock, User, GraduationCap, Eye, EyeOff, AlertCircle, CheckCircle, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, User, GraduationCap, Eye, EyeOff, AlertCircle, CheckCircle, ShieldCheck, ArrowLeft, FileText } from 'lucide-react';
+import TermsModal from './TermsModal';
 
 // Google "G" logo SVG
 function GoogleIcon() {
@@ -40,11 +41,20 @@ export default function Auth({ setCurrentView }) {
   const [forgotSuccess, setForgotSuccess] = useState('');
   const [resetStep, setResetStep] = useState(1);
 
+  // Terms & Conditions State
+  const [agreeTerms, setAgreeTerms] = useState(true);
+  const [agreePromos, setAgreePromos] = useState(true);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
     if (!email || !password || (!isLogin && !name)) { setError('Please fill in all required fields.'); return; }
+    if (!isLogin && !agreeTerms) {
+      setError('You must accept the Terms of Service to register an account.');
+      return;
+    }
     setLoading(true);
     try {
       if (isLogin) { 
@@ -294,6 +304,40 @@ export default function Auth({ setCurrentView }) {
             </div>
           </div>
 
+          {/* Terms & Conditions Checkboxes */}
+          {!isLogin && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', margin: '4px 0 8px 0', textAlign: 'left' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                <input
+                  type="checkbox"
+                  checked={agreeTerms}
+                  onChange={(e) => setAgreeTerms(e.target.checked)}
+                  style={{ marginTop: '2px' }}
+                />
+                <span>
+                  I accept the{' '}
+                  <button
+                    type="button"
+                    onClick={() => setShowTermsModal(true)}
+                    style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline', padding: 0, fontSize: '0.78rem', fontWeight: 600 }}
+                  >
+                    Terms of Service & Privacy Policy
+                  </button>
+                </span>
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                <input
+                  type="checkbox"
+                  checked={agreePromos}
+                  onChange={(e) => setAgreePromos(e.target.checked)}
+                  style={{ marginTop: '2px' }}
+                />
+                <span>Send me email updates for new courses, platform announcements & features (Optional)</span>
+              </label>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
@@ -303,6 +347,8 @@ export default function Auth({ setCurrentView }) {
             {loading ? 'Processing…' : isLogin ? 'Sign In Account' : 'Register Account'}
           </button>
         </form>
+
+        <TermsModal isOpen={showTermsModal} onClose={() => setShowTermsModal(false)} />
 
         <div style={styles.toggleRow}>
           <span>{isLogin ? "Don't have an account?" : 'Already registered?'}</span>
