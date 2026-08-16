@@ -277,6 +277,23 @@ export const fetchYoutubePlaylistVideos = async (playlistId) => {
   return await fetchYoutubePlaylistVideosFallback(playlistId);
 };
 
+export const getUserDesignation = (user) => {
+  if (!user) return 'Guest User';
+  const rawName = user.name || 'User';
+  
+  if (user.role === 'owner') return `Owner. ${rawName}`;
+  if (user.role === 'admin') return `Admin. ${rawName}`;
+  if (user.role === 'creator') return `Creator. ${rawName}`;
+  
+  if (user.isVerified) {
+    if (user.verificationType === 'professor') return `Prof. ${rawName}`;
+    if (user.verificationType === 'creator') return `Creator. ${rawName}`;
+    return `St. ${rawName}`;
+  }
+  
+  return rawName;
+};
+
 const mapProfile = (dbProfile) => {
   if (!dbProfile) return null;
   return {
@@ -291,6 +308,7 @@ const mapProfile = (dbProfile) => {
     idCardLink: dbProfile.id_card_link || '',
     isVerified: !!dbProfile.is_verified,
     verificationStatus: dbProfile.verification_status || 'none',
+    verificationType: dbProfile.verification_type || 'student',
     role: dbProfile.role,
     status: dbProfile.status,
     creatorStatus: dbProfile.creator_status,
@@ -299,9 +317,9 @@ const mapProfile = (dbProfile) => {
 };
 
 const SEED_USERS = [
-  { id: 'u-1', email: 'admin@learnopia.edu', name: 'Deepak Shaw', username: '@deepak_shaw', phone: '+91 9876543210', college: 'MAKAUT University', department: 'CSE/IT', interests: 'Computer Science, AI, Web Development', isVerified: true, verificationStatus: 'verified', role: 'owner', status: 'active', password: 'admin123', enrolledCourses: ['c-1'] },
-  { id: 'u-2', email: 'creator@learnopia.edu', name: 'Prof. Sarah Miller', username: '@sarah_miller', phone: '+91 9876543211', college: 'MAKAUT Campus', department: 'Physics', interests: 'Quantum Mechanics, Wave Optics', isVerified: true, verificationStatus: 'verified', role: 'creator', status: 'active', password: 'creator123', enrolledCourses: [] },
-  { id: 'u-3', email: 'learner@learnopia.edu', name: 'Alex Carter', username: '@alex_carter', phone: '+91 9876543212', college: 'Heritage Institute', department: 'CSE', interests: 'Data Structures, C Programming', isVerified: false, verificationStatus: 'none', role: 'learner', status: 'active', password: 'learner123', enrolledCourses: [] }
+  { id: 'u-1', email: 'admin@learnopia.edu', name: 'Deepak Shaw', username: '@deepak_shaw', phone: '+91 9876543210', college: 'MAKAUT University', department: 'CSE/IT', interests: 'Computer Science, AI, Web Development', isVerified: true, verificationStatus: 'verified', verificationType: 'creator', role: 'owner', status: 'active', password: 'admin123', enrolledCourses: ['c-1'] },
+  { id: 'u-2', email: 'creator@learnopia.edu', name: 'Sarah Miller', username: '@sarah_miller', phone: '+91 9876543211', college: 'MAKAUT Campus', department: 'Physics', interests: 'Quantum Mechanics, Wave Optics', isVerified: true, verificationStatus: 'verified', verificationType: 'professor', role: 'creator', status: 'active', password: 'creator123', enrolledCourses: [] },
+  { id: 'u-3', email: 'learner@learnopia.edu', name: 'Alex Carter', username: '@alex_carter', phone: '+91 9876543212', college: 'Heritage Institute', department: 'CSE', interests: 'Data Structures, C Programming', isVerified: true, verificationStatus: 'verified', verificationType: 'student', role: 'learner', status: 'active', password: 'learner123', enrolledCourses: [] }
 ];
 
 const SEED_COURSES = [
@@ -334,6 +352,29 @@ const SEED_COURSES = [
     creatorId: 'u-2',
     creatorName: 'Prof. Sarah Miller',
     isDegree: false
+  }
+];
+
+const SEED_STANDALONE_RESOURCES = [
+  {
+    id: 'res-1',
+    title: 'MAKAUT Engineering Mathematics Complete Formula Sheet (2025-26)',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    type: 'pdf',
+    category: 'Formula Sheet & Quick Reference',
+    description: 'Comprehensive Quick Revision Formula Sheet for Calculus, Linear Algebra, and Differential Equations.',
+    author: 'Owner. Deepak Shaw',
+    createdAt: '2026-08-15'
+  },
+  {
+    id: 'res-2',
+    title: 'Physics-I Mechanics & Vector Calculus Lab Manual',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    type: 'pdf',
+    category: 'Lab Manual',
+    description: 'Official Physics Laboratory Experiment Guide and viva question answers.',
+    author: 'Prof. Sarah Miller',
+    createdAt: '2026-08-16'
   }
 ];
 
@@ -402,6 +443,59 @@ export function DatabaseProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [activityLogs, setActivityLogs] = useState([]);
   const [authLoading, setAuthLoading] = useState(true);
+
+  const [standaloneResources, setStandaloneResources] = useState(() => {
+    const saved = localStorage.getItem('learnopia_standalone_resources');
+    return saved ? JSON.parse(saved) : SEED_STANDALONE_RESOURCES;
+  });
+
+  const addStandaloneResource = (resource) => {
+    const newRes = {
+      id: `res-${Date.now()}`,
+      createdAt: new Date().toISOString().split('T')[0],
+      ...resource
+    };
+    setStandaloneResources(prev => {
+      const next = [newRes, ...prev];
+      localStorage.setItem('learnopia_standalone_resources', JSON.stringify(next));
+      return next;
+    });
+    if (typeof addLog === 'function') addLog(`Standalone resource published: ${resource.title}`);
+  };
+
+  const setPasswordForUser = async (userId, newPassword) => {
+    if (isSupabaseLive) {
+      try {
+        await supabase.from('profiles').update({ password: newPassword }).eq('id', userId);
+      } catch (e) {}
+    }
+    setUsers(prev => {
+      const next = prev.map(u => u.id === userId ? { ...u, password: newPassword } : u);
+      localStorage.setItem('learnopia_users_stable', JSON.stringify(next));
+      return next;
+    });
+    if (currentUser && currentUser.id === userId) {
+      const updated = { ...currentUser, password: newPassword };
+      setCurrentUser(updated);
+      localStorage.setItem('learnopia_current_user_stable', JSON.stringify(updated));
+    }
+    return { success: true };
+  };
+
+  const resetPasswordByEmail = async (emailOrUsername, newPassword) => {
+    const target = users.find(u =>
+      u.email.toLowerCase() === emailOrUsername.toLowerCase() ||
+      u.username?.toLowerCase() === emailOrUsername.toLowerCase() ||
+      u.username?.toLowerCase() === `@${emailOrUsername.toLowerCase()}`
+    );
+
+    if (!target) {
+      return { success: false, error: 'No user account found matching that email or username.' };
+    }
+
+    await setPasswordForUser(target.id, newPassword);
+    return { success: true, email: target.email };
+  };
 
   // Check if Supabase client is active
   const isSupabaseLive = !!supabase;
@@ -1848,6 +1942,10 @@ export function DatabaseProvider({ children }) {
       currentUser,
       authLoading,
       activityLogs,
+      standaloneResources,
+      addStandaloneResource,
+      setPasswordForUser,
+      resetPasswordByEmail,
       login,
       loginWithGoogle,
       registerUser,

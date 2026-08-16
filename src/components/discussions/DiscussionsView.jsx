@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useDatabase } from '../../context/DatabaseContext';
+import { useDatabase, getUserDesignation } from '../../context/DatabaseContext';
 import {
   MessageSquare,
   Plus,
@@ -16,7 +16,11 @@ import {
   ThumbsUp,
   MessageCircle,
   Key,
-  ChevronDown
+  ChevronDown,
+  CornerDownRight,
+  Shield,
+  X,
+  AlertCircle
 } from 'lucide-react';
 
 const DEFAULT_THREADS = [
@@ -26,13 +30,13 @@ const DEFAULT_THREADS = [
     name: 'data-structures-doubts',
     title: 'Data Structures & Algorithms Doubts & Solutions',
     isPrivate: false,
-    author: 'Prof. Deepak Shaw',
+    author: 'Owner. Deepak Shaw',
     authorRole: 'owner',
     createdAt: '2026-08-10',
     messages: [
       {
         id: 'm-1',
-        sender: 'Prof. Deepak Shaw',
+        sender: 'Owner. Deepak Shaw',
         role: 'owner',
         text: 'Welcome to the #data-structures-doubts thread! Ask any queries regarding Binary Search Trees, Graph Traversals, and Dynamic Programming algorithms here.',
         time: '10:30 AM',
@@ -40,7 +44,7 @@ const DEFAULT_THREADS = [
       },
       {
         id: 'm-2',
-        sender: 'Rahul Verma',
+        sender: 'St. Rahul Verma',
         role: 'learner',
         text: 'Could someone clarify the time complexity of QuickSort in the worst-case scenario?',
         time: '02:15 PM',
@@ -48,11 +52,15 @@ const DEFAULT_THREADS = [
       },
       {
         id: 'm-3',
-        sender: 'Prof. Deepak Shaw',
+        sender: 'Owner. Deepak Shaw',
         role: 'owner',
         text: 'In the worst case (when the pivot choice produces unbalanced partitions), QuickSort is O(n²). Average case remains O(n log n).',
         time: '03:00 PM',
-        likes: 18
+        likes: 18,
+        quotedMessage: {
+          sender: 'St. Rahul Verma',
+          text: 'Could someone clarify the time complexity of QuickSort in the worst-case scenario?'
+        }
       }
     ]
   },
@@ -62,65 +70,17 @@ const DEFAULT_THREADS = [
     name: 'pyq-solutions',
     title: 'MAKAUT Previous Year Paper Solutions',
     isPrivate: false,
-    author: 'Ananya Roy',
+    author: 'Prof. Sarah Miller',
     authorRole: 'creator',
     createdAt: '2026-08-12',
     messages: [
       {
         id: 'm-4',
-        sender: 'Ananya Roy',
+        sender: 'Prof. Sarah Miller',
         role: 'creator',
         text: 'Shared solution notes for Physics-I and C Programming 2024 papers. Feel free to discuss any doubts in this thread!',
         time: '11:00 AM',
         likes: 24
-      },
-      {
-        id: 'm-5',
-        sender: 'Saurav Das',
-        role: 'learner',
-        text: 'Thanks! Question 4b on Matrix Diagonalization was tricky. Got it cleared now.',
-        time: '09:45 AM',
-        likes: 8
-      }
-    ]
-  },
-  {
-    id: 'thread-3',
-    code: 'WEB-7721',
-    name: 'code-review',
-    title: 'Fullstack Web Projects & Code Review',
-    isPrivate: false,
-    author: 'Vikramaditya',
-    authorRole: 'creator',
-    createdAt: '2026-08-14',
-    messages: [
-      {
-        id: 'm-6',
-        sender: 'Vikramaditya',
-        role: 'creator',
-        text: 'Post your web application links and GitHub repositories in #code-review for peer feedback!',
-        time: '04:20 PM',
-        likes: 15
-      }
-    ]
-  },
-  {
-    id: 'thread-4',
-    code: 'ENG-1001',
-    name: 'engineering-chat',
-    title: 'General Engineering Student Discussions',
-    isPrivate: false,
-    author: 'Learn-o-pia Team',
-    authorRole: 'owner',
-    createdAt: '2026-08-01',
-    messages: [
-      {
-        id: 'm-7',
-        sender: 'Learn-o-pia Team',
-        role: 'owner',
-        text: 'Welcome to the #engineering-chat thread! Connect with fellow learners and ask any general academic questions.',
-        time: '09:00 AM',
-        likes: 32
       }
     ]
   }
@@ -129,559 +89,402 @@ const DEFAULT_THREADS = [
 export default function DiscussionsView({ setCurrentView }) {
   const { currentUser } = useDatabase();
 
-  const [activeTab, setActiveTab] = useState('explore'); // 'explore' | 'my-threads'
-  const [searchQuery, setSearchQuery] = useState('');
-  const [privateCodeInput, setPrivateCodeInput] = useState('');
-  const [selectedThreadId, setSelectedThreadId] = useState('thread-1');
-
-  // New Thread Modal Form State
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newThreadName, setNewThreadName] = useState('');
-  const [newTitle, setNewTitle] = useState('');
-  const [isPrivate, setIsPrivate] = useState(false);
-  const [initialMsg, setInitialMsg] = useState('');
-
-  // Reply Input state inside active thread
-  const [replyText, setReplyText] = useState('');
-  const [codeCopied, setCodeCopied] = useState(false);
-  const [joinError, setJoinError] = useState('');
-
-  // Threads Data State
   const [threads, setThreads] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('learnopia_discord_threads');
       if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
       }
     }
     return DEFAULT_THREADS;
   });
 
+  const [activeThreadId, setActiveThreadId] = useState('thread-1');
+  const [threadSearch, setThreadSearch] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showVerificationAlertModal, setShowVerificationAlertModal] = useState(false);
+
+  const [showPrivateCodeInput, setShowPrivateCodeInput] = useState(false);
+  const [enteredPrivateCode, setEnteredPrivateCode] = useState('');
+
+  // Create Thread Form State
+  const [newThreadName, setNewThreadName] = useState('');
+  const [newThreadTitle, setNewThreadTitle] = useState('');
+  const [isThreadPrivate, setIsThreadPrivate] = useState(false);
+
+  // Active Message Input & Reply State
+  const [messageText, setMessageText] = useState('');
+  const [replyingToMessage, setReplyingToMessage] = useState(null);
+  const [copiedCode, setCopiedCode] = useState(false);
+
   useEffect(() => {
-    localStorage.setItem('learnopia_discord_threads', JSON.stringify(threads));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('learnopia_discord_threads', JSON.stringify(threads));
+    }
   }, [threads]);
 
-  const activeThread = threads.find((t) => t.id === selectedThreadId) || threads[0];
+  const activeThread = useMemo(() => {
+    return threads.find((t) => t.id === activeThreadId) || threads[0];
+  }, [threads, activeThreadId]);
 
-  // Rank Public Threads by Message Count / Activity
-  const rankedPublicThreads = useMemo(() => {
-    return threads
-      .filter((t) => !t.isPrivate)
-      .sort((a, b) => (b.messages?.length || 0) - (a.messages?.length || 0));
-  }, [threads]);
-
-  // Filtered Public Threads
-  const filteredPublicThreads = useMemo(() => {
-    if (!searchQuery.trim()) return rankedPublicThreads;
-    const q = searchQuery.toLowerCase().trim();
-    return rankedPublicThreads.filter(
-      (t) =>
-        t.name.toLowerCase().includes(q) ||
-        t.title.toLowerCase().includes(q) ||
-        t.code.toLowerCase().includes(q)
+  const filteredThreads = useMemo(() => {
+    if (!threadSearch.trim()) return threads;
+    const q = threadSearch.toLowerCase().trim();
+    return threads.filter(
+      (t) => t.name.toLowerCase().includes(q) || t.title.toLowerCase().includes(q) || t.code.toLowerCase().includes(q)
     );
-  }, [rankedPublicThreads, searchQuery]);
+  }, [threads, threadSearch]);
 
-  // My Joined / Created Threads
-  const myThreads = useMemo(() => {
-    if (!currentUser) return [];
-    return threads.filter((t) => {
-      const isAuthor = t.author === currentUser.name;
-      const hasCommented = t.messages.some((m) => m.sender === currentUser.name);
-      return isAuthor || hasCommented;
-    });
-  }, [threads, currentUser]);
+  const handleOpenCreateModal = () => {
+    // Check if user is verified or holds creator/admin/owner role
+    const canCreate = currentUser?.isVerified || currentUser?.role === 'creator' || currentUser?.role === 'admin' || currentUser?.role === 'owner';
+    if (!canCreate) {
+      setShowVerificationAlertModal(true);
+      return;
+    }
+    setShowCreateModal(true);
+  };
 
-  // Create New Thread Handler
   const handleCreateThread = (e) => {
     e.preventDefault();
-    if (!newThreadName.trim()) return;
+    if (!newThreadName.trim() || !newThreadTitle.trim()) return;
 
-    const formattedName = newThreadName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-    const randomNum = Math.floor(1000 + Math.random() * 9000);
-    const generatedCode = `THREAD-${randomNum}`;
+    const formattedName = newThreadName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+    const randomCode = `THREAD-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    const newThreadObj = {
+    const designation = getUserDesignation(currentUser);
+
+    const newThread = {
       id: `thread-${Date.now()}`,
-      code: generatedCode,
+      code: randomCode,
       name: formattedName,
-      title: newTitle.trim() || `#${formattedName} Discussion Thread`,
-      isPrivate,
-      author: currentUser?.name || 'Anonymous Learner',
+      title: newThreadTitle,
+      isPrivate: isThreadPrivate,
+      author: designation,
       authorRole: currentUser?.role || 'learner',
       createdAt: new Date().toISOString().split('T')[0],
-      messages: initialMsg.trim()
-        ? [
-            {
-              id: `m-${Date.now()}`,
-              sender: currentUser?.name || 'Anonymous Learner',
-              role: currentUser?.role || 'learner',
-              text: initialMsg.trim(),
-              time: 'Just now',
-              likes: 1
-            }
-          ]
-        : []
+      messages: [
+        {
+          id: `m-${Date.now()}`,
+          sender: designation,
+          role: currentUser?.role || 'learner',
+          text: `Thread #${formattedName} initialized by ${designation}. Welcome!`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          likes: 1
+        }
+      ]
     };
 
-    setThreads((prev) => [newThreadObj, ...prev]);
-    setSelectedThreadId(newThreadObj.id);
+    setThreads([newThread, ...threads]);
+    setActiveThreadId(newThread.id);
     setShowCreateModal(false);
-
     setNewThreadName('');
-    setNewTitle('');
-    setIsPrivate(false);
-    setInitialMsg('');
+    setNewThreadTitle('');
+    setIsThreadPrivate(false);
   };
 
-  // Join Private Thread by Code
-  const handleJoinPrivateCode = (e) => {
+  const handleSendMessage = (e) => {
     e.preventDefault();
-    setJoinError('');
-    if (!privateCodeInput.trim()) return;
+    if (!messageText.trim() || !activeThread) return;
 
-    const targetCode = privateCodeInput.trim().toUpperCase();
-    const found = threads.find((t) => t.code.toUpperCase() === targetCode);
-
-    if (found) {
-      setSelectedThreadId(found.id);
-      setPrivateCodeInput('');
-    } else {
-      setJoinError('Invalid Private Thread Code. Please check the code.');
-    }
-  };
-
-  // Post Reply to Thread
-  const handlePostReply = (e) => {
-    e.preventDefault();
-    if (!replyText.trim() || !selectedThreadId) return;
+    const designation = getUserDesignation(currentUser);
 
     const newMsg = {
       id: `m-${Date.now()}`,
-      sender: currentUser?.name || 'Learner Student',
+      sender: designation,
       role: currentUser?.role || 'learner',
-      text: replyText.trim(),
+      text: messageText.trim(),
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      likes: 0
+      likes: 0,
+      quotedMessage: replyingToMessage ? { sender: replyingToMessage.sender, text: replyingToMessage.text } : null
     };
 
     setThreads((prev) =>
-      prev.map((t) =>
-        t.id === selectedThreadId
-          ? { ...t, messages: [...t.messages, newMsg] }
-          : t
-      )
+      prev.map((t) => {
+        if (t.id === activeThread.id) {
+          return {
+            ...t,
+            messages: [...t.messages, newMsg]
+          };
+        }
+        return t;
+      })
     );
 
-    setReplyText('');
+    setMessageText('');
+    setReplyingToMessage(null);
   };
 
-  // Like Message
   const handleLikeMessage = (msgId) => {
-    if (!selectedThreadId) return;
     setThreads((prev) =>
       prev.map((t) => {
-        if (t.id !== selectedThreadId) return t;
-        return {
-          ...t,
-          messages: t.messages.map((m) =>
-            m.id === msgId ? { ...m, likes: m.likes + 1 } : m
-          )
-        };
+        if (t.id === activeThread.id) {
+          return {
+            ...t,
+            messages: t.messages.map((m) => (m.id === msgId ? { ...m, likes: (m.likes || 0) + 1 } : m))
+          };
+        }
+        return t;
       })
     );
   };
 
-  const copyCode = (codeStr) => {
+  const handleCopyCode = (code) => {
     if (typeof window !== 'undefined') {
-      navigator.clipboard?.writeText(codeStr);
-      setCodeCopied(true);
-      setTimeout(() => setCodeCopied(false), 2000);
+      navigator.clipboard?.writeText(code);
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 2000);
     }
   };
 
   return (
-    <div className="discussions-container animate-fade-in" style={{ maxWidth: '1400px', margin: '0 auto' }}>
-      {/* ── TOP HEADER BAR ── */}
-      <div className="discussions-header glass-panel" style={{ padding: '16px 20px', borderRadius: '14px' }}>
-        <div className="disc-head-left">
-          <h1 style={{ fontSize: '1.4rem' }}>Discord Threads & Discussion Streams</h1>
-          <p className="section-sub" style={{ fontSize: '0.82rem' }}>
-            Ask queries, post answers, and collaborate in hashtag threads.
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          {/* Join Private Code Form */}
-          <form onSubmit={handleJoinPrivateCode} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div className="code-input-wrap">
-              <Key size={14} className="key-icon" />
-              <input
-                type="text"
-                placeholder="Private Code (THREAD-8921)"
-                value={privateCodeInput}
-                onChange={(e) => setPrivateCodeInput(e.target.value)}
-                className="form-input code-field"
-                style={{ width: '190px', height: '36px', fontSize: '0.78rem' }}
-              />
-              <button type="submit" className="btn btn-secondary btn-sm" style={{ padding: '6px 12px', height: '36px' }}>
-                Join Thread
-              </button>
-            </div>
-          </form>
-
-          <button className="btn btn-primary" onClick={() => setShowCreateModal(true)} style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-            <Plus size={15} /> Create Thread
-          </button>
-        </div>
-      </div>
-      {joinError && <span className="join-err-msg" style={{ marginTop: '-10px' }}>{joinError}</span>}
-
-      {/* ── DISCORD THREADS LAYOUT: SIDEBAR + CONVERSATION STREAM ── */}
-      <div className="discord-workspace-grid" style={styles.discordGrid}>
-        
-        {/* ========================================================= */}
-        {/* LEFT SIDEBAR: Discord Threads List                       */}
-        {/* ========================================================= */}
-        <div className="glass-panel" style={styles.sidebarCard}>
-          {/* Sidebar Header */}
-          <div style={styles.sidebarHeader}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <ChevronDown size={14} /> LEARNING THREADS
+    <div className="discussions-container animate-fade-in" style={{ width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
+      {/* Top Header Banner */}
+      <div className="glass-panel" style={{ padding: '16px 20px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <MessageSquare size={22} color="#ffffff" />
+          </div>
+          <div>
+            <h2 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>Academic Discussions & Doubts Threads</h2>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              Public & Private Hashtag Discussion Streams · Logged in as <strong>{getUserDesignation(currentUser)}</strong>
             </span>
+          </div>
+        </div>
 
-            {/* Filter Tabs */}
-            <div style={{ display: 'flex', gap: '4px', marginTop: '10px' }}>
-              <button
-                onClick={() => setActiveTab('explore')}
-                style={{
-                  flex: 1, padding: '4px 8px', fontSize: '0.75rem', fontWeight: 600,
-                  borderRadius: '6px', border: 'none', cursor: 'pointer',
-                  background: activeTab === 'explore' ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
-                  color: activeTab === 'explore' ? '#fff' : 'var(--text-secondary)'
-                }}
-              >
-                Public ({rankedPublicThreads.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('my-threads')}
-                style={{
-                  flex: 1, padding: '4px 8px', fontSize: '0.75rem', fontWeight: 600,
-                  borderRadius: '6px', border: 'none', cursor: 'pointer',
-                  background: activeTab === 'my-threads' ? 'var(--primary)' : 'rgba(255,255,255,0.03)',
-                  color: activeTab === 'my-threads' ? '#fff' : 'var(--text-secondary)'
-                }}
-              >
-                Mine ({myThreads.length})
-              </button>
-            </div>
+        <button className="btn btn-primary" onClick={handleOpenCreateModal} style={{ gap: '6px' }}>
+          <Plus size={16} /> Create Thread
+        </button>
+      </div>
+
+      {/* Main Workspace Grid */}
+      <div className="discord-workspace-grid">
+        {/* LEFT SIDEBAR: Thread Hashtag List */}
+        <div className="glass-panel discord-sidebar-panel">
+          <div className="sidebar-search-box">
+            <Search size={15} color="var(--text-muted)" />
+            <input
+              type="text"
+              placeholder="Search threads or codes..."
+              value={threadSearch}
+              onChange={(e) => setThreadSearch(e.target.value)}
+              className="form-input"
+              style={{ fontSize: '0.82rem', padding: '6px 10px' }}
+            />
           </div>
 
-          {/* Search Box */}
-          <div style={{ padding: '0 12px 10px 12px' }}>
-            <div className="playlist-search-wrap" style={{ margin: 0 }}>
-              <Search size={14} className="search-icon-fixed" />
-              <input
-                type="text"
-                placeholder="Filter threads…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="form-input playlist-search-input"
-                style={{ height: '34px', fontSize: '0.78rem' }}
-              />
-            </div>
-          </div>
-
-          {/* Discord Hashtag Thread List */}
-          <div style={styles.threadsScrollList}>
-            {(activeTab === 'explore' ? filteredPublicThreads : myThreads).map((thread) => {
-              const isSelected = activeThread?.id === thread.id;
-
+          <div className="threads-list-scroll">
+            <span className="section-hdr-lbl">Public & Private Threads</span>
+            {filteredThreads.map((thread) => {
+              const isActive = thread.id === activeThreadId;
               return (
                 <button
                   key={thread.id}
-                  onClick={() => setSelectedThreadId(thread.id)}
-                  style={{
-                    ...styles.threadItemRow,
-                    background: isSelected ? 'rgba(139, 92, 246, 0.2)' : 'transparent',
-                    borderLeftColor: isSelected ? 'var(--primary)' : 'transparent',
-                    color: isSelected ? '#ffffff' : 'var(--text-secondary)'
-                  }}
+                  onClick={() => setActiveThreadId(thread.id)}
+                  className={`thread-item-btn ${isActive ? 'active' : ''}`}
                 >
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-                    {thread.isPrivate ? <Lock size={13} color="#a78bfa" /> : <Hash size={15} color="#a78bfa" />}
-                    <span style={{ fontWeight: isSelected ? 700 : 500, fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {thread.name}
-                    </span>
-                  </span>
-
-                  <span style={{ fontSize: '0.7rem', opacity: 0.7, flexShrink: 0 }}>
-                    {thread.messages.length} msg
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Hash size={16} color={isActive ? 'var(--primary)' : 'var(--text-muted)'} />
+                    <span className="thread-name-txt">{thread.name}</span>
+                  </div>
+                  {thread.isPrivate ? (
+                    <Lock size={13} color="var(--warning)" />
+                  ) : (
+                    <span className="msg-cnt-badge">{thread.messages?.length || 0}</span>
+                  )}
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* ========================================================= */}
-        {/* RIGHT MAIN PANEL: Discord Thread Conversation Stream      */}
-        {/* ========================================================= */}
-        <div className="glass-panel" style={styles.mainStreamCard}>
+        {/* RIGHT COLUMN: Thread Active Conversation Stream */}
+        <div className="glass-panel discord-stream-panel">
           {activeThread ? (
-            <>
-              {/* Thread Header Bar */}
-              <div style={styles.threadStreamHead}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, color: '#ffffff' }}>
-                      #{activeThread.name}
-                    </h2>
-                    {activeThread.isPrivate ? (
-                      <span className="privacy-pill private"><Lock size={12} /> Private Thread</span>
-                    ) : (
-                      <span className="privacy-pill public"><Globe size={12} /> Public Stream</span>
-                    )}
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              {/* Active Thread Bar */}
+              <div className="active-thread-top-bar">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Hash size={20} color="var(--primary)" />
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', margin: 0, color: '#ffffff' }}>{activeThread.name}</h3>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{activeThread.title}</span>
                   </div>
-                  <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{activeThread.title}</span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Code: <code>{activeThread.code}</code></span>
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                    onClick={() => copyCode(activeThread.code)}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {/* Private Code Badge */}
+                  <div
+                    onClick={() => handleCopyCode(activeThread.code)}
+                    style={{ cursor: 'pointer', padding: '4px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#ffffff' }}
+                    title="Click to copy private thread code"
                   >
-                    {codeCopied ? <Check size={14} color="var(--success)" /> : <Copy size={14} />}
-                  </button>
+                    <Key size={13} color="var(--primary)" />
+                    <span>{activeThread.code}</span>
+                    {copiedCode ? <Check size={12} color="var(--success)" /> : <Copy size={12} color="var(--text-muted)" />}
+                  </div>
                 </div>
               </div>
 
-              {/* Message Feed Stream */}
-              <div className="thread-messages-list" style={{ flex: 1, minHeight: '380px', maxHeight: '520px' }}>
-                {activeThread.messages.length === 0 ? (
-                  <div className="empty-stream-msg">
-                    <MessageCircle size={36} color="var(--text-muted)" />
-                    <p>Welcome to #{activeThread.name}! Send a message to start discussing.</p>
-                  </div>
-                ) : (
-                  activeThread.messages.map((msg) => (
-                    <div key={msg.id} className="message-bubble-row">
-                      <div className="msg-avatar-circle">
-                        <User size={18} color="#ffffff" />
-                      </div>
-                      <div className="msg-content-box">
-                        <div className="msg-head-meta">
-                          <strong>{msg.sender}</strong>
-                          <span className={`badge badge-${msg.role}`} style={{ fontSize: '0.6rem', padding: '2px 6px' }}>
-                            {msg.role}
-                          </span>
-                          <span className="msg-time-stamp">{msg.time}</span>
-                        </div>
-                        <p className="msg-body-text">{msg.text}</p>
+              {/* Conversation Messages Stream */}
+              <div className="messages-stream-list">
+                {activeThread.messages?.map((msg) => (
+                  <div key={msg.id} className="message-bubble-row">
+                    <div className="msg-avatar-circle">
+                      <User size={18} color="#ffffff" />
+                    </div>
 
-                        <div className="msg-actions-row">
-                          <button className="like-btn" onClick={() => handleLikeMessage(msg.id)}>
-                            <ThumbsUp size={13} /> {msg.likes}
-                          </button>
+                    <div className="msg-content-body" style={{ width: '100%' }}>
+                      <div className="msg-meta-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <strong style={{ fontSize: '0.88rem', color: '#ffffff' }}>{msg.sender}</strong>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{msg.time}</span>
                         </div>
+
+                        {/* Reply Button */}
+                        <button
+                          onClick={() => setReplyingToMessage(msg)}
+                          className="btn btn-secondary btn-sm"
+                          style={{ padding: '2px 8px', fontSize: '0.72rem', gap: 4 }}
+                        >
+                          <CornerDownRight size={12} /> Reply
+                        </button>
+                      </div>
+
+                      {/* Quoted parent message block if this is a reply */}
+                      {msg.quotedMessage && (
+                        <div style={{ margin: '6px 0', padding: '6px 12px', background: 'rgba(139,92,246,0.08)', borderLeft: '3px solid var(--primary)', borderRadius: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                          <strong style={{ color: 'var(--primary)', display: 'block', fontSize: '0.73rem' }}>Replying to {msg.quotedMessage.sender}</strong>
+                          <p style={{ margin: 0, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>"{msg.quotedMessage.text}"</p>
+                        </div>
+                      )}
+
+                      <p className="msg-text-p">{msg.text}</p>
+
+                      <div className="msg-actions-row">
+                        <button className="like-btn-action" onClick={() => handleLikeMessage(msg.id)}>
+                          <ThumbsUp size={13} />
+                          <span>{msg.likes || 0}</span>
+                        </button>
                       </div>
                     </div>
-                  ))
-                )}
+                  </div>
+                ))}
               </div>
 
-              {/* Thread Reply Input Bar */}
-              <form onSubmit={handlePostReply} className="thread-reply-input-bar">
+              {/* Replying indicator bar */}
+              {replyingToMessage && (
+                <div style={{ padding: '6px 14px', background: 'rgba(139,92,246,0.12)', borderTop: '1px solid rgba(139,92,246,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', color: '#ffffff' }}>
+                  <span>Replying to <strong>{replyingToMessage.sender}</strong>: "{replyingToMessage.text.substring(0, 45)}…"</span>
+                  <button onClick={() => setReplyingToMessage(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>×</button>
+                </div>
+              )}
+
+              {/* Message Input Box */}
+              <form onSubmit={handleSendMessage} className="message-input-form">
                 <input
                   type="text"
-                  placeholder={`Reply in #${activeThread.name}...`}
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  className="form-input reply-field"
+                  placeholder={`Message #${activeThread.name}…`}
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  className="form-input"
                 />
-                <button type="submit" className="btn btn-primary" style={{ padding: '10px 20px' }}>
+                <button type="submit" className="btn btn-primary" style={{ padding: '8px 16px' }}>
                   <Send size={15} /> Send
                 </button>
               </form>
-            </>
+            </div>
           ) : (
-            <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <Hash size={40} style={{ marginBottom: 12 }} />
-              <p>Select a thread from the sidebar to open the discussion stream.</p>
+            <div style={{ textAlign: 'center', padding: '60px' }}>
+              <p>Select a discussion thread from the sidebar.</p>
             </div>
           )}
         </div>
-
       </div>
 
-      {/* ── CREATE THREAD MODAL ── */}
+      {/* CREATE THREAD MODAL (Guarded for Verified Users) */}
       {showCreateModal && (
-        <div style={modalStyles.overlay}>
-          <div className="glass-panel" style={modalStyles.box}>
-            <h2 style={{ fontSize: '1.2rem', marginBottom: '4px', color: '#ffffff' }}>Create New # Thread</h2>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '18px' }}>
-              Publish a hashtag discussion thread for your course or study query.
-            </p>
+        <div className="modal-overlay">
+          <div className="glass-panel modal-card animate-fade-in" style={{ maxWidth: '440px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '1.1rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Hash size={18} color="var(--primary)" /> Create Discussion Thread
+              </h3>
+              <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer' }}>×</button>
+            </div>
 
-            <form onSubmit={handleCreateThread} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form onSubmit={handleCreateThread} style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left' }}>
               <div>
-                <label className="form-label" style={{ fontSize: '0.78rem' }}>Hashtag Slug (#thread-name)</label>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <Hash size={16} style={{ position: 'absolute', left: 12, color: 'var(--text-muted)' }} />
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="data-structures-doubts"
-                    style={{ paddingLeft: 34 }}
-                    value={newThreadName}
-                    onChange={(e) => setNewThreadName(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="form-label" style={{ fontSize: '0.78rem' }}>Thread Topic / Description</label>
+                <label className="form-label" style={{ fontSize: '0.8rem' }}>Hashtag Handle (e.g. pyq-solutions)</label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="e.g. Binary Search Trees & Graph Queries"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="e.g. data-structures-doubts"
+                  value={newThreadName}
+                  onChange={(e) => setNewThreadName(e.target.value)}
+                  required
                 />
               </div>
 
               <div>
-                <label className="form-label" style={{ fontSize: '0.78rem' }}>Privacy Option</label>
-                <div style={{ display: 'flex', gap: '12px', marginTop: 4 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.83rem', cursor: 'pointer' }}>
-                    <input
-                      type="radio"
-                      name="privacy"
-                      checked={!isPrivate}
-                      onChange={() => setIsPrivate(false)}
-                    />
-                    <Globe size={15} color="var(--primary)" /> Public Thread
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.83rem', cursor: 'pointer' }}>
-                    <input
-                      type="radio"
-                      name="privacy"
-                      checked={isPrivate}
-                      onChange={() => setIsPrivate(true)}
-                    />
-                    <Lock size={15} color="#a78bfa" /> Private (Join via Code only)
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label className="form-label" style={{ fontSize: '0.78rem' }}>Initial Question / Message</label>
-                <textarea
+                <label className="form-label" style={{ fontSize: '0.8rem' }}>Thread Title & Topic Description</label>
+                <input
+                  type="text"
                   className="form-input"
-                  rows={3}
-                  placeholder="Write your doubt or opening question for this thread..."
-                  value={initialMsg}
-                  onChange={(e) => setInitialMsg(e.target.value)}
+                  placeholder="e.g. MAKAUT 2025 Paper Solutions & Queries"
+                  value={newThreadTitle}
+                  onChange={(e) => setNewThreadTitle(e.target.value)}
+                  required
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: 10 }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowCreateModal(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Publish Thread
-                </button>
+              <label className="checkbox-toggle-label" style={{ marginTop: 4 }}>
+                <input
+                  type="checkbox"
+                  checked={isThreadPrivate}
+                  onChange={(e) => setIsThreadPrivate(e.target.checked)}
+                />
+                <span>Private Thread (Requires 6-Digit Access Code)</span>
+              </label>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowCreateModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Publish Thread</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* VERIFICATION REQUIRED ALERT MODAL */}
+      {showVerificationAlertModal && (
+        <div className="modal-overlay">
+          <div className="glass-panel modal-card animate-fade-in" style={{ maxWidth: '420px', textAlign: 'left' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <Shield size={24} color="var(--warning)" />
+              <h3 style={{ fontSize: '1.1rem', margin: 0, color: '#ffffff' }}>Account Verification Required</h3>
+            </div>
+
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '16px' }}>
+              Only <strong>Verified Students</strong>, <strong>Professors</strong>, or <strong>Creators</strong> can publish new discussion threads. Unverified accounts can view threads and reply in existing streams.
+            </p>
+
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+              Please head over to your <strong>Profile Settings</strong> to submit your student ID or educator designation document for verification.
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button className="btn btn-secondary" onClick={() => setShowVerificationAlertModal(false)}>Close</button>
+              <button className="btn btn-primary" onClick={() => { setShowVerificationAlertModal(false); setCurrentView('profile'); }}>
+                Go to Profile Verification
+              </button>
+            </div>
           </div>
         </div>
       )}
     </div>
   );
 }
-
-const styles = {
-  discordGrid: {
-    display: 'grid',
-    gridTemplateColumns: '280px 1fr',
-    gap: '20px',
-    alignItems: 'start',
-    marginTop: '16px',
-    width: '100%'
-  },
-  sidebarCard: {
-    padding: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-    textAlign: 'left'
-  },
-  sidebarHeader: {
-    padding: '16px 14px 12px 14px',
-    borderBottom: '1px solid rgba(255,255,255,0.06)'
-  },
-  threadsScrollList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-    padding: '6px',
-    maxHeight: '540px',
-    overflowY: 'auto'
-  },
-  threadItemRow: {
-    width: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '8px 10px',
-    border: 'none',
-    borderLeft: '3px solid transparent',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    textAlign: 'left',
-    transition: 'all 0.12s ease'
-  },
-  mainStreamCard: {
-    padding: '20px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-    textAlign: 'left'
-  },
-  threadStreamHead: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: '16px',
-    paddingBottom: '14px',
-    borderBottom: '1px solid rgba(255,255,255,0.08)',
-    flexWrap: 'wrap'
-  }
-};
-
-const modalStyles = {
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0,0,0,0.75)',
-    backdropFilter: 'blur(8px)',
-    zIndex: 9999,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '20px'
-  },
-  box: {
-    maxWidth: '500px',
-    width: '100%',
-    padding: '24px',
-    textAlign: 'left'
-  }
-};

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
 import { useGoogleLogin } from '@react-oauth/google';
-import { Mail, Lock, User, GraduationCap, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
+import { Mail, Lock, User, GraduationCap, Eye, EyeOff, AlertCircle, CheckCircle, KeyRound, ArrowLeft } from 'lucide-react';
 
 // Google "G" logo SVG
 function GoogleIcon() {
@@ -16,7 +16,7 @@ function GoogleIcon() {
 }
 
 export default function Auth({ setCurrentView }) {
-  const { login, loginWithGoogle, registerUser } = useDatabase();
+  const { login, loginWithGoogle, registerUser, resetPasswordByEmail } = useDatabase();
 
   const [isLogin, setIsLogin] = useState(true);
   const isSupabaseLive = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -27,9 +27,16 @@ export default function Auth({ setCurrentView }) {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState(null);
-
   const [success, setSuccess] = useState(null);
 
+  // Forgot Password Modal State
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotInput, setForgotInput] = useState('');
+  const [newResetPassword, setNewResetPassword] = useState('');
+  const [confirmResetPassword, setConfirmResetPassword] = useState('');
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState('');
+  const [resetStep, setResetStep] = useState(1); // 1: Enter email, 2: Set new password
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,7 +68,7 @@ export default function Auth({ setCurrentView }) {
     }
   };
 
-  // Google OAuth — fetches userinfo from Google using the access token
+  // Google OAuth
   const handleGoogleSuccess = async (tokenResponse) => {
     setGoogleLoading(true);
     setError(null);
@@ -78,158 +85,167 @@ export default function Auth({ setCurrentView }) {
       });
       if (setCurrentView) setCurrentView('learning');
     } catch (err) {
-      setError('Google Sign-In failed: ' + err.message);
+      console.error('[Google OAuth Error]', err);
+      setError('Google Sign-In failed. Please try again or use standard email login.');
     } finally {
       setGoogleLoading(false);
     }
   };
 
-  const googleLogin = useGoogleLogin({
+  const googleLoginTrigger = useGoogleLogin({
     onSuccess: handleGoogleSuccess,
     onError: () => setError('Google Sign-In was cancelled or failed.')
   });
 
-  return (
-    <div style={styles.container} className="animate-fade-in">
-      <div style={styles.card} className="glass-panel">
+  const handleResetPasswordSubmit = async (e) => {
+    e.preventDefault();
+    setForgotError('');
+    setForgotSuccess('');
 
-        {/* Logo Brand */}
-        <div style={styles.brand}>
-          <div style={styles.logoCircle}>
+    if (resetStep === 1) {
+      if (!forgotInput.trim()) {
+        setForgotError('Please enter your email address or username.');
+        return;
+      }
+      setResetStep(2);
+      return;
+    }
+
+    if (!newResetPassword || newResetPassword.length < 6) {
+      setForgotError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (newResetPassword !== confirmResetPassword) {
+      setForgotError('Passwords do not match.');
+      return;
+    }
+
+    const res = await resetPasswordByEmail(forgotInput, newResetPassword);
+    if (res.success) {
+      setForgotSuccess(`Password reset successfully for ${res.email}! You can now log in.`);
+      setTimeout(() => {
+        setShowForgotModal(false);
+        setResetStep(1);
+        setForgotInput('');
+        setNewResetPassword('');
+        setConfirmResetPassword('');
+      }, 2500);
+    } else {
+      setForgotError(res.error || 'Failed to reset password.');
+    }
+  };
+
+  return (
+    <div style={styles.container}>
+      <div style={styles.card} className="glass-panel animate-fade-in">
+        <div style={styles.header}>
+          <div style={styles.logoIcon}>
             <GraduationCap size={32} color="#ffffff" />
           </div>
-          <h1 style={{ fontSize: '1.8rem', margin: '12px 0 4px 0' }}>Learn-o-pia</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '14px' }}>
-            {isLogin ? 'Sign in to access courses and resources' : 'Register a new learning account'}
+          <h2 style={styles.title}>{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
+          <p style={styles.subtitle}>
+            {isLogin ? 'Enter credentials or sign in with Google' : 'Join Learn-o-pia digital learning platform'}
           </p>
-          <div style={{ display: 'inline-block', padding: '4px 10px', borderRadius: '12px', fontSize: '0.72rem', fontWeight: 600, background: isSupabaseLive ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)', border: isSupabaseLive ? '1px solid rgba(16,185,129,0.25)' : '1px solid rgba(245,158,11,0.25)', color: isSupabaseLive ? '#10b981' : '#f59e0b' }}>
-            {isSupabaseLive ? '● Connected to Supabase' : '○ Local Mock Storage'}
-          </div>
         </div>
 
-        {/* Tab Toggle */}
-        <div style={styles.tabs}>
-          <button
-            style={{ ...styles.tab, borderBottomColor: isLogin ? 'var(--primary)' : 'transparent', color: isLogin ? '#ffffff' : 'var(--text-muted)' }}
-            onClick={() => { setIsLogin(true); setError(null); }}
-          >
-            Sign In
-          </button>
-          <button
-            style={{ ...styles.tab, borderBottomColor: !isLogin ? 'var(--primary)' : 'transparent', color: !isLogin ? '#ffffff' : 'var(--text-muted)' }}
-            onClick={() => { setIsLogin(false); setError(null); }}
-          >
-            Create Account
-          </button>
-        </div>
-
-        {/* Error Banner */}
         {error && (
-          <div style={styles.errorAlert}>
-            <AlertCircle size={14} style={{ flexShrink: 0 }} />
+          <div style={styles.errorBanner}>
+            <AlertCircle size={16} />
             <span>{error}</span>
           </div>
         )}
 
-        {/* Success Banner */}
         {success && (
-          <div style={styles.successAlert}>
-            <CheckCircle size={14} style={{ flexShrink: 0 }} />
+          <div style={styles.successBanner}>
+            <CheckCircle size={16} />
             <span>{success}</span>
           </div>
         )}
 
-        {/* ── Google Sign-In Button (always visible) ── */}
+        {/* 1-Click OneTap Google Authentication */}
         <button
           type="button"
-          onClick={async () => {
-            const isSupabaseLive = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
-            if (isSupabaseLive) {
-              setGoogleLoading(true);
-              try {
-                await loginWithGoogle();
-              } catch (err) {
-                setError('Google redirect failed: ' + err.message);
-                setGoogleLoading(false);
-              }
-            } else {
-              if (!import.meta.env.VITE_GOOGLE_CLIENT_ID) {
-                setError('Google Sign-In needs setup. Add VITE_GOOGLE_CLIENT_ID to your .env file.');
-                return;
-              }
-              googleLogin();
-            }
-          }}
+          onClick={() => googleLoginTrigger()}
           disabled={googleLoading}
           style={styles.googleBtn}
         >
-          {googleLoading ? (
-            <span style={styles.spinner} />
-          ) : (
-            <>
-              <GoogleIcon />
-              <span>Continue with Google</span>
-            </>
-          )}
+          <GoogleIcon />
+          <span>{googleLoading ? 'Connecting Google Account…' : isLogin ? 'Sign in with Google' : 'Sign up with Google'}</span>
         </button>
 
-        {/* Divider */}
         <div style={styles.divider}>
           <div style={styles.dividerLine} />
-          <span style={styles.dividerText}>or sign in with email</span>
+          <span style={styles.dividerText}>OR WITH EMAIL</span>
           <div style={styles.dividerLine} />
         </div>
 
-        {/* Email/Password Form */}
         <form onSubmit={handleSubmit} style={styles.form}>
           {!isLogin && (
-            <div className="form-group">
-              <label className="form-label">Full Name</label>
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>Full Name</label>
               <div style={styles.inputWrapper}>
                 <User size={18} style={styles.inputIcon} />
                 <input
                   type="text"
+                  placeholder="e.g. Alex Carter"
                   value={name}
-                  onChange={e => setName(e.target.value)}
-                  className="form-input"
-                  placeholder="e.g. John Doe"
-                  style={{ paddingLeft: '42px' }}
+                  onChange={(e) => setName(e.target.value)}
+                  style={styles.input}
                   required
                 />
               </div>
             </div>
           )}
 
-          <div className="form-group">
-            <label className="form-label">Email Address</label>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Email Address or Username</label>
             <div style={styles.inputWrapper}>
               <Mail size={18} style={styles.inputIcon} />
               <input
-                type="email"
+                type="text"
+                placeholder="you@example.com or @username"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
-                className="form-input"
-                placeholder="student@university.edu"
-                style={{ paddingLeft: '42px' }}
+                onChange={(e) => setEmail(e.target.value)}
+                style={styles.input}
                 required
               />
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Password</label>
+          <div style={styles.inputGroup}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label style={styles.label}>Password</label>
+              {isLogin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgotModal(true);
+                    setResetStep(1);
+                    setForgotError('');
+                    setForgotSuccess('');
+                  }}
+                  style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  Forgot Password?
+                </button>
+              )}
+            </div>
             <div style={styles.inputWrapper}>
               <Lock size={18} style={styles.inputIcon} />
               <input
                 type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                className="form-input"
                 placeholder="••••••••"
-                style={{ paddingLeft: '42px', paddingRight: '42px' }}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={styles.input}
                 required
               />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={styles.eyeBtn}
+              >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
@@ -237,90 +253,314 @@ export default function Auth({ setCurrentView }) {
 
           <button
             type="submit"
-            className="btn btn-primary"
             disabled={loading}
-            style={{ width: '100%', padding: '12px', marginTop: '10px' }}
+            className="btn btn-primary"
+            style={styles.submitBtn}
           >
-            {loading ? <span style={styles.spinner} /> : isLogin ? 'Sign In' : 'Create Account'}
+            {loading ? 'Processing…' : isLogin ? 'Sign In Account' : 'Register Account'}
           </button>
         </form>
 
+        <div style={styles.toggleRow}>
+          <span>{isLogin ? "Don't have an account?" : 'Already registered?'}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setError(null);
+              setSuccess(null);
+            }}
+            style={styles.toggleBtn}
+          >
+            {isLogin ? 'Create one now' : 'Sign in here'}
+          </button>
+        </div>
       </div>
+
+      {/* FORGOT PASSWORD MODAL */}
+      {showForgotModal && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalBox} className="glass-panel animate-fade-in">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '1.1rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <KeyRound size={18} color="var(--primary)" /> Reset Password
+              </h3>
+              <button
+                onClick={() => setShowForgotModal(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer' }}
+              >
+                ×
+              </button>
+            </div>
+
+            {forgotError && (
+              <div style={styles.errorBanner}>
+                <AlertCircle size={15} />
+                <span>{forgotError}</span>
+              </div>
+            )}
+
+            {forgotSuccess && (
+              <div style={styles.successBanner}>
+                <CheckCircle size={15} />
+                <span>{forgotSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleResetPasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left' }}>
+              {resetStep === 1 ? (
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Enter Email Address or Username</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. learner@learnopia.edu or @alex_carter"
+                    value={forgotInput}
+                    onChange={(e) => setForgotInput(e.target.value)}
+                    required
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                    Enter your account email or unique handle to verify and set a new password.
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Account Identified: {forgotInput}</label>
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>New Password</label>
+                    <input
+                      type="password"
+                      className="form-input"
+                      placeholder="At least 6 characters"
+                      value={newResetPassword}
+                      onChange={(e) => setNewResetPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Confirm New Password</label>
+                    <input
+                      type="password"
+                      className="form-input"
+                      placeholder="Re-enter new password"
+                      value={confirmResetPassword}
+                      onChange={(e) => setConfirmResetPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                </>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+                {resetStep === 2 ? (
+                  <button type="button" className="btn btn-secondary" onClick={() => setResetStep(1)}>
+                    <ArrowLeft size={14} /> Back
+                  </button>
+                ) : (
+                  <div />
+                )}
+                <button type="submit" className="btn btn-primary">
+                  {resetStep === 1 ? 'Verify Account' : 'Set New Password'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 const styles = {
   container: {
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    minHeight: 'calc(100vh - 120px)', padding: '20px'
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 'calc(100vh - 140px)',
+    padding: '20px'
   },
   card: {
-    width: '100%', maxWidth: '440px', padding: '36px',
-    borderRadius: '20px', display: 'flex', flexDirection: 'column'
+    width: '100%',
+    maxWidth: '420px',
+    padding: '36px 32px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px'
   },
-  brand: { textAlign: 'center', marginBottom: '24px' },
-  logoCircle: {
-    width: '60px', height: '60px', borderRadius: '50%',
+  header: {
+    textAlign: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center'
+  },
+  logoIcon: {
+    width: '56px',
+    height: '56px',
+    borderRadius: '16px',
     background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    boxShadow: '0 4px 20px rgba(139, 92, 246, 0.4)'
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: '16px'
   },
-  tabs: { display: 'flex', borderBottom: '1px solid var(--border-color)', marginBottom: '20px' },
-  tab: {
-    flex: 1, padding: '12px', background: 'transparent', border: 'none',
-    borderBottom: '2px solid transparent', cursor: 'pointer',
-    fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.95rem', transition: 'all 0.2s'
+  title: {
+    fontSize: '1.5rem',
+    fontWeight: 700,
+    color: '#ffffff',
+    margin: 0
   },
-  errorAlert: {
-    display: 'flex', alignItems: 'center', gap: '8px',
-    padding: '12px 16px',
-    background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)',
-    borderRadius: '10px', color: '#fca5a5', fontSize: '0.85rem', marginBottom: '16px',
-    lineHeight: '1.4', textAlign: 'left'
+  subtitle: {
+    fontSize: '0.85rem',
+    color: 'var(--text-secondary)',
+    marginTop: '6px'
   },
-  successAlert: {
-    display: 'flex', alignItems: 'center', gap: '8px',
-    padding: '12px 16px',
-    background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.25)',
-    borderRadius: '10px', color: '#a7f3d0', fontSize: '0.85rem', marginBottom: '16px',
-    lineHeight: '1.4', textAlign: 'left'
+  errorBanner: {
+    padding: '10px 14px',
+    borderRadius: '10px',
+    background: 'rgba(239, 68, 68, 0.15)',
+    border: '1px solid rgba(239, 68, 68, 0.3)',
+    color: '#f87171',
+    fontSize: '0.83rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    textAlign: 'left'
+  },
+  successBanner: {
+    padding: '10px 14px',
+    borderRadius: '10px',
+    background: 'rgba(16, 185, 129, 0.15)',
+    border: '1px solid rgba(16, 185, 129, 0.3)',
+    color: '#34d399',
+    fontSize: '0.83rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    textAlign: 'left'
   },
   googleBtn: {
-    width: '100%', padding: '12px 16px', borderRadius: '12px',
-    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
-    color: '#ffffff', fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: '0.95rem',
-    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-    transition: 'all 0.2s', marginBottom: '4px'
-  },
-  googleSetupNote: {
-    padding: '10px 14px', background: 'rgba(139,92,246,0.06)',
-    border: '1px dashed rgba(139,92,246,0.25)', borderRadius: '10px',
-    marginBottom: '4px', textAlign: 'center'
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '12px',
+    width: '100%',
+    padding: '11px 16px',
+    borderRadius: '12px',
+    background: 'rgba(255, 255, 255, 0.05)',
+    border: '1px solid rgba(255, 255, 255, 0.12)',
+    color: '#ffffff',
+    fontSize: '0.9rem',
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontFamily: 'var(--font-heading)',
+    transition: 'all 0.2s ease',
+    boxSizing: 'border-box'
   },
   divider: {
-    display: 'flex', alignItems: 'center', gap: '12px', margin: '18px 0 12px 0'
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
   },
-  dividerLine: { flex: 1, height: '1px', background: 'rgba(255,255,255,0.07)' },
-  dividerText: { fontSize: '0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' },
-  form: { display: 'flex', flexDirection: 'column', gap: '4px' },
-  inputWrapper: { position: 'relative', display: 'flex', alignItems: 'center' },
-  inputIcon: { position: 'absolute', left: '14px', color: 'var(--text-muted)', pointerEvents: 'none' },
+  dividerLine: {
+    flex: 1,
+    height: '1px',
+    background: 'rgba(255, 255, 255, 0.08)'
+  },
+  dividerText: {
+    fontSize: '0.7rem',
+    color: 'var(--text-muted)',
+    fontWeight: 700,
+    letterSpacing: '0.08em'
+  },
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+    textAlign: 'left'
+  },
+  inputGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px'
+  },
+  label: {
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    color: 'var(--text-secondary)'
+  },
+  inputWrapper: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center'
+  },
+  inputIcon: {
+    position: 'absolute',
+    left: '14px',
+    color: 'var(--text-muted)'
+  },
+  input: {
+    width: '100%',
+    padding: '11px 14px 11px 42px',
+    borderRadius: '10px',
+    background: 'rgba(255, 255, 255, 0.03)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    color: '#ffffff',
+    fontSize: '0.9rem',
+    fontFamily: 'var(--font-body)',
+    boxSizing: 'border-box'
+  },
   eyeBtn: {
-    position: 'absolute', right: '12px', background: 'transparent', border: 'none',
-    color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+    position: 'absolute',
+    right: '12px',
+    background: 'none',
+    border: 'none',
+    color: 'var(--text-muted)',
+    cursor: 'pointer',
+    padding: '4px'
   },
-  quickFillContainer: { marginTop: '24px', paddingTop: '16px', borderTop: '1px dashed var(--border-color)' },
-  quickFillGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' },
-  quickFillBtn: {
-    padding: '8px 4px', fontSize: '0.75rem', borderRadius: '6px',
-    border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)',
-    color: 'var(--text-secondary)', cursor: 'pointer', transition: 'all 0.15s',
-    textAlign: 'center', fontFamily: 'var(--font-heading)'
+  submitBtn: {
+    width: '100%',
+    padding: '12px',
+    fontSize: '0.9rem',
+    fontWeight: 600,
+    marginTop: '6px'
   },
-  spinner: {
-    display: 'inline-block', width: '18px', height: '18px',
-    border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#ffffff',
-    borderRadius: '50%', animation: 'spin 0.8s linear infinite'
+  toggleRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
+    fontSize: '0.83rem',
+    color: 'var(--text-secondary)'
+  },
+  toggleBtn: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--primary)',
+    fontWeight: 600,
+    cursor: 'pointer',
+    padding: 0,
+    fontFamily: 'var(--font-body)',
+    fontSize: '0.83rem'
+  },
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.75)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999,
+    padding: '20px'
+  },
+  modalBox: {
+    width: '100%',
+    maxWidth: '440px',
+    padding: '24px'
   }
 };

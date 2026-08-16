@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { useDatabase, extractYoutubePlaylistId, fetchYoutubePlaylistVideos } from '../../context/DatabaseContext';
+import { useDatabase, extractYoutubePlaylistId, fetchYoutubePlaylistVideos, getUserDesignation } from '../../context/DatabaseContext';
 import {
   Plus, BookOpen, Trash2, Film, FolderPlus, ChevronDown,
   Pencil, Check, X, Users, AlertCircle, ArrowUp, ArrowDown
@@ -319,11 +319,89 @@ export default function CreatorStudio() {
             Build degree programs, design subjects, attach playlists, and upload reference materials.
           </p>
         </div>
-        <button onClick={() => { setShowCourseForm(!showCourseForm); setActiveCourseId(null); }} className="btn btn-primary">
-          <FolderPlus size={16} />
-          {isAdmin ? 'Create Program / Course' : 'Create Course'}
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={() => setShowStandaloneForm(!showStandaloneForm)} className="btn btn-secondary">
+            <Plus size={16} /> Publish Open Public Resource
+          </button>
+          <button onClick={() => { setShowCourseForm(!showCourseForm); setActiveCourseId(null); }} className="btn btn-primary">
+            <FolderPlus size={16} />
+            {isAdmin ? 'Create Program / Course' : 'Create Course'}
+          </button>
+        </div>
       </section>
+
+      {/* STANDALONE RESOURCE FORM */}
+      {showStandaloneForm && (
+        <form onSubmit={handlePublishStandaloneResource} className="glass-panel animate-fade-in" style={{ padding: '20px', marginBottom: '20px', textAlign: 'left' }}>
+          <h3 style={{ fontSize: '1.1rem', marginBottom: '4px', color: '#ffffff' }}>Publish Standalone Open Study Resource</h3>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '14px' }}>
+            Share a public PDF, formula sheet, or reference guide directly without nesting it inside a degree course or playlist series.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px', marginBottom: '14px' }}>
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>Resource Title</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="e.g. MAKAUT Engineering Mathematics Complete Formula Sheet"
+                value={resTitle}
+                onChange={(e) => setResTitle(e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>Resource PDF / Link URL</label>
+              <input
+                type="url"
+                className="form-input"
+                placeholder="https://drive.google.com/file/d/..."
+                value={resUrl}
+                onChange={(e) => setResUrl(e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>Resource Category</label>
+              <select
+                className="form-input"
+                value={resCategory}
+                onChange={(e) => setResCategory(e.target.value)}
+              >
+                <option value="Formula Sheet & Quick Reference">Formula Sheet & Quick Reference</option>
+                <option value="Lab Manual">Lab Manual</option>
+                <option value="PYQ Solutions">Past Year Paper (PYQ) Solutions</option>
+                <option value="Official Syllabus Guide">Official Syllabus Guide</option>
+                <option value="Handwritten Notes">Handwritten Notes</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '14px' }}>
+            <label className="form-label" style={{ fontSize: '0.78rem' }}>Short Description / Overview</label>
+            <textarea
+              className="form-input"
+              rows={2}
+              placeholder="Provide a quick overview of what is included in this open resource..."
+              value={resDesc}
+              onChange={(e) => setResDesc(e.target.value)}
+            />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowStandaloneForm(false)}>Cancel</button>
+            <button type="submit" className="btn btn-primary">Publish Open Resource</button>
+          </div>
+        </form>
+      )}
+
+      {resSuccess && (
+        <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', color: '#34d399', marginBottom: '20px', textAlign: 'left', fontSize: '0.85rem' }}>
+          ✔ {resSuccess}
+        </div>
+      )}
 
       {/* Main Grid */}
       <div className="studio-main-grid">
