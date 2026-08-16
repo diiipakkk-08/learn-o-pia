@@ -135,14 +135,24 @@ export default function Auth({ setCurrentView }) {
   });
 
   const handleGoogleBtnClick = () => {
-    try {
-      const hasClientId = !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
-      if (hasClientId) {
+    const rawClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const hasValidClientId = rawClientId && rawClientId !== 'YOUR_GOOGLE_CLIENT_ID';
+
+    if (hasValidClientId) {
+      setGoogleLoading(true);
+      const timeoutTimer = setTimeout(() => {
+        setGoogleLoading(false);
+        setShowGoogleModal(true);
+      }, 1200);
+
+      try {
         googleLoginTrigger();
-      } else {
+      } catch (e) {
+        clearTimeout(timeoutTimer);
+        setGoogleLoading(false);
         setShowGoogleModal(true);
       }
-    } catch (err) {
+    } else {
       setShowGoogleModal(true);
     }
   };
