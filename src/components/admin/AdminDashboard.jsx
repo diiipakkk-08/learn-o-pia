@@ -20,7 +20,7 @@ export default function AdminDashboard() {
   return (
     <div className="animate-fade-in" style={styles.container}>
       {/* Metrics Header widgets */}
-      <div style={styles.statsGrid}>
+      <div className="admin-stats-grid">
         <div className="glass-panel" style={styles.statCard}>
           <div style={styles.statHeader}>
             <span style={styles.statLabel}>Total Accounts</span>
@@ -58,7 +58,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Main Admin Console */}
-      <div style={styles.layoutGrid}>
+      <div className="admin-layout-grid">
         
         {/* Navigation Sidebar */}
         <div style={styles.sidebarPanel} className="glass-panel">

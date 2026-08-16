@@ -102,11 +102,11 @@ export default function Header({
             </button>
 
             <button
-              onClick={() => setCurrentView('attendance-404')}
+              onClick={() => setCurrentView('attendance')}
               style={{
                 ...styles.navBtn,
-                background: currentView === 'attendance-404' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                color: currentView === 'attendance-404' ? '#ffffff' : 'var(--text-secondary)'
+                background: currentView === 'attendance' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                color: currentView === 'attendance' ? '#ffffff' : 'var(--text-secondary)'
               }}
             >
               <Calendar size={15} />
@@ -267,11 +267,11 @@ export default function Header({
           </button>
 
           <button
-            onClick={() => { setCurrentView('attendance-404'); setMenuOpen(false); }}
+            onClick={() => { setCurrentView('attendance'); setMenuOpen(false); }}
             style={{
               ...styles.mobileMenuBtn,
-              background: currentView === 'attendance-404' ? 'rgba(255,255,255,0.05)' : 'transparent',
-              color: currentView === 'attendance-404' ? '#ffffff' : 'var(--text-secondary)'
+              background: currentView === 'attendance' ? 'rgba(255,255,255,0.05)' : 'transparent',
+              color: currentView === 'attendance' ? '#ffffff' : 'var(--text-secondary)'
             }}
           >
             <Calendar size={16} />

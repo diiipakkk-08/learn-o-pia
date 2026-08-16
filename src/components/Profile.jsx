@@ -26,7 +26,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
 
   return (
     <div style={styles.container} className="animate-fade-in">
-      <div style={styles.grid}>
+      <div className="profile-grid-layout">
         
         {/* LEFT COLUMN: User Card */}
         <div className="glass-panel" style={styles.card}>
