@@ -783,60 +783,48 @@ export function DatabaseProvider({ children }) {
   };
 
   const loginWithGoogle = async (googleUser = null) => {
-    const email = googleUser?.email || 'learner@learnopia.edu';
-    const name = googleUser?.name || googleUser?.given_name || (email ? email.split('@')[0] : 'Google Learner');
-    const picture = googleUser?.picture || null;
-
-    let existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-
-    if (existing) {
-      if (existing.status === 'suspended') {
-        throw new Error('Your account is currently suspended. Please contact platform administration.');
-      }
-      const updated = {
-        ...existing,
-        picture: picture || existing.picture
-      };
-      setUsers(prev => prev.map(u => u.id === existing.id ? updated : u));
-      setCurrentUser(updated);
-      localStorage.setItem('learnopia_current_user_stable', JSON.stringify(updated));
-      addLog(`User logged in via Google: ${updated.name}`);
-      return updated;
-    }
-
-    if (isSupabaseLive && !googleUser) {
+    if (isSupabaseLive) {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.origin }
+        options: {
+          redirectTo: window.location.origin
+        }
       });
       if (error) throw new Error(error.message || 'Google OAuth redirect failed.');
       return data;
+    } else {
+      const email = googleUser?.email || 'learner@learnopia.edu';
+      const name = googleUser?.name || 'Alex Carter';
+      const picture = googleUser?.picture || null;
+      
+      const existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (existing) {
+        setCurrentUser(existing);
+        localStorage.setItem('learnopia_current_user_stable', JSON.stringify(existing));
+        addLog(`User logged in via Google: ${existing.name}`);
+        return existing;
+      }
+      const newUser = {
+        id: 'u-g-' + Date.now(),
+        email: email.toLowerCase(),
+        name,
+        username: `@${name.toLowerCase().replace(/\s+/g, '')}`,
+        picture,
+        role: 'learner',
+        status: 'active',
+        password: null,
+        enrolledCourses: []
+      };
+      setUsers(prev => {
+        const next = [...prev, newUser];
+        localStorage.setItem('learnopia_users_stable', JSON.stringify(next));
+        return next;
+      });
+      setCurrentUser(newUser);
+      localStorage.setItem('learnopia_current_user_stable', JSON.stringify(newUser));
+      addLog(`New user registered via Google: ${newUser.name}`);
+      return newUser;
     }
-
-    const fallbackEmail = email.toLowerCase();
-    const newUsername = `@${name.toLowerCase().replace(/\s+/g, '')}`;
-
-    const newUser = {
-      id: 'u-g-' + Date.now(),
-      email: fallbackEmail,
-      name: name,
-      username: newUsername,
-      role: 'learner',
-      status: 'active',
-      picture: picture,
-      enrolledCourses: []
-    };
-
-    setUsers(prev => {
-      const next = [...prev, newUser];
-      localStorage.setItem('learnopia_users_stable', JSON.stringify(next));
-      return next;
-    });
-
-    setCurrentUser(newUser);
-    localStorage.setItem('learnopia_current_user_stable', JSON.stringify(newUser));
-    addLog(`New user registered via Google: ${newUser.name}`);
-    return newUser;
   };
 
   const registerUser = async (email, name, password) => {
