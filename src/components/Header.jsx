@@ -114,11 +114,11 @@ export default function Header({
             </button>
 
             <button
-              onClick={() => setCurrentView('discussions-404')}
+              onClick={() => setCurrentView('discussions')}
               style={{
                 ...styles.navBtn,
-                background: currentView === 'discussions-404' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                color: currentView === 'discussions-404' ? '#ffffff' : 'var(--text-secondary)'
+                background: currentView === 'discussions' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                color: currentView === 'discussions' ? '#ffffff' : 'var(--text-secondary)'
               }}
             >
               <MessageSquare size={15} />
@@ -279,11 +279,11 @@ export default function Header({
           </button>
 
           <button
-            onClick={() => { setCurrentView('discussions-404'); setMenuOpen(false); }}
+            onClick={() => { setCurrentView('discussions'); setMenuOpen(false); }}
             style={{
               ...styles.mobileMenuBtn,
-              background: currentView === 'discussions-404' ? 'rgba(255,255,255,0.05)' : 'transparent',
-              color: currentView === 'discussions-404' ? '#ffffff' : 'var(--text-secondary)'
+              background: currentView === 'discussions' ? 'rgba(255,255,255,0.05)' : 'transparent',
+              color: currentView === 'discussions' ? '#ffffff' : 'var(--text-secondary)'
             }}
           >
             <MessageSquare size={16} />

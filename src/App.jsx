@@ -11,6 +11,7 @@ import About from './components/About';
 import CoursesDashboard from './components/learning/CoursesDashboard';
 import LearningPlayer from './components/learning/LearningPlayer';
 import AttendanceTracker from './components/AttendanceTracker';
+import DiscussionsView from './components/discussions/DiscussionsView';
 
 // Creator Views
 import CreatorStudio from './components/creator/CreatorStudio';
@@ -145,8 +146,13 @@ function AppContent() {
           <AttendanceTracker setCurrentView={setCurrentView} />
         )}
 
+        {/* Discussions View */}
+        {currentView === 'discussions' && (
+          <DiscussionsView setCurrentView={setCurrentView} />
+        )}
+
         {/* Authenticated Workspace Views */}
-        {!currentUser && !['landing', 'about', 'attendance', 'results-404', 'discussions-404', 'auth'].includes(currentView) ? (
+        {!currentUser && !['landing', 'about', 'attendance', 'discussions', 'results-404', 'auth'].includes(currentView) ? (
           <Auth setCurrentView={setCurrentView} />
         ) : (
           <>
@@ -191,7 +197,7 @@ function AppContent() {
             )}
 
             {/* Standard 404 Fallback for unrecognized views */}
-            {!['landing', 'about', 'attendance', 'results-404', 'discussions-404', 'learning', 'learning-player', 'profile', 'studio', 'admin', 'auth'].includes(currentView) && (
+            {!['landing', 'about', 'attendance', 'discussions', 'results-404', 'learning', 'learning-player', 'profile', 'studio', 'admin', 'auth'].includes(currentView) && (
               <NotFound404 setCurrentView={setCurrentView} />
             )}
           </>

@@ -8,8 +8,6 @@ import {
   BookOpen,
   ChevronDown,
   ChevronUp,
-  Star,
-  Heart,
   Share2,
   Check,
   Download,
@@ -20,7 +18,9 @@ import {
   Clock,
   GraduationCap,
   Sparkles,
-  MessageSquare
+  MessageSquare,
+  SkipBack,
+  SkipForward
 } from 'lucide-react';
 
 const TYPE_LABEL = {
@@ -41,7 +41,7 @@ function SemesterPortalMenu({ triggerRef, menuRef, isOpen, value, onChange, onCl
         position: 'absolute',
         top: r.bottom + window.scrollY + 4,
         left: r.left + window.scrollX,
-        width: Math.max(r.width, 160),
+        width: Math.max(r.width, 140),
         zIndex: 99999,
         background: '#11121c',
         border: '1px solid rgba(139,92,246,0.3)',
@@ -68,8 +68,8 @@ function SemesterPortalMenu({ triggerRef, menuRef, isOpen, value, onChange, onCl
             onClose();
           }}
           style={{
-            padding: '10px 16px',
-            fontSize: '0.85rem',
+            padding: '8px 14px',
+            fontSize: '0.8rem',
             textAlign: 'left',
             background: value === s ? 'var(--primary)' : 'transparent',
             color: value === s ? '#fff' : 'var(--text-secondary)',
@@ -108,8 +108,13 @@ function CustomSemesterDropdown({ value, onChange }) {
 
   return (
     <div style={{ position: 'relative' }}>
-      <div ref={triggerRef} className="custom-dropdown-trigger" onClick={() => setIsOpen((o) => !o)}>
-        <span>Semester {value}</span>
+      <div
+        ref={triggerRef}
+        className="custom-dropdown-trigger"
+        onClick={() => setIsOpen((o) => !o)}
+        style={{ padding: '6px 12px', fontSize: '0.8rem', height: '34px', background: 'rgba(255,255,255,0.03)' }}
+      >
+        <span>Sem {value}</span>
         <ChevronDown
           size={14}
           style={{
@@ -136,13 +141,12 @@ export default function LearningPlayer({
   setActiveVideoIndex,
   setCurrentView
 }) {
-  const { courses, subjects, currentUser } = useDatabase();
+  const { courses, subjects } = useDatabase();
 
   const [activeSemester, setActiveSemester] = useState(1);
   const [activeSubjectId, setActiveSubjectId] = useState(null);
   const [activePlaylistId, setActivePlaylistId] = useState(null);
   const [videoSearchQuery, setVideoSearchQuery] = useState('');
-  const [materialSearchQuery, setMaterialSearchQuery] = useState('');
   const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1023 : false));
 
   // Controls & Engagement states
@@ -154,8 +158,6 @@ export default function LearningPlayer({
   const [mobileTab, setMobileTab] = useState('playlist'); // 'playlist' | 'materials' | 'overview'
   const [collapsedModules, setCollapsedModules] = useState({});
 
-  const [isFavorited, setIsFavorited] = useState(false);
-  const [userRating, setUserRating] = useState(0);
   const [shareCopied, setShareCopied] = useState(false);
   const [userNotes, setUserNotes] = useState({});
   const [currentNoteText, setCurrentNoteText] = useState('');
@@ -178,7 +180,7 @@ export default function LearningPlayer({
     ).sort((a, b) => (a.position || 0) - (b.position || 0));
   }, [subjects, playlistId, activeSemester, isDegree]);
 
-  // Auto select subject when semester, course, or subjects change
+  // Auto select subject when semester or subjects change
   useEffect(() => {
     if (currentSubjects.length > 0) {
       const exists = currentSubjects.some((s) => s.id === activeSubjectId);
@@ -285,6 +287,19 @@ export default function LearningPlayer({
     }
   };
 
+  const handleNextVideo = () => {
+    if (!activePlaylist?.videos) return;
+    if (activeVideoIndex < activePlaylist.videos.length - 1) {
+      setActiveVideoIndex(activeVideoIndex + 1);
+    }
+  };
+
+  const handlePrevVideo = () => {
+    if (activeVideoIndex > 0) {
+      setActiveVideoIndex(activeVideoIndex - 1);
+    }
+  };
+
   const handleSaveNote = () => {
     if (!activeVideo) return;
     setUserNotes((prev) => ({
@@ -334,7 +349,7 @@ export default function LearningPlayer({
   if (!course) {
     return (
       <div style={{ textAlign: 'center', padding: '40px' }} className="glass-panel">
-        <p>Course syllabus not found.</p>
+        <p>Course playlist not found.</p>
         <button onClick={() => setCurrentView('learning')} className="btn btn-primary" style={{ marginTop: '12px' }}>
           Back to Courses
         </button>
@@ -353,68 +368,52 @@ export default function LearningPlayer({
 
   return (
     <div className="animate-fade-in oracle-workspace-container" style={styles.container}>
-      {/* ── Top Header Row ── */}
-      <div style={styles.header}>
+      {/* ── MINIMAL TOP BAR: Back Button + Semester + Subject Selectors ── */}
+      <div className="glass-panel" style={styles.compactTopBar}>
         <button onClick={() => setCurrentView('learning')} style={styles.backBtn}>
-          <ChevronLeft size={16} />
-          Back to Programs
+          <ChevronLeft size={16} /> Back
         </button>
-        <div style={styles.headerTitleContainer}>
-          <h2 style={{ fontSize: '1.4rem' }}>{course.title}</h2>
-        </div>
-      </div>
 
-      {/* ── Top Bar Selectors: Semester Dropdown + Subject Selector ── */}
-      <div className="yt-selector-row glass-panel" style={styles.toolbarRow}>
-        {isDegree && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Semester:</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0, overflowX: 'auto' }}>
+          {isDegree && (
             <CustomSemesterDropdown value={activeSemester} onChange={(s) => setActiveSemester(s)} />
-          </div>
-        )}
+          )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, overflowX: 'auto' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap' }}>Subject:</span>
           {isMobile ? (
             <select
               value={activeSubjectId || ''}
               onChange={(e) => setActiveSubjectId(e.target.value || null)}
               className="yt-select-dropdown"
-              style={{ width: '100%' }}
+              style={{ padding: '6px 12px', fontSize: '0.8rem', flex: 1 }}
             >
               {currentSubjects.length === 0 ? (
                 <option value="">No subjects</option>
               ) : (
                 currentSubjects.map((sub) => (
                   <option key={sub.id} value={sub.id}>
-                    {sub.code || ''} {sub.title}
+                    {sub.title}
                   </option>
                 ))
               )}
             </select>
           ) : (
-            <div className="yt-subject-chips-row">
-              {currentSubjects.length === 0 ? (
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  {isDegree ? `No subjects added for Semester ${activeSemester}` : 'No subjects added for this course'}
-                </span>
-              ) : (
-                currentSubjects.map((sub) => (
-                  <button
-                    key={sub.id}
-                    onClick={() => setActiveSubjectId(sub.id)}
-                    className={`yt-subject-chip ${activeSubjectId === sub.id ? 'active' : ''}`}
-                  >
-                    {sub.title}
-                  </button>
-                ))
-              )}
+            <div className="yt-subject-chips-row" style={{ margin: 0 }}>
+              {currentSubjects.map((sub) => (
+                <button
+                  key={sub.id}
+                  onClick={() => setActiveSubjectId(sub.id)}
+                  className={`yt-subject-chip ${activeSubjectId === sub.id ? 'active' : ''}`}
+                  style={{ padding: '4px 12px', fontSize: '0.8rem' }}
+                >
+                  {sub.title}
+                </button>
+              ))}
             </div>
           )}
         </div>
       </div>
 
-      {/* ── Mobile View Tabs Selector (< 1024px) ── */}
+      {/* ── Mobile Navigation Tabs Bar (< 1024px) ── */}
       {isMobile && (
         <div className="mobile-nav-tabs-bar">
           <button
@@ -438,13 +437,13 @@ export default function LearningPlayer({
         </div>
       )}
 
-      {/* ── MAIN ORACLE-STYLE WORKSPACE GRID ── */}
+      {/* ── MAIN WORKSPACE GRID ── */}
       <div className="oracle-learning-grid">
         {/* ========================================================= */}
-        {/* LEFT COLUMN: Main Video Player & Details Hub             */}
+        {/* LEFT COLUMN: Clean Video Player & Details                */}
         {/* ========================================================= */}
         <div className={`oracle-main-col ${isMobile && mobileTab !== 'playlist' ? 'mobile-hidden' : ''}`}>
-          {/* 1. Main 16:9 Video Frame */}
+          {/* 1. Main 16:9 Video Frame (Positions at top of page) */}
           <div className="player-frame-card glass-panel">
             <div style={styles.playerWrapper}>
               <iframe
@@ -457,42 +456,42 @@ export default function LearningPlayer({
               />
             </div>
 
-            {/* 2. Oracle-Style "Now Playing" Status Bar */}
+            {/* 2. Compact "Now Playing" Bar (No star ratings) */}
             {activeVideo && (
               <div className="oracle-now-playing-bar">
                 <div className="now-playing-left">
-                  <span className="now-playing-pill">Now Playing</span>
+                  <span className="now-playing-pill">Playing</span>
                   <div className="now-playing-text">
                     <h3 className="now-playing-h">{activeVideo.title}</h3>
                     <span className="now-playing-sub">
-                      Module {activePlaylist?.title ? activePlaylist.title : '1'} · Lecture {(activeVideoIndex || 0) + 1} of {activePlaylist?.videos?.length || allSubjectVideos.length}
+                      Lecture {(activeVideoIndex || 0) + 1} of {activePlaylist?.videos?.length || allSubjectVideos.length}
                     </span>
                   </div>
                 </div>
 
                 <div className="now-playing-right">
-                  {/* Rating Stars */}
-                  <div className="star-rating-row" title="Rate this video">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        className={`star-btn-icon ${userRating >= star ? 'filled' : ''}`}
-                        onClick={() => setUserRating(star)}
-                      >
-                        <Star size={16} />
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Favorite Toggle */}
+                  {/* Prev Video Button */}
                   <button
                     type="button"
-                    className={`circle-action-btn ${isFavorited ? 'active' : ''}`}
-                    onClick={() => setIsFavorited(!isFavorited)}
-                    title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+                    className="circle-action-btn"
+                    onClick={handlePrevVideo}
+                    disabled={activeVideoIndex === 0}
+                    title="Previous Lecture"
+                    style={{ opacity: activeVideoIndex === 0 ? 0.4 : 1 }}
                   >
-                    <Heart size={18} fill={isFavorited ? 'currentColor' : 'none'} />
+                    <SkipBack size={16} />
+                  </button>
+
+                  {/* Next Video Button */}
+                  <button
+                    type="button"
+                    className="circle-action-btn"
+                    onClick={handleNextVideo}
+                    disabled={!activePlaylist?.videos || activeVideoIndex >= activePlaylist.videos.length - 1}
+                    title="Next Lecture"
+                    style={{ opacity: !activePlaylist?.videos || activeVideoIndex >= activePlaylist.videos.length - 1 ? 0.4 : 1 }}
+                  >
+                    <SkipForward size={16} />
                   </button>
 
                   {/* Share Link */}
@@ -502,25 +501,17 @@ export default function LearningPlayer({
                     onClick={handleShare}
                     title="Share lecture link"
                   >
-                    {shareCopied ? <Check size={18} style={{ color: 'var(--success)' }} /> : <Share2 size={18} />}
+                    {shareCopied ? <Check size={16} style={{ color: 'var(--success)' }} /> : <Share2 size={16} />}
                   </button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* 3. Subject Metadata Card & Action Tabs */}
+          {/* 3. Subject Metadata Card & Tabs */}
           {activeSubject && (
             <div className="subject-meta-hub glass-panel">
-              <div className="subject-meta-top">
-                <span className="code-badge">
-                  {activeSubject.code || 'SUB-101'} · {activeSubject.credits || 4} Credits · Semester {activeSubject.semester || activeSemester}
-                </span>
-                <h1 className="subject-title-h">{activeSubject.title}</h1>
-              </div>
-
-              {/* Action Buttons Row */}
-              <div className="action-tabs-bar">
+              <div className="action-tabs-bar" style={{ marginBottom: '14px', paddingBottom: '12px' }}>
                 <button
                   className={`action-tab-pill ${mainTab === 'overview' ? 'active' : ''}`}
                   onClick={() => setMainTab('overview')}
@@ -545,15 +536,14 @@ export default function LearningPlayer({
               <div className="action-tab-body">
                 {mainTab === 'overview' && (
                   <div className="tab-pane-content">
-                    <h3>About this Subject</h3>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: '6px' }}>{activeSubject.title}</h3>
                     <p className="tab-pane-desc">
-                      Master key principles, theoretical frameworks, and practical applications in{' '}
-                      <strong>{activeSubject.title}</strong>. Mapped strictly to university guidelines with verified video playlists, lecture series, and course material.
+                      Curated lecture series and video playlists for <strong>{activeSubject.title}</strong>.
                     </p>
 
                     <div className="stats-cards-grid">
                       <div className="stat-card-box">
-                        <Clock size={20} color="var(--primary)" />
+                        <Clock size={18} color="var(--primary)" />
                         <div>
                           <strong>{allSubjectVideos.length} Lectures</strong>
                           <span>{activeSubject.playlists?.length || 0} Modules</span>
@@ -561,18 +551,18 @@ export default function LearningPlayer({
                       </div>
 
                       <div className="stat-card-box">
-                        <GraduationCap size={20} color="var(--primary)" />
+                        <GraduationCap size={18} color="var(--primary)" />
                         <div>
-                          <strong>{activeSubject.credits || 4} Academic Credits</strong>
+                          <strong>{activeSubject.credits || 4} Credits</strong>
                           <span>Semester {activeSubject.semester || activeSemester}</span>
                         </div>
                       </div>
 
                       <div className="stat-card-box">
-                        <Sparkles size={20} color="var(--primary)" />
+                        <Sparkles size={18} color="var(--primary)" />
                         <div>
-                          <strong>{activeSubject.materials?.length || 0} PDF Materials</strong>
-                          <span>Syllabi, Notes & PYQs</span>
+                          <strong>{activeSubject.materials?.length || 0} Documents</strong>
+                          <span>Syllabi & Notes</span>
                         </div>
                       </div>
                     </div>
@@ -581,7 +571,7 @@ export default function LearningPlayer({
 
                 {mainTab === 'materials' && (
                   <div className="tab-pane-content">
-                    <h3>Subject Study Materials & PDFs</h3>
+                    <h3>Study Materials & PDFs</h3>
                     {activeSubject.materials && activeSubject.materials.length > 0 ? (
                       <div className="materials-grid-list">
                         {activeSubject.materials.map((mat) => (
@@ -610,22 +600,22 @@ export default function LearningPlayer({
 
                 {mainTab === 'notes' && (
                   <div className="tab-pane-content">
-                    <h3>My Study Notes</h3>
+                    <h3>My Lecture Notes</h3>
                     <p className="tab-pane-desc">
-                      Take personal study notes while watching <strong>{activeVideo?.title || 'this lecture'}</strong>. Your notes are stored locally in your browser.
+                      Personal notes for <strong>{activeVideo?.title || 'this lecture'}</strong>.
                     </p>
 
                     <div className="notes-box-wrap">
                       <textarea
                         className="form-input notes-textarea-field"
-                        rows={5}
-                        placeholder="Write study notes, key formulas, or questions here..."
+                        rows={4}
+                        placeholder="Type lecture notes or key formulas here..."
                         value={currentNoteText}
                         onChange={(e) => setCurrentNoteText(e.target.value)}
                       />
                       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
                         <button className="btn btn-primary" onClick={handleSaveNote}>
-                          Save Lecture Notes
+                          Save Notes
                         </button>
                       </div>
                     </div>
@@ -637,11 +627,11 @@ export default function LearningPlayer({
         </div>
 
         {/* ========================================================= */}
-        {/* RIGHT COLUMN: Oracle-Style Playlist & Content Sidebar    */}
+        {/* RIGHT COLUMN: Playlist Sidebar                           */}
         {/* ========================================================= */}
         <div className={`oracle-sidebar-col ${isMobile && mobileTab !== 'playlist' && mobileTab !== 'materials' ? 'mobile-hidden' : ''}`}>
           <div className="oracle-sidebar-card glass-panel">
-            {/* 1. Sidebar Top Header Navigation Tabs */}
+            {/* Sidebar Tabs */}
             <div className="sidebar-top-tabs">
               <button
                 className={`sidebar-top-tab ${sidebarTab === 'playlist' ? 'active' : ''}`}
@@ -663,12 +653,12 @@ export default function LearningPlayer({
               </button>
             </div>
 
-            {/* 2. PLAYLIST TAB CONTENT */}
+            {/* PLAYLIST TAB CONTENT */}
             {sidebarTab === 'playlist' && (
               <div className="sidebar-tab-pane">
-                {/* Search Playlist Field */}
+                {/* Search Box */}
                 <div className="playlist-search-wrap">
-                  <Search size={16} className="search-icon-fixed" />
+                  <Search size={15} className="search-icon-fixed" />
                   <input
                     type="text"
                     placeholder="Search playlist…"
@@ -683,7 +673,7 @@ export default function LearningPlayer({
                   )}
                 </div>
 
-                {/* Filter & Control Toggles Bar (matching Oracle layout) */}
+                {/* Toggles Bar */}
                 <div className="playlist-toggles-bar">
                   <label className="checkbox-toggle-label">
                     <input
@@ -704,14 +694,13 @@ export default function LearningPlayer({
                   </label>
                 </div>
 
-                {/* Accordion / Collapsible Playlist Sections */}
+                {/* Modules Accordion */}
                 <div className="playlist-modules-accordion">
                   {filteredPlaylists.length > 0 ? (
                     filteredPlaylists.map((playlist, pIdx) => {
                       const isCollapsed = !!collapsedModules[playlist.id];
                       return (
                         <div key={playlist.id} className="accordion-module-group">
-                          {/* Module Accordion Header */}
                           <button
                             type="button"
                             className="module-header-toggle"
@@ -722,10 +711,9 @@ export default function LearningPlayer({
                                 {pIdx + 1}. {playlist.title}
                               </strong>
                             </span>
-                            {isCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+                            {isCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
                           </button>
 
-                          {/* Module Video List */}
                           {!isCollapsed && (
                             <ul className="module-vids-ul">
                               {(playlist.videos || []).map((video, vIdx) => {
@@ -739,18 +727,16 @@ export default function LearningPlayer({
                                       className={`video-row-item ${isCurrent ? 'active-playing' : ''}`}
                                       onClick={() => handlePlayVideo(playlist.id, vIdx, video.id)}
                                     >
-                                      {/* Status Circle Indicator */}
                                       <span className="video-circle-status">
                                         {isCurrent ? (
-                                          <PlayCircle size={18} className="ic-playing-glow" />
+                                          <PlayCircle size={16} className="ic-playing-glow" />
                                         ) : isWatched && showSkillChecks ? (
-                                          <CheckCircle2 size={18} className="ic-watched-green" />
+                                          <CheckCircle2 size={16} className="ic-watched-green" />
                                         ) : (
-                                          <Circle size={18} className="ic-unplayed-ring" />
+                                          <Circle size={16} className="ic-unplayed-ring" />
                                         )}
                                       </span>
 
-                                      {/* Video Details */}
                                       <div className="video-row-details">
                                         <span className="vid-title-text">{video.title}</span>
                                         <span className="vid-duration-sub">{video.duration || '8m'}</span>
@@ -766,17 +752,17 @@ export default function LearningPlayer({
                     })
                   ) : (
                     <div className="empty-playlist-box">
-                      <p>No lectures match your playlist search.</p>
+                      <p>No lectures match search.</p>
                     </div>
                   )}
                 </div>
 
-                {/* Sidebar Footer: Duration & Completion Progress */}
+                {/* Progress Footer */}
                 <div className="sidebar-progress-footer">
                   <div className="dur-summary-row">
-                    <span className="dur-lbl">Course Duration</span>
+                    <span className="dur-lbl">Duration</span>
                     <span className="dur-val">
-                      {totalLecturesCount * 8}m ({totalLecturesCount} Lectures)
+                      {totalLecturesCount * 8}m ({totalLecturesCount} Videos)
                     </span>
                   </div>
 
@@ -786,7 +772,7 @@ export default function LearningPlayer({
 
                   <div className="progress-text-sub">
                     <span>
-                      {watchedCount} of {totalLecturesCount} completed
+                      {watchedCount} of {totalLecturesCount} watched
                     </span>
                     <span>{progressPercent}%</span>
                   </div>
@@ -794,7 +780,7 @@ export default function LearningPlayer({
               </div>
             )}
 
-            {/* 3. MATERIALS / GUIDES TAB */}
+            {/* MATERIALS / GUIDES TAB */}
             {sidebarTab === 'materials' && (
               <div className="sidebar-tab-pane">
                 <div className="pane-head-info">
@@ -826,7 +812,7 @@ export default function LearningPlayer({
               </div>
             )}
 
-            {/* 4. OVERVIEW TAB */}
+            {/* OVERVIEW TAB */}
             {sidebarTab === 'info' && (
               <div className="sidebar-tab-pane">
                 <div className="pane-head-info">
@@ -848,10 +834,6 @@ export default function LearningPlayer({
                     <span className="val">{activeSubject?.credits || 4} Credits</span>
                   </div>
                   <div className="meta-info-row">
-                    <span className="lbl">Playlists</span>
-                    <span className="val">{activeSubject?.playlists?.length || 0} Series</span>
-                  </div>
-                  <div className="meta-info-row">
                     <span className="lbl">Total Videos</span>
                     <span className="val">{allSubjectVideos.length} Lectures</span>
                   </div>
@@ -869,19 +851,24 @@ const styles = {
   container: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '16px'
+    gap: '12px',
+    width: '100%',
+    maxWidth: '100%',
+    boxSizing: 'border-box'
   },
-  header: {
+  compactTopBar: {
     display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    gap: '10px',
-    textAlign: 'left'
+    alignItems: 'center',
+    gap: '12px',
+    padding: '8px 14px',
+    borderRadius: '12px',
+    boxSizing: 'border-box',
+    width: '100%'
   },
   backBtn: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '6px',
+    gap: '4px',
     background: 'rgba(255,255,255,0.04)',
     border: '1px solid rgba(255,255,255,0.08)',
     color: 'var(--text-secondary)',
@@ -890,28 +877,16 @@ const styles = {
     cursor: 'pointer',
     fontSize: '0.8rem',
     fontFamily: 'var(--font-heading)',
-    transition: 'all 0.2s'
-  },
-  headerTitleContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px'
-  },
-  toolbarRow: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '16px',
-    padding: '12px 18px',
-    borderRadius: '14px',
-    flexWrap: 'wrap'
+    transition: 'all 0.2s',
+    whiteSpace: 'nowrap'
   },
   playerWrapper: {
     position: 'relative',
     paddingBottom: '56.25%',
     height: 0,
     overflow: 'hidden',
-    borderRadius: '16px 16px 0 0'
+    borderRadius: '16px 16px 0 0',
+    width: '100%'
   },
   iframe: {
     position: 'absolute',
