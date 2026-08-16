@@ -283,6 +283,14 @@ const mapProfile = (dbProfile) => {
     id: dbProfile.id,
     email: dbProfile.email,
     name: dbProfile.name,
+    username: dbProfile.username || `@${dbProfile.name?.toLowerCase().replace(/\s+/g, '')}`,
+    phone: dbProfile.phone || '',
+    college: dbProfile.college || 'MAKAUT / University',
+    department: dbProfile.department || 'CSE/IT',
+    interests: dbProfile.interests || 'Programming, Physics, Mathematics',
+    idCardLink: dbProfile.id_card_link || '',
+    isVerified: !!dbProfile.is_verified,
+    verificationStatus: dbProfile.verification_status || 'none',
     role: dbProfile.role,
     status: dbProfile.status,
     creatorStatus: dbProfile.creator_status,
@@ -291,9 +299,9 @@ const mapProfile = (dbProfile) => {
 };
 
 const SEED_USERS = [
-  { id: 'u-1', email: 'admin@learnopia.edu', name: 'Dr. Arthur Pendelton', role: 'admin', status: 'active', password: 'admin123', enrolledCourses: ['c-1'] },
-  { id: 'u-2', email: 'creator@learnopia.edu', name: 'Prof. Sarah Miller', role: 'creator', status: 'active', password: 'creator123', enrolledCourses: [] },
-  { id: 'u-3', email: 'learner@learnopia.edu', name: 'Alex Carter', role: 'learner', status: 'active', password: 'learner123', enrolledCourses: [] }
+  { id: 'u-1', email: 'admin@learnopia.edu', name: 'Deepak Shaw', username: '@deepak_shaw', phone: '+91 9876543210', college: 'MAKAUT University', department: 'CSE/IT', interests: 'Computer Science, AI, Web Development', isVerified: true, verificationStatus: 'verified', role: 'owner', status: 'active', password: 'admin123', enrolledCourses: ['c-1'] },
+  { id: 'u-2', email: 'creator@learnopia.edu', name: 'Prof. Sarah Miller', username: '@sarah_miller', phone: '+91 9876543211', college: 'MAKAUT Campus', department: 'Physics', interests: 'Quantum Mechanics, Wave Optics', isVerified: true, verificationStatus: 'verified', role: 'creator', status: 'active', password: 'creator123', enrolledCourses: [] },
+  { id: 'u-3', email: 'learner@learnopia.edu', name: 'Alex Carter', username: '@alex_carter', phone: '+91 9876543212', college: 'Heritage Institute', department: 'CSE', interests: 'Data Structures, C Programming', isVerified: false, verificationStatus: 'none', role: 'learner', status: 'active', password: 'learner123', enrolledCourses: [] }
 ];
 
 const SEED_COURSES = [
@@ -824,6 +832,93 @@ export function DatabaseProvider({ children }) {
         localStorage.setItem('learnopia_current_user_stable', JSON.stringify(updatedUser));
       }
       addLog(`Creator permission requested.`);
+    }
+  };
+
+  const updateUserProfile = async (userId, profileData) => {
+    if (profileData.username) {
+      const formattedUsername = profileData.username.startsWith('@') ? profileData.username : `@${profileData.username}`;
+      const isTaken = users.some(u => u.id !== userId && u.username?.toLowerCase() === formattedUsername.toLowerCase());
+      if (isTaken) {
+        return { success: false, error: `Username ${formattedUsername} is already taken by another user.` };
+      }
+      profileData.username = formattedUsername;
+    }
+
+    const userToUpdate = users.find(u => u.id === userId) || currentUser;
+    if (userToUpdate?.isVerified) {
+      delete profileData.name;
+      delete profileData.username;
+    }
+
+    if (isSupabaseLive) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({
+            name: profileData.name,
+            username: profileData.username,
+            phone: profileData.phone,
+            college: profileData.college,
+            department: profileData.department,
+            interests: profileData.interests,
+            id_card_link: profileData.idCardLink,
+            verification_status: profileData.idCardLink ? 'pending' : userToUpdate?.verificationStatus
+          })
+          .eq('id', userId);
+      } catch (e) {}
+      syncSupabase();
+    } else {
+      setUsers(prev => {
+        const next = prev.map(u => {
+          if (u.id === userId) {
+            return {
+              ...u,
+              ...profileData,
+              verificationStatus: profileData.idCardLink ? 'pending' : u.verificationStatus
+            };
+          }
+          return u;
+        });
+        localStorage.setItem('learnopia_users_stable', JSON.stringify(next));
+        return next;
+      });
+
+      if (currentUser && currentUser.id === userId) {
+        const updatedUser = {
+          ...currentUser,
+          ...profileData,
+          verificationStatus: profileData.idCardLink ? 'pending' : currentUser.verificationStatus
+        };
+        setCurrentUser(updatedUser);
+        localStorage.setItem('learnopia_current_user_stable', JSON.stringify(updatedUser));
+      }
+    }
+    return { success: true };
+  };
+
+  const adminVerifyUser = async (userId, newStatus) => {
+    const isVerified = newStatus === 'verified';
+    if (isSupabaseLive) {
+      await supabase
+        .from('profiles')
+        .update({
+          is_verified: isVerified,
+          verification_status: newStatus
+        })
+        .eq('id', userId);
+      syncSupabase();
+    } else {
+      setUsers(prev => {
+        const next = prev.map(u => u.id === userId ? { ...u, isVerified, verificationStatus: newStatus } : u);
+        localStorage.setItem('learnopia_users_stable', JSON.stringify(next));
+        return next;
+      });
+      if (currentUser && currentUser.id === userId) {
+        const updated = { ...currentUser, isVerified, verificationStatus: newStatus };
+        setCurrentUser(updated);
+        localStorage.setItem('learnopia_current_user_stable', JSON.stringify(updated));
+      }
     }
   };
 
@@ -1758,6 +1853,8 @@ export function DatabaseProvider({ children }) {
       registerUser,
       logout,
       requestCreatorStatus,
+      updateUserProfile,
+      adminVerifyUser,
       enrollInCourse,
       removeUserEnrollment,
       addCourse,

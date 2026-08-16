@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
-import { Users, BookOpen, ShieldCheck, Check, Ban, Award, FileText, Shield, X, Wrench } from 'lucide-react';
+import { Users, BookOpen, ShieldCheck, Check, Ban, Award, FileText, Shield, X, ExternalLink, CheckCircle2 } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const { currentUser, users, courses, subjects, activityLogs, approveCreator, rejectCreator, makeAdmin, toggleUserStatus, changeUserRole, pruneActivityLogs } = useDatabase();
+  const { currentUser, users, courses, subjects, activityLogs, approveCreator, rejectCreator, makeAdmin, toggleUserStatus, changeUserRole, adminVerifyUser } = useDatabase();
   const [activeTab, setActiveTab] = useState('verification');
   const [userSearchQuery, setUserSearchQuery] = useState('');
 
@@ -14,8 +14,15 @@ export default function AdminDashboard() {
   }, 0);
   const totalUsers = users.length;
   const learners = users.filter(u => u.role === 'learner');
-  const admins = users.filter(u => u.role === 'admin');
+  const admins = users.filter(u => u.role === 'admin' || u.role === 'owner');
   const pendingCreators = users.filter(u => u.creatorStatus === 'pending' || (u.role === 'creator' && u.status === 'pending'));
+  const pendingStudentVerifications = users.filter(u => u.verificationStatus === 'pending' || (u.idCardLink && !u.isVerified));
+
+  const filteredUsers = users.filter(u => {
+    if (!userSearchQuery.trim()) return true;
+    const q = userSearchQuery.toLowerCase().trim();
+    return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || (u.username && u.username.toLowerCase().includes(q));
+  });
 
   return (
     <div className="animate-fade-in" style={styles.container}>
@@ -45,13 +52,13 @@ export default function AdminDashboard() {
 
         <div className="glass-panel" style={styles.statCard}>
           <div style={styles.statHeader}>
-            <span style={styles.statLabel}>Pending Verification</span>
+            <span style={styles.statLabel}>Pending ID Verifications</span>
             <ShieldCheck size={20} color="#f59e0b" />
           </div>
-          <div style={styles.statVal}>{pendingCreators.length}</div>
+          <div style={styles.statVal}>{pendingStudentVerifications.length}</div>
           <div style={styles.statFooter}>
-            <span style={{ color: pendingCreators.length > 0 ? 'var(--warning)' : 'var(--text-muted)' }}>
-              {pendingCreators.length > 0 ? 'Educators awaiting clearance' : 'No tasks pending'}
+            <span style={{ color: pendingStudentVerifications.length > 0 ? 'var(--warning)' : 'var(--text-muted)' }}>
+              {pendingStudentVerifications.length > 0 ? 'Student ID cards awaiting review' : 'All accounts verified'}
             </span>
           </div>
         </div>
@@ -74,7 +81,20 @@ export default function AdminDashboard() {
               }}
             >
               <Award size={15} />
-              Pending Creators ({pendingCreators.length})
+              Creator Queue ({pendingCreators.length})
+            </button>
+
+            <button 
+              onClick={() => setActiveTab('student-verify')}
+              style={{
+                ...styles.sideTab,
+                background: activeTab === 'student-verify' ? 'rgba(255,255,255,0.03)' : 'transparent',
+                borderLeftColor: activeTab === 'student-verify' ? 'var(--primary)' : 'transparent',
+                color: activeTab === 'student-verify' ? '#ffffff' : 'var(--text-secondary)'
+              }}
+            >
+              <ShieldCheck size={15} />
+              ID Verification Queue ({pendingStudentVerifications.length})
             </button>
             
             <button 
@@ -89,26 +109,13 @@ export default function AdminDashboard() {
               <Users size={15} />
               User Directories
             </button>
-
-            <button 
-              onClick={() => setActiveTab('logs')}
-              style={{
-                ...styles.sideTab,
-                background: activeTab === 'logs' ? 'rgba(255,255,255,0.03)' : 'transparent',
-                borderLeftColor: activeTab === 'logs' ? 'var(--primary)' : 'transparent',
-                color: activeTab === 'logs' ? '#ffffff' : 'var(--text-secondary)'
-              }}
-            >
-              <FileText size={15} />
-              Activity Logs ({activityLogs?.length || 0})
-            </button>
           </div>
         </div>
 
         {/* Console panel content */}
         <div className="glass-panel" style={styles.contentWorkspace}>
           
-          {/* TAB 1: Verification Queue */}
+          {/* TAB 1: Creator Verification Queue */}
           {activeTab === 'verification' && (
             <div style={styles.pane}>
               <h3 style={styles.paneTitle}>Creator Verification Queue</h3>
@@ -148,16 +155,14 @@ export default function AdminDashboard() {
                                 className="btn btn-primary"
                                 style={{ padding: '6px 12px', fontSize: '0.75rem', gap: '4px', background: 'var(--success)' }}
                               >
-                                <Check size={12} />
-                                Approve
+                                <Check size={12} /> Approve
                               </button>
                               <button 
                                 onClick={() => rejectCreator(creator.id)}
                                 className="btn btn-danger"
                                 style={{ padding: '6px 12px', fontSize: '0.75rem', gap: '4px' }}
                               >
-                                <X size={12} />
-                                Reject
+                                <X size={12} /> Reject
                               </button>
                             </div>
                           </td>
@@ -170,17 +175,93 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* TAB 2: User Directories */}
+          {/* TAB 2: Student ID Card Verification Queue */}
+          {activeTab === 'student-verify' && (
+            <div style={styles.pane}>
+              <h3 style={styles.paneTitle}>Student ID Document Verification Queue</h3>
+              <p style={styles.paneSub}>Review student identity card Drive links and approve verified accounts to lock name/username.</p>
+
+              <div style={styles.tableWrapper}>
+                {pendingStudentVerifications.length === 0 ? (
+                  <div style={styles.emptyVerification}>
+                    <CheckCircle2 size={36} color="var(--success)" style={{ marginBottom: '8px' }} />
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>All Student IDs Reviewed</p>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>No student verification requests pending.</p>
+                  </div>
+                ) : (
+                  <table style={styles.table}>
+                    <thead>
+                      <tr style={styles.tableRowHead}>
+                        <th style={styles.th}>Student Name & Username</th>
+                        <th style={styles.th}>College / Dept</th>
+                        <th style={styles.th}>ID Card Document Link</th>
+                        <th style={styles.th}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pendingStudentVerifications.map(student => (
+                        <tr key={student.id} style={styles.tableRow}>
+                          <td style={styles.td}>
+                            <strong>{student.name}</strong>
+                            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>{student.username || '@user'}</span>
+                          </td>
+                          <td style={styles.td}>
+                            <span style={{ fontSize: '0.8rem', color: '#ffffff' }}>{student.college || 'MAKAUT'}</span>
+                            <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)' }}>{student.department || 'CSE'}</span>
+                          </td>
+                          <td style={styles.td}>
+                            {student.idCardLink ? (
+                              <a
+                                href={student.idCardLink}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn btn-secondary btn-sm"
+                                style={{ padding: '4px 10px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              >
+                                <ExternalLink size={13} /> View ID Link ↗
+                              </a>
+                            ) : (
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>No link provided</span>
+                            )}
+                          </td>
+                          <td style={styles.td}>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button
+                                onClick={() => adminVerifyUser(student.id, 'verified')}
+                                className="btn btn-primary"
+                                style={{ padding: '6px 12px', fontSize: '0.75rem', gap: '4px', background: 'var(--success)' }}
+                              >
+                                <Check size={12} /> Verify Student
+                              </button>
+                              <button
+                                onClick={() => adminVerifyUser(student.id, 'rejected')}
+                                className="btn btn-danger"
+                                style={{ padding: '6px 12px', fontSize: '0.75rem', gap: '4px' }}
+                              >
+                                <X size={12} /> Reject
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: User Directories */}
           {activeTab === 'directory' && (
             <div style={styles.pane}>
               <h3 style={styles.paneTitle}>User Directories</h3>
-              <p style={styles.paneSub}>Promote accounts to admin status, suspend/activate users, and monitor accounts directory.</p>
+              <p style={styles.paneSub}>Promote accounts, toggle verification, suspend/activate users, and monitor directory.</p>
               
               {/* Search Box */}
               <div style={{ marginBottom: '16px', maxWidth: '340px' }}>
                 <input 
                   type="text" 
-                  placeholder="Search users by name or email..." 
+                  placeholder="Search users by name, username or email..." 
                   value={userSearchQuery} 
                   onChange={(e) => setUserSearchQuery(e.target.value)} 
                   className="form-input"
@@ -192,181 +273,64 @@ export default function AdminDashboard() {
                 <table style={styles.table}>
                   <thead>
                     <tr style={styles.tableRowHead}>
-                      <th style={styles.th}>Full Name</th>
+                      <th style={styles.th}>Full Name & Handle</th>
                       <th style={styles.th}>Email Address</th>
                       <th style={styles.th}>Role</th>
-                      <th style={styles.th}>Status</th>
+                      <th style={styles.th}>Verified Status</th>
                       <th style={styles.th}>Operations</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {(() => {
-                      const roleRank = { owner: 1, admin: 2, creator: 3, learner: 4 };
-                      return [...users]
-                        .filter(u => 
-                          (u.name || '').toLowerCase().includes(userSearchQuery.toLowerCase()) ||
-                          (u.email || '').toLowerCase().includes(userSearchQuery.toLowerCase())
-                        )
-                        .sort((a, b) => {
-                          const rankA = roleRank[a.role] || 99;
-                          const rankB = roleRank[b.role] || 99;
-                          if (rankA !== rankB) return rankA - rankB;
-                          return (a.name || '').localeCompare(b.name || '');
-                        })
-                        .map(u => (
-                          <tr key={u.id} style={styles.tableRow}>
-                          <td style={styles.td}><strong>{u.name}</strong></td>
-                          <td style={styles.td}>{u.email}</td>
-                          <td style={styles.td}>
-                            <span className={`badge badge-${u.role}`} style={{ fontSize: '0.6rem' }}>{u.role}</span>
-                          </td>
-                          <td style={styles.td}>
-                            <span style={{ 
-                              fontSize: '0.75rem', 
-                              color: u.status === 'active' ? 'var(--success)' : u.status === 'pending' ? 'var(--warning)' : u.status === 'rejected' ? 'var(--text-muted)' : 'var(--error)' 
-                            }}>
-                              ● {u.status}
-                            </span>
-                          </td>
-                          <td style={styles.td}>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                              {/* 1. Self Check */}
-                              {u.id === currentUser?.id ? (
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Current Account</span>
-                              ) : u.role === 'owner' ? (
-                                <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>System Owner</span>
-                              ) : u.role === 'admin' ? (
-                                // Admin actions depend on if current user is owner
-                                currentUser?.role === 'owner' ? (
-                                  <>
-                                    <button
-                                      onClick={() => changeUserRole(u.id, 'learner')}
-                                      className="btn btn-secondary"
-                                      style={{ padding: '6px 10px', fontSize: '0.7rem', gap: '4px' }}
-                                    >
-                                      Demote to Learner
-                                    </button>
-                                    <button
-                                      onClick={() => toggleUserStatus(u.id)}
-                                      className={u.status === 'active' ? 'btn btn-danger' : 'btn btn-secondary'}
-                                      style={{ padding: '6px 10px', fontSize: '0.7rem', gap: '4px' }}
-                                    >
-                                      {u.status === 'active' ? 'Suspend' : 'Activate'}
-                                    </button>
-                                  </>
-                                ) : (
-                                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Admin (Protected)</span>
-                                )
-                              ) : u.role === 'creator' ? (
-                                <>
-                                  <button
-                                    onClick={() => changeUserRole(u.id, 'learner')}
-                                    className="btn btn-secondary"
-                                    style={{ padding: '6px 10px', fontSize: '0.7rem', gap: '4px' }}
-                                    title="Revoke creator credentials (demote to learner)"
-                                  >
-                                    Revoke Creator
-                                  </button>
-                                  <button
-                                    onClick={() => toggleUserStatus(u.id)}
-                                    className={u.status === 'active' ? 'btn btn-danger' : 'btn btn-secondary'}
-                                    style={{ padding: '6px 10px', fontSize: '0.7rem', gap: '4px' }}
-                                  >
-                                    {u.status === 'active' ? 'Suspend' : 'Activate'}
-                                  </button>
-                                  <button
-                                    onClick={() => makeAdmin(u.id)}
-                                    className="btn btn-primary"
-                                    style={{ padding: '6px 10px', fontSize: '0.7rem', gap: '4px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: 'none' }}
-                                  >
-                                    <Shield size={10} />
-                                    Make Admin
-                                  </button>
-                                </>
-                              ) : (
-                                // Learner status
-                                <>
-                                  <button
-                                    onClick={() => makeAdmin(u.id)}
-                                    className="btn btn-primary"
-                                    style={{ padding: '6px 10px', fontSize: '0.7rem', gap: '4px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: 'none' }}
-                                  >
-                                    <Shield size={10} />
-                                    Make Admin
-                                  </button>
-                                  <button
-                                    onClick={() => toggleUserStatus(u.id)}
-                                    className={u.status === 'active' ? 'btn btn-danger' : 'btn btn-secondary'}
-                                    style={{ padding: '6px 10px', fontSize: '0.7rem', gap: '4px' }}
-                                  >
-                                    {u.status === 'active' ? 'Suspend' : 'Activate'}
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ));
-                    })()}
+                    {filteredUsers.map(user => (
+                      <tr key={user.id} style={styles.tableRow}>
+                        <td style={styles.td}>
+                          <strong>{user.name}</strong>
+                          <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user.username || '@user'}</span>
+                        </td>
+                        <td style={styles.td}>{user.email}</td>
+                        <td style={styles.td}>
+                          <span className={`badge badge-${user.role}`} style={{ fontSize: '0.65rem', textTransform: 'capitalize' }}>
+                            {user.role}
+                          </span>
+                        </td>
+                        <td style={styles.td}>
+                          {user.isVerified ? (
+                            <span style={{ color: '#10b981', fontWeight: 700, fontSize: '0.78rem' }}>✔ Verified</span>
+                          ) : (
+                            <button
+                              onClick={() => adminVerifyUser(user.id, 'verified')}
+                              className="btn btn-secondary btn-sm"
+                              style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                            >
+                              Verify Account
+                            </button>
+                          )}
+                        </td>
+                        <td style={styles.td}>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            {user.role !== 'admin' && user.role !== 'owner' && (
+                              <button 
+                                onClick={() => makeAdmin(user.id)}
+                                className="btn btn-secondary"
+                                style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                              >
+                                Promote Admin
+                              </button>
+                            )}
+
+                            <button 
+                              onClick={() => toggleUserStatus(user.id)}
+                              className={`btn ${user.status === 'suspended' ? 'btn-primary' : 'btn-danger'}`}
+                              style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                            >
+                              {user.status === 'suspended' ? 'Unsuspend' : 'Suspend'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: Real Platform Activity Logs */}
-          {activeTab === 'logs' && (
-            <div style={styles.pane}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-                <div>
-                  <h3 style={styles.paneTitle}>Platform Activity Logs</h3>
-                  <p style={styles.paneSub}>A chronological trace of user updates, database modifications, and creator approvals.</p>
-                </div>
-                
-                {/* Pruning Console */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Prune Logs:</span>
-                  <select 
-                    id="log-prune-period"
-                    className="form-input" 
-                    style={{ padding: '4px 8px', fontSize: '0.75rem', width: '140px', background: '#1c1929', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}
-                  >
-                    <option value="1h">Older than 1 hour</option>
-                    <option value="1d">Older than 1 day</option>
-                    <option value="1w">Older than 1 week</option>
-                    <option value="1m">Older than 1 month</option>
-                    <option value="all">Delete All Logs</option>
-                  </select>
-                  <button 
-                    onClick={() => {
-                      const sel = document.getElementById('log-prune-period');
-                      if (sel && window.confirm(`Are you sure you want to delete logs for: ${sel.options[sel.selectedIndex].text}?`)) {
-                        pruneActivityLogs(sel.value);
-                      }
-                    }}
-                    className="btn btn-danger"
-                    style={{ padding: '6px 12px', fontSize: '0.75rem' }}
-                  >
-                    Prune
-                  </button>
-                </div>
-              </div>
-              
-              <div style={styles.logsContainer}>
-                {(!activityLogs || activityLogs.length === 0) ? (
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>No activity logged yet.</p>
-                ) : (
-                  activityLogs.map(log => (
-                    <div key={log.id} style={styles.logItem}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          {new Date(log.timestamp).toLocaleString()}
-                        </span>
-                      </div>
-                      <p style={{ fontSize: '0.8rem', color: '#ffffff', lineHeight: '1.4' }}>{log.event}</p>
-                    </div>
-                  ))
-                )}
               </div>
             </div>
           )}
@@ -374,7 +338,6 @@ export default function AdminDashboard() {
         </div>
 
       </div>
-
     </div>
   );
 }
@@ -383,12 +346,9 @@ const styles = {
   container: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '24px'
-  },
-  statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-    gap: '20px'
+    gap: '24px',
+    maxWidth: '1350px',
+    margin: '0 auto'
   },
   statCard: {
     padding: '20px',
@@ -397,129 +357,102 @@ const styles = {
   statHeader: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: '8px'
+    justifyContent: 'space-between'
   },
   statLabel: {
-    color: 'var(--text-secondary)',
     fontSize: '0.8rem',
-    fontWeight: 600,
-    textTransform: 'uppercase'
+    color: 'var(--text-secondary)',
+    fontWeight: 600
   },
   statVal: {
-    fontSize: '2.2rem',
-    fontWeight: 800,
-    fontFamily: 'var(--font-heading)',
-    marginBottom: '6px',
-    color: '#ffffff'
+    fontSize: '2rem',
+    fontWeight: 700,
+    color: '#ffffff',
+    margin: '8px 0'
   },
   statFooter: {
     fontSize: '0.75rem',
-    color: 'var(--text-secondary)'
-  },
-  layoutGrid: {
-    display: 'grid',
-    gridTemplateColumns: '260px 1fr',
-    gap: '24px',
-    alignItems: 'start',
-    '@media (max-width: 900px)': {
-      gridTemplateColumns: '1fr'
-    }
+    color: 'var(--text-muted)'
   },
   sidebarPanel: {
-    padding: '20px',
+    padding: '16px',
     textAlign: 'left'
   },
   sidebarTitle: {
-    fontSize: '0.9rem',
-    color: 'var(--text-secondary)',
-    marginBottom: '16px',
-    borderBottom: '1px solid rgba(255,255,255,0.06)',
-    paddingBottom: '8px',
+    fontSize: '0.85rem',
     textTransform: 'uppercase',
-    letterSpacing: '0.05em'
+    letterSpacing: '0.05em',
+    color: 'var(--text-secondary)',
+    margin: '0 0 12px 0'
   },
   sideTabs: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '6px'
+    gap: '4px'
   },
   sideTab: {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
     padding: '10px 12px',
+    borderRadius: '8px',
     border: 'none',
     borderLeft: '3px solid transparent',
-    background: 'transparent',
     cursor: 'pointer',
-    fontFamily: 'var(--font-heading)',
     fontSize: '0.85rem',
     fontWeight: 500,
-    borderRadius: '0 6px 6px 0',
-    transition: 'all 0.15s',
-    textAlign: 'left'
+    fontFamily: 'var(--font-heading)',
+    textAlign: 'left',
+    transition: 'all 0.15s ease'
   },
   contentWorkspace: {
     padding: '24px',
-    minHeight: '400px'
+    textAlign: 'left'
   },
   pane: {
     display: 'flex',
     flexDirection: 'column',
-    textAlign: 'left'
+    gap: '8px'
   },
   paneTitle: {
     fontSize: '1.2rem',
-    marginBottom: '4px'
+    margin: 0,
+    color: '#ffffff'
   },
   paneSub: {
-    fontSize: '0.8rem',
+    fontSize: '0.85rem',
     color: 'var(--text-secondary)',
-    marginBottom: '20px'
+    margin: '0 0 16px 0'
   },
   tableWrapper: {
-    overflowX: 'auto'
+    overflowX: 'auto',
+    width: '100%'
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
-    fontSize: '0.85rem'
+    textAlign: 'left'
   },
   tableRowHead: {
-    borderBottom: '2px solid rgba(255,255,255,0.08)'
+    borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
   },
   th: {
-    padding: '12px 16px',
-    textAlign: 'left',
-    color: 'var(--text-secondary)',
-    fontWeight: 600
+    padding: '10px 12px',
+    fontSize: '0.78rem',
+    color: 'var(--text-muted)',
+    fontWeight: 600,
+    textTransform: 'uppercase'
   },
   tableRow: {
-    borderBottom: '1px solid rgba(255,255,255,0.05)',
-    transition: 'background 0.15s'
+    borderBottom: '1px solid rgba(255, 255, 255, 0.04)'
   },
   td: {
-    padding: '12px 16px',
+    padding: '12px',
+    fontSize: '0.85rem',
     color: 'var(--text-primary)'
   },
   emptyVerification: {
-    padding: '40px 10px',
+    padding: '40px 20px',
     textAlign: 'center'
-  },
-  logsContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-    maxHeight: '450px',
-    overflowY: 'auto',
-    paddingRight: '6px'
-  },
-  logItem: {
-    padding: '10px 12px',
-    background: 'rgba(255,255,255,0.02)',
-    border: '1px solid rgba(255,255,255,0.04)',
-    borderRadius: '8px',
-    textAlign: 'left'
   }
 };

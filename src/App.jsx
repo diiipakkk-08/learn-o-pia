@@ -141,21 +141,19 @@ function AppContent() {
           <Auth setCurrentView={setCurrentView} />
         )}
 
-        {/* Attendance Tracker View */}
-        {currentView === 'attendance' && (
-          <AttendanceTracker setCurrentView={setCurrentView} />
-        )}
-
-        {/* Discussions View */}
-        {currentView === 'discussions' && (
-          <DiscussionsView setCurrentView={setCurrentView} />
-        )}
-
         {/* Authenticated Workspace Views */}
-        {!currentUser && !['landing', 'about', 'attendance', 'discussions', 'results-404', 'auth'].includes(currentView) ? (
+        {!currentUser && !['landing', 'auth'].includes(currentView) ? (
           <Auth setCurrentView={setCurrentView} />
         ) : (
           <>
+            {currentView === 'attendance' && (
+              <AttendanceTracker setCurrentView={setCurrentView} />
+            )}
+
+            {currentView === 'discussions' && (
+              <DiscussionsView setCurrentView={setCurrentView} />
+            )}
+
             {currentView === 'learning' && (
               <CoursesDashboard 
                 setSelectedPlaylistId={setSelectedPlaylistId} 

@@ -62,8 +62,8 @@ export default function Header({
           <span style={styles.logoText}>Learn-o-pia</span>
         </div>
 
-        {/* Desktop Nav */}
-        {!isMobile && (
+        {/* Desktop Nav (Only shown when logged in) */}
+        {!isMobile && currentUser && (
           <nav style={styles.nav}>
             <button
               onClick={() => setCurrentView('learning')}

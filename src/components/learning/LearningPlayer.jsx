@@ -13,16 +13,13 @@ import {
   PlayCircle,
   CheckCircle2,
   Circle,
-  Search,
   Clock,
-  GraduationCap,
   Sparkles,
   MessageSquare,
   SkipBack,
   SkipForward,
   UserCheck,
-  Folder,
-  ListVideo
+  Folder
 } from 'lucide-react';
 
 const TYPE_LABEL = {
@@ -158,18 +155,15 @@ export default function LearningPlayer({
   setActiveVideoIndex,
   setCurrentView
 }) {
-  const { courses, subjects } = useDatabase();
+  const { courses, subjects, currentUser } = useDatabase();
 
   const [activeSemester, setActiveSemester] = useState(1);
   const [activeSubjectId, setActiveSubjectId] = useState(null);
   const [activePlaylistId, setActivePlaylistId] = useState(null);
-  const [videoSearchQuery, setVideoSearchQuery] = useState('');
   const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1023 : false));
 
   // Controls & Engagement states
   const [watchedVideos, setWatchedVideos] = useState(() => new Set());
-  const [autoPlay, setAutoPlay] = useState(true);
-  const [showSkillChecks, setShowSkillChecks] = useState(true);
   const [sidebarTab, setSidebarTab] = useState('playlist'); // 'playlist' | 'materials' | 'info'
   const [mainTab, setMainTab] = useState('overview'); // 'overview' | 'materials' | 'notes'
   const [mobileTab, setMobileTab] = useState('playlist'); // 'playlist' | 'materials' | 'overview'
@@ -224,33 +218,49 @@ export default function LearningPlayer({
   }, [activeSubject, activePlaylistId]);
 
   const activePlaylist = activeSubject?.playlists?.find((p) => p.id === activePlaylistId) || activeSubject?.playlists?.[0];
-
-  // Flatten all videos across playlists for the active subject
-  const allSubjectVideos = useMemo(() => {
-    if (!activeSubject || !activeSubject.playlists) return [];
-    const vids = [];
-    activeSubject.playlists.forEach((p, pIdx) => {
-      (p.videos || []).forEach((v, vIdx) => {
-        vids.push({
-          ...v,
-          playlistId: p.id,
-          playlistTitle: p.title,
-          moduleIndex: pIdx + 1,
-          lectureIndex: vIdx + 1
-        });
-      });
-    });
-    return vids;
-  }, [activeSubject]);
-
   const playlistVideos = activePlaylist?.videos || [];
+
+  // ── LOCAL STORAGE PROGRESS PERSISTENCE ──
+  useEffect(() => {
+    if (!playlistId || !activePlaylistId) return;
+    const storageKey = `learnopia_progress_${playlistId}_${activePlaylistId}`;
+
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.lastPlayedIndex !== undefined && parsed.lastPlayedIndex < playlistVideos.length) {
+            setActiveVideoIndex(parsed.lastPlayedIndex);
+          }
+          if (parsed.watchedIndices && Array.isArray(parsed.watchedIndices)) {
+            setWatchedVideos(new Set(parsed.watchedIndices));
+          }
+        } catch (e) {}
+      }
+    }
+  }, [playlistId, activePlaylistId]);
+
+  // Save progress whenever active video changes
+  const saveProgress = (videoIdx, newWatchedSet) => {
+    if (!playlistId || !activePlaylistId) return;
+    const storageKey = `learnopia_progress_${playlistId}_${activePlaylistId}`;
+    const watchedArray = Array.from(newWatchedSet);
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        lastPlayedIndex: videoIdx,
+        watchedIndices: watchedArray
+      })
+    );
+  };
 
   const activeVideo = useMemo(() => {
     if (playlistVideos && playlistVideos.length > 0) {
       return playlistVideos[activeVideoIndex] || playlistVideos[0];
     }
-    return allSubjectVideos[0] || null;
-  }, [playlistVideos, activeVideoIndex, allSubjectVideos]);
+    return null;
+  }, [playlistVideos, activeVideoIndex]);
 
   // Specific materials attached to active video
   const activeVideoMaterials = useMemo(() => {
@@ -320,25 +330,32 @@ export default function LearningPlayer({
 
   const handlePlayVideo = (vIdx, videoId) => {
     setActiveVideoIndex(vIdx);
-    if (videoId) {
-      setWatchedVideos((prev) => {
-        const next = new Set(prev);
-        next.add(videoId);
-        return next;
-      });
-    }
+
+    setWatchedVideos((prev) => {
+      const next = new Set(prev);
+      // Mark all videos up to vIdx as watched!
+      for (let i = 0; i <= vIdx; i++) {
+        if (playlistVideos[i]) {
+          next.add(playlistVideos[i].id || i);
+        }
+      }
+      saveProgress(vIdx, next);
+      return next;
+    });
   };
 
   const handleNextVideo = () => {
     if (!playlistVideos) return;
     if (activeVideoIndex < playlistVideos.length - 1) {
-      setActiveVideoIndex(activeVideoIndex + 1);
+      const nextIdx = activeVideoIndex + 1;
+      handlePlayVideo(nextIdx, playlistVideos[nextIdx]?.id);
     }
   };
 
   const handlePrevVideo = () => {
     if (activeVideoIndex > 0) {
-      setActiveVideoIndex(activeVideoIndex - 1);
+      const prevIdx = activeVideoIndex - 1;
+      handlePlayVideo(prevIdx, playlistVideos[prevIdx]?.id);
     }
   };
 
@@ -360,19 +377,10 @@ export default function LearningPlayer({
 
   // Stats calculation for current active playlist
   const watchedCount = useMemo(() => {
-    return playlistVideos.filter((v) => watchedVideos.has(v.id)).length;
+    return playlistVideos.filter((v, idx) => watchedVideos.has(v.id || idx)).length;
   }, [playlistVideos, watchedVideos]);
 
   const progressPercent = playlistVideos.length > 0 ? Math.round((watchedCount / playlistVideos.length) * 100) : 0;
-
-  // Filter video rows in active playlist by search query
-  const filteredPlaylistVideos = useMemo(() => {
-    if (!playlistVideos) return [];
-    if (!videoSearchQuery.trim()) return playlistVideos;
-
-    const q = videoSearchQuery.toLowerCase().trim();
-    return playlistVideos.filter((v) => v.title.toLowerCase().includes(q));
-  }, [playlistVideos, videoSearchQuery]);
 
   if (!course) {
     return (
@@ -395,10 +403,24 @@ export default function LearningPlayer({
     : getVideoSrc(activeVideo);
 
   return (
-    <div className="animate-fade-in oracle-workspace-container" style={styles.container}>
-      {/* ── TOP BAR: 1 SINGLE HORIZONTAL FLEX LINE (< Back + Semester Dropdown on Left, Subjects on Right) ── */}
-      <div className="glass-panel" style={styles.topFlexRow}>
-        {/* Leftmost Flex Group: Back button + Purple Semester Dropdown side-by-side */}
+    <div className="animate-fade-in oracle-workspace-container" style={{ width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
+      {/* ── TOP BAR: STRICT 1 SINGLE HORIZONTAL LINE (< Back + Semester Dropdown on Leftmost, Subjects on Rightmost) ── */}
+      <div
+        className="glass-panel"
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          padding: '10px 16px',
+          borderRadius: '12px',
+          width: '100%',
+          boxSizing: 'border-box',
+          marginBottom: '16px'
+        }}
+      >
+        {/* Leftmost Flex Group: Back button + Purple Semester Dropdown */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
           <button onClick={() => setCurrentView('learning')} style={styles.backBtn}>
             <ChevronLeft size={15} /> Back
@@ -410,7 +432,7 @@ export default function LearningPlayer({
         </div>
 
         {/* Rightmost Flex Group: Subject Selector Chips */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', justifyContent: 'flex-end', flex: 1 }}>
           {isMobile ? (
             <select
               value={activeSubjectId || ''}
@@ -429,13 +451,13 @@ export default function LearningPlayer({
               )}
             </select>
           ) : (
-            <div className="yt-subject-chips-row" style={{ margin: 0, gap: '4px' }}>
+            <div className="yt-subject-chips-row" style={{ margin: 0, gap: '4px', flexWrap: 'nowrap' }}>
               {currentSubjects.map((sub) => (
                 <button
                   key={sub.id}
                   onClick={() => setActiveSubjectId(sub.id)}
                   className={`yt-subject-chip ${activeSubjectId === sub.id ? 'active' : ''}`}
-                  style={{ padding: '4px 12px', fontSize: '0.78rem' }}
+                  style={{ padding: '5px 14px', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
                 >
                   {sub.title}
                 </button>
@@ -699,12 +721,12 @@ export default function LearningPlayer({
               </button>
             </div>
 
-            {/* PLAYLIST TAB CONTENT: Single Playlist Select Dropdown + Videos List */}
+            {/* PLAYLIST TAB CONTENT: Single Playlist Select Dropdown + Clean Videos List */}
             {sidebarTab === 'playlist' && (
               <div className="sidebar-tab-pane">
                 {/* ── SINGLE PLAYLIST SELECT DROPDOWN (Switches Playlist Series) ── */}
                 {activeSubject?.playlists && activeSubject.playlists.length > 0 && (
-                  <div style={{ marginBottom: '12px' }}>
+                  <div style={{ marginBottom: '14px' }}>
                     <label className="form-label" style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>
                       Select Playlist Series
                     </label>
@@ -726,51 +748,13 @@ export default function LearningPlayer({
                   </div>
                 )}
 
-                {/* Search Box */}
-                <div className="playlist-search-wrap" style={{ marginBottom: '10px' }}>
-                  <Search size={15} className="search-icon-fixed" />
-                  <input
-                    type="text"
-                    placeholder="Search videos in playlist…"
-                    value={videoSearchQuery}
-                    onChange={(e) => setVideoSearchQuery(e.target.value)}
-                    className="form-input playlist-search-input"
-                  />
-                  {videoSearchQuery && (
-                    <button className="search-clear-x" onClick={() => setVideoSearchQuery('')}>
-                      ×
-                    </button>
-                  )}
-                </div>
-
-                {/* Toggles Bar */}
-                <div className="playlist-toggles-bar" style={{ marginBottom: '12px' }}>
-                  <label className="checkbox-toggle-label">
-                    <input
-                      type="checkbox"
-                      checked={showSkillChecks}
-                      onChange={(e) => setShowSkillChecks(e.target.checked)}
-                    />
-                    <span>Skill Checks</span>
-                  </label>
-
-                  <label className="checkbox-toggle-label">
-                    <input
-                      type="checkbox"
-                      checked={autoPlay}
-                      onChange={(e) => setAutoPlay(e.target.checked)}
-                    />
-                    <span>Auto Play</span>
-                  </label>
-                </div>
-
-                {/* Videos List for Selected Playlist */}
-                <div className="playlist-modules-accordion" style={{ maxHeight: '420px', overflowY: 'auto' }}>
+                {/* Videos List for Selected Playlist (Removed duration text and Skill Checks / AutoPlay toggles as requested) */}
+                <div className="playlist-modules-accordion" style={{ maxHeight: '460px', overflowY: 'auto' }}>
                   <ul className="module-vids-ul" style={{ margin: 0 }}>
-                    {filteredPlaylistVideos.length > 0 ? (
-                      filteredPlaylistVideos.map((video, vIdx) => {
+                    {playlistVideos.length > 0 ? (
+                      playlistVideos.map((video, vIdx) => {
                         const isCurrent = activeVideo?.id === video.id || activeVideoIndex === vIdx;
-                        const isWatched = watchedVideos.has(video.id);
+                        const isWatched = watchedVideos.has(video.id || vIdx);
 
                         return (
                           <li key={video.id || vIdx}>
@@ -782,7 +766,7 @@ export default function LearningPlayer({
                               <span className="video-circle-status">
                                 {isCurrent ? (
                                   <PlayCircle size={16} className="ic-playing-glow" />
-                                ) : isWatched && showSkillChecks ? (
+                                ) : isWatched ? (
                                   <CheckCircle2 size={16} className="ic-watched-green" />
                                 ) : (
                                   <Circle size={16} className="ic-unplayed-ring" />
@@ -791,7 +775,6 @@ export default function LearningPlayer({
 
                               <div className="video-row-details">
                                 <span className="vid-title-text">{video.title}</span>
-                                <span className="vid-duration-sub">{video.duration || '8m'}</span>
                               </div>
                             </button>
                           </li>
@@ -799,13 +782,13 @@ export default function LearningPlayer({
                       })
                     ) : (
                       <div className="empty-playlist-box">
-                        <p>No videos match search in this playlist.</p>
+                        <p>No videos found in this playlist.</p>
                       </div>
                     )}
                   </ul>
                 </div>
 
-                {/* Progress Footer */}
+                {/* Progress Footer (Saved in LocalStorage) */}
                 <div className="sidebar-progress-footer">
                   <div className="dur-summary-row">
                     <span className="dur-lbl">Playlist Progress</span>
@@ -908,7 +891,7 @@ export default function LearningPlayer({
                   </div>
                   <div className="meta-info-row">
                     <span className="lbl">Total Videos</span>
-                    <span className="val">{allSubjectVideos.length} Lectures</span>
+                    <span className="val">{playlistVideos.length} Lectures</span>
                   </div>
                 </div>
               </div>
@@ -921,25 +904,6 @@ export default function LearningPlayer({
 }
 
 const styles = {
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-    width: '100%',
-    maxWidth: '100%',
-    boxSizing: 'border-box'
-  },
-  topFlexRow: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '12px',
-    padding: '8px 14px',
-    borderRadius: '12px',
-    boxSizing: 'border-box',
-    width: '100%',
-    flexWrap: 'nowrap'
-  },
   backBtn: {
     display: 'inline-flex',
     alignItems: 'center',
