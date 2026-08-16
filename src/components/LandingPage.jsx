@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   GraduationCap,
   BookOpen,
@@ -19,7 +19,9 @@ import {
   BarChart3,
   Scale,
   Zap,
-  Users
+  Users,
+  Heart,
+  Globe
 } from 'lucide-react';
 import { useDatabase } from '../context/DatabaseContext';
 import TermsModal from './TermsModal';
@@ -70,7 +72,7 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
       }}
       className="animate-fade-in"
     >
-      {/* ── HERO SECTION WITH 3D GLASS TILT ── */}
+      {/* ── HERO SECTION WITH 3D TILT ── */}
       <section style={{
         maxWidth: '1200px',
         margin: '0 auto',
@@ -81,7 +83,7 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
         alignItems: 'center',
         gap: '24px'
       }}>
-        {/* Animated Badge */}
+        {/* Community Badge */}
         <div style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -96,7 +98,7 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
           letterSpacing: '0.04em'
         }}>
           <Sparkles size={16} color="#a78bfa" />
-          <span>Next-Gen Distraction-Free Learning & Academic Monetization</span>
+          <span>Universal Community Curation & Focus Learning Platform</span>
         </div>
 
         {/* 3D Main Headline */}
@@ -115,18 +117,18 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
             WebkitTextFillColor: 'transparent',
             fontFamily: 'var(--font-heading)'
           }}>
-            Master Real Knowledge. Zero Distractions. Pure Focus.
+            Curate Any Video Series into Focus Courses. Share or Sell to Anyone.
           </h1>
         </div>
 
         <p style={{
           fontSize: '1.15rem',
           color: 'var(--text-secondary, #9ca3af)',
-          maxWidth: '820px',
+          maxWidth: '840px',
           lineHeight: 1.6,
           margin: 0
         }}>
-          Learn-o-pia eliminates YouTube recommendation traps and algorithm noise. Stream structured lectures, track semester attendance, join hashtag doubt streams, or publish and monetize your own university courses!
+          Learn-o-pia is an open, community-driven platform for everyone. Structure YouTube video series, guides, and study materials into clean focus courses across coding, self-development, business, science, creative arts, or academic tracks — then share freely or monetize your courses!
         </p>
 
         {/* Dual Call To Actions */}
@@ -143,11 +145,11 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
               gap: '10px'
             }}
           >
-            🚀 Get Started Free <ArrowRight size={18} />
+            🚀 Explore Open Community Courses <ArrowRight size={18} />
           </button>
 
           <button
-            onClick={() => setCurrentView('learning')}
+            onClick={() => setCurrentView('studio')}
             className="btn btn-secondary"
             style={{
               padding: '16px 30px',
@@ -158,11 +160,11 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
               gap: '10px'
             }}
           >
-            <BookOpen size={18} /> Explore Curricula
+            <Sparkles size={18} color="#a78bfa" /> Curate & Sell a Course
           </button>
         </div>
 
-        {/* Dynamic Statistics Counter Bar */}
+        {/* Community Statistics Bar */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
@@ -176,25 +178,25 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
           border: '1px solid rgba(255, 255, 255, 0.08)'
         }}>
           <div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#ffffff' }}>15,000+</div>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Lectures Streamed</span>
+            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#ffffff' }}>100% Free</div>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Community Open Access</span>
           </div>
           <div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#34d399' }}>98.4%</div>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Focus Retention Rate</span>
+            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#34d399' }}>Zero Ads</div>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Pure Focus Theatre Player</span>
           </div>
           <div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#a78bfa' }}>100%</div>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Distraction-Free Verified</span>
+            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#a78bfa' }}>Any Subject</div>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Coding, Skills & Academics</span>
           </div>
           <div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f59e0b' }}>4.9 / 5.0</div>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Educator & Student Rating</span>
+            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f59e0b' }}>Share & Sell</div>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Curator Revenue Engine</span>
           </div>
         </div>
       </section>
 
-      {/* ── CORE PLATFORM PILLARS GRID ── */}
+      {/* ── PLATFORM PILLARS GRID ── */}
       <section style={{
         maxWidth: '1200px',
         margin: '0 auto',
@@ -203,52 +205,52 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
         gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))',
         gap: '24px'
       }}>
-        {/* Card 1: Distraction Free Player */}
+        {/* Card 1: Universal Curation */}
         <div className="glass-panel" style={styles.featureCard}>
           <div style={{ background: 'rgba(99, 102, 241, 0.15)', padding: '12px', borderRadius: '14px', width: 'fit-content' }}>
-            <Play size={26} color="#6366f1" />
+            <Globe size={26} color="#6366f1" />
           </div>
-          <h3 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>Distraction-Free Theatre Player</h3>
+          <h3 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>Universal Curation for Everyone</h3>
           <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
-            Pinned lecture video stage with auto-scrolling queues. Zero recommended sidebar distractions, zero Shorts, and zero unskippable commercial ads.
+            Organize YouTube video series, PDF guides, and links into structured courses. Perfect for software engineering, self-development, business, or creative hobbies.
           </p>
         </div>
 
-        {/* Card 2: Attendance Tracker */}
+        {/* Card 2: Distraction Free Player */}
         <div className="glass-panel" style={styles.featureCard}>
           <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '12px', borderRadius: '14px', width: 'fit-content' }}>
-            <BarChart3 size={26} color="#10b981" />
+            <Play size={26} color="#10b981" />
           </div>
-          <h3 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>Smart Attendance & Progress Tracker</h3>
+          <h3 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>Distraction-Free Focus Stage</h3>
           <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
-            Semester-wise attendance logging with minimum 75% criteria alerts, lecture progress persistence, and automated subject performance analytics.
+            Watch curated courses without YouTube recommendations, Shorts rabbit holes, or popups breaking your concentration.
           </p>
         </div>
 
-        {/* Card 3: Discussion & Doubts Threads */}
+        {/* Card 3: Community Discussions */}
         <div className="glass-panel" style={styles.featureCard}>
           <div style={{ background: 'rgba(245, 158, 11, 0.15)', padding: '12px', borderRadius: '14px', width: 'fit-content' }}>
             <MessageSquare size={26} color="#f59e0b" />
           </div>
-          <h3 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>Hashtag Doubts & Thread Streams</h3>
+          <h3 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>Community Threads & Code Joiner</h3>
           <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
-            Public and private discussion threads with code access (`DS-9182`), nested replies, and peer problem-solving without cluttered spam.
+            Join public or private discussion streams (`DS-9182`), ask questions, reply directly to peers, and build learning communities.
           </p>
         </div>
 
-        {/* Card 4: Creator Monetization */}
+        {/* Card 4: Creator Monetization & Donations */}
         <div className="glass-panel" style={styles.featureCard}>
           <div style={{ background: 'rgba(236, 72, 153, 0.15)', padding: '12px', borderRadius: '14px', width: 'fit-content' }}>
             <DollarSign size={26} color="#ec4899" />
           </div>
-          <h3 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>Course Creation & Monetization Engine</h3>
+          <h3 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>Share Freely or Monetize Courses</h3>
           <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
-            Verified educators, professors, and creators can publish degree curricula, share standalone study PDFs, and monetize their expertise.
+            Share your curated learning paths freely with the community or offer paid access to monetize custom masterclasses and study notes.
           </p>
         </div>
       </section>
 
-      {/* ── FEATURED DEGREE COURSES PREVIEW ── */}
+      {/* ── FEATURED COURSES & LEARNING PATHS ── */}
       <section style={{
         maxWidth: '1200px',
         margin: '0 auto',
@@ -259,10 +261,10 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
       }}>
         <div style={{ textAlign: 'center' }}>
           <h2 style={{ fontSize: '2rem', fontWeight: 800, margin: 0, color: '#ffffff' }}>
-            Featured Degree Programs & Open Curricula
+            Explore Community Curated Courses
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', marginTop: '6px' }}>
-            Select your department and access semester-wise lecture playlists instantly.
+            From programming and technology to personal growth and science.
           </p>
         </div>
 
@@ -294,13 +296,13 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em'
                 }}>
-                  {course.department || 'Degree Program'}
+                  {course.department || 'Curated Learning Path'}
                 </span>
                 <h3 style={{ fontSize: '1.15rem', color: '#ffffff', margin: '8px 0 6px 0', fontWeight: 700 }}>
                   {course.title}
                 </h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
-                  {course.description || 'Comprehensive university degree curriculum with semester lecture series.'}
+                  {course.description || 'Curated video series with attached resources and organized playlists.'}
                 </p>
               </div>
 
@@ -316,14 +318,14 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
                   color: '#ffffff'
                 }}
               >
-                Enroll & Start Studying
+                Start Learning Now
               </button>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── FOOTER WITH TERMS & POLICIES ── */}
+      {/* ── FOOTER WITH TERMS & LEGAL CONTRACT ── */}
       <footer style={{
         borderTop: '1px solid rgba(255, 255, 255, 0.08)',
         padding: '40px 20px',
@@ -334,7 +336,7 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '12px' }}>
           <GraduationCap size={20} color="#8b5cf6" />
           <span style={{ fontWeight: 700, color: '#ffffff' }}>Learn-o-pia</span>
-          <span>— Open-Access University Learning Portal</span>
+          <span>— Open Community Curation Platform</span>
         </div>
 
         <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', margin: '14px 0' }}>
@@ -342,7 +344,7 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
             onClick={() => setShowTermsModal(true)}
             style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.82rem', textDecoration: 'underline' }}
           >
-            Terms of Service & Platform Policies
+            Platform Terms of Service & Legal Contract
           </button>
           <button
             onClick={() => setCurrentView('about')}
@@ -352,10 +354,9 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
           </button>
         </div>
 
-        <p style={{ margin: 0 }}>© 2026 Learn-o-pia. Built for university students, educators, and creators worldwide.</p>
+        <p style={{ margin: 0 }}>© 2026 Learn-o-pia. Built for global learners, curators, and creators.</p>
       </footer>
 
-      {/* Terms & Conditions Modal */}
       <TermsModal isOpen={showTermsModal} onClose={() => setShowTermsModal(false)} />
     </div>
   );
