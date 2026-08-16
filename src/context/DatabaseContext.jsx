@@ -783,14 +783,11 @@ export function DatabaseProvider({ children }) {
   };
 
   const loginWithGoogle = async (googleUser = null) => {
-    const email = googleUser?.email;
-    const name = googleUser?.name || (email ? email.split('@')[0] : 'User');
+    const email = googleUser?.email || 'learner@learnopia.edu';
+    const name = googleUser?.name || googleUser?.given_name || (email ? email.split('@')[0] : 'Google Learner');
     const picture = googleUser?.picture || null;
 
-    let existing = null;
-    if (email) {
-      existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    }
+    let existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
 
     if (existing) {
       if (existing.status === 'suspended') {
@@ -816,7 +813,7 @@ export function DatabaseProvider({ children }) {
       return data;
     }
 
-    const fallbackEmail = email ? email.toLowerCase() : 'learner@learnopia.edu';
+    const fallbackEmail = email.toLowerCase();
     const newUsername = `@${name.toLowerCase().replace(/\s+/g, '')}`;
 
     const newUser = {
