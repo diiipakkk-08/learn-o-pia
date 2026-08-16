@@ -1,13 +1,40 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useDatabase, extractYoutubePlaylistId, fetchYoutubePlaylistVideos } from '../../context/DatabaseContext';
-import { Play, FileText, ChevronLeft, BookOpen, AlertCircle, ArrowLeft, Download, List, ChevronDown, ThumbsUp } from 'lucide-react';
+import {
+  Play,
+  FileText,
+  ChevronLeft,
+  BookOpen,
+  ChevronDown,
+  ChevronUp,
+  Star,
+  Heart,
+  Share2,
+  Check,
+  Download,
+  PlayCircle,
+  CheckCircle2,
+  Circle,
+  Search,
+  Clock,
+  GraduationCap,
+  Sparkles,
+  MessageSquare
+} from 'lucide-react';
 
-// Portal Dropdown — renders in document.body to escape backdrop-filter ancestors
+const TYPE_LABEL = {
+  syllabus: 'Syllabus',
+  notes: 'Notes',
+  pyq: 'PYQ',
+  organizer: 'Organizer'
+};
+
+// Portal Dropdown for Semester selection
 function SemesterPortalMenu({ triggerRef, menuRef, isOpen, value, onChange, onClose }) {
-  const [style, setStyle] = React.useState({});
+  const [style, setStyle] = useState({});
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen && triggerRef.current) {
       const r = triggerRef.current.getBoundingClientRect();
       setStyle({
@@ -32,18 +59,26 @@ function SemesterPortalMenu({ triggerRef, menuRef, isOpen, value, onChange, onCl
   if (!isOpen) return null;
   return ReactDOM.createPortal(
     <div ref={menuRef} style={style}>
-      {[1,2,3,4,5,6,7,8].map(s => (
+      {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
         <button
           key={s}
           type="button"
-          onClick={() => { onChange(s); onClose(); }}
+          onClick={() => {
+            onChange(s);
+            onClose();
+          }}
           style={{
-            padding: '10px 16px', fontSize: '0.85rem', textAlign: 'left',
+            padding: '10px 16px',
+            fontSize: '0.85rem',
+            textAlign: 'left',
             background: value === s ? 'var(--primary)' : 'transparent',
             color: value === s ? '#fff' : 'var(--text-secondary)',
             fontWeight: value === s ? 600 : 400,
-            border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)',
-            transition: 'background 0.15s', width: '100%'
+            border: 'none',
+            cursor: 'pointer',
+            fontFamily: 'var(--font-body)',
+            transition: 'background 0.15s',
+            width: '100%'
           }}
         >
           Semester {s}
@@ -54,13 +89,12 @@ function SemesterPortalMenu({ triggerRef, menuRef, isOpen, value, onChange, onCl
   );
 }
 
-// Custom Semester Dropdown Component
 function CustomSemesterDropdown({ value, onChange }) {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const triggerRef = React.useRef(null);
-  const menuRef = React.useRef(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const close = (e) => {
       const clickedTrigger = triggerRef.current && triggerRef.current.contains(e.target);
       const clickedMenu = menuRef.current && menuRef.current.contains(e.target);
@@ -74,9 +108,15 @@ function CustomSemesterDropdown({ value, onChange }) {
 
   return (
     <div style={{ position: 'relative' }}>
-      <div ref={triggerRef} className="custom-dropdown-trigger" onClick={() => setIsOpen(o => !o)}>
+      <div ref={triggerRef} className="custom-dropdown-trigger" onClick={() => setIsOpen((o) => !o)}>
         <span>Semester {value}</span>
-        <ChevronDown size={14} style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+        <ChevronDown
+          size={14}
+          style={{
+            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s'
+          }}
+        />
       </div>
       <SemesterPortalMenu
         triggerRef={triggerRef}
@@ -90,72 +130,206 @@ function CustomSemesterDropdown({ value, onChange }) {
   );
 }
 
-export default function LearningPlayer({ 
-  playlistId, 
-  activeVideoIndex, 
-  setActiveVideoIndex, 
+export default function LearningPlayer({
+  playlistId,
+  activeVideoIndex,
+  setActiveVideoIndex,
   setCurrentView
 }) {
-  const { courses, subjects, togglePlaylistLike, toggleVideoLike, currentUser } = useDatabase();
-  
+  const { courses, subjects, currentUser } = useDatabase();
+
   const [activeSemester, setActiveSemester] = useState(1);
   const [activeSubjectId, setActiveSubjectId] = useState(null);
-  
-  const [activeCategory, setActiveCategory] = useState('playlists');
   const [activePlaylistId, setActivePlaylistId] = useState(null);
   const [videoSearchQuery, setVideoSearchQuery] = useState('');
   const [materialSearchQuery, setMaterialSearchQuery] = useState('');
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1023 : false));
+
+  // Controls & Engagement states
+  const [watchedVideos, setWatchedVideos] = useState(() => new Set());
+  const [autoPlay, setAutoPlay] = useState(true);
+  const [showSkillChecks, setShowSkillChecks] = useState(true);
+  const [sidebarTab, setSidebarTab] = useState('playlist'); // 'playlist' | 'materials' | 'info'
+  const [mainTab, setMainTab] = useState('overview'); // 'overview' | 'materials' | 'notes'
+  const [mobileTab, setMobileTab] = useState('playlist'); // 'playlist' | 'materials' | 'overview'
+  const [collapsedModules, setCollapsedModules] = useState({});
+
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [userRating, setUserRating] = useState(0);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [userNotes, setUserNotes] = useState({});
+  const [currentNoteText, setCurrentNoteText] = useState('');
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    const handleResize = () => setIsMobile(window.innerWidth <= 1023);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const course = courses.find(c => c.id === playlistId);
+  const course = courses.find((c) => c.id === playlistId);
   const isDegree = course?.isDegree;
 
   // Filter subjects based on program type
-  const currentSubjects = (isDegree 
-    ? subjects.filter(s => s.courseId === playlistId && s.semester === activeSemester)
-    : subjects.filter(s => s.courseId === playlistId))
-    .sort((a, b) => (a.position || 0) - (b.position || 0));
+  const currentSubjects = useMemo(() => {
+    return (
+      isDegree
+        ? subjects.filter((s) => s.courseId === playlistId && s.semester === activeSemester)
+        : subjects.filter((s) => s.courseId === playlistId)
+    ).sort((a, b) => (a.position || 0) - (b.position || 0));
+  }, [subjects, playlistId, activeSemester, isDegree]);
 
-  // Auto select subject when semester, course, or course subjects change
+  // Auto select subject when semester, course, or subjects change
   useEffect(() => {
-    if (isDegree) {
-      const semSubs = subjects
-        .filter(s => s.courseId === playlistId && s.semester === activeSemester)
-        .sort((a, b) => (a.position || 0) - (b.position || 0));
-      if (semSubs.length > 0) {
-        setActiveSubjectId(semSubs[0].id);
+    if (currentSubjects.length > 0) {
+      const exists = currentSubjects.some((s) => s.id === activeSubjectId);
+      if (!exists) {
+        setActiveSubjectId(currentSubjects[0].id);
         setActivePlaylistId(null);
         setActiveVideoIndex(0);
-      } else {
-        setActiveSubjectId(null);
-        setActivePlaylistId(null);
       }
     } else {
-      const courseSubs = subjects
-        .filter(s => s.courseId === playlistId)
-        .sort((a, b) => (a.position || 0) - (b.position || 0));
-      if (courseSubs.length > 0) {
-        setActiveSubjectId(courseSubs[0].id);
-        setActivePlaylistId(null);
+      setActiveSubjectId(null);
+      setActivePlaylistId(null);
+    }
+  }, [currentSubjects, activeSubjectId, isDegree]);
+
+  const activeSubject = currentSubjects.find((s) => s.id === activeSubjectId) || currentSubjects[0];
+
+  // Auto-select first playlist if none selected
+  useEffect(() => {
+    if (activeSubject && activeSubject.playlists && activeSubject.playlists.length > 0) {
+      if (!activePlaylistId || !activeSubject.playlists.some((p) => p.id === activePlaylistId)) {
+        setActivePlaylistId(activeSubject.playlists[0].id);
         setActiveVideoIndex(0);
-      } else {
-        setActiveSubjectId(null);
-        setActivePlaylistId(null);
       }
     }
-  }, [activeSemester, playlistId, isDegree]);
+  }, [activeSubject, activePlaylistId]);
 
-  // Reset active playlist when switching subjects
+  const activePlaylist = activeSubject?.playlists?.find((p) => p.id === activePlaylistId) || activeSubject?.playlists?.[0];
+
+  // Flatten all videos across playlists for the active subject
+  const allSubjectVideos = useMemo(() => {
+    if (!activeSubject || !activeSubject.playlists) return [];
+    const vids = [];
+    activeSubject.playlists.forEach((p, pIdx) => {
+      (p.videos || []).forEach((v, vIdx) => {
+        vids.push({
+          ...v,
+          playlistId: p.id,
+          playlistTitle: p.title,
+          moduleIndex: pIdx + 1,
+          lectureIndex: vIdx + 1
+        });
+      });
+    });
+    return vids;
+  }, [activeSubject]);
+
+  const activeVideo = useMemo(() => {
+    if (activePlaylist?.videos && activePlaylist.videos.length > 0) {
+      return activePlaylist.videos[activeVideoIndex] || activePlaylist.videos[0];
+    }
+    return allSubjectVideos[0] || null;
+  }, [activePlaylist, activeVideoIndex, allSubjectVideos]);
+
+  // Load saved note when active video changes
   useEffect(() => {
-    setActivePlaylistId(null);
-    setActiveVideoIndex(0);
-  }, [activeSubjectId]);
+    if (activeVideo) {
+      setCurrentNoteText(userNotes[activeVideo.id] || '');
+    }
+  }, [activeVideo, userNotes]);
+
+  // Auto fetch YT playlist if needed
+  useEffect(() => {
+    if (activePlaylist && (!activePlaylist.videos || activePlaylist.videos.length === 0)) {
+      const ytPlId =
+        activePlaylist.youtubePlaylistId ||
+        extractYoutubePlaylistId(activePlaylist.description) ||
+        extractYoutubePlaylistId(activePlaylist.title);
+
+      if (ytPlId) {
+        fetchYoutubePlaylistVideos(ytPlId).then((fetched) => {
+          if (fetched && fetched.length > 0) {
+            activePlaylist.videos = fetched;
+            setActiveVideoIndex(0);
+          }
+        });
+      }
+    }
+  }, [activePlaylistId, activePlaylist]);
+
+  const getVideoSrc = (video) => {
+    if (!video) return '';
+    if (video.youtubeId?.startsWith('http') || video.youtubeId?.includes('embed/')) {
+      return video.youtubeId;
+    }
+    return `https://www.youtube.com/embed/${video.youtubeId}?rel=0&modestbranding=1&autoplay=1`;
+  };
+
+  const toggleModuleCollapse = (modId) => {
+    setCollapsedModules((prev) => ({
+      ...prev,
+      [modId]: !prev[modId]
+    }));
+  };
+
+  const handlePlayVideo = (plId, vIdx, videoId) => {
+    setActivePlaylistId(plId);
+    setActiveVideoIndex(vIdx);
+    if (videoId) {
+      setWatchedVideos((prev) => {
+        const next = new Set(prev);
+        next.add(videoId);
+        return next;
+      });
+    }
+  };
+
+  const handleSaveNote = () => {
+    if (!activeVideo) return;
+    setUserNotes((prev) => ({
+      ...prev,
+      [activeVideo.id]: currentNoteText
+    }));
+  };
+
+  const handleShare = () => {
+    if (typeof window !== 'undefined') {
+      navigator.clipboard?.writeText(window.location.href);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    }
+  };
+
+  // Stats calculation
+  const totalLecturesCount = allSubjectVideos.length;
+  const watchedCount = useMemo(() => {
+    return allSubjectVideos.filter((v) => watchedVideos.has(v.id)).length;
+  }, [allSubjectVideos, watchedVideos]);
+
+  const progressPercent = totalLecturesCount > 0 ? Math.round((watchedCount / totalLecturesCount) * 100) : 0;
+
+  // Filter playlists by search query
+  const filteredPlaylists = useMemo(() => {
+    if (!activeSubject || !activeSubject.playlists) return [];
+    if (!videoSearchQuery.trim()) return activeSubject.playlists;
+
+    const q = videoSearchQuery.toLowerCase().trim();
+    return activeSubject.playlists
+      .map((playlist) => {
+        const matchingVideos = (playlist.videos || []).filter((v) =>
+          v.title.toLowerCase().includes(q)
+        );
+        if (playlist.title.toLowerCase().includes(q) || matchingVideos.length > 0) {
+          return {
+            ...playlist,
+            videos: matchingVideos.length > 0 ? matchingVideos : playlist.videos
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+  }, [activeSubject, videoSearchQuery]);
 
   if (!course) {
     return (
@@ -168,51 +342,18 @@ export default function LearningPlayer({
     );
   }
 
-  const activeSubject = currentSubjects.find(s => s.id === activeSubjectId);
-  const activePlaylist = activeSubject?.playlists?.find(p => p.id === activePlaylistId);
-  const activeVideo = activePlaylist?.videos ? activePlaylist.videos[activeVideoIndex] : null;
+  const ytPlId =
+    activePlaylist?.youtubePlaylistId ||
+    extractYoutubePlaylistId(activePlaylist?.description) ||
+    extractYoutubePlaylistId(activePlaylist?.title);
 
-  useEffect(() => {
-    if (activePlaylist && (!activePlaylist.videos || activePlaylist.videos.length === 0)) {
-      const ytPlId = activePlaylist.youtubePlaylistId 
-        || extractYoutubePlaylistId(activePlaylist.description) 
-        || extractYoutubePlaylistId(activePlaylist.title);
-
-      if (ytPlId) {
-        fetchYoutubePlaylistVideos(ytPlId).then(fetched => {
-          if (fetched && fetched.length > 0) {
-            activePlaylist.videos = fetched;
-            setActiveVideoIndex(0);
-          }
-        });
-      }
-    }
-  }, [activePlaylistId, activePlaylist]);
-
-  const filteredVideos = activePlaylist
-    ? (activePlaylist.videos || []).filter(v => 
-        v.title.toLowerCase().includes(videoSearchQuery.toLowerCase()) || 
-        v.description?.toLowerCase().includes(videoSearchQuery.toLowerCase())
-      )
-    : [];
-
-  const getVideoSrc = (video) => {
-    if (!video) return '';
-    if (video.youtubeId.startsWith('http') || video.youtubeId.includes('embed/')) {
-      return video.youtubeId;
-    }
-    return `https://www.youtube.com/embed/${video.youtubeId}?rel=0&modestbranding=1&autoplay=1`;
-  };
-
-  const handleSelectPlaylist = (plId) => {
-    setActivePlaylistId(plId);
-    setActiveVideoIndex(0);
-  };
+  const currentSrc = ytPlId && (!activePlaylist?.videos || activePlaylist.videos.length === 0 || !activeVideo)
+    ? `https://www.youtube.com/embed/videoseries?list=${ytPlId}&rel=0&modestbranding=1`
+    : getVideoSrc(activeVideo);
 
   return (
-    <div className="animate-fade-in" style={styles.container}>
-      
-      {/* Top Header Row */}
+    <div className="animate-fade-in oracle-workspace-container" style={styles.container}>
+      {/* ── Top Header Row ── */}
       <div style={styles.header}>
         <button onClick={() => setCurrentView('learning')} style={styles.backBtn}>
           <ChevronLeft size={16} />
@@ -223,593 +364,503 @@ export default function LearningPlayer({
         </div>
       </div>
 
-      {/* Top Bar Selectors: Custom Semester Dropdown + Subject Chips */}
-      <div className="yt-selector-row glass-panel" style={{ flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? '12px' : '16px' }}>
+      {/* ── Top Bar Selectors: Semester Dropdown + Subject Selector ── */}
+      <div className="yt-selector-row glass-panel" style={styles.toolbarRow}>
         {isDegree && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Semester:</span>
-            
-            {/* Custom semester dropdown */}
-            <CustomSemesterDropdown 
-              value={activeSemester} 
-              onChange={(s) => setActiveSemester(s)} 
-            />
+            <CustomSemesterDropdown value={activeSemester} onChange={(s) => setActiveSemester(s)} />
           </div>
         )}
 
-        {isMobile ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap' }}>Subject:</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, overflowX: 'auto' }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap' }}>Subject:</span>
+          {isMobile ? (
             <select
               value={activeSubjectId || ''}
               onChange={(e) => setActiveSubjectId(e.target.value || null)}
               className="yt-select-dropdown"
-              style={{ width: '100%', maxWidth: '240px' }}
+              style={{ width: '100%' }}
             >
               {currentSubjects.length === 0 ? (
-                <option value="" style={{ background: '#11121c', color: '#fff' }}>No subjects</option>
+                <option value="">No subjects</option>
               ) : (
-                currentSubjects.map(sub => (
-                  <option key={sub.id} value={sub.id} style={{ background: '#11121c', color: '#fff' }}>{sub.title}</option>
+                currentSubjects.map((sub) => (
+                  <option key={sub.id} value={sub.id}>
+                    {sub.code || ''} {sub.title}
+                  </option>
                 ))
               )}
             </select>
-          </div>
-        ) : (
-          /* Subjects selector chips */
-          <div className="yt-subject-chips-row">
-            {currentSubjects.length === 0 ? (
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '10px' }}>
-                {isDegree ? `No subjects added for Semester ${activeSemester}` : 'No subjects added for this course'}
-              </span>
-            ) : (
-              currentSubjects.map(sub => (
-                <button
-                  key={sub.id}
-                  onClick={() => setActiveSubjectId(sub.id)}
-                  className={`yt-subject-chip ${activeSubjectId === sub.id ? 'active' : ''}`}
-                >
-                  {sub.title}
-                </button>
-              ))
-            )}
-          </div>
-        )}
+          ) : (
+            <div className="yt-subject-chips-row">
+              {currentSubjects.length === 0 ? (
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  {isDegree ? `No subjects added for Semester ${activeSemester}` : 'No subjects added for this course'}
+                </span>
+              ) : (
+                currentSubjects.map((sub) => (
+                  <button
+                    key={sub.id}
+                    onClick={() => setActiveSubjectId(sub.id)}
+                    className={`yt-subject-chip ${activeSubjectId === sub.id ? 'active' : ''}`}
+                  >
+                    {sub.title}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Main Content Workspace splits */}
-      <div 
-        className="custom-workspace-layout" 
-        style={{
-          display: 'flex',
-          flexDirection: isMobile ? 'column' : 'row',
-          gap: isMobile ? '16px' : '24px',
-          alignItems: 'stretch',
-          width: '100%',
-          boxSizing: 'border-box'
-        }}
-      >
-        
-        {/* LEFT COLUMN: Asset Sidebar Menu (Desktop Only) */}
-        {!isMobile && (
-          <div style={{ ...styles.sidebarPanel, width: '260px', flexShrink: 0 }} className="glass-panel">
-            <div className="yt-sidebar-tabs">
-              <button
-                onClick={() => { setActiveCategory('playlists'); setActivePlaylistId(null); }}
-                className={`yt-sidebar-tab ${activeCategory === 'playlists' ? 'active' : ''}`}
-              >
-                <Play size={14} />
-                Video Playlists
-              </button>
+      {/* ── Mobile View Tabs Selector (< 1024px) ── */}
+      {isMobile && (
+        <div className="mobile-nav-tabs-bar">
+          <button
+            className={`mobile-tab-pill ${mobileTab === 'playlist' ? 'active' : ''}`}
+            onClick={() => setMobileTab('playlist')}
+          >
+            <PlayCircle size={15} /> Playlist ({allSubjectVideos.length})
+          </button>
+          <button
+            className={`mobile-tab-pill ${mobileTab === 'materials' ? 'active' : ''}`}
+            onClick={() => setMobileTab('materials')}
+          >
+            <FileText size={15} /> Materials ({activeSubject?.materials?.length || 0})
+          </button>
+          <button
+            className={`mobile-tab-pill ${mobileTab === 'overview' ? 'active' : ''}`}
+            onClick={() => setMobileTab('overview')}
+          >
+            <BookOpen size={15} /> Overview
+          </button>
+        </div>
+      )}
 
-              <button
-                onClick={() => { setActiveCategory('all-materials'); setActivePlaylistId(null); }}
-                className={`yt-sidebar-tab ${activeCategory === 'all-materials' ? 'active' : ''}`}
-              >
-                <FileText size={14} color="#f59e0b" />
-                All Materials & PDFs
-              </button>
-
-              {(activeSubject?.customMaterialSections || ['Syllabus', 'Notes', 'Organizer', 'Past Year Papers']).map(section => (
-                <button
-                  key={section}
-                  onClick={() => { setActiveCategory(section); setActivePlaylistId(null); }}
-                  className={`yt-sidebar-tab ${activeCategory === section ? 'active' : ''}`}
-                >
-                  <FileText size={14} />
-                  {section}
-                </button>
-              ))}
+      {/* ── MAIN ORACLE-STYLE WORKSPACE GRID ── */}
+      <div className="oracle-learning-grid">
+        {/* ========================================================= */}
+        {/* LEFT COLUMN: Main Video Player & Details Hub             */}
+        {/* ========================================================= */}
+        <div className={`oracle-main-col ${isMobile && mobileTab !== 'playlist' ? 'mobile-hidden' : ''}`}>
+          {/* 1. Main 16:9 Video Frame */}
+          <div className="player-frame-card glass-panel">
+            <div style={styles.playerWrapper}>
+              <iframe
+                src={currentSrc}
+                title={activeVideo?.title || activePlaylist?.title || 'Video Player'}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                style={styles.iframe}
+              />
             </div>
-          </div>
-        )}
 
-        {/* CENTER/RIGHT PANEL: Active Workspace (Takes full width on mobile stack) */}
-        <div style={{ ...styles.mainWorkspace, flex: 1, minWidth: 0, width: '100%' }}>
-          {activeSubject ? (
-            (activePlaylistId && activePlaylist) ? (
-              /* A. ACTIVE VIDEO / PLAYLIST CLASSROOM VIEW (Full Width Theatre Layout) */
-              (() => {
-                const ytPlId = activePlaylist.youtubePlaylistId 
-                  || extractYoutubePlaylistId(activePlaylist.description) 
-                  || extractYoutubePlaylistId(activePlaylist.title);
-
-                const isEmbedMode = Boolean(ytPlId) && (!activePlaylist.videos || activePlaylist.videos.length === 0 || !activeVideo);
-
-                if (!activeVideo && !ytPlId) {
-                  return (
-                    <div style={{ textAlign: 'center', padding: '60px 20px' }} className="glass-panel">
-                      <BookOpen size={48} color="var(--text-muted)" style={{ marginBottom: '16px' }} />
-                      <h3 style={{ fontSize: '1.2rem', color: '#fff', marginBottom: '8px' }}>{activePlaylist.title}</h3>
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', maxWidth: '400px', margin: '0 auto 20px auto' }}>
-                        {activePlaylist.description || 'No videos or YouTube playlist links have been added to this section yet.'}
-                      </p>
-                      <button onClick={() => setActivePlaylistId(null)} className="btn btn-primary">
-                        Back to Syllabus Assets
-                      </button>
-                    </div>
-                  );
-                }
-
-                const currentTitle = isEmbedMode ? activePlaylist.title : activeVideo?.title;
-                const currentDesc = isEmbedMode ? activePlaylist.description : activeVideo?.description;
-                const currentSrc = isEmbedMode 
-                  ? `https://www.youtube.com/embed/videoseries?list=${ytPlId}&rel=0&modestbranding=1`
-                  : getVideoSrc(activeVideo);
-
-                return (
-                  <div className="classroom-grid animate-fade-in" style={{ textAlign: 'left' }}>
-                    {/* LEFT COLUMN: Video Theatre Stage & Details */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <button 
-                        onClick={() => setActivePlaylistId(null)} 
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          background: 'transparent',
-                          border: 'none',
-                          color: 'var(--text-secondary)',
-                          cursor: 'pointer',
-                          fontSize: '0.8rem',
-                          fontWeight: 600,
-                          padding: 0,
-                          width: 'fit-content'
-                        }}
-                      >
-                        <ArrowLeft size={14} />
-                        Back to Syllabus Assets
-                      </button>
-
-                      <div style={styles.playerWrapper} className="glass-panel">
-                        <iframe
-                          src={currentSrc}
-                          title={currentTitle || 'Video Player'}
-                          frameBorder="0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          style={styles.iframe}
-                        ></iframe>
-                      </div>
-
-                      {/* Video Title & Navigation Row */}
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: '16px',
-                        flexWrap: 'wrap',
-                        marginTop: '4px'
-                      }}>
-                        <div>
-                          <h3 style={{ fontSize: '1.3rem', color: '#ffffff', margin: 0, fontWeight: 700 }}>
-                            {currentTitle}
-                          </h3>
-                          {activePlaylist.videos && activePlaylist.videos.length > 0 && (
-                            <span style={{ fontSize: '0.8rem', color: 'var(--primary)', marginTop: '4px', display: 'inline-block', fontWeight: 600 }}>
-                              Lecture {activeVideoIndex + 1} of {activePlaylist.videos.length}
-                            </span>
-                          )}
-                        </div>
-
-                        {activePlaylist.videos && activePlaylist.videos.length > 1 && (
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button
-                              disabled={activeVideoIndex === 0}
-                              onClick={() => {
-                                setActiveVideoIndex(idx => Math.max(0, idx - 1));
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                              }}
-                              className="btn btn-secondary"
-                              style={{ padding: '8px 14px', fontSize: '0.82rem', opacity: activeVideoIndex === 0 ? 0.4 : 1, cursor: activeVideoIndex === 0 ? 'not-allowed' : 'pointer' }}
-                            >
-                              ◄ Previous
-                            </button>
-                            <button
-                              disabled={activeVideoIndex === activePlaylist.videos.length - 1}
-                              onClick={() => {
-                                setActiveVideoIndex(idx => Math.min(activePlaylist.videos.length - 1, idx + 1));
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                              }}
-                              className="btn btn-primary"
-                              style={{ padding: '8px 14px', fontSize: '0.82rem', opacity: activeVideoIndex === activePlaylist.videos.length - 1 ? 0.4 : 1, cursor: activeVideoIndex === activePlaylist.videos.length - 1 ? 'not-allowed' : 'pointer' }}
-                            >
-                              Next ►
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      {currentDesc && (
-                        <p style={{
-                          fontSize: '0.88rem',
-                          color: 'var(--text-secondary)',
-                          lineHeight: '1.5',
-                          margin: '4px 0 12px 0',
-                          background: 'rgba(255,255,255,0.02)',
-                          padding: '12px 16px',
-                          borderRadius: '10px',
-                          borderLeft: '3px solid var(--primary)'
-                        }}>
-                          {currentDesc}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* RIGHT COLUMN: Dedicated Scrollable Playlist Queue Sidebar */}
-                    {activePlaylist.videos && activePlaylist.videos.length > 0 && (
-                      <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px', borderRadius: '14px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <h4 style={{ fontSize: '1rem', color: '#ffffff', margin: 0, fontWeight: 700 }}>
-                            Playlist Queue ({activePlaylist.videos.length})
-                          </h4>
-                        </div>
-
-                        <input
-                          type="text"
-                          placeholder="Filter videos in playlist..."
-                          value={videoSearchQuery}
-                          onChange={(e) => setVideoSearchQuery(e.target.value)}
-                          className="form-input"
-                          style={{
-                            width: '100%',
-                            padding: '8px 12px',
-                            fontSize: '0.8rem',
-                            borderRadius: '8px',
-                            background: 'rgba(255,255,255,0.03)',
-                            border: '1px solid rgba(255,255,255,0.08)'
-                          }}
-                        />
-
-                        <div className="custom-playlist-scroll" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          {filteredVideos.length === 0 ? (
-                            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', padding: '12px 0' }}>No lectures match your search.</p>
-                          ) : (
-                            filteredVideos.map((vid) => {
-                              const originalIndex = activePlaylist.videos.findIndex(v => v.id === vid.id);
-                              const isActive = activeVideoIndex === originalIndex;
-                              return (
-                                <div
-                                  key={vid.id}
-                                  onClick={() => {
-                                    setActiveVideoIndex(originalIndex);
-                                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                                  }}
-                                  className={`lecture-item-hover ${isActive ? 'active-lecture-item' : ''}`}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '10px',
-                                    padding: '10px 12px',
-                                    background: isActive ? 'linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(168,85,247,0.15) 100%)' : 'rgba(255,255,255,0.02)',
-                                    border: isActive ? '1px solid rgba(139,92,246,0.5)' : '1px solid rgba(255,255,255,0.04)',
-                                    borderRadius: '10px',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  <span style={{
-                                    fontSize: '0.75rem',
-                                    fontWeight: 700,
-                                    color: isActive ? '#ffffff' : 'var(--text-muted)',
-                                    background: isActive ? 'var(--primary)' : 'rgba(255,255,255,0.06)',
-                                    minWidth: '22px',
-                                    height: '22px',
-                                    borderRadius: '50%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                  }}>
-                                    {originalIndex + 1}
-                                  </span>
-
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0 }}>
-                                    <span style={{
-                                      fontSize: '0.83rem',
-                                      color: isActive ? '#ffffff' : 'var(--text-secondary)',
-                                      fontWeight: isActive ? 700 : 500,
-                                      whiteSpace: 'nowrap',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis'
-                                    }}>
-                                      {vid.title}
-                                    </span>
-                                  </div>
-
-                                  {isActive && (
-                                    <span style={{
-                                      fontSize: '0.65rem',
-                                      background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                                      color: '#ffffff',
-                                      padding: '2px 8px',
-                                      borderRadius: '12px',
-                                      fontWeight: 700,
-                                      letterSpacing: '0.04em'
-                                    }}>
-                                      PLAYING
-                                    </span>
-                                  )}
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
-                      </div>
-                    )}
+            {/* 2. Oracle-Style "Now Playing" Status Bar */}
+            {activeVideo && (
+              <div className="oracle-now-playing-bar">
+                <div className="now-playing-left">
+                  <span className="now-playing-pill">Now Playing</span>
+                  <div className="now-playing-text">
+                    <h3 className="now-playing-h">{activeVideo.title}</h3>
+                    <span className="now-playing-sub">
+                      Module {activePlaylist?.title ? activePlaylist.title : '1'} · Lecture {(activeVideoIndex || 0) + 1} of {activePlaylist?.videos?.length || allSubjectVideos.length}
+                    </span>
                   </div>
-                );
-              })()
-            ) : (
-              /* B. LIST VIEWS FOR SELECTED CATEGORY */
-              <div className="glass-panel" style={styles.assetListPanel}>
-                <h3 style={styles.assetListHeading}>
-                  {activeCategory === 'playlists' ? 'Educator Suggested Playlists' : activeCategory}
-                </h3>
-                
-                {/* 1. Render Playlists */}
-                {activeCategory === 'playlists' && (
-                  (!activeSubject.playlists || activeSubject.playlists.length === 0) ? (
-                    <p style={styles.emptyText}>No playlists created yet.</p>
-                  ) : (
-                    <div style={styles.playlistsListGrid}>
-                      {activeSubject.playlists.map(pl => {
-                        const hasLiked = pl.likes?.includes(currentUser?.id);
-                        const ytPlId = pl.youtubePlaylistId || extractYoutubePlaylistId(pl.description) || extractYoutubePlaylistId(pl.title);
-                        return (
-                          <div key={pl.id} style={styles.playlistCard}>
-                            <div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                                <h4 style={{ fontSize: '0.95rem', color: '#ffffff' }}>{pl.title}</h4>
-                                <button
-                                  onClick={() => togglePlaylistLike(activeSubject.id, pl.id)}
-                                  style={{
-                                    background: hasLiked ? 'rgba(139,92,246,0.1)' : 'rgba(255,255,255,0.03)',
-                                    border: hasLiked ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(255,255,255,0.08)',
-                                    color: hasLiked ? 'var(--primary)' : 'var(--text-secondary)',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    fontSize: '0.8rem',
-                                    fontWeight: 600,
-                                    outline: 'none',
-                                    padding: '6px 10px',
-                                    borderRadius: '8px',
-                                    transition: 'all 0.2s',
-                                    whiteSpace: 'nowrap'
-                                  }}
-                                  title="Like this playlist"
-                                >
-                                  <ThumbsUp size={14} fill={hasLiked ? 'var(--primary)' : 'transparent'} />
-                                  <span>{pl.likes?.length || 0}</span>
-                                </button>
-                              </div>
-                              {pl.description && (
-                                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '4px 0 8px 0', fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                  {pl.description}
-                                </p>
-                              )}
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '6px' }}>
-                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                                  {ytPlId ? '▶ Full YouTube Playlist Embed' : `${pl.videos?.length || 0} Lectures inside`}
-                                </span>
-                                {pl.author && (
-                                  <span style={{ fontSize: '0.72rem', color: 'var(--primary)', fontWeight: 500 }}>
-                                    By: {pl.author}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <button 
-                              onClick={() => handleSelectPlaylist(pl.id)} 
-                              className="btn btn-primary"
-                              style={{ padding: '6px 12px', fontSize: '0.75rem', marginTop: '12px' }}
-                            >
-                              <Play size={10} fill="#ffffff" />
-                              <span>Start Lessons</span>
-                            </button>
-                          </div>
-                        );
-                      })}
+                </div>
+
+                <div className="now-playing-right">
+                  {/* Rating Stars */}
+                  <div className="star-rating-row" title="Rate this video">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        className={`star-btn-icon ${userRating >= star ? 'filled' : ''}`}
+                        onClick={() => setUserRating(star)}
+                      >
+                        <Star size={16} />
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Favorite Toggle */}
+                  <button
+                    type="button"
+                    className={`circle-action-btn ${isFavorited ? 'active' : ''}`}
+                    onClick={() => setIsFavorited(!isFavorited)}
+                    title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    <Heart size={18} fill={isFavorited ? 'currentColor' : 'none'} />
+                  </button>
+
+                  {/* Share Link */}
+                  <button
+                    type="button"
+                    className="circle-action-btn"
+                    onClick={handleShare}
+                    title="Share lecture link"
+                  >
+                    {shareCopied ? <Check size={18} style={{ color: 'var(--success)' }} /> : <Share2 size={18} />}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 3. Subject Metadata Card & Action Tabs */}
+          {activeSubject && (
+            <div className="subject-meta-hub glass-panel">
+              <div className="subject-meta-top">
+                <span className="code-badge">
+                  {activeSubject.code || 'SUB-101'} · {activeSubject.credits || 4} Credits · Semester {activeSubject.semester || activeSemester}
+                </span>
+                <h1 className="subject-title-h">{activeSubject.title}</h1>
+              </div>
+
+              {/* Action Buttons Row */}
+              <div className="action-tabs-bar">
+                <button
+                  className={`action-tab-pill ${mainTab === 'overview' ? 'active' : ''}`}
+                  onClick={() => setMainTab('overview')}
+                >
+                  <BookOpen size={16} /> Overview
+                </button>
+                <button
+                  className={`action-tab-pill ${mainTab === 'materials' ? 'active' : ''}`}
+                  onClick={() => setMainTab('materials')}
+                >
+                  <FileText size={16} /> Materials ({activeSubject.materials?.length || 0})
+                </button>
+                <button
+                  className={`action-tab-pill ${mainTab === 'notes' ? 'active' : ''}`}
+                  onClick={() => setMainTab('notes')}
+                >
+                  <MessageSquare size={16} /> Lecture Notes
+                </button>
+              </div>
+
+              {/* Tab Contents */}
+              <div className="action-tab-body">
+                {mainTab === 'overview' && (
+                  <div className="tab-pane-content">
+                    <h3>About this Subject</h3>
+                    <p className="tab-pane-desc">
+                      Master key principles, theoretical frameworks, and practical applications in{' '}
+                      <strong>{activeSubject.title}</strong>. Mapped strictly to university guidelines with verified video playlists, lecture series, and course material.
+                    </p>
+
+                    <div className="stats-cards-grid">
+                      <div className="stat-card-box">
+                        <Clock size={20} color="var(--primary)" />
+                        <div>
+                          <strong>{allSubjectVideos.length} Lectures</strong>
+                          <span>{activeSubject.playlists?.length || 0} Modules</span>
+                        </div>
+                      </div>
+
+                      <div className="stat-card-box">
+                        <GraduationCap size={20} color="var(--primary)" />
+                        <div>
+                          <strong>{activeSubject.credits || 4} Academic Credits</strong>
+                          <span>Semester {activeSubject.semester || activeSemester}</span>
+                        </div>
+                      </div>
+
+                      <div className="stat-card-box">
+                        <Sparkles size={20} color="var(--primary)" />
+                        <div>
+                          <strong>{activeSubject.materials?.length || 0} PDF Materials</strong>
+                          <span>Syllabi, Notes & PYQs</span>
+                        </div>
+                      </div>
                     </div>
-                  )
+                  </div>
                 )}
 
-                {/* Dynamic section documents rendering */}
-                {activeCategory !== 'playlists' && (() => {
-                  const allDocs = activeSubject.materials || [];
-                  const sectionDocs = allDocs.filter(doc => {
-                    const matchesCategory = activeCategory === 'all-materials' ||
-                      (doc.sectionName && doc.sectionName.toLowerCase() === activeCategory.toLowerCase()) ||
-                      (doc.type && doc.type.toLowerCase() === activeCategory.toLowerCase());
-
-                    const matchesQuery = !materialSearchQuery.trim() ||
-                      doc.title.toLowerCase().includes(materialSearchQuery.toLowerCase()) ||
-                      (doc.sectionName && doc.sectionName.toLowerCase().includes(materialSearchQuery.toLowerCase())) ||
-                      (doc.author && doc.author.toLowerCase().includes(materialSearchQuery.toLowerCase()));
-
-                    return matchesCategory && matchesQuery;
-                  });
-
-                  return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      {/* Search Bar for Documents */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                        <h4 style={{ fontSize: '1.05rem', color: '#ffffff', margin: 0, fontWeight: 700 }}>
-                          {activeCategory === 'all-materials' ? 'All Study Materials & PDFs' : activeCategory} ({sectionDocs.length})
-                        </h4>
-                        
-                        <input
-                          type="text"
-                          placeholder="Search syllabus, notes, PDFs..."
-                          value={materialSearchQuery}
-                          onChange={(e) => setMaterialSearchQuery(e.target.value)}
-                          className="form-input"
-                          style={{
-                            maxWidth: '300px',
-                            width: '100%',
-                            padding: '8px 14px',
-                            fontSize: '0.82rem',
-                            borderRadius: '8px',
-                            background: 'rgba(255,255,255,0.03)',
-                            border: '1px solid rgba(255,255,255,0.08)'
-                          }}
-                        />
-                      </div>
-
-                      {sectionDocs.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '40px 20px', background: 'rgba(255,255,255,0.01)', borderRadius: '12px', border: '1px border-dashed rgba(255,255,255,0.08)' }}>
-                          <FileText size={36} color="var(--text-muted)" style={{ marginBottom: '10px' }} />
-                          <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                            No files found for "{activeCategory === 'all-materials' ? 'Study Materials' : activeCategory}".
-                          </p>
-                          {materialSearchQuery && (
-                            <button onClick={() => setMaterialSearchQuery('')} className="btn btn-secondary" style={{ marginTop: '10px', fontSize: '0.78rem' }}>
-                              Clear Search Filter
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
-                          {sectionDocs.map(doc => (
-                            <div
-                              key={doc.id}
-                              style={{
-                                padding: '16px',
-                                background: 'rgba(255,255,255,0.02)',
-                                border: '1px solid rgba(255,255,255,0.06)',
-                                borderRadius: '12px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                justifyContent: 'space-between',
-                                gap: '12px',
-                                transition: 'all 0.2s'
-                              }}
-                              className="lecture-item-hover"
-                            >
-                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                                <div style={{
-                                  background: 'rgba(239, 68, 68, 0.15)',
-                                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                                  borderRadius: '10px',
-                                  padding: '10px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  flexShrink: 0
-                                }}>
-                                  <FileText size={22} color="#ef4444" />
-                                </div>
-
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left', minWidth: 0, flex: 1 }}>
-                                  <span style={{ fontSize: '0.9rem', color: '#ffffff', fontWeight: 600, lineHeight: '1.3' }}>
-                                    {doc.title}
-                                  </span>
-                                  
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
-                                    <span style={{
-                                      fontSize: '0.68rem',
-                                      background: 'rgba(139,92,246,0.15)',
-                                      color: 'var(--primary)',
-                                      padding: '2px 8px',
-                                      borderRadius: '10px',
-                                      fontWeight: 600
-                                    }}>
-                                      {doc.sectionName || 'Study Material'}
-                                    </span>
-                                    {doc.author && (
-                                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                                        By: {doc.author}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                                <a
-                                  href={doc.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="btn btn-secondary"
-                                  style={{ flex: 1, padding: '8px 12px', fontSize: '0.78rem', justifyContent: 'center' }}
-                                >
-                                  View / Open
-                                </a>
-                                <a
-                                  href={doc.url}
-                                  download
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="btn btn-primary"
-                                  style={{ padding: '8px 12px', fontSize: '0.78rem', justifyContent: 'center' }}
-                                >
-                                  <Download size={14} />
-                                </a>
-                              </div>
+                {mainTab === 'materials' && (
+                  <div className="tab-pane-content">
+                    <h3>Subject Study Materials & PDFs</h3>
+                    {activeSubject.materials && activeSubject.materials.length > 0 ? (
+                      <div className="materials-grid-list">
+                        {activeSubject.materials.map((mat) => (
+                          <div key={mat.id} className="mat-card-row">
+                            <div className="mat-card-left">
+                              <span className="mat-type-tag">{TYPE_LABEL[mat.type] || mat.type}</span>
+                              <span className="mat-title-txt">{mat.title}</span>
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
+                            <a
+                              href={mat.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="btn btn-secondary"
+                              style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                            >
+                              <Download size={14} /> Open PDF
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="empty-txt-notice">No study materials uploaded for this subject yet.</p>
+                    )}
+                  </div>
+                )}
 
+                {mainTab === 'notes' && (
+                  <div className="tab-pane-content">
+                    <h3>My Study Notes</h3>
+                    <p className="tab-pane-desc">
+                      Take personal study notes while watching <strong>{activeVideo?.title || 'this lecture'}</strong>. Your notes are stored locally in your browser.
+                    </p>
+
+                    <div className="notes-box-wrap">
+                      <textarea
+                        className="form-input notes-textarea-field"
+                        rows={5}
+                        placeholder="Write study notes, key formulas, or questions here..."
+                        value={currentNoteText}
+                        onChange={(e) => setCurrentNoteText(e.target.value)}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+                        <button className="btn btn-primary" onClick={handleSaveNote}>
+                          Save Lecture Notes
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            )
-          ) : (
-            <div style={styles.selectSubjectFallback} className="glass-panel">
-              <BookOpen size={48} color="var(--text-muted)" style={{ marginBottom: '16px' }} />
-              <h3>Select a Subject</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px', maxWidth: '300px' }}>
-                Pick a subject from the top bar chips row to open play records, files, organisers, and previous exams.
-              </p>
             </div>
           )}
         </div>
 
-        {/* 3. On mobile, render selector dropdown below list content when playlist is not active */}
-        {isMobile && !activePlaylist && activeSubject && (
-          <div style={{ ...styles.sidebarPanel, width: '100%', marginTop: '8px' }} className="glass-panel">
-            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Section / Category:</label>
-              <select
-                value={activeCategory}
-                onChange={(e) => { setActiveCategory(e.target.value); setActivePlaylistId(null); }}
-                className="yt-select-dropdown"
-                style={{ width: '100%' }}
+        {/* ========================================================= */}
+        {/* RIGHT COLUMN: Oracle-Style Playlist & Content Sidebar    */}
+        {/* ========================================================= */}
+        <div className={`oracle-sidebar-col ${isMobile && mobileTab !== 'playlist' && mobileTab !== 'materials' ? 'mobile-hidden' : ''}`}>
+          <div className="oracle-sidebar-card glass-panel">
+            {/* 1. Sidebar Top Header Navigation Tabs */}
+            <div className="sidebar-top-tabs">
+              <button
+                className={`sidebar-top-tab ${sidebarTab === 'playlist' ? 'active' : ''}`}
+                onClick={() => setSidebarTab('playlist')}
               >
-                <option value="playlists" style={{ background: '#11121c', color: '#fff' }}>Video Playlists</option>
-                <option value="all-materials" style={{ background: '#11121c', color: '#fff' }}>All Materials & PDFs</option>
-                {(activeSubject?.customMaterialSections || ['Syllabus', 'Notes', 'Organizer', 'Past Year Papers']).map(section => (
-                  <option key={section} value={section} style={{ background: '#11121c', color: '#fff' }}>{section}</option>
-                ))}
-              </select>
+                <PlayCircle size={15} /> Playlist
+              </button>
+              <button
+                className={`sidebar-top-tab ${sidebarTab === 'materials' ? 'active' : ''}`}
+                onClick={() => setSidebarTab('materials')}
+              >
+                <FileText size={15} /> Guides
+              </button>
+              <button
+                className={`sidebar-top-tab ${sidebarTab === 'info' ? 'active' : ''}`}
+                onClick={() => setSidebarTab('info')}
+              >
+                <BookOpen size={15} /> Overview
+              </button>
             </div>
+
+            {/* 2. PLAYLIST TAB CONTENT */}
+            {sidebarTab === 'playlist' && (
+              <div className="sidebar-tab-pane">
+                {/* Search Playlist Field */}
+                <div className="playlist-search-wrap">
+                  <Search size={16} className="search-icon-fixed" />
+                  <input
+                    type="text"
+                    placeholder="Search playlist…"
+                    value={videoSearchQuery}
+                    onChange={(e) => setVideoSearchQuery(e.target.value)}
+                    className="form-input playlist-search-input"
+                  />
+                  {videoSearchQuery && (
+                    <button className="search-clear-x" onClick={() => setVideoSearchQuery('')}>
+                      ×
+                    </button>
+                  )}
+                </div>
+
+                {/* Filter & Control Toggles Bar (matching Oracle layout) */}
+                <div className="playlist-toggles-bar">
+                  <label className="checkbox-toggle-label">
+                    <input
+                      type="checkbox"
+                      checked={showSkillChecks}
+                      onChange={(e) => setShowSkillChecks(e.target.checked)}
+                    />
+                    <span>Skill Checks</span>
+                  </label>
+
+                  <label className="checkbox-toggle-label">
+                    <input
+                      type="checkbox"
+                      checked={autoPlay}
+                      onChange={(e) => setAutoPlay(e.target.checked)}
+                    />
+                    <span>Auto Play</span>
+                  </label>
+                </div>
+
+                {/* Accordion / Collapsible Playlist Sections */}
+                <div className="playlist-modules-accordion">
+                  {filteredPlaylists.length > 0 ? (
+                    filteredPlaylists.map((playlist, pIdx) => {
+                      const isCollapsed = !!collapsedModules[playlist.id];
+                      return (
+                        <div key={playlist.id} className="accordion-module-group">
+                          {/* Module Accordion Header */}
+                          <button
+                            type="button"
+                            className="module-header-toggle"
+                            onClick={() => toggleModuleCollapse(playlist.id)}
+                          >
+                            <span className="module-name-txt">
+                              <strong>
+                                {pIdx + 1}. {playlist.title}
+                              </strong>
+                            </span>
+                            {isCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+                          </button>
+
+                          {/* Module Video List */}
+                          {!isCollapsed && (
+                            <ul className="module-vids-ul">
+                              {(playlist.videos || []).map((video, vIdx) => {
+                                const isCurrent = activeVideo?.id === video.id || (activePlaylistId === playlist.id && activeVideoIndex === vIdx);
+                                const isWatched = watchedVideos.has(video.id);
+
+                                return (
+                                  <li key={video.id || vIdx}>
+                                    <button
+                                      type="button"
+                                      className={`video-row-item ${isCurrent ? 'active-playing' : ''}`}
+                                      onClick={() => handlePlayVideo(playlist.id, vIdx, video.id)}
+                                    >
+                                      {/* Status Circle Indicator */}
+                                      <span className="video-circle-status">
+                                        {isCurrent ? (
+                                          <PlayCircle size={18} className="ic-playing-glow" />
+                                        ) : isWatched && showSkillChecks ? (
+                                          <CheckCircle2 size={18} className="ic-watched-green" />
+                                        ) : (
+                                          <Circle size={18} className="ic-unplayed-ring" />
+                                        )}
+                                      </span>
+
+                                      {/* Video Details */}
+                                      <div className="video-row-details">
+                                        <span className="vid-title-text">{video.title}</span>
+                                        <span className="vid-duration-sub">{video.duration || '8m'}</span>
+                                      </div>
+                                    </button>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="empty-playlist-box">
+                      <p>No lectures match your playlist search.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Sidebar Footer: Duration & Completion Progress */}
+                <div className="sidebar-progress-footer">
+                  <div className="dur-summary-row">
+                    <span className="dur-lbl">Course Duration</span>
+                    <span className="dur-val">
+                      {totalLecturesCount * 8}m ({totalLecturesCount} Lectures)
+                    </span>
+                  </div>
+
+                  <div className="progress-bar-bg">
+                    <div className="progress-bar-fill-bar" style={{ width: `${progressPercent}%` }} />
+                  </div>
+
+                  <div className="progress-text-sub">
+                    <span>
+                      {watchedCount} of {totalLecturesCount} completed
+                    </span>
+                    <span>{progressPercent}%</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 3. MATERIALS / GUIDES TAB */}
+            {sidebarTab === 'materials' && (
+              <div className="sidebar-tab-pane">
+                <div className="pane-head-info">
+                  <h4>Guides & Documents</h4>
+                  <p>PDF Syllabi, Notes, and Exam Practice papers.</p>
+                </div>
+
+                {activeSubject?.materials && activeSubject.materials.length > 0 ? (
+                  <div className="sidebar-mat-list">
+                    {activeSubject.materials.map((mat) => (
+                      <a
+                        key={mat.id}
+                        href={mat.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="sidebar-mat-card"
+                      >
+                        <FileText size={18} color="var(--primary)" />
+                        <div>
+                          <strong>{mat.title}</strong>
+                          <span className="mat-type-sub">{TYPE_LABEL[mat.type] || mat.type}</span>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="empty-txt-notice">No documents uploaded for this subject.</p>
+                )}
+              </div>
+            )}
+
+            {/* 4. OVERVIEW TAB */}
+            {sidebarTab === 'info' && (
+              <div className="sidebar-tab-pane">
+                <div className="pane-head-info">
+                  <h4>{activeSubject?.title}</h4>
+                  <span className="code-badge">{activeSubject?.code}</span>
+                </div>
+
+                <div className="meta-info-list">
+                  <div className="meta-info-row">
+                    <span className="lbl">Department</span>
+                    <span className="val">{course.department || 'Engineering'}</span>
+                  </div>
+                  <div className="meta-info-row">
+                    <span className="lbl">Semester</span>
+                    <span className="val">Semester {activeSubject?.semester || activeSemester}</span>
+                  </div>
+                  <div className="meta-info-row">
+                    <span className="lbl">Credits</span>
+                    <span className="val">{activeSubject?.credits || 4} Credits</span>
+                  </div>
+                  <div className="meta-info-row">
+                    <span className="lbl">Playlists</span>
+                    <span className="val">{activeSubject?.playlists?.length || 0} Series</span>
+                  </div>
+                  <div className="meta-info-row">
+                    <span className="lbl">Total Videos</span>
+                    <span className="val">{allSubjectVideos.length} Lectures</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-
+        </div>
       </div>
-
     </div>
   );
 }
@@ -818,24 +869,24 @@ const styles = {
   container: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px'
+    gap: '16px'
   },
   header: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'flex-start',
-    gap: '12px',
+    gap: '10px',
     textAlign: 'left'
   },
   backBtn: {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '6px',
-    background: 'rgba(255,255,255,0.03)',
+    background: 'rgba(255,255,255,0.04)',
     border: '1px solid rgba(255,255,255,0.08)',
     color: 'var(--text-secondary)',
     padding: '6px 12px',
-    borderRadius: '6px',
+    borderRadius: '8px',
     cursor: 'pointer',
     fontSize: '0.8rem',
     fontFamily: 'var(--font-heading)',
@@ -844,55 +895,23 @@ const styles = {
   headerTitleContainer: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '6px'
+    gap: '4px'
   },
-  workspaceGrid: {
-    display: 'grid',
-    gridTemplateColumns: '260px 1fr',
-    gap: '24px',
-    alignItems: 'stretch',
-    '@media (max-width: 900px)': {
-      gridTemplateColumns: '1fr'
-    }
-  },
-  sidebarPanel: {
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-    height: 'fit-content'
-  },
-  sidebarHeader: {
+  toolbarRow: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    padding: '12px 16px',
-    borderBottom: '1px solid rgba(255,255,255,0.06)',
-    background: 'rgba(255,255,255,0.01)',
-    textAlign: 'left'
-  },
-  mainWorkspace: {
-    display: 'flex',
-    flexDirection: 'column'
-  },
-  selectSubjectFallback: {
-    padding: '100px 20px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textAlign: 'center'
-  },
-  classroomGrid: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px'
+    justifyContent: 'space-between',
+    gap: '16px',
+    padding: '12px 18px',
+    borderRadius: '14px',
+    flexWrap: 'wrap'
   },
   playerWrapper: {
     position: 'relative',
     paddingBottom: '56.25%',
     height: 0,
     overflow: 'hidden',
-    borderRadius: '16px'
+    borderRadius: '16px 16px 0 0'
   },
   iframe: {
     position: 'absolute',
@@ -900,63 +919,6 @@ const styles = {
     left: 0,
     width: '100%',
     height: '100%',
-    borderRadius: '16px'
-  },
-  metaBox: {
-    padding: '20px',
-    textAlign: 'left'
-  },
-  videoDesc: {
-    fontSize: '0.85rem',
-    color: 'var(--text-secondary)',
-    lineHeight: '1.5'
-  },
-  assetListPanel: {
-    padding: '24px',
-    textAlign: 'left',
-    minHeight: '360px'
-  },
-  assetListHeading: {
-    fontSize: '1.1rem',
-    marginBottom: '20px',
-    borderBottom: '1px solid rgba(255,255,255,0.06)',
-    paddingBottom: '8px'
-  },
-  playlistsListGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-    gap: '16px'
-  },
-  playlistCard: {
-    background: 'rgba(255,255,255,0.02)',
-    border: '1px solid rgba(255,255,255,0.05)',
-    borderRadius: '10px',
-    padding: '16px',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    minHeight: '140px'
-  },
-  documentList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px'
-  },
-  docItem: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '12px 16px',
-    background: 'rgba(255,255,255,0.01)',
-    border: '1px solid rgba(255,255,255,0.04)',
-    borderRadius: '8px',
-    gap: '10px'
-  },
-  docBtn: {
-    padding: '6px 12px',
-    fontSize: '0.75rem',
-    gap: '4px',
-    borderRadius: '6px',
-    flexShrink: 0
+    border: 'none'
   }
 };
