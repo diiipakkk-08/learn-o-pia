@@ -989,7 +989,7 @@ export function DatabaseProvider({ children }) {
     }
   };
 
-  const addSubjectPlaylist = async (subjectId, title, description, author = '', youtubePlaylistId = '', initialVideos = []) => {
+  const addSubjectPlaylist = async (subjectId, title, description, author = '', youtubePlaylistId = '', initialVideos = [], extraInfo = '') => {
     const subject = subjects.find(s => s.id === subjectId);
     const siblings = subject ? (subject.playlists || []) : [];
     const newPosition = siblings.length;
@@ -1042,7 +1042,8 @@ export function DatabaseProvider({ children }) {
             videos: initialVideos,
             author: author || currentUser?.name || '',
             position: newPosition,
-            youtubePlaylistId: youtubePlaylistId || ''
+            youtubePlaylistId: youtubePlaylistId || '',
+            extraInfo: extraInfo || ''
           };
           return { ...s, playlists: [...(s.playlists || []), newPlaylist] };
         }

@@ -20,7 +20,9 @@ import {
   Sparkles,
   MessageSquare,
   SkipBack,
-  SkipForward
+  SkipForward,
+  UserCheck,
+  Award
 } from 'lucide-react';
 
 const TYPE_LABEL = {
@@ -44,9 +46,9 @@ function SemesterPortalMenu({ triggerRef, menuRef, isOpen, value, onChange, onCl
         width: Math.max(r.width, 140),
         zIndex: 99999,
         background: '#11121c',
-        border: '1px solid rgba(139,92,246,0.3)',
+        border: '1px solid rgba(139,92,246,0.4)',
         borderRadius: '10px',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.7)',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.8)',
         padding: '6px 0',
         display: 'flex',
         flexDirection: 'column',
@@ -71,9 +73,9 @@ function SemesterPortalMenu({ triggerRef, menuRef, isOpen, value, onChange, onCl
             padding: '8px 14px',
             fontSize: '0.8rem',
             textAlign: 'left',
-            background: value === s ? 'var(--primary)' : 'transparent',
-            color: value === s ? '#fff' : 'var(--text-secondary)',
-            fontWeight: value === s ? 600 : 400,
+            background: value === s ? 'var(--primary-hover)' : 'transparent',
+            color: '#fff',
+            fontWeight: value === s ? 700 : 400,
             border: 'none',
             cursor: 'pointer',
             fontFamily: 'var(--font-body)',
@@ -89,6 +91,7 @@ function SemesterPortalMenu({ triggerRef, menuRef, isOpen, value, onChange, onCl
   );
 }
 
+// Purple Styled Semester Dropdown (Matching subject chips)
 function CustomSemesterDropdown({ value, onChange }) {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef(null);
@@ -110,13 +113,27 @@ function CustomSemesterDropdown({ value, onChange }) {
     <div style={{ position: 'relative' }}>
       <div
         ref={triggerRef}
-        className="custom-dropdown-trigger"
+        className="purple-semester-trigger"
         onClick={() => setIsOpen((o) => !o)}
-        style={{ padding: '4px 10px', fontSize: '0.78rem', height: '30px', background: 'rgba(255,255,255,0.03)' }}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '6px 14px',
+          borderRadius: '999px',
+          fontSize: '0.8rem',
+          fontWeight: 700,
+          background: 'linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%)',
+          color: '#ffffff',
+          border: '1px solid rgba(255,255,255,0.2)',
+          cursor: 'pointer',
+          boxShadow: '0 2px 10px rgba(139, 92, 246, 0.3)',
+          whiteSpace: 'nowrap'
+        }}
       >
-        <span>Sem {value}</span>
+        <span>Semester {value}</span>
         <ChevronDown
-          size={12}
+          size={13}
           style={{
             transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
             transition: 'transform 0.2s'
@@ -233,6 +250,12 @@ export default function LearningPlayer({
     }
     return allSubjectVideos[0] || null;
   }, [activePlaylist, activeVideoIndex, allSubjectVideos]);
+
+  // Specific materials attached to active video
+  const activeVideoMaterials = useMemo(() => {
+    if (!activeSubject || !activeSubject.materials) return [];
+    return activeSubject.materials.filter((m) => m.videoId === activeVideo?.id || m.type === 'notes');
+  }, [activeSubject, activeVideo]);
 
   // Load saved note when active video changes
   useEffect(() => {
@@ -368,23 +391,26 @@ export default function LearningPlayer({
 
   return (
     <div className="animate-fade-in oracle-workspace-container" style={styles.container}>
-      {/* ── ULTRA-MINIMAL TOP STRIP: Back button + Inline Semester & Subject Pickers ── */}
-      <div className="glass-panel" style={styles.microTopBar}>
+      {/* ── TOP FLEX ROW: Back (Leftmost) + Purple Semester Dropdown + Subjects Chips (Rightmost) ── */}
+      <div className="glass-panel" style={styles.topFlexRow}>
+        {/* Leftmost: Back button */}
         <button onClick={() => setCurrentView('learning')} style={styles.backBtn}>
-          <ChevronLeft size={14} /> Back
+          <ChevronLeft size={15} /> Back
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0, overflowX: 'auto' }}>
-          {isDegree && (
-            <CustomSemesterDropdown value={activeSemester} onChange={(s) => setActiveSemester(s)} />
-          )}
+        {/* Beside Back: Purple Semester Dropdown */}
+        {isDegree && (
+          <CustomSemesterDropdown value={activeSemester} onChange={(s) => setActiveSemester(s)} />
+        )}
 
+        {/* Rightmost: Subject Chips Selector */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto', overflowX: 'auto' }}>
           {isMobile ? (
             <select
               value={activeSubjectId || ''}
               onChange={(e) => setActiveSubjectId(e.target.value || null)}
               className="yt-select-dropdown"
-              style={{ padding: '4px 10px', fontSize: '0.75rem', height: '30px', flex: 1 }}
+              style={{ padding: '4px 10px', fontSize: '0.78rem', height: '30px' }}
             >
               {currentSubjects.length === 0 ? (
                 <option value="">No subjects</option>
@@ -403,7 +429,7 @@ export default function LearningPlayer({
                   key={sub.id}
                   onClick={() => setActiveSubjectId(sub.id)}
                   className={`yt-subject-chip ${activeSubjectId === sub.id ? 'active' : ''}`}
-                  style={{ padding: '3px 10px', fontSize: '0.75rem' }}
+                  style={{ padding: '4px 12px', fontSize: '0.78rem' }}
                 >
                   {sub.title}
                 </button>
@@ -426,7 +452,7 @@ export default function LearningPlayer({
             className={`mobile-tab-pill ${mobileTab === 'materials' ? 'active' : ''}`}
             onClick={() => setMobileTab('materials')}
           >
-            <FileText size={15} /> Materials ({activeSubject?.materials?.length || 0})
+            <FileText size={15} /> Materials ({activeSubjectMaterials?.length || 0})
           </button>
           <button
             className={`mobile-tab-pill ${mobileTab === 'overview' ? 'active' : ''}`}
@@ -508,73 +534,75 @@ export default function LearningPlayer({
             )}
           </div>
 
-          {/* 3. Subject Tabs & Details */}
-          {activeSubject && (
+          {/* 3. Playlist Details & Action Tabs Below Player */}
+          {activePlaylist && (
             <div className="subject-meta-hub glass-panel">
               <div className="action-tabs-bar" style={{ marginBottom: '14px', paddingBottom: '12px' }}>
                 <button
                   className={`action-tab-pill ${mainTab === 'overview' ? 'active' : ''}`}
                   onClick={() => setMainTab('overview')}
                 >
-                  <BookOpen size={16} /> Overview
+                  <BookOpen size={16} /> Playlist Overview
                 </button>
                 <button
                   className={`action-tab-pill ${mainTab === 'materials' ? 'active' : ''}`}
                   onClick={() => setMainTab('materials')}
                 >
-                  <FileText size={16} /> Materials ({activeSubject.materials?.length || 0})
+                  <FileText size={16} /> Video Materials ({activeVideoMaterials.length})
                 </button>
                 <button
                   className={`action-tab-pill ${mainTab === 'notes' ? 'active' : ''}`}
                   onClick={() => setMainTab('notes')}
                 >
-                  <MessageSquare size={16} /> Lecture Notes
+                  <MessageSquare size={16} /> My Notes
                 </button>
               </div>
 
               {/* Tab Contents */}
               <div className="action-tab-body">
+                {/* Overview Below Video: Focused strictly on Active Playlist Details */}
                 {mainTab === 'overview' && (
                   <div className="tab-pane-content">
-                    <h3 style={{ fontSize: '1.1rem', marginBottom: '6px' }}>{activeSubject.title}</h3>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: '6px' }}>{activePlaylist.title}</h3>
                     <p className="tab-pane-desc">
-                      Curated lecture series and video playlists for <strong>{activeSubject.title}</strong>.
+                      {activePlaylist.description || `Lecture series playlist for ${activeSubject?.title || 'this subject'}.`}
                     </p>
+
+                    {/* Extra Custom Overview Info from Creator Studio */}
+                    {activePlaylist.extraInfo && (
+                      <div style={{ padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)', marginBottom: '16px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        <strong style={{ color: '#ffffff', display: 'block', marginBottom: '4px' }}>Instructor & Playlist Notes:</strong>
+                        {activePlaylist.extraInfo}
+                      </div>
+                    )}
 
                     <div className="stats-cards-grid">
                       <div className="stat-card-box">
                         <Clock size={18} color="var(--primary)" />
                         <div>
-                          <strong>{allSubjectVideos.length} Lectures</strong>
-                          <span>{activeSubject.playlists?.length || 0} Modules</span>
-                        </div>
-                      </div>
-
-                      <div className="stat-card-box">
-                        <GraduationCap size={18} color="var(--primary)" />
-                        <div>
-                          <strong>{activeSubject.credits || 4} Credits</strong>
-                          <span>Semester {activeSubject.semester || activeSemester}</span>
+                          <strong>{activePlaylist.videos?.length || 0} Video Lectures</strong>
+                          <span>Playlist Length</span>
                         </div>
                       </div>
 
                       <div className="stat-card-box">
                         <Sparkles size={18} color="var(--primary)" />
                         <div>
-                          <strong>{activeSubject.materials?.length || 0} Documents</strong>
-                          <span>Syllabi & Notes</span>
+                          <strong>{activeSubject?.playlists?.length || 1} Playlist Series</strong>
+                          <span>Subject Modules</span>
                         </div>
                       </div>
                     </div>
                   </div>
                 )}
 
+                {/* Video Specific Materials */}
                 {mainTab === 'materials' && (
                   <div className="tab-pane-content">
-                    <h3>Study Materials & PDFs</h3>
-                    {activeSubject.materials && activeSubject.materials.length > 0 ? (
+                    <h3>Lecture Specific PDF Materials</h3>
+                    {activeVideoMaterials.length > 0 ? (
                       <div className="materials-grid-list">
-                        {activeSubject.materials.map((mat) => (
+                        {activeVideoMaterials.map((mat) => (
                           <div key={mat.id} className="mat-card-row">
                             <div className="mat-card-left">
                               <span className="mat-type-tag">{TYPE_LABEL[mat.type] || mat.type}</span>
@@ -593,11 +621,12 @@ export default function LearningPlayer({
                         ))}
                       </div>
                     ) : (
-                      <p className="empty-txt-notice">No study materials uploaded for this subject yet.</p>
+                      <p className="empty-txt-notice">No specific PDF notes attached to this lecture video.</p>
                     )}
                   </div>
                 )}
 
+                {/* Personal Lecture Notes */}
                 {mainTab === 'notes' && (
                   <div className="tab-pane-content">
                     <h3>My Lecture Notes</h3>
@@ -627,7 +656,7 @@ export default function LearningPlayer({
         </div>
 
         {/* ========================================================= */}
-        {/* RIGHT COLUMN: Playlists & Modules Accordion Sidebar       */}
+        {/* RIGHT COLUMN: Playlists Accordion & Course Guides Hub      */}
         {/* ========================================================= */}
         <div className={`oracle-sidebar-col ${isMobile && mobileTab !== 'playlist' && mobileTab !== 'materials' ? 'mobile-hidden' : ''}`}>
           <div className="oracle-sidebar-card glass-panel">
@@ -778,12 +807,12 @@ export default function LearningPlayer({
               </div>
             )}
 
-            {/* MATERIALS TAB */}
+            {/* GUIDES TAB: Contains ALL course materials (syllabi, notes, pyqs, organizers) */}
             {sidebarTab === 'materials' && (
               <div className="sidebar-tab-pane">
                 <div className="pane-head-info">
-                  <h4>Guides & Documents</h4>
-                  <p>PDF Syllabi, Notes, and Exam Practice papers.</p>
+                  <h4>Entire Course Guides & PDFs</h4>
+                  <p>All Syllabi, Notes, Organizers, and Past Year Papers for this course.</p>
                 </div>
 
                 {activeSubject?.materials && activeSubject.materials.length > 0 ? (
@@ -805,20 +834,30 @@ export default function LearningPlayer({
                     ))}
                   </div>
                 ) : (
-                  <p className="empty-txt-notice">No documents uploaded for this subject.</p>
+                  <p className="empty-txt-notice">No PDF guides uploaded for this course yet.</p>
                 )}
               </div>
             )}
 
-            {/* OVERVIEW TAB */}
+            {/* RIGHT SIDEBAR OVERVIEW TAB: Academic Credits & Playlist Owner Info */}
             {sidebarTab === 'info' && (
               <div className="sidebar-tab-pane">
                 <div className="pane-head-info">
                   <h4>{activeSubject?.title}</h4>
-                  <span className="code-badge">{activeSubject?.code}</span>
+                  <span className="code-badge">{activeSubject?.code || 'SUB-101'}</span>
                 </div>
 
                 <div className="meta-info-list">
+                  <div className="meta-info-row">
+                    <span className="lbl">Academic Credits</span>
+                    <span className="val" style={{ color: 'var(--primary)', fontWeight: 800 }}>
+                      {activeSubject?.credits || 4} Credits
+                    </span>
+                  </div>
+                  <div className="meta-info-row">
+                    <span className="lbl">Playlist Owner</span>
+                    <span className="val">{activeSubject?.author || course.author || 'University Faculty'}</span>
+                  </div>
                   <div className="meta-info-row">
                     <span className="lbl">Department</span>
                     <span className="val">{course.department || 'Engineering'}</span>
@@ -826,10 +865,6 @@ export default function LearningPlayer({
                   <div className="meta-info-row">
                     <span className="lbl">Semester</span>
                     <span className="val">Semester {activeSubject?.semester || activeSemester}</span>
-                  </div>
-                  <div className="meta-info-row">
-                    <span className="lbl">Credits</span>
-                    <span className="val">{activeSubject?.credits || 4} Credits</span>
                   </div>
                   <div className="meta-info-row">
                     <span className="lbl">Total Videos</span>
@@ -854,12 +889,12 @@ const styles = {
     maxWidth: '100%',
     boxSizing: 'border-box'
   },
-  microTopBar: {
+  topFlexRow: {
     display: 'flex',
     alignItems: 'center',
-    gap: '10px',
+    gap: '12px',
     padding: '6px 12px',
-    borderRadius: '10px',
+    borderRadius: '12px',
     boxSizing: 'border-box',
     width: '100%'
   },
@@ -870,10 +905,10 @@ const styles = {
     background: 'rgba(255,255,255,0.04)',
     border: '1px solid rgba(255,255,255,0.08)',
     color: 'var(--text-secondary)',
-    padding: '4px 10px',
-    borderRadius: '6px',
+    padding: '6px 12px',
+    borderRadius: '8px',
     cursor: 'pointer',
-    fontSize: '0.78rem',
+    fontSize: '0.8rem',
     fontFamily: 'var(--font-heading)',
     transition: 'all 0.2s',
     whiteSpace: 'nowrap'

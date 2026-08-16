@@ -78,30 +78,6 @@ export default function Header({
             </button>
 
             <button
-              onClick={() => setCurrentView('about')}
-              style={{
-                ...styles.navBtn,
-                background: currentView === 'about' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                color: currentView === 'about' ? '#ffffff' : 'var(--text-secondary)'
-              }}
-            >
-              <Info size={15} />
-              About
-            </button>
-
-            <button
-              onClick={() => setCurrentView('results-404')}
-              style={{
-                ...styles.navBtn,
-                background: currentView === 'results-404' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                color: currentView === 'results-404' ? '#ffffff' : 'var(--text-secondary)'
-              }}
-            >
-              <BarChart2 size={15} />
-              Results
-            </button>
-
-            <button
               onClick={() => setCurrentView('attendance')}
               style={{
                 ...styles.navBtn,
@@ -152,6 +128,18 @@ export default function Header({
                 Admin Panel
               </button>
             )}
+
+            <button
+              onClick={() => setCurrentView('about')}
+              style={{
+                ...styles.navBtn,
+                background: currentView === 'about' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                color: currentView === 'about' ? '#ffffff' : 'var(--text-secondary)'
+              }}
+            >
+              <Info size={15} />
+              About
+            </button>
           </nav>
         )}
       </div>
@@ -243,30 +231,6 @@ export default function Header({
           </button>
 
           <button
-            onClick={() => { setCurrentView('about'); setMenuOpen(false); }}
-            style={{
-              ...styles.mobileMenuBtn,
-              background: currentView === 'about' ? 'rgba(255,255,255,0.05)' : 'transparent',
-              color: currentView === 'about' ? '#ffffff' : 'var(--text-secondary)'
-            }}
-          >
-            <Info size={16} />
-            About
-          </button>
-
-          <button
-            onClick={() => { setCurrentView('results-404'); setMenuOpen(false); }}
-            style={{
-              ...styles.mobileMenuBtn,
-              background: currentView === 'results-404' ? 'rgba(255,255,255,0.05)' : 'transparent',
-              color: currentView === 'results-404' ? '#ffffff' : 'var(--text-secondary)'
-            }}
-          >
-            <BarChart2 size={16} />
-            Results
-          </button>
-
-          <button
             onClick={() => { setCurrentView('attendance'); setMenuOpen(false); }}
             style={{
               ...styles.mobileMenuBtn,
@@ -303,6 +267,32 @@ export default function Header({
               Studio
             </button>
           )}
+
+          {isAdmin && (
+            <button
+              onClick={() => { setCurrentView('admin'); setMenuOpen(false); }}
+              style={{
+                ...styles.mobileMenuBtn,
+                background: currentView === 'admin' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                color: currentView === 'admin' ? '#ffffff' : 'var(--text-secondary)'
+              }}
+            >
+              <Shield size={16} />
+              Admin Panel
+            </button>
+          )}
+
+          <button
+            onClick={() => { setCurrentView('about'); setMenuOpen(false); }}
+            style={{
+              ...styles.mobileMenuBtn,
+              background: currentView === 'about' ? 'rgba(255,255,255,0.05)' : 'transparent',
+              color: currentView === 'about' ? '#ffffff' : 'var(--text-secondary)'
+            }}
+          >
+            <Info size={16} />
+            About
+          </button>
 
           {isAdmin && (
             <button
