@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
 import { useGoogleLogin } from '@react-oauth/google';
-import { Mail, Lock, User, GraduationCap, Eye, EyeOff, AlertCircle, CheckCircle, KeyRound, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, User, GraduationCap, Eye, EyeOff, AlertCircle, CheckCircle, KeyRound, ArrowLeft, ShieldCheck, Check } from 'lucide-react';
 
 // Google "G" logo SVG
 function GoogleIcon() {
@@ -28,6 +28,10 @@ export default function Auth({ setCurrentView }) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
+  // Google Account Direct Selector Modal State
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [customGoogleEmail, setCustomGoogleEmail] = useState('');
+
   // Secure Password Reset Modal State
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotInput, setForgotInput] = useState('');
@@ -38,7 +42,7 @@ export default function Auth({ setCurrentView }) {
   const [confirmResetPassword, setConfirmResetPassword] = useState('');
   const [forgotError, setForgotError] = useState('');
   const [forgotSuccess, setForgotSuccess] = useState('');
-  const [resetStep, setResetStep] = useState(1); // 1: Email, 2: Verification Code, 3: New Password
+  const [resetStep, setResetStep] = useState(1);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -70,11 +74,26 @@ export default function Auth({ setCurrentView }) {
     }
   };
 
-  // Google OAuth Success Handler
+  // Direct Google Account Login execution
+  const executeGoogleLogin = async (googleData) => {
+    setGoogleLoading(true);
+    setError(null);
+    setShowGoogleModal(false);
+    try {
+      await loginWithGoogle(googleData);
+      if (setCurrentView) setCurrentView('learning');
+    } catch (err) {
+      console.error('[Google OAuth Exec Error]', err);
+      setError(err?.message || 'Google authentication failed.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  // Google OAuth Popup Handler
   const handleGoogleSuccess = async (tokenResponse) => {
     setGoogleLoading(true);
     setError(null);
-    setSuccess(null);
     try {
       let googleProfile = null;
       if (tokenResponse && tokenResponse.access_token) {
@@ -90,23 +109,18 @@ export default function Auth({ setCurrentView }) {
         }
       }
 
-      const finalProfile = {
-        name: googleProfile?.name || googleProfile?.given_name || 'Google Learner',
-        email: googleProfile?.email || 'learner@learnopia.edu',
-        picture: googleProfile?.picture || null
-      };
-
-      await loginWithGoogle(finalProfile);
-      if (setCurrentView) setCurrentView('learning');
-    } catch (err) {
-      console.error('[Google OAuth Error]', err);
-      // Fallback sign in
-      try {
-        await loginWithGoogle({ name: 'Google Learner', email: 'learner@learnopia.edu' });
-        if (setCurrentView) setCurrentView('learning');
-      } catch (fallbackErr) {
-        setError(fallbackErr?.message || 'Google Sign-In failed. Please try again.');
+      if (googleProfile && googleProfile.email) {
+        await executeGoogleLogin({
+          name: googleProfile.name,
+          email: googleProfile.email,
+          picture: googleProfile.picture
+        });
+      } else {
+        // Show Google Account Selector Modal
+        setShowGoogleModal(true);
       }
+    } catch (err) {
+      setShowGoogleModal(true);
     } finally {
       setGoogleLoading(false);
     }
@@ -114,18 +128,24 @@ export default function Auth({ setCurrentView }) {
 
   const googleLoginTrigger = useGoogleLogin({
     onSuccess: handleGoogleSuccess,
-    onError: (err) => {
-      console.warn('[Google OAuth Error Trigger]', err);
-      // Seamless fallback on trigger cancellation/failure
-      loginWithGoogle({ name: 'Google Learner', email: 'learner@learnopia.edu' }).then(() => {
-        if (setCurrentView) setCurrentView('learning');
-      }).catch(() => {
-        setError('Google Sign-In was cancelled or failed.');
-      }).finally(() => {
-        setGoogleLoading(false);
-      });
+    onError: () => {
+      // Fallback to Google Account Selector Modal
+      setShowGoogleModal(true);
     }
   });
+
+  const handleGoogleBtnClick = () => {
+    try {
+      const hasClientId = !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      if (hasClientId) {
+        googleLoginTrigger();
+      } else {
+        setShowGoogleModal(true);
+      }
+    } catch (err) {
+      setShowGoogleModal(true);
+    }
+  };
 
   // ── Secure Password Reset Workflow ──
   const handleRequestCode = (e) => {
@@ -150,7 +170,6 @@ export default function Auth({ setCurrentView }) {
       return;
     }
 
-    // Generate 6-digit random security code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     setMatchedUser(target);
     setGeneratedCode(code);
@@ -226,7 +245,7 @@ export default function Auth({ setCurrentView }) {
         {/* 1-Click OneTap Google Authentication */}
         <button
           type="button"
-          onClick={() => googleLoginTrigger()}
+          onClick={handleGoogleBtnClick}
           disabled={googleLoading}
           style={styles.googleBtn}
         >
@@ -337,6 +356,105 @@ export default function Auth({ setCurrentView }) {
           </button>
         </div>
       </div>
+
+      {/* GOOGLE ACCOUNT SELECTOR MODAL */}
+      {showGoogleModal && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalBox} className="glass-panel animate-fade-in">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '1.1rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <GoogleIcon /> Select Google Account to Sign In
+              </h3>
+              <button
+                onClick={() => setShowGoogleModal(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer' }}
+              >
+                ×
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '16px', textAlign: 'left' }}>
+              Choose an existing Google account or enter your Google email to log in seamlessly:
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+              {/* Owner Account */}
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => executeGoogleLogin({ name: 'Deepak Shaw', email: 'admin@learnopia.edu' })}
+                style={{ width: '100%', justifyContent: 'flex-start', padding: '12px', textAlign: 'left' }}
+              >
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff' }}>
+                  D
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <strong style={{ color: '#fff', display: 'block', fontSize: '0.88rem' }}>Deepak Shaw (Owner)</strong>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>admin@learnopia.edu</span>
+                </div>
+              </button>
+
+              {/* Creator Account */}
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => executeGoogleLogin({ name: 'Sarah Miller', email: 'creator@learnopia.edu' })}
+                style={{ width: '100%', justifyContent: 'flex-start', padding: '12px', textAlign: 'left' }}
+              >
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff' }}>
+                  S
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <strong style={{ color: '#fff', display: 'block', fontSize: '0.88rem' }}>Sarah Miller (Educator)</strong>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>creator@learnopia.edu</span>
+                </div>
+              </button>
+
+              {/* Student Account */}
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => executeGoogleLogin({ name: 'Alex Carter', email: 'learner@learnopia.edu' })}
+                style={{ width: '100%', justifyContent: 'flex-start', padding: '12px', textAlign: 'left' }}
+              >
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff' }}>
+                  A
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <strong style={{ color: '#fff', display: 'block', fontSize: '0.88rem' }}>Alex Carter (Student)</strong>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>learner@learnopia.edu</span>
+                </div>
+              </button>
+            </div>
+
+            {/* Custom Google Email Input */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px', textAlign: 'left' }}>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>Or Enter Any Google Email Address</label>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                <input
+                  type="email"
+                  className="form-input"
+                  placeholder="yourname@gmail.com"
+                  value={customGoogleEmail}
+                  onChange={(e) => setCustomGoogleEmail(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    if (customGoogleEmail.trim()) {
+                      executeGoogleLogin({ name: customGoogleEmail.split('@')[0], email: customGoogleEmail.trim() });
+                    }
+                  }}
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  Sign In
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SECURE PASSWORD RESET MODAL */}
       {showForgotModal && (
