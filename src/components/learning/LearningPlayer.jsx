@@ -20,7 +20,10 @@ import {
   Sparkles,
   MessageSquare,
   SkipBack,
-  SkipForward
+  SkipForward,
+  ArrowRight,
+  ListVideo,
+  Layers
 } from 'lucide-react';
 
 const TYPE_LABEL = {
@@ -145,18 +148,20 @@ export default function LearningPlayer({
 
   const [activeSemester, setActiveSemester] = useState(1);
   const [activeSubjectId, setActiveSubjectId] = useState(null);
-  const [activePlaylistId, setActivePlaylistId] = useState(null);
+  
+  // Step State: selectedPlaylistId is null when browsing playlists hub, non-null when in video player view!
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);
+
   const [videoSearchQuery, setVideoSearchQuery] = useState('');
   const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.innerWidth <= 1023 : false));
 
-  // Controls & Engagement states
+  // Engagement & Player state
   const [watchedVideos, setWatchedVideos] = useState(() => new Set());
   const [autoPlay, setAutoPlay] = useState(true);
   const [showSkillChecks, setShowSkillChecks] = useState(true);
   const [sidebarTab, setSidebarTab] = useState('playlist'); // 'playlist' | 'materials' | 'info'
   const [mainTab, setMainTab] = useState('overview'); // 'overview' | 'materials' | 'notes'
   const [mobileTab, setMobileTab] = useState('playlist'); // 'playlist' | 'materials' | 'overview'
-  const [collapsedModules, setCollapsedModules] = useState({});
 
   const [shareCopied, setShareCopied] = useState(false);
   const [userNotes, setUserNotes] = useState({});
@@ -180,59 +185,34 @@ export default function LearningPlayer({
     ).sort((a, b) => (a.position || 0) - (b.position || 0));
   }, [subjects, playlistId, activeSemester, isDegree]);
 
-  // Auto select subject when semester or subjects change
+  // Auto select subject when semester changes
   useEffect(() => {
     if (currentSubjects.length > 0) {
       const exists = currentSubjects.some((s) => s.id === activeSubjectId);
       if (!exists) {
         setActiveSubjectId(currentSubjects[0].id);
-        setActivePlaylistId(null);
+        setSelectedPlaylistId(null);
         setActiveVideoIndex(0);
       }
     } else {
       setActiveSubjectId(null);
-      setActivePlaylistId(null);
+      setSelectedPlaylistId(null);
     }
   }, [currentSubjects, activeSubjectId, isDegree]);
 
   const activeSubject = currentSubjects.find((s) => s.id === activeSubjectId) || currentSubjects[0];
 
-  // Auto-select first playlist if none selected
-  useEffect(() => {
-    if (activeSubject && activeSubject.playlists && activeSubject.playlists.length > 0) {
-      if (!activePlaylistId || !activeSubject.playlists.some((p) => p.id === activePlaylistId)) {
-        setActivePlaylistId(activeSubject.playlists[0].id);
-        setActiveVideoIndex(0);
-      }
-    }
-  }, [activeSubject, activePlaylistId]);
-
-  const activePlaylist = activeSubject?.playlists?.find((p) => p.id === activePlaylistId) || activeSubject?.playlists?.[0];
-
-  // Flatten all videos across playlists for the active subject
-  const allSubjectVideos = useMemo(() => {
-    if (!activeSubject || !activeSubject.playlists) return [];
-    const vids = [];
-    activeSubject.playlists.forEach((p, pIdx) => {
-      (p.videos || []).forEach((v, vIdx) => {
-        vids.push({
-          ...v,
-          playlistId: p.id,
-          playlistTitle: p.title,
-          moduleIndex: pIdx + 1,
-          lectureIndex: vIdx + 1
-        });
-      });
-    });
-    return vids;
-  }, [activeSubject]);
+  const activePlaylist = useMemo(() => {
+    if (!activeSubject || !activeSubject.playlists) return null;
+    return activeSubject.playlists.find((p) => p.id === selectedPlaylistId) || null;
+  }, [activeSubject, selectedPlaylistId]);
 
   const activeVideo = useMemo(() => {
     if (activePlaylist?.videos && activePlaylist.videos.length > 0) {
       return activePlaylist.videos[activeVideoIndex] || activePlaylist.videos[0];
     }
-    return allSubjectVideos[0] || null;
-  }, [activePlaylist, activeVideoIndex, allSubjectVideos]);
+    return null;
+  }, [activePlaylist, activeVideoIndex]);
 
   // Load saved note when active video changes
   useEffect(() => {
@@ -258,7 +238,7 @@ export default function LearningPlayer({
         });
       }
     }
-  }, [activePlaylistId, activePlaylist]);
+  }, [selectedPlaylistId, activePlaylist]);
 
   const getVideoSrc = (video) => {
     if (!video) return '';
@@ -268,15 +248,12 @@ export default function LearningPlayer({
     return `https://www.youtube.com/embed/${video.youtubeId}?rel=0&modestbranding=1&autoplay=1`;
   };
 
-  const toggleModuleCollapse = (modId) => {
-    setCollapsedModules((prev) => ({
-      ...prev,
-      [modId]: !prev[modId]
-    }));
+  const handleStartPlaylist = (plId) => {
+    setSelectedPlaylistId(plId);
+    setActiveVideoIndex(0);
   };
 
-  const handlePlayVideo = (plId, vIdx, videoId) => {
-    setActivePlaylistId(plId);
+  const handlePlayVideo = (vIdx, videoId) => {
     setActiveVideoIndex(vIdx);
     if (videoId) {
       setWatchedVideos((prev) => {
@@ -316,40 +293,26 @@ export default function LearningPlayer({
     }
   };
 
-  // Stats calculation
-  const totalLecturesCount = allSubjectVideos.length;
+  // Stats calculation for selected playlist
+  const playlistVideos = activePlaylist?.videos || [];
   const watchedCount = useMemo(() => {
-    return allSubjectVideos.filter((v) => watchedVideos.has(v.id)).length;
-  }, [allSubjectVideos, watchedVideos]);
+    return playlistVideos.filter((v) => watchedVideos.has(v.id)).length;
+  }, [playlistVideos, watchedVideos]);
 
-  const progressPercent = totalLecturesCount > 0 ? Math.round((watchedCount / totalLecturesCount) * 100) : 0;
+  const progressPercent = playlistVideos.length > 0 ? Math.round((watchedCount / playlistVideos.length) * 100) : 0;
 
-  // Filter playlists by search query
-  const filteredPlaylists = useMemo(() => {
-    if (!activeSubject || !activeSubject.playlists) return [];
-    if (!videoSearchQuery.trim()) return activeSubject.playlists;
-
+  // Filter video rows by search query
+  const filteredVideos = useMemo(() => {
+    if (!playlistVideos) return [];
+    if (!videoSearchQuery.trim()) return playlistVideos;
     const q = videoSearchQuery.toLowerCase().trim();
-    return activeSubject.playlists
-      .map((playlist) => {
-        const matchingVideos = (playlist.videos || []).filter((v) =>
-          v.title.toLowerCase().includes(q)
-        );
-        if (playlist.title.toLowerCase().includes(q) || matchingVideos.length > 0) {
-          return {
-            ...playlist,
-            videos: matchingVideos.length > 0 ? matchingVideos : playlist.videos
-          };
-        }
-        return null;
-      })
-      .filter(Boolean);
-  }, [activeSubject, videoSearchQuery]);
+    return playlistVideos.filter((v) => v.title.toLowerCase().includes(q));
+  }, [playlistVideos, videoSearchQuery]);
 
   if (!course) {
     return (
       <div style={{ textAlign: 'center', padding: '40px' }} className="glass-panel">
-        <p>Course playlist not found.</p>
+        <p>Course not found.</p>
         <button onClick={() => setCurrentView('learning')} className="btn btn-primary" style={{ marginTop: '12px' }}>
           Back to Courses
         </button>
@@ -366,51 +329,145 @@ export default function LearningPlayer({
     ? `https://www.youtube.com/embed/videoseries?list=${ytPlId}&rel=0&modestbranding=1`
     : getVideoSrc(activeVideo);
 
+  // =========================================================================
+  // STEP 1: PLAYLIST SELECTION OVERVIEW HUB (Before video starts playing)
+  // =========================================================================
+  if (!selectedPlaylistId || !activePlaylist) {
+    return (
+      <div className="animate-fade-in oracle-workspace-container" style={styles.container}>
+        {/* Top Header Row */}
+        <div className="glass-panel" style={styles.compactTopBar}>
+          <button onClick={() => setCurrentView('learning')} style={styles.backBtn}>
+            <ChevronLeft size={16} /> Back to Courses
+          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0, overflowX: 'auto' }}>
+            {isDegree && (
+              <CustomSemesterDropdown value={activeSemester} onChange={(s) => setActiveSemester(s)} />
+            )}
+
+            {isMobile ? (
+              <select
+                value={activeSubjectId || ''}
+                onChange={(e) => setActiveSubjectId(e.target.value || null)}
+                className="yt-select-dropdown"
+                style={{ padding: '6px 12px', fontSize: '0.8rem', flex: 1 }}
+              >
+                {currentSubjects.length === 0 ? (
+                  <option value="">No subjects</option>
+                ) : (
+                  currentSubjects.map((sub) => (
+                    <option key={sub.id} value={sub.id}>
+                      {sub.title}
+                    </option>
+                  ))
+                )}
+              </select>
+            ) : (
+              <div className="yt-subject-chips-row" style={{ margin: 0 }}>
+                {currentSubjects.map((sub) => (
+                  <button
+                    key={sub.id}
+                    onClick={() => setActiveSubjectId(sub.id)}
+                    className={`yt-subject-chip ${activeSubjectId === sub.id ? 'active' : ''}`}
+                    style={{ padding: '4px 12px', fontSize: '0.8rem' }}
+                  >
+                    {sub.title}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Subject Playlists Hub */}
+        {activeSubject && (
+          <div className="glass-panel" style={{ padding: '24px', textAlign: 'left' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <span className="code-badge">{activeSubject.code || 'SUB-101'} · {activeSubject.credits || 4} Credits</span>
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ffffff', margin: '4px 0 0 0' }}>{activeSubject.title}</h1>
+              </div>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                {activeSubject.playlists?.length || 0} Playlists Available
+              </span>
+            </div>
+
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+              Select a video playlist series below to start learning.
+            </p>
+
+            {/* Playlists Cards Grid */}
+            {!activeSubject.playlists || activeSubject.playlists.length === 0 ? (
+              <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <Layers size={36} style={{ marginBottom: '8px' }} />
+                <p>No playlists added to this subject yet.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+                {activeSubject.playlists.map((pl, idx) => (
+                  <div
+                    key={pl.id}
+                    className="glass-panel"
+                    style={{
+                      padding: '20px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '16px',
+                      background: 'rgba(255,255,255,0.02)',
+                      border: '1px solid rgba(255,255,255,0.06)'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#a78bfa', background: 'rgba(139,92,246,0.15)', padding: '3px 8px', borderRadius: '999px' }}>
+                          Playlist #{idx + 1}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          <ListVideo size={13} style={{ display: 'inline', marginRight: 4 }} />
+                          {pl.videos?.length || 0} Videos
+                        </span>
+                      </div>
+
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#ffffff', marginBottom: '6px' }}>{pl.title}</h3>
+                      {pl.description && (
+                        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                          {pl.description}
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => handleStartPlaylist(pl.id)}
+                      className="btn btn-primary"
+                      style={{ width: '100%', justifyContent: 'center', padding: '10px', fontSize: '0.85rem' }}
+                    >
+                      Study This Playlist Now <ArrowRight size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // STEP 2: CLEAN DISTRACTION-FREE VIDEO PLAYER VIEW (After playlist is clicked)
+  // =========================================================================
   return (
     <div className="animate-fade-in oracle-workspace-container" style={styles.container}>
-      {/* ── MINIMAL TOP BAR: Back Button + Semester + Subject Selectors ── */}
+      {/* ── MINIMAL TOP BAR: Only Back to Subject Playlists button (No heavy headers above video) ── */}
       <div className="glass-panel" style={styles.compactTopBar}>
-        <button onClick={() => setCurrentView('learning')} style={styles.backBtn}>
-          <ChevronLeft size={16} /> Back
+        <button onClick={() => setSelectedPlaylistId(null)} style={styles.backBtn}>
+          <ChevronLeft size={16} /> Back to Subject Playlists
         </button>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0, overflowX: 'auto' }}>
-          {isDegree && (
-            <CustomSemesterDropdown value={activeSemester} onChange={(s) => setActiveSemester(s)} />
-          )}
-
-          {isMobile ? (
-            <select
-              value={activeSubjectId || ''}
-              onChange={(e) => setActiveSubjectId(e.target.value || null)}
-              className="yt-select-dropdown"
-              style={{ padding: '6px 12px', fontSize: '0.8rem', flex: 1 }}
-            >
-              {currentSubjects.length === 0 ? (
-                <option value="">No subjects</option>
-              ) : (
-                currentSubjects.map((sub) => (
-                  <option key={sub.id} value={sub.id}>
-                    {sub.title}
-                  </option>
-                ))
-              )}
-            </select>
-          ) : (
-            <div className="yt-subject-chips-row" style={{ margin: 0 }}>
-              {currentSubjects.map((sub) => (
-                <button
-                  key={sub.id}
-                  onClick={() => setActiveSubjectId(sub.id)}
-                  className={`yt-subject-chip ${activeSubjectId === sub.id ? 'active' : ''}`}
-                  style={{ padding: '4px 12px', fontSize: '0.8rem' }}
-                >
-                  {sub.title}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#ffffff', marginLeft: 'auto' }}>
+          {activePlaylist.title}
+        </span>
       </div>
 
       {/* ── Mobile Navigation Tabs Bar (< 1024px) ── */}
@@ -420,7 +477,7 @@ export default function LearningPlayer({
             className={`mobile-tab-pill ${mobileTab === 'playlist' ? 'active' : ''}`}
             onClick={() => setMobileTab('playlist')}
           >
-            <PlayCircle size={15} /> Playlist ({allSubjectVideos.length})
+            <PlayCircle size={15} /> Videos ({playlistVideos.length})
           </button>
           <button
             className={`mobile-tab-pill ${mobileTab === 'materials' ? 'active' : ''}`}
@@ -440,10 +497,10 @@ export default function LearningPlayer({
       {/* ── MAIN WORKSPACE GRID ── */}
       <div className="oracle-learning-grid">
         {/* ========================================================= */}
-        {/* LEFT COLUMN: Clean Video Player & Details                */}
+        {/* LEFT COLUMN: Clean Video Player                           */}
         {/* ========================================================= */}
         <div className={`oracle-main-col ${isMobile && mobileTab !== 'playlist' ? 'mobile-hidden' : ''}`}>
-          {/* 1. Main 16:9 Video Frame (Positions at top of page) */}
+          {/* 1. Main 16:9 Video Frame */}
           <div className="player-frame-card glass-panel">
             <div style={styles.playerWrapper}>
               <iframe
@@ -456,7 +513,7 @@ export default function LearningPlayer({
               />
             </div>
 
-            {/* 2. Compact "Now Playing" Bar (No star ratings) */}
+            {/* 2. Compact "Now Playing" Bar */}
             {activeVideo && (
               <div className="oracle-now-playing-bar">
                 <div className="now-playing-left">
@@ -464,7 +521,7 @@ export default function LearningPlayer({
                   <div className="now-playing-text">
                     <h3 className="now-playing-h">{activeVideo.title}</h3>
                     <span className="now-playing-sub">
-                      Lecture {(activeVideoIndex || 0) + 1} of {activePlaylist?.videos?.length || allSubjectVideos.length}
+                      Lecture {(activeVideoIndex || 0) + 1} of {playlistVideos.length}
                     </span>
                   </div>
                 </div>
@@ -487,9 +544,9 @@ export default function LearningPlayer({
                     type="button"
                     className="circle-action-btn"
                     onClick={handleNextVideo}
-                    disabled={!activePlaylist?.videos || activeVideoIndex >= activePlaylist.videos.length - 1}
+                    disabled={activeVideoIndex >= playlistVideos.length - 1}
                     title="Next Lecture"
-                    style={{ opacity: !activePlaylist?.videos || activeVideoIndex >= activePlaylist.videos.length - 1 ? 0.4 : 1 }}
+                    style={{ opacity: activeVideoIndex >= playlistVideos.length - 1 ? 0.4 : 1 }}
                   >
                     <SkipForward size={16} />
                   </button>
@@ -536,17 +593,17 @@ export default function LearningPlayer({
               <div className="action-tab-body">
                 {mainTab === 'overview' && (
                   <div className="tab-pane-content">
-                    <h3 style={{ fontSize: '1.1rem', marginBottom: '6px' }}>{activeSubject.title}</h3>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: '6px' }}>{activePlaylist.title}</h3>
                     <p className="tab-pane-desc">
-                      Curated lecture series and video playlists for <strong>{activeSubject.title}</strong>.
+                      Currently studying playlist in <strong>{activeSubject.title}</strong>.
                     </p>
 
                     <div className="stats-cards-grid">
                       <div className="stat-card-box">
                         <Clock size={18} color="var(--primary)" />
                         <div>
-                          <strong>{allSubjectVideos.length} Lectures</strong>
-                          <span>{activeSubject.playlists?.length || 0} Modules</span>
+                          <strong>{playlistVideos.length} Videos</strong>
+                          <span>In Playlist</span>
                         </div>
                       </div>
 
@@ -627,17 +684,16 @@ export default function LearningPlayer({
         </div>
 
         {/* ========================================================= */}
-        {/* RIGHT COLUMN: Playlist Sidebar                           */}
+        {/* RIGHT COLUMN: Video List Sidebar for Selected Playlist    */}
         {/* ========================================================= */}
         <div className={`oracle-sidebar-col ${isMobile && mobileTab !== 'playlist' && mobileTab !== 'materials' ? 'mobile-hidden' : ''}`}>
           <div className="oracle-sidebar-card glass-panel">
-            {/* Sidebar Tabs */}
             <div className="sidebar-top-tabs">
               <button
                 className={`sidebar-top-tab ${sidebarTab === 'playlist' ? 'active' : ''}`}
                 onClick={() => setSidebarTab('playlist')}
               >
-                <PlayCircle size={15} /> Playlist
+                <PlayCircle size={15} /> Playlist Videos
               </button>
               <button
                 className={`sidebar-top-tab ${sidebarTab === 'materials' ? 'active' : ''}`}
@@ -653,7 +709,7 @@ export default function LearningPlayer({
               </button>
             </div>
 
-            {/* PLAYLIST TAB CONTENT */}
+            {/* PLAYLIST VIDEOS TAB */}
             {sidebarTab === 'playlist' && (
               <div className="sidebar-tab-pane">
                 {/* Search Box */}
@@ -661,7 +717,7 @@ export default function LearningPlayer({
                   <Search size={15} className="search-icon-fixed" />
                   <input
                     type="text"
-                    placeholder="Search playlist…"
+                    placeholder="Search videos in playlist…"
                     value={videoSearchQuery}
                     onChange={(e) => setVideoSearchQuery(e.target.value)}
                     className="form-input playlist-search-input"
@@ -694,75 +750,53 @@ export default function LearningPlayer({
                   </label>
                 </div>
 
-                {/* Modules Accordion */}
+                {/* Videos List */}
                 <div className="playlist-modules-accordion">
-                  {filteredPlaylists.length > 0 ? (
-                    filteredPlaylists.map((playlist, pIdx) => {
-                      const isCollapsed = !!collapsedModules[playlist.id];
-                      return (
-                        <div key={playlist.id} className="accordion-module-group">
-                          <button
-                            type="button"
-                            className="module-header-toggle"
-                            onClick={() => toggleModuleCollapse(playlist.id)}
-                          >
-                            <span className="module-name-txt">
-                              <strong>
-                                {pIdx + 1}. {playlist.title}
-                              </strong>
-                            </span>
-                            {isCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-                          </button>
+                  <ul className="module-vids-ul" style={{ margin: 0 }}>
+                    {filteredVideos.length > 0 ? (
+                      filteredVideos.map((video, vIdx) => {
+                        const isCurrent = activeVideo?.id === video.id || activeVideoIndex === vIdx;
+                        const isWatched = watchedVideos.has(video.id);
 
-                          {!isCollapsed && (
-                            <ul className="module-vids-ul">
-                              {(playlist.videos || []).map((video, vIdx) => {
-                                const isCurrent = activeVideo?.id === video.id || (activePlaylistId === playlist.id && activeVideoIndex === vIdx);
-                                const isWatched = watchedVideos.has(video.id);
+                        return (
+                          <li key={video.id || vIdx}>
+                            <button
+                              type="button"
+                              className={`video-row-item ${isCurrent ? 'active-playing' : ''}`}
+                              onClick={() => handlePlayVideo(vIdx, video.id)}
+                            >
+                              <span className="video-circle-status">
+                                {isCurrent ? (
+                                  <PlayCircle size={16} className="ic-playing-glow" />
+                                ) : isWatched && showSkillChecks ? (
+                                  <CheckCircle2 size={16} className="ic-watched-green" />
+                                ) : (
+                                  <Circle size={16} className="ic-unplayed-ring" />
+                                )}
+                              </span>
 
-                                return (
-                                  <li key={video.id || vIdx}>
-                                    <button
-                                      type="button"
-                                      className={`video-row-item ${isCurrent ? 'active-playing' : ''}`}
-                                      onClick={() => handlePlayVideo(playlist.id, vIdx, video.id)}
-                                    >
-                                      <span className="video-circle-status">
-                                        {isCurrent ? (
-                                          <PlayCircle size={16} className="ic-playing-glow" />
-                                        ) : isWatched && showSkillChecks ? (
-                                          <CheckCircle2 size={16} className="ic-watched-green" />
-                                        ) : (
-                                          <Circle size={16} className="ic-unplayed-ring" />
-                                        )}
-                                      </span>
-
-                                      <div className="video-row-details">
-                                        <span className="vid-title-text">{video.title}</span>
-                                        <span className="vid-duration-sub">{video.duration || '8m'}</span>
-                                      </div>
-                                    </button>
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          )}
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="empty-playlist-box">
-                      <p>No lectures match search.</p>
-                    </div>
-                  )}
+                              <div className="video-row-details">
+                                <span className="vid-title-text">{video.title}</span>
+                                <span className="vid-duration-sub">{video.duration || '8m'}</span>
+                              </div>
+                            </button>
+                          </li>
+                        );
+                      })
+                    ) : (
+                      <div className="empty-playlist-box">
+                        <p>No videos match search.</p>
+                      </div>
+                    )}
+                  </ul>
                 </div>
 
                 {/* Progress Footer */}
                 <div className="sidebar-progress-footer">
                   <div className="dur-summary-row">
-                    <span className="dur-lbl">Duration</span>
+                    <span className="dur-lbl">Playlist Progress</span>
                     <span className="dur-val">
-                      {totalLecturesCount * 8}m ({totalLecturesCount} Videos)
+                      {watchedCount} / {playlistVideos.length} Watched
                     </span>
                   </div>
 
@@ -771,16 +805,14 @@ export default function LearningPlayer({
                   </div>
 
                   <div className="progress-text-sub">
-                    <span>
-                      {watchedCount} of {totalLecturesCount} watched
-                    </span>
+                    <span>Watched Ratio</span>
                     <span>{progressPercent}%</span>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* MATERIALS / GUIDES TAB */}
+            {/* MATERIALS TAB */}
             {sidebarTab === 'materials' && (
               <div className="sidebar-tab-pane">
                 <div className="pane-head-info">
@@ -834,8 +866,8 @@ export default function LearningPlayer({
                     <span className="val">{activeSubject?.credits || 4} Credits</span>
                   </div>
                   <div className="meta-info-row">
-                    <span className="lbl">Total Videos</span>
-                    <span className="val">{allSubjectVideos.length} Lectures</span>
+                    <span className="lbl">Playlist Videos</span>
+                    <span className="val">{playlistVideos.length} Videos</span>
                   </div>
                 </div>
               </div>

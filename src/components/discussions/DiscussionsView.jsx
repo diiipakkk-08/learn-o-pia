@@ -15,17 +15,17 @@ import {
   Flame,
   ThumbsUp,
   MessageCircle,
-  Clock,
-  Sparkles,
-  Key
+  Key,
+  Users,
+  Radio
 } from 'lucide-react';
 
-const DEFAULT_DISCUSSIONS = [
+const DEFAULT_CHANNELS = [
   {
-    id: 'disc-1',
+    id: 'chan-1',
     code: 'DS-9182',
-    title: 'Data Structures & Algorithms - GATE & Semester Exam Discussion',
-    tag: 'data-structures',
+    name: 'data-structures-algo',
+    title: 'Data Structures & Algorithms Chat',
     isPrivate: false,
     author: 'Prof. Deepak Shaw',
     authorRole: 'owner',
@@ -35,8 +35,8 @@ const DEFAULT_DISCUSSIONS = [
         id: 'm-1',
         sender: 'Prof. Deepak Shaw',
         role: 'owner',
-        text: 'Welcome everyone! Use this stream to ask questions on Binary Search Trees, Graph Traversals, and Dynamic Programming algorithms.',
-        time: 'Aug 10, 10:30 AM',
+        text: 'Welcome to #data-structures-algo! Post your doubts on Trees, Graphs, and Dynamic Programming algorithms here.',
+        time: '10:30 AM',
         likes: 12
       },
       {
@@ -44,7 +44,7 @@ const DEFAULT_DISCUSSIONS = [
         sender: 'Rahul Verma',
         role: 'learner',
         text: 'Could someone clarify the time complexity of QuickSort in the worst-case scenario?',
-        time: 'Aug 11, 02:15 PM',
+        time: '02:15 PM',
         likes: 5
       },
       {
@@ -52,16 +52,16 @@ const DEFAULT_DISCUSSIONS = [
         sender: 'Prof. Deepak Shaw',
         role: 'owner',
         text: 'In the worst case (when the pivot choice produces unbalanced partitions), QuickSort is O(n²). Average case remains O(n log n).',
-        time: 'Aug 11, 03:00 PM',
+        time: '03:00 PM',
         likes: 18
       }
     ]
   },
   {
-    id: 'disc-2',
+    id: 'chan-2',
     code: 'PYQ-4410',
-    title: 'MAKAUT Previous Year Questions & Answer Keys (Semester 1)',
-    tag: 'makaut-pyq',
+    name: 'makaut-pyq-solutions',
+    title: 'MAKAUT PYQ & Exam Solutions Chat',
     isPrivate: false,
     author: 'Ananya Roy',
     authorRole: 'creator',
@@ -71,8 +71,8 @@ const DEFAULT_DISCUSSIONS = [
         id: 'm-4',
         sender: 'Ananya Roy',
         role: 'creator',
-        text: 'Attached notes for Physics-I and C Programming 2024 paper solutions in the study materials section. Feel free to discuss doubts here!',
-        time: 'Aug 12, 11:00 AM',
+        text: 'Shared solution notes for Physics-I and C Programming 2024 papers in the materials section. Ask doubts in this chat!',
+        time: '11:00 AM',
         likes: 24
       },
       {
@@ -80,16 +80,16 @@ const DEFAULT_DISCUSSIONS = [
         sender: 'Saurav Das',
         role: 'learner',
         text: 'Thanks! Question 4b on Matrix Diagonalization was tricky. Got it cleared now.',
-        time: 'Aug 13, 09:45 AM',
+        time: '09:45 AM',
         likes: 8
       }
     ]
   },
   {
-    id: 'disc-3',
+    id: 'chan-3',
     code: 'WEB-7721',
-    title: 'Fullstack Web Engineering - React & Node.js Projects',
-    tag: 'web-development',
+    name: 'web-dev-projects',
+    title: 'Fullstack Web Engineering Chat',
     isPrivate: false,
     author: 'Vikramaditya',
     authorRole: 'creator',
@@ -99,9 +99,29 @@ const DEFAULT_DISCUSSIONS = [
         id: 'm-6',
         sender: 'Vikramaditya',
         role: 'creator',
-        text: 'Post your web application live links and GitHub repositories for peer code review!',
-        time: 'Aug 14, 04:20 PM',
+        text: 'Post your web project links and GitHub repositories in #web-dev-projects for peer code review!',
+        time: '04:20 PM',
         likes: 15
+      }
+    ]
+  },
+  {
+    id: 'chan-4',
+    code: 'GEN-1001',
+    name: 'general-discussion',
+    title: 'General Learner Community Lounge',
+    isPrivate: false,
+    author: 'Learn-o-pia Team',
+    authorRole: 'owner',
+    createdAt: '2026-08-01',
+    messages: [
+      {
+        id: 'm-7',
+        sender: 'Learn-o-pia Team',
+        role: 'owner',
+        text: 'Welcome to the #general-discussion channel! Feel free to introduce yourself and connect with fellow engineering students.',
+        time: '09:00 AM',
+        likes: 30
       }
     ]
   }
@@ -110,83 +130,83 @@ const DEFAULT_DISCUSSIONS = [
 export default function DiscussionsView({ setCurrentView }) {
   const { currentUser } = useDatabase();
 
-  const [activeTab, setActiveTab] = useState('explore'); // 'explore' | 'my-discussions'
+  const [activeTab, setActiveTab] = useState('explore'); // 'explore' | 'my-channels'
   const [searchQuery, setSearchQuery] = useState('');
   const [privateCodeInput, setPrivateCodeInput] = useState('');
-  const [selectedDiscussionId, setSelectedDiscussionId] = useState(null);
+  const [selectedChannelId, setSelectedChannelId] = useState(null);
 
-  // New Discussion Modal Form State
+  // New Channel Modal Form State
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newChannelName, setNewChannelName] = useState('');
   const [newTitle, setNewTitle] = useState('');
-  const [newTag, setNewTag] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [initialMsg, setInitialMsg] = useState('');
 
-  // Reply Input state inside active discussion thread
+  // Reply Input state inside active channel
   const [replyText, setReplyText] = useState('');
   const [codeCopied, setCodeCopied] = useState(false);
   const [joinError, setJoinError] = useState('');
 
-  // Discussions Data State
-  const [discussions, setDiscussions] = useState(() => {
+  // Channels Data State
+  const [channels, setChannels] = useState(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('learnopia_discussions');
+      const saved = localStorage.getItem('learnopia_chat_channels');
       if (saved) {
         try { return JSON.parse(saved); } catch (e) {}
       }
     }
-    return DEFAULT_DISCUSSIONS;
+    return DEFAULT_CHANNELS;
   });
 
   useEffect(() => {
-    localStorage.setItem('learnopia_discussions', JSON.stringify(discussions));
-  }, [discussions]);
+    localStorage.setItem('learnopia_chat_channels', JSON.stringify(channels));
+  }, [channels]);
 
-  const activeDiscussion = discussions.find((d) => d.id === selectedDiscussionId);
+  const activeChannel = channels.find((c) => c.id === selectedChannelId);
 
-  // Rank Public Discussions by Activity (Total messages count & recency)
-  const rankedPublicDiscussions = useMemo(() => {
-    return discussions
-      .filter((d) => !d.isPrivate)
+  // Rank Public Channels by Message Count / Activity
+  const rankedPublicChannels = useMemo(() => {
+    return channels
+      .filter((c) => !c.isPrivate)
       .sort((a, b) => (b.messages?.length || 0) - (a.messages?.length || 0));
-  }, [discussions]);
+  }, [channels]);
 
-  // Filtered Public Discussions by Search
-  const filteredPublicDiscussions = useMemo(() => {
-    if (!searchQuery.trim()) return rankedPublicDiscussions;
+  // Filtered Public Channels
+  const filteredPublicChannels = useMemo(() => {
+    if (!searchQuery.trim()) return rankedPublicChannels;
     const q = searchQuery.toLowerCase().trim();
-    return rankedPublicDiscussions.filter(
-      (d) =>
-        d.title.toLowerCase().includes(q) ||
-        d.tag.toLowerCase().includes(q) ||
-        d.code.toLowerCase().includes(q)
+    return rankedPublicChannels.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.title.toLowerCase().includes(q) ||
+        c.code.toLowerCase().includes(q)
     );
-  }, [rankedPublicDiscussions, searchQuery]);
+  }, [rankedPublicChannels, searchQuery]);
 
-  // User's Joined / Created Discussions
-  const myDiscussions = useMemo(() => {
+  // My Joined / Created Channels
+  const myChannels = useMemo(() => {
     if (!currentUser) return [];
-    return discussions.filter((d) => {
-      const isAuthor = d.author === currentUser.name;
-      const hasCommented = d.messages.some((m) => m.sender === currentUser.name);
+    return channels.filter((c) => {
+      const isAuthor = c.author === currentUser.name;
+      const hasCommented = c.messages.some((m) => m.sender === currentUser.name);
       return isAuthor || hasCommented;
     });
-  }, [discussions, currentUser]);
+  }, [channels, currentUser]);
 
-  // Create New Discussion Handler
-  const handleCreateDiscussion = (e) => {
+  // Create New Channel Handler
+  const handleCreateChannel = (e) => {
     e.preventDefault();
-    if (!newTitle.trim() || !newTag.trim()) return;
+    if (!newChannelName.trim()) return;
 
+    const formattedName = newChannelName.toLowerCase().replace(/[^a-z0-9]/g, '-');
     const randomNum = Math.floor(1000 + Math.random() * 9000);
-    const generatedCode = `${newTag.substring(0, 3).toUpperCase()}-${randomNum}`;
-    const formattedTag = newTag.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    const generatedCode = `${formattedName.substring(0, 3).toUpperCase()}-${randomNum}`;
 
-    const newDisc = {
-      id: `disc-${Date.now()}`,
+    const newChan = {
+      id: `chan-${Date.now()}`,
       code: generatedCode,
-      title: newTitle.trim(),
-      tag: formattedTag,
+      name: formattedName,
+      title: newTitle.trim() || `#${formattedName} Channel`,
       isPrivate,
       author: currentUser?.name || 'Anonymous Learner',
       authorRole: currentUser?.role || 'learner',
@@ -205,53 +225,52 @@ export default function DiscussionsView({ setCurrentView }) {
         : []
     };
 
-    setDiscussions((prev) => [newDisc, ...prev]);
-    setSelectedDiscussionId(newDisc.id);
+    setChannels((prev) => [newChan, ...prev]);
+    setSelectedChannelId(newChan.id);
     setShowCreateModal(false);
 
-    // Reset Form
+    setNewChannelName('');
     setNewTitle('');
-    setNewTag('');
     setIsPrivate(false);
     setInitialMsg('');
   };
 
-  // Join Private Discussion by Code
+  // Join Private Channel by Code
   const handleJoinPrivateCode = (e) => {
     e.preventDefault();
     setJoinError('');
     if (!privateCodeInput.trim()) return;
 
     const targetCode = privateCodeInput.trim().toUpperCase();
-    const found = discussions.find((d) => d.code.toUpperCase() === targetCode);
+    const found = channels.find((c) => c.code.toUpperCase() === targetCode);
 
     if (found) {
-      setSelectedDiscussionId(found.id);
+      setSelectedChannelId(found.id);
       setPrivateCodeInput('');
     } else {
-      setJoinError('Invalid Private Code. Please check the code and try again.');
+      setJoinError('Invalid Private Channel Code. Please check the code.');
     }
   };
 
-  // Post Reply to Thread
-  const handlePostReply = (e) => {
+  // Post Chat Message to Channel
+  const handlePostMessage = (e) => {
     e.preventDefault();
-    if (!replyText.trim() || !selectedDiscussionId) return;
+    if (!replyText.trim() || !selectedChannelId) return;
 
     const newMsg = {
       id: `m-${Date.now()}`,
       sender: currentUser?.name || 'Learner Student',
       role: currentUser?.role || 'learner',
       text: replyText.trim(),
-      time: 'Just now',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       likes: 0
     };
 
-    setDiscussions((prev) =>
-      prev.map((d) =>
-        d.id === selectedDiscussionId
-          ? { ...d, messages: [...d.messages, newMsg] }
-          : d
+    setChannels((prev) =>
+      prev.map((c) =>
+        c.id === selectedChannelId
+          ? { ...c, messages: [...c.messages, newMsg] }
+          : c
       )
     );
 
@@ -260,13 +279,13 @@ export default function DiscussionsView({ setCurrentView }) {
 
   // Like Message
   const handleLikeMessage = (msgId) => {
-    if (!selectedDiscussionId) return;
-    setDiscussions((prev) =>
-      prev.map((d) => {
-        if (d.id !== selectedDiscussionId) return d;
+    if (!selectedChannelId) return;
+    setChannels((prev) =>
+      prev.map((c) => {
+        if (c.id !== selectedChannelId) return c;
         return {
-          ...d,
-          messages: d.messages.map((m) =>
+          ...c,
+          messages: c.messages.map((m) =>
             m.id === msgId ? { ...m, likes: m.likes + 1 } : m
           )
         };
@@ -284,38 +303,41 @@ export default function DiscussionsView({ setCurrentView }) {
 
   return (
     <div className="discussions-container animate-fade-in">
-      {/* ── THREAD STREAM VIEW ── */}
-      {activeDiscussion ? (
+      {/* ── DISCORD-STYLE CHAT CHANNEL STREAM VIEW ── */}
+      {activeChannel ? (
         <div className="thread-stream-card glass-panel animate-fade-in">
-          {/* Thread Header Bar */}
+          {/* Channel Header Bar */}
           <div className="thread-head-bar">
-            <button className="btn btn-secondary btn-sm" onClick={() => setSelectedDiscussionId(null)}>
-              <ArrowLeft size={16} /> Back to Discussions
+            <button className="btn btn-secondary btn-sm" onClick={() => setSelectedChannelId(null)}>
+              <ArrowLeft size={16} /> Back to Channels
             </button>
 
             <div className="thread-meta-pill">
-              <span className="hashtag-badge">#{activeDiscussion.tag}</span>
-              {activeDiscussion.isPrivate ? (
+              <span className="hashtag-badge">#{activeChannel.name}</span>
+              {activeChannel.isPrivate ? (
                 <span className="privacy-pill private">
-                  <Lock size={12} /> Private Thread
+                  <Lock size={12} /> Private Channel
                 </span>
               ) : (
                 <span className="privacy-pill public">
-                  <Globe size={12} /> Public Stream
+                  <Globe size={12} /> Public Channel
                 </span>
               )}
             </div>
           </div>
 
           <div className="thread-title-wrap">
-            <h2>{activeDiscussion.title}</h2>
+            <h2>#{activeChannel.name}</h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '2px 0 6px 0' }}>
+              {activeChannel.title}
+            </p>
             <div className="thread-code-copy-row">
-              <span className="code-lbl">Discussion Code:</span>
-              <strong className="code-val">{activeDiscussion.code}</strong>
+              <span className="code-lbl">Channel Code:</span>
+              <strong className="code-val">{activeChannel.code}</strong>
               <button
                 className="btn btn-secondary btn-sm"
                 style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                onClick={() => copyCode(activeDiscussion.code)}
+                onClick={() => copyCode(activeChannel.code)}
               >
                 {codeCopied ? <Check size={14} color="var(--success)" /> : <Copy size={14} />}
                 {codeCopied ? 'Copied' : 'Copy Code'}
@@ -323,15 +345,15 @@ export default function DiscussionsView({ setCurrentView }) {
             </div>
           </div>
 
-          {/* Message Stream */}
+          {/* Live Chat Stream */}
           <div className="thread-messages-list">
-            {activeDiscussion.messages.length === 0 ? (
+            {activeChannel.messages.length === 0 ? (
               <div className="empty-stream-msg">
                 <MessageCircle size={36} color="var(--text-muted)" />
-                <p>No comments in this stream yet. Be the first to reply!</p>
+                <p>Welcome to #{activeChannel.name}! Send a message to start chatting.</p>
               </div>
             ) : (
-              activeDiscussion.messages.map((msg) => (
+              activeChannel.messages.map((msg) => (
                 <div key={msg.id} className="message-bubble-row">
                   <div className="msg-avatar-circle">
                     <User size={18} color="#ffffff" />
@@ -357,11 +379,11 @@ export default function DiscussionsView({ setCurrentView }) {
             )}
           </div>
 
-          {/* Post Comment Input Bar */}
-          <form onSubmit={handlePostReply} className="thread-reply-input-bar">
+          {/* Chat Message Input Bar */}
+          <form onSubmit={handlePostMessage} className="thread-reply-input-bar">
             <input
               type="text"
-              placeholder="Join the discussion... write a comment or question"
+              placeholder={`Message #${activeChannel.name}...`}
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               className="form-input reply-field"
@@ -372,38 +394,38 @@ export default function DiscussionsView({ setCurrentView }) {
           </form>
         </div>
       ) : (
-        /* ── DISCUSSIONS LISTING & EXPLORER VIEW ── */
+        /* ── DISCORD-STYLE CHANNELS LISTING VIEW ── */
         <>
-          {/* Top Banner */}
+          {/* Top Header */}
           <div className="discussions-header glass-panel">
             <div className="disc-head-left">
-              <h1>Threaded Discussions</h1>
-              <p className="section-sub">Join public streams or start a private discussion with custom hashtag and join code.</p>
+              <h1>Discussions & Chat Channels</h1>
+              <p className="section-sub">Connect in hashtag chat channels. Join public streams or enter a private channel code.</p>
             </div>
 
             <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-              <Plus size={16} /> Start New Discussion
+              <Plus size={16} /> Create # Channel
             </button>
           </div>
 
-          {/* Navigation Bar & Private Code Input */}
+          {/* Channels Navigation Tabs & Private Code Join Box */}
           <div className="disc-nav-row">
             <div className="disc-tabs-bar">
               <button
                 className={`disc-tab-pill ${activeTab === 'explore' ? 'active' : ''}`}
                 onClick={() => setActiveTab('explore')}
               >
-                <Flame size={16} /> Public Discussions ({rankedPublicDiscussions.length})
+                <Hash size={16} /> Public Channels ({rankedPublicChannels.length})
               </button>
               <button
-                className={`disc-tab-pill ${activeTab === 'my-discussions' ? 'active' : ''}`}
-                onClick={() => setActiveTab('my-discussions')}
+                className={`disc-tab-pill ${activeTab === 'my-channels' ? 'active' : ''}`}
+                onClick={() => setActiveTab('my-channels')}
               >
-                <MessageSquare size={16} /> My Discussions ({myDiscussions.length})
+                <MessageSquare size={16} /> My Channels ({myChannels.length})
               </button>
             </div>
 
-            {/* Join Private Discussion by Code Box */}
+            {/* Join Private Channel Box */}
             <form onSubmit={handleJoinPrivateCode} className="join-private-form">
               <div className="code-input-wrap">
                 <Key size={15} className="key-icon" />
@@ -415,14 +437,14 @@ export default function DiscussionsView({ setCurrentView }) {
                   className="form-input code-field"
                 />
                 <button type="submit" className="btn btn-secondary btn-sm" style={{ padding: '6px 14px' }}>
-                  Join Thread
+                  Join Channel
                 </button>
               </div>
               {joinError && <span className="join-err-msg">{joinError}</span>}
             </form>
           </div>
 
-          {/* EXPLORE PUBLIC DISCUSSIONS TAB */}
+          {/* PUBLIC CHANNELS TAB */}
           {activeTab === 'explore' && (
             <div className="discussions-grid-workspace animate-fade-in">
               {/* Search Bar */}
@@ -430,29 +452,29 @@ export default function DiscussionsView({ setCurrentView }) {
                 <Search size={16} className="search-icon" />
                 <input
                   type="text"
-                  placeholder="Search discussions by title, #hashtag, or code…"
+                  placeholder="Search channels by #name, topic, or code…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="form-input search-field"
                 />
               </div>
 
-              {/* Discussions Cards List (Ranked by Activity & Total Messages) */}
+              {/* Channels List (Discord Channel Format) */}
               <div className="disc-cards-grid">
-                {filteredPublicDiscussions.length === 0 ? (
+                {filteredPublicChannels.length === 0 ? (
                   <div className="empty-disc-box glass-panel">
-                    <Sparkles size={36} color="var(--text-muted)" />
-                    <p>No public discussions match your search query.</p>
+                    <Hash size={36} color="var(--text-muted)" />
+                    <p>No public chat channels match your search.</p>
                   </div>
                 ) : (
-                  filteredPublicDiscussions.map((disc, idx) => (
+                  filteredPublicChannels.map((chan, idx) => (
                     <div
-                      key={disc.id}
+                      key={chan.id}
                       className="disc-card-box glass-panel"
-                      onClick={() => setSelectedDiscussionId(disc.id)}
+                      onClick={() => setSelectedChannelId(chan.id)}
                     >
                       <div className="disc-card-top">
-                        <span className="hashtag-badge">#{disc.tag}</span>
+                        <span className="hashtag-badge">#{chan.name}</span>
                         {idx === 0 && (
                           <span className="active-rank-pill">
                             <Flame size={12} /> #1 Most Active
@@ -460,15 +482,15 @@ export default function DiscussionsView({ setCurrentView }) {
                         )}
                       </div>
 
-                      <h3 className="disc-card-title">{disc.title}</h3>
+                      <h3 className="disc-card-title">{chan.title}</h3>
 
                       <div className="disc-card-footer">
                         <div className="disc-author-sub">
-                          <User size={13} /> {disc.author}
+                          <User size={13} /> {chan.author}
                         </div>
 
                         <div className="disc-stats-pill">
-                          <MessageCircle size={14} /> {disc.messages.length} replies
+                          <MessageCircle size={14} /> {chan.messages.length} messages
                         </div>
                       </div>
                     </div>
@@ -478,35 +500,35 @@ export default function DiscussionsView({ setCurrentView }) {
             </div>
           )}
 
-          {/* MY DISCUSSIONS TAB */}
-          {activeTab === 'my-discussions' && (
+          {/* MY CHANNELS TAB */}
+          {activeTab === 'my-channels' && (
             <div className="discussions-grid-workspace animate-fade-in">
               <div className="disc-cards-grid">
-                {myDiscussions.length === 0 ? (
+                {myChannels.length === 0 ? (
                   <div className="empty-disc-box glass-panel">
                     <MessageSquare size={36} color="var(--text-muted)" />
-                    <p>You haven't created or commented in any discussions yet.</p>
+                    <p>You haven't joined or posted in any channels yet.</p>
                   </div>
                 ) : (
-                  myDiscussions.map((disc) => (
+                  myChannels.map((chan) => (
                     <div
-                      key={disc.id}
+                      key={chan.id}
                       className="disc-card-box glass-panel"
-                      onClick={() => setSelectedDiscussionId(disc.id)}
+                      onClick={() => setSelectedChannelId(chan.id)}
                     >
                       <div className="disc-card-top">
-                        <span className="hashtag-badge">#{disc.tag}</span>
-                        <span className="code-tag-sm">{disc.code}</span>
+                        <span className="hashtag-badge">#{chan.name}</span>
+                        <span className="code-tag-sm">{chan.code}</span>
                       </div>
 
-                      <h3 className="disc-card-title">{disc.title}</h3>
+                      <h3 className="disc-card-title">{chan.title}</h3>
 
                       <div className="disc-card-footer">
                         <div className="disc-author-sub">
-                          <User size={13} /> {disc.author}
+                          <User size={13} /> {chan.author}
                         </div>
                         <div className="disc-stats-pill">
-                          <MessageCircle size={14} /> {disc.messages.length} replies
+                          <MessageCircle size={14} /> {chan.messages.length} messages
                         </div>
                       </div>
                     </div>
@@ -518,42 +540,41 @@ export default function DiscussionsView({ setCurrentView }) {
         </>
       )}
 
-      {/* ── CREATE DISCUSSION MODAL ── */}
+      {/* ── CREATE CHANNEL MODAL ── */}
       {showCreateModal && (
         <div style={modalStyles.overlay}>
           <div className="glass-panel" style={modalStyles.box}>
-            <h2 style={{ fontSize: '1.2rem', marginBottom: '4px', color: '#ffffff' }}>Start New Discussion</h2>
+            <h2 style={{ fontSize: '1.2rem', marginBottom: '4px', color: '#ffffff' }}>Create New # Channel</h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '18px' }}>
-              Create a threaded discussion stream for your course or study topic.
+              Start a hashtag chat channel for your course or study group.
             </p>
 
-            <form onSubmit={handleCreateDiscussion} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form onSubmit={handleCreateChannel} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label className="form-label" style={{ fontSize: '0.78rem' }}>Discussion Title</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="e.g. Graph Algorithms Doubts & PYQ Discussion"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="form-label" style={{ fontSize: '0.78rem' }}>Hashtag Topic (#tag)</label>
+                <label className="form-label" style={{ fontSize: '0.78rem' }}>Channel Name (#hashtag)</label>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <Hash size={16} style={{ position: 'absolute', left: 12, color: 'var(--text-muted)' }} />
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="data-structures"
+                    placeholder="c-programming-doubts"
                     style={{ paddingLeft: 34 }}
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
+                    value={newChannelName}
+                    onChange={(e) => setNewChannelName(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
                     required
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontSize: '0.78rem' }}>Channel Description / Title</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Doubts & Discussion for C Programming Lab"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                />
               </div>
 
               <div>
@@ -566,7 +587,7 @@ export default function DiscussionsView({ setCurrentView }) {
                       checked={!isPrivate}
                       onChange={() => setIsPrivate(false)}
                     />
-                    <Globe size={15} color="var(--primary)" /> Public (Listed for everyone)
+                    <Globe size={15} color="var(--primary)" /> Public Channel
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.83rem', cursor: 'pointer' }}>
                     <input
@@ -581,11 +602,11 @@ export default function DiscussionsView({ setCurrentView }) {
               </div>
 
               <div>
-                <label className="form-label" style={{ fontSize: '0.78rem' }}>Initial Message / Question</label>
+                <label className="form-label" style={{ fontSize: '0.78rem' }}>First Message</label>
                 <textarea
                   className="form-input"
                   rows={3}
-                  placeholder="Ask a question or explain what this discussion stream is about..."
+                  placeholder="Send an opening welcome message to the channel..."
                   value={initialMsg}
                   onChange={(e) => setInitialMsg(e.target.value)}
                 />
@@ -596,7 +617,7 @@ export default function DiscussionsView({ setCurrentView }) {
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  Create Discussion
+                  Create # Channel
                 </button>
               </div>
             </form>
