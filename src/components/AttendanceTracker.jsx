@@ -10,16 +10,21 @@ import {
   Plus,
   Trash2,
   TrendingUp,
-  AlertTriangle,
   Award,
   BookOpen,
   ChevronLeft,
   ChevronRight,
   Sparkles,
-  Settings
+  Settings,
+  Archive,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+// Earliest allowed date boundary for attendance tracking (June 1, 2026)
+const MIN_DATE = '2026-06-01';
 
 const DEFAULT_ROUTINE = {
   Monday: [
@@ -50,14 +55,33 @@ const DEFAULT_ROUTINE = {
   Sunday: []
 };
 
-export default function AttendanceTracker({ setCurrentView }) {
-  const { currentUser, subjects } = useDatabase();
+// Safe Local Date Helpers (prevents timezone UTC shifts)
+const formatLocalDate = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
 
-  // Selected date state (format: YYYY-MM-DD)
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return new Date();
+  const parts = dateStr.split('-').map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return new Date();
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+};
+
+export default function AttendanceTracker({ setCurrentView }) {
+  const { currentUser } = useDatabase();
+
+  // Selected date state (defaults to today or MIN_DATE if earlier)
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const todayStr = formatLocalDate(new Date());
+    return todayStr < MIN_DATE ? MIN_DATE : todayStr;
+  });
 
   // Tab state: 'tracker' | 'routine' | 'analytics'
   const [activeTab, setActiveTab] = useState('tracker');
+  const [showEndSemModal, setShowEndSemModal] = useState(false);
 
   // Timetable Routine State
   const [routine, setRoutine] = useState(() => {
@@ -70,7 +94,7 @@ export default function AttendanceTracker({ setCurrentView }) {
     return DEFAULT_ROUTINE;
   });
 
-  // Attendance Records Log State (Map: { "YYYY-MM-DD": { isHoliday: false, classes: { [routineId]: 'attended' | 'absent' | 'cancelled' } } })
+  // Attendance Records Log State
   const [logs, setLogs] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('learnopia_attendance_logs');
@@ -81,6 +105,17 @@ export default function AttendanceTracker({ setCurrentView }) {
     return {};
   });
 
+  // Archived Semesters Summary State
+  const [archivedSemesters, setArchivedSemesters] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('learnopia_archived_semesters');
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) {}
+      }
+    }
+    return [];
+  });
+
   // New Class Form State for Routine Manager
   const [editingDay, setEditingDay] = useState('Monday');
   const [newSubName, setNewSubName] = useState('');
@@ -89,7 +124,7 @@ export default function AttendanceTracker({ setCurrentView }) {
   const [newRoom, setNewRoom] = useState('Room 101');
   const [targetPercent, setTargetPercent] = useState(75);
 
-  // Save to LocalStorage whenever routine or logs change
+  // Persistence to LocalStorage
   useEffect(() => {
     localStorage.setItem('learnopia_attendance_routine', JSON.stringify(routine));
   }, [routine]);
@@ -98,8 +133,12 @@ export default function AttendanceTracker({ setCurrentView }) {
     localStorage.setItem('learnopia_attendance_logs', JSON.stringify(logs));
   }, [logs]);
 
-  // Compute selected day details
-  const dateObj = useMemo(() => new Date(selectedDate + 'T00:00:00'), [selectedDate]);
+  useEffect(() => {
+    localStorage.setItem('learnopia_archived_semesters', JSON.stringify(archivedSemesters));
+  }, [archivedSemesters]);
+
+  // Compute selected day details cleanly without UTC timezone shifting
+  const dateObj = useMemo(() => parseLocalDate(selectedDate), [selectedDate]);
   const dayName = useMemo(() => DAYS_OF_WEEK[dateObj.getDay()], [dateObj]);
 
   const scheduledToday = useMemo(() => routine[dayName] || [], [routine, dayName]);
@@ -112,7 +151,7 @@ export default function AttendanceTracker({ setCurrentView }) {
       const nextClasses = { ...currentDay.classes };
 
       if (nextClasses[routineId] === status) {
-        delete nextClasses[routineId]; // Toggle off
+        delete nextClasses[routineId];
       } else {
         nextClasses[routineId] = status;
       }
@@ -171,11 +210,10 @@ export default function AttendanceTracker({ setCurrentView }) {
     }));
   };
 
-  // Compute Overall Attendance Analytics across all subjects
+  // Compute Overall Attendance Analytics
   const subjectAnalytics = useMemo(() => {
     const statsMap = {};
 
-    // Gather all subjects in routine
     Object.values(routine).forEach((dayList) => {
       dayList.forEach((cls) => {
         if (!statsMap[cls.subject]) {
@@ -191,11 +229,10 @@ export default function AttendanceTracker({ setCurrentView }) {
       });
     });
 
-    // Process all recorded logs
     Object.entries(logs).forEach(([dStr, logData]) => {
-      if (logData.isHoliday) return; // Skip holidays
+      if (logData.isHoliday) return;
 
-      const dObj = new Date(dStr + 'T00:00:00');
+      const dObj = parseLocalDate(dStr);
       const dName = DAYS_OF_WEEK[dObj.getDay()];
       const dayRoutine = routine[dName] || [];
 
@@ -217,23 +254,18 @@ export default function AttendanceTracker({ setCurrentView }) {
       });
     });
 
-    // Compute percentages and Bunk / Attend calculations
     return Object.values(statsMap).map((item) => {
       const pct = item.totalConducted > 0 ? Math.round((item.attended / item.totalConducted) * 100) : 100;
-      
-      // Calculate Bunk/Attend forecast:
-      // To maintain target (e.g. 75%): attended / (totalConducted + x) >= 0.75  OR (attended + y) / (totalConducted + y) >= 0.75
+      const targetDecimal = item.target / 100;
+
       let safeBunks = 0;
       let requiredAttends = 0;
 
       if (item.totalConducted > 0) {
-        const targetDecimal = item.target / 100;
         if (pct >= item.target) {
-          // How many classes can be safely skipped: attended / (totalConducted + x) >= target
           safeBunks = Math.floor((item.attended - targetDecimal * item.totalConducted) / targetDecimal);
           safeBunks = Math.max(0, safeBunks);
         } else {
-          // How many consecutive classes must be attended: (attended + y) / (totalConducted + y) >= target
           requiredAttends = Math.ceil((targetDecimal * item.totalConducted - item.attended) / (1 - targetDecimal));
           requiredAttends = Math.max(0, requiredAttends);
         }
@@ -248,7 +280,6 @@ export default function AttendanceTracker({ setCurrentView }) {
     });
   }, [routine, logs]);
 
-  // Overall Total Stats
   const overallTotals = useMemo(() => {
     let totalAttended = 0;
     let totalConducted = 0;
@@ -262,11 +293,57 @@ export default function AttendanceTracker({ setCurrentView }) {
     return { totalAttended, totalConducted, overallPct };
   }, [subjectAnalytics]);
 
-  // Quick Date Navigation Helpers
+  // Robust linear date shifting (prevents timezone bugs & enforces June 1, 2026 minimum)
   const shiftDate = (days) => {
-    const d = new Date(selectedDate + 'T00:00:00');
+    const d = parseLocalDate(selectedDate);
     d.setDate(d.getDate() + days);
-    setSelectedDate(d.toISOString().split('T')[0]);
+    const nextStr = formatLocalDate(d);
+
+    if (nextStr < MIN_DATE) {
+      setSelectedDate(MIN_DATE);
+    } else {
+      setSelectedDate(nextStr);
+    }
+  };
+
+  // End Semester & Storage Reset Handler
+  const handleEndSemester = () => {
+    const semName = `Semester ${archivedSemesters.length + 1} (${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })})`;
+
+    const archiveEntry = {
+      id: `sem-${Date.now()}`,
+      name: semName,
+      endedAt: formatLocalDate(new Date()),
+      overallPct: overallTotals.overallPct,
+      totalAttended: overallTotals.totalAttended,
+      totalConducted: overallTotals.totalConducted,
+      subjectSummaries: subjectAnalytics.map((s) => ({
+        subject: s.subject,
+        pct: s.percentage,
+        attended: s.attended,
+        totalConducted: s.totalConducted
+      }))
+    };
+
+    // Save lightweight archive summary
+    setArchivedSemesters((prev) => [archiveEntry, ...prev]);
+
+    // Wipe detailed day logs from storage
+    setLogs({});
+
+    // Reset weekly routine for new semester setup
+    setRoutine({
+      Monday: [],
+      Tuesday: [],
+      Wednesday: [],
+      Thursday: [],
+      Friday: [],
+      Saturday: [],
+      Sunday: []
+    });
+
+    setShowEndSemModal(false);
+    setActiveTab('routine');
   };
 
   return (
@@ -279,21 +356,32 @@ export default function AttendanceTracker({ setCurrentView }) {
           </button>
           <div>
             <h1>Class Attendance Tracker</h1>
-            <p className="section-sub">Manage your class routine, log daily attendance, and track target thresholds.</p>
+            <p className="section-sub">Track daily attendance, manage class routines, and archive completed semesters.</p>
           </div>
         </div>
 
-        {/* Top Overall Percentage Meter */}
-        <div className="overall-gauge-badge">
-          <div className="gauge-icon">
-            <TrendingUp size={24} color={overallTotals.overallPct >= 75 ? 'var(--success)' : 'var(--error)'} />
+        {/* Overall Meter & End Semester Action */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <div className="overall-gauge-badge">
+            <div className="gauge-icon">
+              <TrendingUp size={24} color={overallTotals.overallPct >= 75 ? 'var(--success)' : 'var(--error)'} />
+            </div>
+            <div className="gauge-text">
+              <span className="gauge-val">{overallTotals.overallPct}%</span>
+              <span className={`gauge-status ${overallTotals.overallPct >= 75 ? 'safe' : 'danger'}`}>
+                {overallTotals.overallPct >= 75 ? 'Safe (≥75%)' : 'Shortage (<75%)'}
+              </span>
+            </div>
           </div>
-          <div className="gauge-text">
-            <span className="gauge-val">{overallTotals.overallPct}%</span>
-            <span className={`gauge-status ${overallTotals.overallPct >= 75 ? 'safe' : 'danger'}`}>
-              {overallTotals.overallPct >= 75 ? 'Safe (≥75%)' : 'Shortage (<75%)'}
-            </span>
-          </div>
+
+          <button
+            onClick={() => setShowEndSemModal(true)}
+            className="btn btn-secondary"
+            style={{ padding: '10px 14px', fontSize: '0.8rem', gap: '6px' }}
+            title="End current semester and reset routine"
+          >
+            <Archive size={15} color="#a78bfa" /> End Semester
+          </button>
         </div>
       </div>
 
@@ -327,19 +415,31 @@ export default function AttendanceTracker({ setCurrentView }) {
           {/* Date Selector Banner */}
           <div className="date-picker-bar glass-panel">
             <div className="date-nav-controls">
-              <button className="date-arrow-btn" onClick={() => shiftDate(-1)} title="Previous Day">
+              <button
+                className="date-arrow-btn"
+                onClick={() => shiftDate(-1)}
+                disabled={selectedDate <= MIN_DATE}
+                style={{ opacity: selectedDate <= MIN_DATE ? 0.4 : 1, cursor: selectedDate <= MIN_DATE ? 'not-allowed' : 'pointer' }}
+                title={selectedDate <= MIN_DATE ? 'Earliest date reached (June 1, 2026)' : 'Previous Day'}
+              >
                 <ChevronLeft size={18} />
               </button>
+
               <div className="date-display">
                 <Calendar size={18} color="var(--primary)" />
                 <input
                   type="date"
                   value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
+                  min={MIN_DATE}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val && val >= MIN_DATE) setSelectedDate(val);
+                  }}
                   className="date-input-field"
                 />
                 <span className="day-name-pill">{dayName}</span>
               </div>
+
               <button className="date-arrow-btn" onClick={() => shiftDate(1)} title="Next Day">
                 <ChevronRight size={18} />
               </button>
@@ -437,7 +537,7 @@ export default function AttendanceTracker({ setCurrentView }) {
               </div>
               <div className="metric-data">
                 <span className="metric-value">{overallTotals.overallPct}%</span>
-                <span className="metric-label">Overall Average Attendance</span>
+                <span className="metric-label">Current Semester Average</span>
               </div>
             </div>
 
@@ -452,12 +552,12 @@ export default function AttendanceTracker({ setCurrentView }) {
             </div>
           </div>
 
-          {/* Subject Breakdown Table */}
+          {/* Current Semester Subject Breakdown Table */}
           <div className="analytics-table-card glass-panel">
-            <h3 className="card-title-h">Subject-by-Subject Attendance Breakdown</h3>
+            <h3 className="card-title-h">Current Semester Attendance Breakdown</h3>
 
             {subjectAnalytics.length === 0 ? (
-              <p className="empty-text-p">No attendance records logged yet. Start logging your daily classes to see detailed analytics.</p>
+              <p className="empty-text-p">No attendance records logged yet for this semester.</p>
             ) : (
               <div className="table-responsive-scroll">
                 <table className="attendance-table">
@@ -521,6 +621,42 @@ export default function AttendanceTracker({ setCurrentView }) {
               </div>
             )}
           </div>
+
+          {/* Archived Past Semesters History */}
+          {archivedSemesters.length > 0 && (
+            <div className="analytics-table-card glass-panel" style={{ marginTop: '24px' }}>
+              <h3 className="card-title-h" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Archive size={18} color="#a78bfa" /> Previous Semesters Overview
+              </h3>
+
+              <div className="table-responsive-scroll">
+                <table className="attendance-table">
+                  <thead>
+                    <tr>
+                      <th>Semester</th>
+                      <th>Concluded Date</th>
+                      <th>Overall Attendance</th>
+                      <th>Attended / Conducted</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {archivedSemesters.map((sem) => (
+                      <tr key={sem.id}>
+                        <td><strong>{sem.name}</strong></td>
+                        <td>{sem.endedAt}</td>
+                        <td>
+                          <span className={`status-pill ${sem.overallPct >= 75 ? 'safe' : 'danger'}`}>
+                            {sem.overallPct}% Overall
+                          </span>
+                        </td>
+                        <td>{sem.totalAttended} / {sem.totalConducted} Classes</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -620,7 +756,20 @@ export default function AttendanceTracker({ setCurrentView }) {
 
             {/* Right: Weekly Timetable Display */}
             <div className="routine-display-card glass-panel">
-              <h3>Weekly Timetable Schedule</h3>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+                <div>
+                  <h3 style={{ margin: 0 }}>Weekly Timetable Schedule</h3>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Configure your active semester routine</span>
+                </div>
+                <button
+                  onClick={() => setShowEndSemModal(true)}
+                  className="btn btn-secondary"
+                  style={{ padding: '6px 12px', fontSize: '0.75rem', gap: '4px' }}
+                >
+                  <RefreshCw size={13} /> Reset Routine for New Semester
+                </button>
+              </div>
+
               <div className="routine-days-accordion">
                 {DAYS_OF_WEEK.map((day) => {
                   const dayClasses = routine[day] || [];
@@ -663,6 +812,62 @@ export default function AttendanceTracker({ setCurrentView }) {
           </div>
         </div>
       )}
+
+      {/* ========================================================= */}
+      {/* END SEMESTER CONFIRMATION MODAL                           */}
+      {/* ========================================================= */}
+      {showEndSemModal && (
+        <div style={modalStyles.overlay}>
+          <div className="glass-panel" style={modalStyles.box}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#a78bfa', marginBottom: '10px' }}>
+              <Archive size={24} />
+              <h2 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>End Current Semester?</h2>
+            </div>
+
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '16px' }}>
+              Ending your current semester will:
+            </p>
+
+            <ul style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: '1.6', paddingLeft: '20px', marginBottom: '20px' }}>
+              <li>Save a compact overview summary (Overall % & total classes attended).</li>
+              <li><strong>Delete all detailed daily logs</strong> to free up storage space.</li>
+              <li>Clear your weekly routine so you can register new subjects for the next semester.</li>
+            </ul>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button className="btn btn-secondary" onClick={() => setShowEndSemModal(false)}>
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={handleEndSemester}>
+                Confirm & Start New Semester
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+const modalStyles = {
+  overlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.75)',
+    backdropFilter: 'blur(8px)',
+    zIndex: 9999,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '20px'
+  },
+  box: {
+    maxWidth: '480px',
+    width: '100%',
+    padding: '24px',
+    textAlign: 'left'
+  }
+};
