@@ -2444,6 +2444,10 @@ a:hover {
 }
 
 @media (max-width: 900px) {
+  .discord-workspace-grid {
+    grid-template-columns: 1fr !important;
+  }
+
   .discussions-header,
   .disc-nav-row {
     flex-direction: column;
