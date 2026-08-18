@@ -1969,13 +1969,33 @@ export function DatabaseProvider({ children }) {
   const saveUserRoutineToDb = async (userId, routineData, semesterStartDate) => {
     if (isSupabaseLive && userId) {
       try {
-        const { error } = await supabase.from('user_routines').upsert([{
-          user_id: userId,
-          routine_json: routineData,
-          semester_start_date: semesterStartDate,
-          updated_at: new Date().toISOString()
-        }], { onConflict: 'user_id' });
-        if (error) console.error('[Supabase Routine Upsert Error]', error.message);
+        const { data: existing } = await supabase
+          .from('user_routines')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (existing) {
+          const { error } = await supabase
+            .from('user_routines')
+            .update({
+              routine_json: routineData,
+              semester_start_date: semesterStartDate,
+              updated_at: new Date().toISOString()
+            })
+            .eq('user_id', userId);
+          if (error) console.error('[Supabase Routine Update Error]', error.message);
+        } else {
+          const { error } = await supabase
+            .from('user_routines')
+            .insert([{
+              user_id: userId,
+              routine_json: routineData,
+              semester_start_date: semesterStartDate,
+              updated_at: new Date().toISOString()
+            }]);
+          if (error) console.error('[Supabase Routine Insert Error]', error.message);
+        }
       } catch (e) {
         console.warn('[Supabase Routine Sync Error]', e);
       }
@@ -2002,12 +2022,31 @@ export function DatabaseProvider({ children }) {
   const saveUserLogsToDb = async (userId, logsData) => {
     if (isSupabaseLive && userId) {
       try {
-        const { error } = await supabase.from('user_attendance_logs').upsert([{
-          user_id: userId,
-          logs_json: logsData,
-          updated_at: new Date().toISOString()
-        }], { onConflict: 'user_id' });
-        if (error) console.error('[Supabase Attendance Logs Upsert Error]', error.message);
+        const { data: existing } = await supabase
+          .from('user_attendance_logs')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (existing) {
+          const { error } = await supabase
+            .from('user_attendance_logs')
+            .update({
+              logs_json: logsData,
+              updated_at: new Date().toISOString()
+            })
+            .eq('user_id', userId);
+          if (error) console.error('[Supabase Logs Update Error]', error.message);
+        } else {
+          const { error } = await supabase
+            .from('user_attendance_logs')
+            .insert([{
+              user_id: userId,
+              logs_json: logsData,
+              updated_at: new Date().toISOString()
+            }]);
+          if (error) console.error('[Supabase Logs Insert Error]', error.message);
+        }
       } catch (e) {
         console.warn('[Supabase Logs Sync Error]', e);
       }
@@ -2033,11 +2072,31 @@ export function DatabaseProvider({ children }) {
   const saveUserArchivesToDb = async (userId, archivesData) => {
     if (isSupabaseLive && userId) {
       try {
-        await supabase.from('user_archived_semesters').upsert([{
-          user_id: userId,
-          archives_json: archivesData,
-          updated_at: new Date().toISOString()
-        }], { onConflict: 'user_id' });
+        const { data: existing } = await supabase
+          .from('user_archived_semesters')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (existing) {
+          const { error } = await supabase
+            .from('user_archived_semesters')
+            .update({
+              archives_json: archivesData,
+              updated_at: new Date().toISOString()
+            })
+            .eq('user_id', userId);
+          if (error) console.error('[Supabase Archives Update Error]', error.message);
+        } else {
+          const { error } = await supabase
+            .from('user_archived_semesters')
+            .insert([{
+              user_id: userId,
+              archives_json: archivesData,
+              updated_at: new Date().toISOString()
+            }]);
+          if (error) console.error('[Supabase Archives Insert Error]', error.message);
+        }
       } catch (e) {
         console.warn('[Supabase Archives Sync Error]', e);
       }
