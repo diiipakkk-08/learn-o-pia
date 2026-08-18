@@ -966,50 +966,53 @@ export function DatabaseProvider({ children }) {
       delete profileData.username;
     }
 
+    const updatedUser = {
+      ...userToUpdate,
+      ...profileData,
+      onboardingCompleted: true,
+      verificationStatus: profileData.idCardLink ? 'pending' : userToUpdate?.verificationStatus
+    };
+
+    setUsers(prev => {
+      const next = prev.map(u => u.id === userId ? updatedUser : u);
+      localStorage.setItem('learnopia_users_stable', JSON.stringify(next));
+      return next;
+    });
+
+    if (currentUser && (currentUser.id === userId || !currentUser.id)) {
+      setCurrentUser(updatedUser);
+      localStorage.setItem('learnopia_current_user_stable', JSON.stringify(updatedUser));
+    }
+
     if (isSupabaseLive) {
       try {
         await supabase
           .from('profiles')
           .update({
-            name: profileData.name,
-            username: profileData.username,
-            phone: profileData.phone,
-            college: profileData.college,
-            department: profileData.department,
-            interests: profileData.interests,
-            id_card_link: profileData.idCardLink,
-            verification_status: profileData.idCardLink ? 'pending' : userToUpdate?.verificationStatus
+            name: updatedUser.name,
+            username: updatedUser.username,
+            phone: updatedUser.phone,
+            college: updatedUser.college,
+            department: updatedUser.department,
+            interests: updatedUser.interests,
+            education_level: updatedUser.educationLevel,
+            passing_year: updatedUser.passingYear,
+            dob: updatedUser.dob,
+            target_exam: updatedUser.targetExam,
+            onboarding_completed: true,
+            id_card_link: updatedUser.idCardLink,
+            verification_status: updatedUser.verificationStatus
           })
           .eq('id', userId);
-      } catch (e) {}
-      syncSupabase();
-    } else {
-      setUsers(prev => {
-        const next = prev.map(u => {
-          if (u.id === userId) {
-            return {
-              ...u,
-              ...profileData,
-              verificationStatus: profileData.idCardLink ? 'pending' : u.verificationStatus
-            };
-          }
-          return u;
-        });
-        localStorage.setItem('learnopia_users_stable', JSON.stringify(next));
-        return next;
-      });
-
-      if (currentUser && currentUser.id === userId) {
-        const updatedUser = {
-          ...currentUser,
-          ...profileData,
-          verificationStatus: profileData.idCardLink ? 'pending' : currentUser.verificationStatus
-        };
-        setCurrentUser(updatedUser);
-        localStorage.setItem('learnopia_current_user_stable', JSON.stringify(updatedUser));
+      } catch (e) {
+        console.warn('[Supabase Profile Update Error]', e);
       }
+      try {
+        syncSupabase();
+      } catch (e) {}
     }
-    return { success: true };
+
+    return { success: true, user: updatedUser };
   };
 
   const adminVerifyUser = async (userId, newStatus) => {
