@@ -935,7 +935,22 @@ export function DatabaseProvider({ children }) {
     }
   };
 
-  const updateUserProfile = async (userId, profileData) => {
+  const updateUserProfile = async (targetIdOrData, maybeData) => {
+    let userId = currentUser?.id;
+    let profileData = {};
+
+    if (typeof targetIdOrData === 'string') {
+      userId = targetIdOrData;
+      profileData = maybeData || {};
+    } else if (typeof targetIdOrData === 'object' && targetIdOrData !== null) {
+      profileData = targetIdOrData;
+      if (typeof maybeData === 'string') {
+        userId = maybeData;
+      }
+    }
+
+    if (!userId) return { success: false, error: 'No user ID specified.' };
+
     if (profileData.username) {
       const formattedUsername = profileData.username.startsWith('@') ? profileData.username : `@${profileData.username}`;
       const isTaken = users.some(u => u.id !== userId && u.username?.toLowerCase() === formattedUsername.toLowerCase());

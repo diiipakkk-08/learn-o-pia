@@ -44,7 +44,7 @@ export default function OnboardingModal({ isOpen, onComplete }) {
         onboardingCompleted: true
       };
 
-      await updateUserProfile(profileData);
+      await updateUserProfile(currentUser?.id, profileData);
       if (onComplete) onComplete();
     } catch (err) {
       console.error('[Onboarding Error]', err);
