@@ -1969,12 +1969,13 @@ export function DatabaseProvider({ children }) {
   const saveUserRoutineToDb = async (userId, routineData, semesterStartDate) => {
     if (isSupabaseLive && userId) {
       try {
-        await supabase.from('user_routines').upsert([{
+        const { error } = await supabase.from('user_routines').upsert([{
           user_id: userId,
           routine_json: routineData,
           semester_start_date: semesterStartDate,
           updated_at: new Date().toISOString()
         }], { onConflict: 'user_id' });
+        if (error) console.error('[Supabase Routine Upsert Error]', error.message);
       } catch (e) {
         console.warn('[Supabase Routine Sync Error]', e);
       }
@@ -1984,11 +1985,12 @@ export function DatabaseProvider({ children }) {
   const getUserRoutineFromDb = async (userId) => {
     if (isSupabaseLive && userId) {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('user_routines')
           .select('routine_json, semester_start_date')
           .eq('user_id', userId)
           .maybeSingle();
+        if (error) console.error('[Supabase Routine Fetch Error]', error.message);
         if (data) return data;
       } catch (e) {
         console.warn('[Supabase Routine Fetch Error]', e);
@@ -2000,11 +2002,12 @@ export function DatabaseProvider({ children }) {
   const saveUserLogsToDb = async (userId, logsData) => {
     if (isSupabaseLive && userId) {
       try {
-        await supabase.from('user_attendance_logs').upsert([{
+        const { error } = await supabase.from('user_attendance_logs').upsert([{
           user_id: userId,
           logs_json: logsData,
           updated_at: new Date().toISOString()
         }], { onConflict: 'user_id' });
+        if (error) console.error('[Supabase Attendance Logs Upsert Error]', error.message);
       } catch (e) {
         console.warn('[Supabase Logs Sync Error]', e);
       }
