@@ -3,9 +3,9 @@ import { DatabaseProvider, useDatabase } from './context/DatabaseContext';
 import Auth from './components/Auth';
 import Header from './components/Header';
 import Profile from './components/Profile';
-import NotFound404 from './components/NotFound404';
 import LandingPage from './components/LandingPage';
 import About from './components/About';
+import OnboardingModal from './components/OnboardingModal';
 
 // Shared Learning Views
 import CoursesDashboard from './components/learning/CoursesDashboard';
@@ -201,6 +201,9 @@ function AppContent() {
           </>
         )}
       </main>
+
+      {/* Mandatory Onboarding Modal for New Accounts */}
+      <OnboardingModal isOpen={!!currentUser && !currentUser.onboardingCompleted} />
     </div>
   );
 }

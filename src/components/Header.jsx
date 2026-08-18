@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
-import { GraduationCap, LogOut, BookOpen, Film, Shield, User, Menu, X, Search, Play, FileText, Info, BarChart2, Calendar, MessageSquare } from 'lucide-react';
-import { fuzzyMatch } from '../utils/fuzzySearch';
+import { GraduationCap, LogOut, BookOpen, User, Info, Calendar, MessageSquare, Sparkles, Shield, Compass } from 'lucide-react';
 
 export default function Header({
   currentView,
@@ -10,15 +9,11 @@ export default function Header({
   onLogoClick
 }) {
   const { currentUser, logout } = useDatabase();
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
 
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
-      if (window.innerWidth > 768) {
-        setMenuOpen(false);
-      }
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -26,7 +21,6 @@ export default function Header({
 
   const isCreatorOrAdmin = currentUser && ((currentUser.role === 'creator' && currentUser.status === 'active') || currentUser.role === 'admin' || currentUser.role === 'owner');
   const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner');
-
   const avatarInitial = currentUser && currentUser.name ? currentUser.name.charAt(0).toUpperCase() : '?';
 
   const handleBrandClick = () => {
@@ -40,417 +34,398 @@ export default function Header({
   };
 
   return (
-    <div style={{ 
-      ...styles.header, 
-      position: 'relative', 
-      flexDirection: 'row', 
-      alignItems: 'center', 
-      justifyContent: 'space-between',
-      boxSizing: 'border-box',
-      width: '100%' 
-    }} className="glass-panel">
-      <div style={styles.left}>
-        {/* Logo */}
-        <div 
-          style={{ ...styles.logo, cursor: 'pointer' }} 
-          onClick={handleBrandClick}
-          title="Return to Learn-o-pia Main Website"
-        >
-          <div style={styles.logoIcon}>
-            <GraduationCap size={20} color="#ffffff" />
+    <>
+      {/* TOP NAVBAR */}
+      <div style={{
+        ...styles.header,
+        position: 'relative',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        boxSizing: 'border-box',
+        width: '100%'
+      }} className="glass-panel">
+        <div style={styles.left}>
+          {/* Logo */}
+          <div
+            style={{ ...styles.logo, cursor: 'pointer' }}
+            onClick={handleBrandClick}
+            title="Return to Learn-o-pia Main Website"
+          >
+            <div style={styles.logoIcon}>
+              <GraduationCap size={20} color="#ffffff" />
+            </div>
+            <span style={styles.logoText}>Learn-o-pia</span>
           </div>
-          <span style={styles.logoText}>Learn-o-pia</span>
+
+          {/* Desktop Nav Links */}
+          {!isMobile && currentUser && (
+            <nav style={styles.nav}>
+              <button
+                onClick={() => setCurrentView('learning')}
+                style={{
+                  ...styles.navBtn,
+                  background: (currentView === 'learning' || currentView === 'learning-player') ? 'rgba(255,255,255,0.05)' : 'transparent',
+                  color: (currentView === 'learning' || currentView === 'learning-player') ? '#ffffff' : 'var(--text-secondary)'
+                }}
+              >
+                <BookOpen size={15} /> Learning
+              </button>
+
+              <button
+                onClick={() => setCurrentView('attendance')}
+                style={{
+                  ...styles.navBtn,
+                  background: currentView === 'attendance' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                  color: currentView === 'attendance' ? '#ffffff' : 'var(--text-secondary)'
+                }}
+              >
+                <Calendar size={15} /> Attendance
+              </button>
+
+              <button
+                onClick={() => setCurrentView('discussions')}
+                style={{
+                  ...styles.navBtn,
+                  background: currentView === 'discussions' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                  color: currentView === 'discussions' ? '#ffffff' : 'var(--text-secondary)'
+                }}
+              >
+                <MessageSquare size={15} /> Discussions
+              </button>
+
+              {isCreatorOrAdmin && (
+                <button
+                  onClick={() => setCurrentView('studio')}
+                  style={{
+                    ...styles.navBtn,
+                    background: currentView === 'studio' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                    color: currentView === 'studio' ? '#ffffff' : 'var(--text-secondary)'
+                  }}
+                >
+                  <Sparkles size={15} color="#a78bfa" /> Studio
+                </button>
+              )}
+
+              {isAdmin && (
+                <button
+                  onClick={() => setCurrentView('admin')}
+                  style={{
+                    ...styles.navBtn,
+                    background: currentView === 'admin' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                    color: currentView === 'admin' ? '#ffffff' : 'var(--text-secondary)'
+                  }}
+                >
+                  <Shield size={15} /> Admin Panel
+                </button>
+              )}
+
+              <button
+                onClick={() => setCurrentView('about')}
+                style={{
+                  ...styles.navBtn,
+                  background: currentView === 'about' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                  color: currentView === 'about' ? '#ffffff' : 'var(--text-secondary)'
+                }}
+              >
+                <Info size={15} /> About
+              </button>
+            </nav>
+          )}
         </div>
 
-        {/* Desktop Nav (Only shown when logged in) */}
-        {!isMobile && currentUser && (
-          <nav style={styles.nav}>
-            <button
-              onClick={() => setCurrentView('learning')}
-              style={{
-                ...styles.navBtn,
-                background: (currentView === 'learning' || currentView === 'learning-player') ? 'rgba(255,255,255,0.05)' : 'transparent',
-                color: (currentView === 'learning' || currentView === 'learning-player') ? '#ffffff' : 'var(--text-secondary)'
-              }}
-            >
-              <BookOpen size={15} />
-              Learning
-            </button>
+        {/* Right Section: Mobile Profile Icon or Desktop User Profile Card */}
+        <div>
+          {isMobile ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {currentUser ? (
+                <button
+                  onClick={() => setCurrentView('profile')}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                >
+                  {currentUser.picture ? (
+                    <img src={currentUser.picture} alt={currentUser.name} style={{ width: 34, height: 34, borderRadius: '50%', border: '1.5px solid var(--primary)' }} referrerPolicy="no-referrer" />
+                  ) : (
+                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%)', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem' }}>
+                      {avatarInitial}
+                    </div>
+                  )}
+                </button>
+              ) : (
+                <button className="btn btn-primary btn-sm" onClick={() => setCurrentView('auth')}>
+                  Sign In
+                </button>
+              )}
+            </div>
+          ) : (
+            <div style={styles.right}>
+              {currentUser ? (
+                <>
+                  <button
+                    onClick={() => setCurrentView('profile')}
+                    style={{
+                      ...styles.userInfoBtn,
+                      background: currentView === 'profile' ? 'rgba(139,92,246,0.12)' : 'transparent',
+                      borderColor: currentView === 'profile' ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.06)'
+                    }}
+                    title="View Profile"
+                  >
+                    {currentUser.picture ? (
+                      <img src={currentUser.picture} alt={currentUser.name} style={styles.avatarImg} referrerPolicy="no-referrer" />
+                    ) : (
+                      <div style={styles.avatarInitial}>{avatarInitial}</div>
+                    )}
+                    <div style={styles.userText}>
+                      <span style={styles.userName}>{currentUser.name}</span>
+                      <span className={`badge badge-${currentUser.role}`} style={{ fontSize: '0.55rem', padding: '2px 6px', marginTop: '2px', display: 'inline-block', width: 'fit-content' }}>
+                        {currentUser.role}
+                      </span>
+                    </div>
+                  </button>
 
-            <button
-              onClick={() => setCurrentView('attendance')}
-              style={{
-                ...styles.navBtn,
-                background: currentView === 'attendance' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                color: currentView === 'attendance' ? '#ffffff' : 'var(--text-secondary)'
-              }}
-            >
-              <Calendar size={15} />
-              Attendance
-            </button>
-
-            <button
-              onClick={() => setCurrentView('discussions')}
-              style={{
-                ...styles.navBtn,
-                background: currentView === 'discussions' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                color: currentView === 'discussions' ? '#ffffff' : 'var(--text-secondary)'
-              }}
-            >
-              <MessageSquare size={15} />
-              Discussions
-            </button>
-
-            {isCreatorOrAdmin && (
-              <button
-                onClick={() => setCurrentView('studio')}
-                style={{
-                  ...styles.navBtn,
-                  background: currentView === 'studio' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                  color: currentView === 'studio' ? '#ffffff' : 'var(--text-secondary)'
-                }}
-              >
-                <Film size={15} />
-                Studio
-              </button>
-            )}
-
-            {isAdmin && (
-              <button
-                onClick={() => setCurrentView('admin')}
-                style={{
-                  ...styles.navBtn,
-                  background: currentView === 'admin' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                  color: currentView === 'admin' ? '#ffffff' : 'var(--text-secondary)'
-                }}
-              >
-                <Shield size={15} />
-                Admin Panel
-              </button>
-            )}
-
-            <button
-              onClick={() => setCurrentView('about')}
-              style={{
-                ...styles.navBtn,
-                background: currentView === 'about' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                color: currentView === 'about' ? '#ffffff' : 'var(--text-secondary)'
-              }}
-            >
-              <Info size={15} />
-              About
-            </button>
-          </nav>
-        )}
+                  <button onClick={logout} style={styles.logoutBtn} title="Sign Out">
+                    <LogOut size={15} />
+                  </button>
+                </>
+              ) : (
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button className="btn btn-secondary btn-sm" onClick={() => setCurrentView('auth')}>Sign In</button>
+                  <button className="btn btn-primary btn-sm" onClick={() => setCurrentView('auth')}>Get Started</button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Desktop User Options */}
-      {!isMobile && (
-        <div style={styles.right}>
-          {currentUser ? (
-            <>
-              <button
-                onClick={() => setCurrentView('profile')}
-                style={{
-                  ...styles.userInfoBtn,
-                  background: currentView === 'profile' ? 'rgba(139,92,246,0.12)' : 'transparent',
-                  borderColor: currentView === 'profile' ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.06)'
-                }}
-                title="View Profile"
-              >
-                {currentUser.picture ? (
-                  <img src={currentUser.picture} alt={currentUser.name} style={styles.avatarImg} referrerPolicy="no-referrer" />
-                ) : (
-                  <div style={styles.avatarInitial}>{avatarInitial}</div>
-                )}
-                <div style={styles.userText}>
-                  <span style={styles.userName}>{currentUser.name}</span>
-                  <span className={`badge badge-${currentUser.role}`} style={{ fontSize: '0.55rem', padding: '2px 6px', marginTop: '2px', display: 'inline-block', width: 'fit-content' }}>
-                    {currentUser.role}
-                  </span>
-                </div>
-              </button>
+      {/* MOBILE FLOATING CURVED RECTANGULAR NAVIGATION BAR (5 SECTIONS) */}
+      {isMobile && currentUser && (
+        <div style={styles.mobileFloatingNav}>
+          {/* Section 1: Learning */}
+          <button
+            onClick={() => setCurrentView('learning')}
+            style={{
+              ...styles.mobileNavTab,
+              color: (currentView === 'learning' || currentView === 'learning-player') ? 'var(--primary)' : 'var(--text-muted)'
+            }}
+          >
+            <BookOpen size={20} />
+            <span style={styles.mobileTabLabel}>Learning</span>
+          </button>
 
-              <button onClick={logout} style={styles.logoutBtn} title="Sign Out">
-                <LogOut size={15} />
-              </button>
-            </>
-          ) : (
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                onClick={() => setCurrentView('auth')}
-                className="btn btn-secondary"
-                style={{ padding: '6px 14px', fontSize: '0.82rem', borderRadius: '10px' }}
-              >
-                Log In
-              </button>
-              <button
-                onClick={() => setCurrentView('auth')}
-                className="btn btn-primary"
-                style={{ padding: '6px 16px', fontSize: '0.82rem', borderRadius: '10px' }}
-              >
-                Get Started
-              </button>
+          {/* Section 2: Discussion */}
+          <button
+            onClick={() => setCurrentView('discussions')}
+            style={{
+              ...styles.mobileNavTab,
+              color: currentView === 'discussions' ? 'var(--primary)' : 'var(--text-muted)'
+            }}
+          >
+            <MessageSquare size={20} />
+            <span style={styles.mobileTabLabel}>Discussion</span>
+          </button>
+
+          {/* Section 3: Center Elevated Floating Circle Button - My Learning */}
+          <button
+            onClick={() => setCurrentView('learning')}
+            style={styles.mobileCenterBtn}
+            title="My Learning Workspace"
+          >
+            <div style={styles.mobileCenterCircle}>
+              <Sparkles size={22} color="#ffffff" />
             </div>
-          )}
+            <span style={{ fontSize: '0.62rem', color: '#a78bfa', fontWeight: 700, marginTop: 2 }}>My Learning</span>
+          </button>
+
+          {/* Section 4: Attendance Sheet */}
+          <button
+            onClick={() => setCurrentView('attendance')}
+            style={{
+              ...styles.mobileNavTab,
+              color: currentView === 'attendance' ? 'var(--primary)' : 'var(--text-muted)'
+            }}
+          >
+            <Calendar size={20} />
+            <span style={styles.mobileTabLabel}>Attendance</span>
+          </button>
+
+          {/* Section 5: Profile */}
+          <button
+            onClick={() => setCurrentView('profile')}
+            style={{
+              ...styles.mobileNavTab,
+              color: currentView === 'profile' ? 'var(--primary)' : 'var(--text-muted)'
+            }}
+          >
+            <User size={20} />
+            <span style={styles.mobileTabLabel}>Profile</span>
+          </button>
         </div>
       )}
-
-      {/* Mobile Hamburger toggle */}
-      {isMobile && (
-        <button 
-          onClick={() => setMenuOpen(!menuOpen)} 
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: '#ffffff',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            padding: '8px'
-          }}
-          title="Toggle Menu"
-        >
-          {menuOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
-      )}
-
-      {/* Mobile drop down drawer menu */}
-      {isMobile && menuOpen && (
-        <div style={styles.mobileDropdown} className="glass-panel animate-fade-in">
-          <button
-            onClick={() => { setCurrentView('learning'); setMenuOpen(false); }}
-            style={{
-              ...styles.mobileMenuBtn,
-              background: (currentView === 'learning' || currentView === 'learning-player') ? 'rgba(255,255,255,0.05)' : 'transparent',
-              color: (currentView === 'learning' || currentView === 'learning-player') ? '#ffffff' : 'var(--text-secondary)'
-            }}
-          >
-            <BookOpen size={16} />
-            Learning
-          </button>
-
-          <button
-            onClick={() => { setCurrentView('attendance'); setMenuOpen(false); }}
-            style={{
-              ...styles.mobileMenuBtn,
-              background: currentView === 'attendance' ? 'rgba(255,255,255,0.05)' : 'transparent',
-              color: currentView === 'attendance' ? '#ffffff' : 'var(--text-secondary)'
-            }}
-          >
-            <Calendar size={16} />
-            Attendance
-          </button>
-
-          <button
-            onClick={() => { setCurrentView('discussions'); setMenuOpen(false); }}
-            style={{
-              ...styles.mobileMenuBtn,
-              background: currentView === 'discussions' ? 'rgba(255,255,255,0.05)' : 'transparent',
-              color: currentView === 'discussions' ? '#ffffff' : 'var(--text-secondary)'
-            }}
-          >
-            <MessageSquare size={16} />
-            Discussions
-          </button>
-
-          {isCreatorOrAdmin && (
-            <button
-              onClick={() => { setCurrentView('studio'); setMenuOpen(false); }}
-              style={{
-                ...styles.mobileMenuBtn,
-                background: currentView === 'studio' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                color: currentView === 'studio' ? '#ffffff' : 'var(--text-secondary)'
-              }}
-            >
-              <Film size={16} />
-              Studio
-            </button>
-          )}
-
-          {isAdmin && (
-            <button
-              onClick={() => { setCurrentView('admin'); setMenuOpen(false); }}
-              style={{
-                ...styles.mobileMenuBtn,
-                background: currentView === 'admin' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                color: currentView === 'admin' ? '#ffffff' : 'var(--text-secondary)'
-              }}
-            >
-              <Shield size={16} />
-              Admin Panel
-            </button>
-          )}
-
-          <button
-            onClick={() => { setCurrentView('about'); setMenuOpen(false); }}
-            style={{
-              ...styles.mobileMenuBtn,
-              background: currentView === 'about' ? 'rgba(255,255,255,0.05)' : 'transparent',
-              color: currentView === 'about' ? '#ffffff' : 'var(--text-secondary)'
-            }}
-          >
-            <Info size={16} />
-            About
-          </button>
-
-          {isAdmin && (
-            <button
-              onClick={() => { setCurrentView('admin'); setMenuOpen(false); }}
-              style={{
-                ...styles.mobileMenuBtn,
-                background: currentView === 'admin' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                color: currentView === 'admin' ? '#ffffff' : 'var(--text-secondary)'
-              }}
-            >
-              <Shield size={16} />
-              Admin Panel
-            </button>
-          )}
-
-          {currentUser ? (
-            <>
-              <button
-                onClick={() => { setCurrentView('profile'); setMenuOpen(false); }}
-                style={{
-                  ...styles.mobileMenuBtn,
-                  background: currentView === 'profile' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                  color: currentView === 'profile' ? '#ffffff' : 'var(--text-secondary)'
-                }}
-              >
-                <User size={16} />
-                Account
-              </button>
-
-              <div style={styles.mobileProfileDivider} />
-
-              <div style={styles.mobileProfileRow}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  {currentUser.picture ? (
-                    <img src={currentUser.picture} alt={currentUser.name} style={styles.avatarImg} referrerPolicy="no-referrer" />
-                  ) : (
-                    <div style={styles.avatarInitial}>{avatarInitial}</div>
-                  )}
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>{currentUser.name}</span>
-                    <span className={`badge badge-${currentUser.role}`} style={{ fontSize: '0.55rem', padding: '2px 6px', marginTop: '2px', display: 'inline-block', width: 'fit-content' }}>
-                      {currentUser.role}
-                    </span>
-                  </div>
-                </div>
-                <button onClick={() => { logout(); setMenuOpen(false); }} style={styles.logoutBtn} title="Sign Out">
-                  <LogOut size={15} />
-                </button>
-              </div>
-            </>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
-              <button
-                onClick={() => { setCurrentView('auth'); setMenuOpen(false); }}
-                className="btn btn-primary"
-                style={{ width: '100%', padding: '10px', fontSize: '0.85rem' }}
-              >
-                Log In / Get Started
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+    </>
   );
 }
 
 const styles = {
   header: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '10px 24px', borderRadius: '0 0 16px 16px',
-    borderTop: 'none', borderLeft: 'none', borderRight: 'none',
-    background: 'rgba(17,18,28,0.85)',
-    marginBottom: '20px', position: 'sticky', top: 0, zIndex: 200
+    padding: '12px 24px',
+    borderRadius: '16px',
+    marginBottom: '20px',
+    display: 'flex'
   },
-  left: { display: 'flex', alignItems: 'center', gap: '32px' },
-  logo: { display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' },
+  left: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '24px'
+  },
+  logo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px'
+  },
   logoIcon: {
-    width: '32px', height: '32px', borderRadius: '8px',
+    width: '34px',
+    height: '34px',
+    borderRadius: '10px',
     background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    boxShadow: '0 2px 10px rgba(139,92,246,0.3)'
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   logoText: {
-    fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.2rem',
-    background: 'linear-gradient(135deg, #ffffff 30%, #a78bfa 100%)',
-    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.01em'
+    fontSize: '1.2rem',
+    fontWeight: 700,
+    color: '#ffffff',
+    fontFamily: 'var(--font-heading)'
   },
-  nav: { display: 'flex', alignItems: 'center', gap: '4px' },
-  navBtn: {
-    display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px',
-    background: 'transparent', border: 'none', cursor: 'pointer',
-    fontSize: '0.85rem', fontWeight: 500, fontFamily: 'var(--font-heading)',
-    borderRadius: '8px', transition: 'all 0.2s'
-  },
-  right: { display: 'flex', alignItems: 'center', gap: '10px' },
-  userInfoBtn: {
-    display: 'flex', alignItems: 'center', gap: '10px',
-    padding: '6px 12px', borderRadius: '10px',
-    border: '1px solid rgba(255,255,255,0.06)',
-    background: 'transparent', cursor: 'pointer', transition: 'all 0.2s'
-  },
-  avatarImg: { width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(139,92,246,0.4)', flexShrink: 0 },
-  avatarInitial: {
-    width: '30px', height: '30px', borderRadius: '50%',
-    background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: '0.8rem', fontWeight: 700, color: '#fff', flexShrink: 0
-  },
-  userText: { display: 'flex', flexDirection: 'column', textAlign: 'left' },
-  userName: { fontSize: '0.82rem', fontWeight: 600, color: '#ffffff', whiteSpace: 'nowrap' },
-  logoutBtn: {
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)',
-    color: '#fca5a5', width: '34px', height: '34px', borderRadius: '8px',
-    cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0
-  },
-  mobileDropdown: {
-    position: 'absolute',
-    top: '100%',
-    left: '10px',
-    right: '10px',
-    background: 'rgba(17,18,28,0.95)',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
-    borderRadius: '12px',
-    padding: '12px',
+  nav: {
     display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-    boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.5)',
-    zIndex: 1000,
-    marginTop: '5px'
+    alignItems: 'center',
+    gap: '4px'
   },
-  mobileMenuBtn: {
+  navBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '8px 14px',
+    borderRadius: '10px',
+    border: 'none',
+    fontSize: '0.85rem',
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontFamily: 'var(--font-heading)',
+    transition: 'all 0.2s ease'
+  },
+  right: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  userInfoBtn: {
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
-    padding: '10px 16px',
-    background: 'transparent',
-    border: 'none',
-    color: 'var(--text-secondary)',
-    fontSize: '0.9rem',
-    fontWeight: 500,
-    borderRadius: '8px',
+    padding: '6px 12px',
+    borderRadius: '12px',
+    border: '1px solid rgba(255,255,255,0.06)',
     cursor: 'pointer',
-    textAlign: 'left',
-    width: '100%',
-    transition: 'all 0.2s'
+    transition: 'all 0.2s ease'
   },
-  mobileProfileDivider: {
-    height: '1px',
-    background: 'rgba(255, 255, 255, 0.08)',
-    margin: '4px 0'
+  avatarImg: {
+    width: '32px',
+    height: '32px',
+    borderRadius: '50%',
+    objectFit: 'cover'
   },
-  mobileProfileRow: {
+  avatarInitial: {
+    width: '32px',
+    height: '32px',
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '8px 12px'
+    justifyContent: 'center',
+    fontWeight: 700,
+    color: '#ffffff',
+    fontSize: '0.85rem'
+  },
+  userText: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start'
+  },
+  userName: {
+    fontSize: '0.82rem',
+    fontWeight: 600,
+    color: '#ffffff'
+  },
+  logoutBtn: {
+    padding: '8px',
+    borderRadius: '10px',
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    color: 'var(--text-muted)',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  mobileFloatingNav: {
+    position: 'fixed',
+    bottom: '16px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    width: 'calc(100% - 32px)',
+    maxWidth: '440px',
+    height: '62px',
+    background: 'rgba(12, 13, 22, 0.92)',
+    backdropFilter: 'blur(16px)',
+    WebkitBackdropFilter: 'blur(16px)',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    borderRadius: '32px',
+    boxShadow: '0 12px 35px rgba(0,0,0,0.6), 0 0 20px rgba(139, 92, 246, 0.25)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    padding: '0 8px',
+    zIndex: 9999
+  },
+  mobileNavTab: {
+    background: 'none',
+    border: 'none',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    padding: '6px 4px',
+    flex: 1
+  },
+  mobileTabLabel: {
+    fontSize: '0.62rem',
+    marginTop: '2px',
+    fontWeight: 600
+  },
+  mobileCenterBtn: {
+    background: 'none',
+    border: 'none',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transform: 'translateY(-12px)',
+    padding: 0,
+    flex: 1
+  },
+  mobileCenterCircle: {
+    width: '46px',
+    height: '46px',
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 6px 20px rgba(139, 92, 246, 0.5), 0 0 15px rgba(168, 85, 247, 0.4)'
   }
 };
