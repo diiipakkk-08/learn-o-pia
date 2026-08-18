@@ -109,6 +109,9 @@ function AppContent() {
   const isVerifiedCreator = currentUser && currentUser.role === 'creator' && currentUser.status === 'active';
   const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner');
 
+  const isCompletedLocal = typeof window !== 'undefined' && currentUser?.id && localStorage.getItem(`learnopia_onboarding_done_${currentUser.id}`) === 'true';
+  const showOnboardingModal = !!currentUser && !currentUser.onboardingCompleted && !isCompletedLocal;
+
   return (
     <div className="app-container">
 
@@ -179,7 +182,10 @@ function AppContent() {
             {/* Guarded Studio Access */}
             {currentView === 'studio' && (
               (isVerifiedCreator || isAdmin) ? (
-                <CreatorStudio />
+                <CreatorStudio 
+                  setCurrentView={setCurrentView} 
+                  setSelectedPlaylistId={setSelectedPlaylistId} 
+                />
               ) : (
                 <AccessDenied requiredRole="Creator" setCurrentView={setCurrentView} />
               )
@@ -203,7 +209,7 @@ function AppContent() {
       </main>
 
       {/* Mandatory Onboarding Modal for New Accounts */}
-      <OnboardingModal isOpen={!!currentUser && !currentUser.onboardingCompleted} />
+      <OnboardingModal isOpen={showOnboardingModal} />
     </div>
   );
 }

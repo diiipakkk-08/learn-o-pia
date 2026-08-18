@@ -44,6 +44,9 @@ export default function OnboardingModal({ isOpen, onComplete }) {
         onboardingCompleted: true
       };
 
+      if (currentUser?.id) {
+        localStorage.setItem(`learnopia_onboarding_done_${currentUser.id}`, 'true');
+      }
       await updateUserProfile(currentUser?.id, profileData);
       if (onComplete) onComplete();
     } catch (err) {

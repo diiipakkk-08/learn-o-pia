@@ -296,15 +296,22 @@ export const getUserDesignation = (user) => {
 
 const mapProfile = (dbProfile) => {
   if (!dbProfile) return null;
+  const isCompletedLocal = typeof window !== 'undefined' && dbProfile.id && localStorage.getItem(`learnopia_onboarding_done_${dbProfile.id}`) === 'true';
   return {
     id: dbProfile.id,
-    email: dbProfile.email,
     name: dbProfile.name,
-    username: dbProfile.username || `@${dbProfile.name?.toLowerCase().replace(/\s+/g, '')}`,
-    phone: dbProfile.phone || '',
+    username: dbProfile.username,
+    email: dbProfile.email,
+    picture: dbProfile.picture || dbProfile.avatar_url,
+    phone: dbProfile.phone,
     college: dbProfile.college || 'MAKAUT / University',
     department: dbProfile.department || 'CSE/IT',
     interests: dbProfile.interests || 'Programming, Physics, Mathematics',
+    educationLevel: dbProfile.education_level || 'college',
+    passingYear: dbProfile.passing_year || '2028',
+    dob: dbProfile.dob || '',
+    targetExam: dbProfile.target_exam || '',
+    onboardingCompleted: dbProfile.onboarding_completed || isCompletedLocal || false,
     idCardLink: dbProfile.id_card_link || '',
     isVerified: !!dbProfile.is_verified,
     verificationStatus: dbProfile.verification_status || 'none',
