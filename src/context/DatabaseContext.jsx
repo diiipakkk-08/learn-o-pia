@@ -1940,6 +1940,82 @@ export function DatabaseProvider({ children }) {
     }
   };
 
+  // ── SUPABASE TIMETABLE & ATTENDANCE PERSISTENCE HELPERS ──
+  const saveUserRoutineToDb = async (userId, routineData, semesterStartDate) => {
+    if (isSupabaseLive && userId) {
+      try {
+        await supabase.from('user_routines').upsert([{
+          user_id: userId,
+          routine_json: routineData,
+          semester_start_date: semesterStartDate,
+          updated_at: new Date().toISOString()
+        }], { onConflict: 'user_id' });
+      } catch (e) {
+        console.warn('[Supabase Routine Sync Error]', e);
+      }
+    }
+  };
+
+  const getUserRoutineFromDb = async (userId) => {
+    if (isSupabaseLive && userId) {
+      try {
+        const { data } = await supabase
+          .from('user_routines')
+          .select('routine_json, semester_start_date')
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (data) return data;
+      } catch (e) {
+        console.warn('[Supabase Routine Fetch Error]', e);
+      }
+    }
+    return null;
+  };
+
+  const saveUserLogsToDb = async (userId, logsData) => {
+    if (isSupabaseLive && userId) {
+      try {
+        await supabase.from('user_attendance_logs').upsert([{
+          user_id: userId,
+          logs_json: logsData,
+          updated_at: new Date().toISOString()
+        }], { onConflict: 'user_id' });
+      } catch (e) {
+        console.warn('[Supabase Logs Sync Error]', e);
+      }
+    }
+  };
+
+  const getUserLogsFromDb = async (userId) => {
+    if (isSupabaseLive && userId) {
+      try {
+        const { data } = await supabase
+          .from('user_attendance_logs')
+          .select('logs_json')
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (data && data.logs_json) return data.logs_json;
+      } catch (e) {
+        console.warn('[Supabase Logs Fetch Error]', e);
+      }
+    }
+    return null;
+  };
+
+  const saveUserArchivesToDb = async (userId, archivesData) => {
+    if (isSupabaseLive && userId) {
+      try {
+        await supabase.from('user_archived_semesters').upsert([{
+          user_id: userId,
+          archives_json: archivesData,
+          updated_at: new Date().toISOString()
+        }], { onConflict: 'user_id' });
+      } catch (e) {
+        console.warn('[Supabase Archives Sync Error]', e);
+      }
+    }
+  };
+
   return (
     <DatabaseContext.Provider value={{
       users,
@@ -1988,7 +2064,12 @@ export function DatabaseProvider({ children }) {
       reorderVideo,
       reorderMaterialSection,
       extractYoutubePlaylistId,
-      importVideosToExistingPlaylist
+      importVideosToExistingPlaylist,
+      saveUserRoutineToDb,
+      getUserRoutineFromDb,
+      saveUserLogsToDb,
+      getUserLogsFromDb,
+      saveUserArchivesToDb
     }}>
       {children}
     </DatabaseContext.Provider>

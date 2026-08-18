@@ -18,13 +18,12 @@ import {
   Settings,
   Archive,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Database,
+  CalendarCheck
 } from 'lucide-react';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-// Earliest allowed date boundary for attendance tracking (June 1, 2026)
-const MIN_DATE = '2026-06-01';
 
 const DEFAULT_ROUTINE = {
   Monday: [
@@ -55,7 +54,7 @@ const DEFAULT_ROUTINE = {
   Sunday: []
 };
 
-// Safe Local Date Helpers (prevents timezone UTC shifts)
+// Safe Local Date Helpers (prevents UTC shifts)
 const formatLocalDate = (date) => {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -70,25 +69,54 @@ const parseLocalDate = (dateStr) => {
   return new Date(parts[0], parts[1] - 1, parts[2]);
 };
 
-export default function AttendanceTracker({ setCurrentView }) {
-  const { currentUser } = useDatabase();
+// Default Semester Start Date Generator (Last day of June of current year)
+const getDefaultSemesterStartDate = () => {
+  const currentYear = new Date().getFullYear();
+  return `${currentYear}-06-30`;
+};
 
-  // Selected date state (defaults to today or MIN_DATE if earlier)
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const todayStr = formatLocalDate(new Date());
-    return todayStr < MIN_DATE ? MIN_DATE : todayStr;
-  });
+export default function AttendanceTracker({ setCurrentView }) {
+  const {
+    currentUser,
+    saveUserRoutineToDb,
+    getUserRoutineFromDb,
+    saveUserLogsToDb,
+    getUserLogsFromDb,
+    saveUserArchivesToDb
+  } = useDatabase();
+
+  const userId = currentUser?.id || 'guest';
+  const routineKey = `learnopia_attendance_routine_${userId}`;
+  const logsKey = `learnopia_attendance_logs_${userId}`;
+  const archivesKey = `learnopia_archived_semesters_${userId}`;
+  const startDateKey = `learnopia_semester_start_${userId}`;
+
+  // Selected date state (defaults to today)
+  const [selectedDate, setSelectedDate] = useState(() => formatLocalDate(new Date()));
 
   // Tab state: 'tracker' | 'routine' | 'analytics'
   const [activeTab, setActiveTab] = useState('tracker');
   const [showEndSemModal, setShowEndSemModal] = useState(false);
+  const [showStartDateModal, setShowStartDateModal] = useState(false);
+
+  // Semester Start Date State (Default: Last Day of June)
+  const [semesterStartDate, setSemesterStartDate] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(startDateKey);
+      if (saved) return saved;
+    }
+    return getDefaultSemesterStartDate();
+  });
+
+  // Temp Start Date state for Modals
+  const [tempStartDateInput, setTempStartDateInput] = useState(semesterStartDate);
 
   // Timetable Routine State
   const [routine, setRoutine] = useState(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('learnopia_attendance_routine');
-      if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
+      const savedUserRoutine = localStorage.getItem(routineKey);
+      if (savedUserRoutine) {
+        try { return JSON.parse(savedUserRoutine); } catch (e) {}
       }
     }
     return DEFAULT_ROUTINE;
@@ -97,9 +125,9 @@ export default function AttendanceTracker({ setCurrentView }) {
   // Attendance Records Log State
   const [logs, setLogs] = useState(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('learnopia_attendance_logs');
-      if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
+      const savedUserLogs = localStorage.getItem(logsKey);
+      if (savedUserLogs) {
+        try { return JSON.parse(savedUserLogs); } catch (e) {}
       }
     }
     return {};
@@ -108,15 +136,85 @@ export default function AttendanceTracker({ setCurrentView }) {
   // Archived Semesters Summary State
   const [archivedSemesters, setArchivedSemesters] = useState(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('learnopia_archived_semesters');
-      if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
+      const savedUserArchives = localStorage.getItem(archivesKey);
+      if (savedUserArchives) {
+        try { return JSON.parse(savedUserArchives); } catch (e) {}
       }
     }
     return [];
   });
 
-  // New Class Form State for Routine Manager
+  // Load Supabase Database routine & logs on account login
+  useEffect(() => {
+    let isMounted = true;
+    const fetchRemoteData = async () => {
+      if (!userId || userId === 'guest') return;
+      try {
+        if (getUserRoutineFromDb) {
+          const dbRoutineData = await getUserRoutineFromDb(userId);
+          if (dbRoutineData && isMounted) {
+            if (dbRoutineData.routine_json) setRoutine(dbRoutineData.routine_json);
+            if (dbRoutineData.semester_start_date) {
+              setSemesterStartDate(dbRoutineData.semester_start_date);
+              setTempStartDateInput(dbRoutineData.semester_start_date);
+            }
+          }
+        }
+        if (getUserLogsFromDb) {
+          const dbLogs = await getUserLogsFromDb(userId);
+          if (dbLogs && isMounted) setLogs(dbLogs);
+        }
+      } catch (e) {
+        console.warn('[Supabase Sync Warn]', e);
+      }
+    };
+    fetchRemoteData();
+    return () => { isMounted = false; };
+  }, [userId]);
+
+  // 1-YEAR ROUTINE DATA EXPIRY CHECK
+  useEffect(() => {
+    if (!semesterStartDate) return;
+    const startObj = parseLocalDate(semesterStartDate);
+    const nowObj = new Date();
+    const diffDays = (nowObj - startObj) / (1000 * 60 * 60 * 24);
+
+    // If 1 full year (365 days) has elapsed, check if user needs to start new semester
+    if (diffDays >= 365) {
+      console.warn('[Attendance Tracker] Semester data is older than 1 year. Requesting semester reset.');
+    }
+  }, [semesterStartDate]);
+
+  // Sync to User LocalStorage & Supabase
+  useEffect(() => {
+    if (typeof window !== 'undefined' && userId) {
+      localStorage.setItem(routineKey, JSON.stringify(routine));
+      localStorage.setItem(startDateKey, semesterStartDate);
+      if (saveUserRoutineToDb) {
+        saveUserRoutineToDb(userId, routine, semesterStartDate);
+      }
+    }
+  }, [routine, semesterStartDate, userId, routineKey, startDateKey]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && userId) {
+      localStorage.setItem(logsKey, JSON.stringify(logs));
+      if (saveUserLogsToDb) {
+        saveUserLogsToDb(userId, logs);
+      }
+    }
+  }, [logs, userId, logsKey]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && userId) {
+      localStorage.setItem(archivesKey, JSON.stringify(archivedSemesters));
+      if (saveUserArchivesToDb) {
+        saveUserArchivesToDb(userId, archivedSemesters);
+      }
+    }
+  }, [archivedSemesters, userId, archivesKey]);
+
+  // Form State for Routine Manager
   const [editingDay, setEditingDay] = useState('Monday');
   const [newSubName, setNewSubName] = useState('');
   const [newStartTime, setNewStartTime] = useState('09:00 AM');
@@ -124,20 +222,6 @@ export default function AttendanceTracker({ setCurrentView }) {
   const [newRoom, setNewRoom] = useState('Room 101');
   const [targetPercent, setTargetPercent] = useState(75);
 
-  // Persistence to LocalStorage
-  useEffect(() => {
-    localStorage.setItem('learnopia_attendance_routine', JSON.stringify(routine));
-  }, [routine]);
-
-  useEffect(() => {
-    localStorage.setItem('learnopia_attendance_logs', JSON.stringify(logs));
-  }, [logs]);
-
-  useEffect(() => {
-    localStorage.setItem('learnopia_archived_semesters', JSON.stringify(archivedSemesters));
-  }, [archivedSemesters]);
-
-  // Compute selected day details cleanly without UTC timezone shifting
   const dateObj = useMemo(() => parseLocalDate(selectedDate), [selectedDate]);
   const dayName = useMemo(() => DAYS_OF_WEEK[dateObj.getDay()], [dateObj]);
 
@@ -180,8 +264,8 @@ export default function AttendanceTracker({ setCurrentView }) {
     });
   };
 
-  // Add new class to routine
-  const handleAddClassToRoutine = (e) => {
+  // Add Class to Routine
+  const handleAddRoutineClass = (e) => {
     e.preventDefault();
     if (!newSubName.trim()) return;
 
@@ -202,7 +286,6 @@ export default function AttendanceTracker({ setCurrentView }) {
     setNewSubName('');
   };
 
-  // Delete class from routine
   const handleDeleteRoutineClass = (day, classId) => {
     setRoutine((prev) => ({
       ...prev,
@@ -210,10 +293,11 @@ export default function AttendanceTracker({ setCurrentView }) {
     }));
   };
 
-  // Compute Overall Attendance Analytics
+  // ── OVERALL ATTENDANCE ANALYTICS (WITH DEFAULT ABSENTEE FOR UNMARKED PAST CLASSES) ──
   const subjectAnalytics = useMemo(() => {
     const statsMap = {};
 
+    // 1. Initialize stats for all subjects present in the routine
     Object.values(routine).forEach((dayList) => {
       dayList.forEach((cls) => {
         if (!statsMap[cls.subject]) {
@@ -229,619 +313,441 @@ export default function AttendanceTracker({ setCurrentView }) {
       });
     });
 
-    Object.entries(logs).forEach(([dStr, logData]) => {
-      if (logData.isHoliday) return;
+    const startObj = parseLocalDate(semesterStartDate);
+    const todayObj = parseLocalDate(formatLocalDate(new Date()));
+    const endDateObj = parseLocalDate(selectedDate) > todayObj ? parseLocalDate(selectedDate) : todayObj;
 
-      const dObj = parseLocalDate(dStr);
-      const dName = DAYS_OF_WEEK[dObj.getDay()];
-      const dayRoutine = routine[dName] || [];
+    // Loop through every day from semesterStartDate up to today/selectedDate
+    const curr = new Date(startObj.getTime());
 
-      Object.entries(logData.classes || {}).forEach(([rId, status]) => {
-        const clsInfo = dayRoutine.find((c) => c.id === rId);
-        const subName = clsInfo ? clsInfo.subject : null;
+    while (curr <= endDateObj) {
+      const dateStr = formatLocalDate(curr);
+      const dName = DAYS_OF_WEEK[curr.getDay()];
+      const dayClasses = routine[dName] || [];
+      const logData = logs[dateStr] || { isHoliday: false, classes: {} };
 
-        if (subName && statsMap[subName]) {
-          if (status === 'attended') {
-            statsMap[subName].attended += 1;
-            statsMap[subName].totalConducted += 1;
-          } else if (status === 'absent') {
-            statsMap[subName].absent += 1;
-            statsMap[subName].totalConducted += 1;
-          } else if (status === 'cancelled') {
-            statsMap[subName].cancelled += 1;
+      if (!logData.isHoliday && dayClasses.length > 0) {
+        dayClasses.forEach((cls) => {
+          if (statsMap[cls.subject]) {
+            const status = logData.classes ? logData.classes[cls.id] : undefined;
+
+            if (status === 'attended') {
+              statsMap[cls.subject].attended += 1;
+              statsMap[cls.subject].totalConducted += 1;
+            } else if (status === 'cancelled') {
+              statsMap[cls.subject].cancelled += 1;
+            } else {
+              // Explicitly marked absent OR Unmarked scheduled past class -> DEFAULT ABSENT
+              statsMap[cls.subject].absent += 1;
+              statsMap[cls.subject].totalConducted += 1;
+            }
           }
-        }
-      });
-    });
+        });
+      }
+
+      curr.setDate(curr.getDate() + 1);
+    }
 
     return Object.values(statsMap).map((item) => {
       const pct = item.totalConducted > 0 ? Math.round((item.attended / item.totalConducted) * 100) : 100;
       const targetDecimal = item.target / 100;
 
       let safeBunks = 0;
-      let requiredAttends = 0;
+      let neededClasses = 0;
 
-      if (item.totalConducted > 0) {
-        if (pct >= item.target) {
-          safeBunks = Math.floor((item.attended - targetDecimal * item.totalConducted) / targetDecimal);
-          safeBunks = Math.max(0, safeBunks);
-        } else {
-          requiredAttends = Math.ceil((targetDecimal * item.totalConducted - item.attended) / (1 - targetDecimal));
-          requiredAttends = Math.max(0, requiredAttends);
-        }
+      if (pct >= item.target) {
+        safeBunks = Math.floor((item.attended - targetDecimal * item.totalConducted) / targetDecimal);
+        if (safeBunks < 0) safeBunks = 0;
+      } else {
+        neededClasses = Math.ceil((targetDecimal * item.totalConducted - item.attended) / (1 - targetDecimal));
+        if (neededClasses < 0) neededClasses = 0;
       }
 
       return {
         ...item,
         percentage: pct,
         safeBunks,
-        requiredAttends
+        neededClasses,
+        isAlert: pct < item.target
       };
     });
-  }, [routine, logs]);
+  }, [routine, logs, semesterStartDate, selectedDate]);
 
-  const overallTotals = useMemo(() => {
-    let totalAttended = 0;
-    let totalConducted = 0;
+  // Overall Total Summary
+  const overallStats = useMemo(() => {
+    let totAttended = 0;
+    let totConducted = 0;
 
     subjectAnalytics.forEach((s) => {
-      totalAttended += s.attended;
-      totalConducted += s.totalConducted;
+      totAttended += s.attended;
+      totConducted += s.totalConducted;
     });
 
-    const overallPct = totalConducted > 0 ? Math.round((totalAttended / totalConducted) * 100) : 100;
-    return { totalAttended, totalConducted, overallPct };
+    const pct = totConducted > 0 ? Math.round((totAttended / totConducted) * 100) : 100;
+    return { totAttended, totConducted, pct };
   }, [subjectAnalytics]);
 
-  // Robust linear date shifting (prevents timezone bugs & enforces June 1, 2026 minimum)
-  const shiftDate = (days) => {
-    const d = parseLocalDate(selectedDate);
-    d.setDate(d.getDate() + days);
-    const nextStr = formatLocalDate(d);
+  // End Semester Handler & Reset for New Semester
+  const handleConfirmNewSemester = () => {
+    if (!tempStartDateInput) return;
 
-    if (nextStr < MIN_DATE) {
-      setSelectedDate(MIN_DATE);
-    } else {
-      setSelectedDate(nextStr);
-    }
-  };
-
-  // End Semester & Storage Reset Handler
-  const handleEndSemester = () => {
-    const semName = `Semester ${archivedSemesters.length + 1} (${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })})`;
-
-    const archiveEntry = {
+    const summaryRecord = {
       id: `sem-${Date.now()}`,
-      name: semName,
-      endedAt: formatLocalDate(new Date()),
-      overallPct: overallTotals.overallPct,
-      totalAttended: overallTotals.totalAttended,
-      totalConducted: overallTotals.totalConducted,
-      subjectSummaries: subjectAnalytics.map((s) => ({
-        subject: s.subject,
-        pct: s.percentage,
-        attended: s.attended,
-        totalConducted: s.totalConducted
-      }))
+      archivedAt: new Date().toLocaleDateString(),
+      startDate: semesterStartDate,
+      endDate: formatLocalDate(new Date()),
+      totalConducted: overallStats.totConducted,
+      totalAttended: overallStats.totAttended,
+      percentage: overallStats.pct,
+      subjects: subjectAnalytics
     };
 
-    // Save lightweight archive summary
-    setArchivedSemesters((prev) => [archiveEntry, ...prev]);
-
-    // Wipe detailed day logs from storage
+    setArchivedSemesters([summaryRecord, ...archivedSemesters]);
     setLogs({});
-
-    // Reset weekly routine for new semester setup
-    setRoutine({
-      Monday: [],
-      Tuesday: [],
-      Wednesday: [],
-      Thursday: [],
-      Friday: [],
-      Saturday: [],
-      Sunday: []
-    });
-
+    setSemesterStartDate(tempStartDateInput);
     setShowEndSemModal(false);
-    setActiveTab('routine');
+    setShowStartDateModal(false);
+  };
+
+  const handleUpdateStartDateOnly = (e) => {
+    e.preventDefault();
+    if (!tempStartDateInput) return;
+    setSemesterStartDate(tempStartDateInput);
+    setShowStartDateModal(false);
   };
 
   return (
-    <div className="attendance-container animate-fade-in">
-      {/* Top Header Bar */}
-      <div className="attendance-header glass-panel">
-        <div className="attendance-head-left">
-          <button onClick={() => setCurrentView('learning')} className="btn btn-secondary btn-sm">
-            <ChevronLeft size={16} /> Back to Learning
-          </button>
+    <div style={styles.container} className="animate-fade-in">
+      {/* Top Banner & Header */}
+      <div className="glass-panel" style={{ padding: '20px 24px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', textAlign: 'left' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg, var(--primary) 0%, #10b981 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Calendar size={22} color="#ffffff" />
+          </div>
           <div>
-            <h1>Class Attendance Tracker</h1>
-            <p className="section-sub">Track daily attendance, manage class routines, and archive completed semesters.</p>
+            <h2 style={{ fontSize: '1.25rem', margin: 0, color: '#ffffff' }}>Semester Attendance Tracker</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                Semester Started: <strong>{semesterStartDate}</strong>
+              </span>
+              <button
+                onClick={() => { setTempStartDateInput(semesterStartDate); setShowStartDateModal(true); }}
+                style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+              >
+                Change Date
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Overall Meter & End Semester Action */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <div className="overall-gauge-badge">
-            <div className="gauge-icon">
-              <TrendingUp size={24} color={overallTotals.overallPct >= 75 ? 'var(--success)' : 'var(--error)'} />
-            </div>
-            <div className="gauge-text">
-              <span className="gauge-val">{overallTotals.overallPct}%</span>
-              <span className={`gauge-status ${overallTotals.overallPct >= 75 ? 'safe' : 'danger'}`}>
-                {overallTotals.overallPct >= 75 ? 'Safe (≥75%)' : 'Shortage (<75%)'}
-              </span>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setShowEndSemModal(true)}
-            className="btn btn-secondary"
-            style={{ padding: '10px 14px', fontSize: '0.8rem', gap: '6px' }}
-            title="End current semester and reset routine"
-          >
-            <Archive size={15} color="#a78bfa" /> End Semester
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary" onClick={() => { setTempStartDateInput(formatLocalDate(new Date())); setShowEndSemModal(true); }}>
+            <RefreshCw size={15} /> Start New Semester
           </button>
         </div>
       </div>
 
-      {/* Mode Navigation Tabs */}
-      <div className="attendance-tabs-bar">
-        <button
-          className={`att-tab-btn ${activeTab === 'tracker' ? 'active' : ''}`}
-          onClick={() => setActiveTab('tracker')}
-        >
-          <Calendar size={16} /> Daily Logger
+      {/* Tabs Row */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
+        <button className={`btn ${activeTab === 'tracker' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('tracker')}>
+          <CalendarCheck size={16} /> Daily Attendance Logger
         </button>
-        <button
-          className={`att-tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
-          onClick={() => setActiveTab('analytics')}
-        >
-          <Award size={16} /> Overall Dashboard
+        <button className={`btn ${activeTab === 'routine' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('routine')}>
+          <Settings size={16} /> Weekly Timetable Setup
         </button>
-        <button
-          className={`att-tab-btn ${activeTab === 'routine' ? 'active' : ''}`}
-          onClick={() => setActiveTab('routine')}
-        >
-          <Settings size={16} /> Timetable Routine
+        <button className={`btn ${activeTab === 'analytics' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('analytics')}>
+          <TrendingUp size={16} /> Subject Analytics ({overallStats.pct}%)
         </button>
       </div>
 
-      {/* ========================================================= */}
-      {/* TAB 1: DAILY ATTENDANCE LOGGER                           */}
-      {/* ========================================================= */}
+      {/* TAB 1: DAILY ATTENDANCE LOGGER */}
       {activeTab === 'tracker' && (
-        <div className="att-tab-workspace animate-fade-in">
-          {/* Date Selector Banner */}
-          <div className="date-picker-bar glass-panel">
-            <div className="date-nav-controls">
-              <button
-                className="date-arrow-btn"
-                onClick={() => shiftDate(-1)}
-                disabled={selectedDate <= MIN_DATE}
-                style={{ opacity: selectedDate <= MIN_DATE ? 0.4 : 1, cursor: selectedDate <= MIN_DATE ? 'not-allowed' : 'pointer' }}
-                title={selectedDate <= MIN_DATE ? 'Earliest date reached (June 1, 2026)' : 'Previous Day'}
-              >
-                <ChevronLeft size={18} />
-              </button>
-
-              <div className="date-display">
-                <Calendar size={18} color="var(--primary)" />
-                <input
-                  type="date"
-                  value={selectedDate}
-                  min={MIN_DATE}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val && val >= MIN_DATE) setSelectedDate(val);
-                  }}
-                  className="date-input-field"
-                />
-                <span className="day-name-pill">{dayName}</span>
-              </div>
-
-              <button className="date-arrow-btn" onClick={() => shiftDate(1)} title="Next Day">
-                <ChevronRight size={18} />
-              </button>
-            </div>
-
-            <div className="date-actions">
-              <button
-                className={`btn btn-sm ${dayLog.isHoliday ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={toggleHoliday}
-              >
-                <Sun size={15} /> {dayLog.isHoliday ? 'Holiday Marked' : 'Mark Day as Holiday'}
-              </button>
-            </div>
-          </div>
-
-          {/* Scheduled Classes List for Selected Date */}
-          {dayLog.isHoliday ? (
-            <div className="holiday-banner glass-panel">
-              <Sun size={48} color="#f59e0b" />
-              <h3>Holiday / Day Off</h3>
-              <p>No attendance is required on holidays. Enjoy your day!</p>
-            </div>
-          ) : scheduledToday.length === 0 ? (
-            <div className="empty-day-banner glass-panel">
-              <Sparkles size={40} color="var(--text-muted)" />
-              <h3>No Classes Scheduled for {dayName}</h3>
-              <p>You have no lectures in your routine for {dayName}. Use the "Timetable Routine" tab to add classes.</p>
-            </div>
-          ) : (
-            <div className="scheduled-classes-list">
-              {scheduledToday.map((cls) => {
-                const currentStatus = dayLog.classes[cls.id];
-
-                return (
-                  <div key={cls.id} className="class-attendance-card glass-panel">
-                    <div className="class-info-left">
-                      <div className="class-time-badge">
-                        <Clock size={15} /> {cls.startTime} - {cls.endTime}
-                      </div>
-                      <h3 className="class-subject-title">{cls.subject}</h3>
-                      <span className="class-room-sub">Location: {cls.room}</span>
-                    </div>
-
-                    {/* Attendance Action Buttons */}
-                    <div className="class-status-actions">
-                      <button
-                        className={`status-chip-btn attended ${currentStatus === 'attended' ? 'active' : ''}`}
-                        onClick={() => markClassStatus(cls.id, 'attended')}
-                      >
-                        <CheckCircle2 size={16} /> Attended
-                      </button>
-
-                      <button
-                        className={`status-chip-btn absent ${currentStatus === 'absent' ? 'active' : ''}`}
-                        onClick={() => markClassStatus(cls.id, 'absent')}
-                      >
-                        <XCircle size={16} /> Missed
-                      </button>
-
-                      <button
-                        className={`status-chip-btn cancelled ${currentStatus === 'cancelled' ? 'active' : ''}`}
-                        onClick={() => markClassStatus(cls.id, 'cancelled')}
-                      >
-                        <MinusCircle size={16} /> Class Off
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ========================================================= */}
-      {/* TAB 2: OVERALL ANALYTICS & SUBJECT DASHBOARD              */}
-      {/* ========================================================= */}
-      {activeTab === 'analytics' && (
-        <div className="att-tab-workspace animate-fade-in">
-          {/* Top Summary Cards Grid */}
-          <div className="analytics-summary-grid">
-            <div className="stat-metric-card glass-panel">
-              <div className="metric-icon">
-                <BookOpen size={22} color="var(--primary)" />
-              </div>
-              <div className="metric-data">
-                <span className="metric-value">{overallTotals.totalAttended} / {overallTotals.totalConducted}</span>
-                <span className="metric-label">Total Classes Attended</span>
-              </div>
-            </div>
-
-            <div className="stat-metric-card glass-panel">
-              <div className="metric-icon">
-                <TrendingUp size={22} color={overallTotals.overallPct >= 75 ? 'var(--success)' : 'var(--error)'} />
-              </div>
-              <div className="metric-data">
-                <span className="metric-value">{overallTotals.overallPct}%</span>
-                <span className="metric-label">Current Semester Average</span>
-              </div>
-            </div>
-
-            <div className="stat-metric-card glass-panel">
-              <div className="metric-icon">
-                <Award size={22} color="#f59e0b" />
-              </div>
-              <div className="metric-data">
-                <span className="metric-value">{subjectAnalytics.length}</span>
-                <span className="metric-label">Tracked Subjects</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Current Semester Subject Breakdown Table */}
-          <div className="analytics-table-card glass-panel">
-            <h3 className="card-title-h">Current Semester Attendance Breakdown</h3>
-
-            {subjectAnalytics.length === 0 ? (
-              <p className="empty-text-p">No attendance records logged yet for this semester.</p>
-            ) : (
-              <div className="table-responsive-scroll">
-                <table className="attendance-table">
-                  <thead>
-                    <tr>
-                      <th>Subject</th>
-                      <th>Attended / Total</th>
-                      <th>Attendance %</th>
-                      <th>Status & Target</th>
-                      <th>Smart Forecast</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {subjectAnalytics.map((item) => {
-                      const isSafe = item.percentage >= item.target;
-
-                      return (
-                        <tr key={item.subject}>
-                          <td>
-                            <strong className="sub-table-title">{item.subject}</strong>
-                          </td>
-                          <td>
-                            {item.attended} / {item.totalConducted} ({item.absent} missed)
-                          </td>
-                          <td>
-                            <div className="progress-cell">
-                              <span className="pct-text">{item.percentage}%</span>
-                              <div className="table-progress-bar">
-                                <div
-                                  className={`table-progress-fill ${isSafe ? 'safe' : 'danger'}`}
-                                  style={{ width: `${item.percentage}%` }}
-                                />
-                              </div>
-                            </div>
-                          </td>
-                          <td>
-                            <span className={`status-pill ${isSafe ? 'safe' : 'danger'}`}>
-                              {isSafe ? `Safe (≥${item.target}%)` : `Shortage (<${item.target}%)`}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="forecast-cell">
-                              {item.totalConducted === 0 ? (
-                                <span className="forecast-muted">No classes recorded yet</span>
-                              ) : isSafe ? (
-                                <span className="forecast-safe">
-                                  ✓ Can bunk <strong>{item.safeBunks}</strong> more class(es)
-                                </span>
-                              ) : (
-                                <span className="forecast-danger">
-                                  ⚠ Must attend <strong>{item.requiredAttends}</strong> consecutive class(es)
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          {/* Archived Past Semesters History */}
-          {archivedSemesters.length > 0 && (
-            <div className="analytics-table-card glass-panel" style={{ marginTop: '24px' }}>
-              <h3 className="card-title-h" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Archive size={18} color="#a78bfa" /> Previous Semesters Overview
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', textAlign: 'left' }}>
+          <div className="glass-panel" style={{ padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '1.05rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Clock size={18} color="var(--primary)" /> Classes for {selectedDate} ({dayName})
               </h3>
-
-              <div className="table-responsive-scroll">
-                <table className="attendance-table">
-                  <thead>
-                    <tr>
-                      <th>Semester</th>
-                      <th>Concluded Date</th>
-                      <th>Overall Attendance</th>
-                      <th>Attended / Conducted</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {archivedSemesters.map((sem) => (
-                      <tr key={sem.id}>
-                        <td><strong>{sem.name}</strong></td>
-                        <td>{sem.endedAt}</td>
-                        <td>
-                          <span className={`status-pill ${sem.overallPct >= 75 ? 'safe' : 'danger'}`}>
-                            {sem.overallPct}% Overall
-                          </span>
-                        </td>
-                        <td>{sem.totalAttended} / {sem.totalConducted} Classes</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ========================================================= */}
-      {/* TAB 3: TIMETABLE ROUTINE SETUP                             */}
-      {/* ========================================================= */}
-      {activeTab === 'routine' && (
-        <div className="att-tab-workspace animate-fade-in">
-          <div className="routine-editor-grid">
-            {/* Left: Add Class Form */}
-            <div className="routine-form-card glass-panel">
-              <h3>Register Class in Routine</h3>
-              <p className="card-sub-p">Configure your weekly lecture timetable day by day.</p>
-
-              <form onSubmit={handleAddClassToRoutine} className="routine-form">
-                <div className="form-group-field">
-                  <label>Select Day of Week</label>
-                  <select
-                    className="form-input"
-                    value={editingDay}
-                    onChange={(e) => setEditingDay(e.target.value)}
-                  >
-                    {DAYS_OF_WEEK.map((d) => (
-                      <option key={d} value={d}>
-                        {d}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group-field">
-                  <label>Subject Name</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. Data Structures"
-                    value={newSubName}
-                    onChange={(e) => setNewSubName(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="form-row-2">
-                  <div className="form-group-field">
-                    <label>Start Time</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="09:00 AM"
-                      value={newStartTime}
-                      onChange={(e) => setNewStartTime(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="form-group-field">
-                    <label>End Time</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="10:00 AM"
-                      value={newEndTime}
-                      onChange={(e) => setNewEndTime(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-row-2">
-                  <div className="form-group-field">
-                    <label>Room / Classroom</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="e.g. Lab 102"
-                      value={newRoom}
-                      onChange={(e) => setNewRoom(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="form-group-field">
-                    <label>Target Min Attendance %</label>
-                    <input
-                      type="number"
-                      className="form-input"
-                      value={targetPercent}
-                      onChange={(e) => setTargetPercent(e.target.value)}
-                      min="50"
-                      max="100"
-                    />
-                  </div>
-                </div>
-
-                <button type="submit" className="btn btn-primary btn-block">
-                  <Plus size={16} /> Add Class to {editingDay}
-                </button>
-              </form>
+              <button onClick={toggleHoliday} className={`btn ${dayLog.isHoliday ? 'btn-primary' : 'btn-secondary'} btn-sm`}>
+                <Sun size={14} /> {dayLog.isHoliday ? 'Holiday Marked' : 'Mark Holiday'}
+              </button>
             </div>
 
-            {/* Right: Weekly Timetable Display */}
-            <div className="routine-display-card glass-panel">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-                <div>
-                  <h3 style={{ margin: 0 }}>Weekly Timetable Schedule</h3>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Configure your active semester routine</span>
-                </div>
-                <button
-                  onClick={() => setShowEndSemModal(true)}
-                  className="btn btn-secondary"
-                  style={{ padding: '6px 12px', fontSize: '0.75rem', gap: '4px' }}
-                >
-                  <RefreshCw size={13} /> Reset Routine for New Semester
-                </button>
-              </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>Select Log Date</label>
+              <input
+                type="date"
+                className="form-input"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                style={{ width: '100%' }}
+              />
+            </div>
 
-              <div className="routine-days-accordion">
-                {DAYS_OF_WEEK.map((day) => {
-                  const dayClasses = routine[day] || [];
+            {dayLog.isHoliday ? (
+              <div style={{ padding: '30px', textAlign: 'center', background: 'rgba(245,158,11,0.1)', borderRadius: '12px', border: '1px solid rgba(245,158,11,0.2)' }}>
+                <Sun size={32} color="#f59e0b" style={{ marginBottom: 8 }} />
+                <h4 style={{ color: '#ffffff', margin: 0 }}>Official Holiday / Off Day</h4>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 4 }}>No classes count against your attendance record on holidays.</p>
+              </div>
+            ) : scheduledToday.length === 0 ? (
+              <div style={{ padding: '30px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No classes scheduled in your weekly routine for {dayName}.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {scheduledToday.map((cls) => {
+                  const status = dayLog.classes[cls.id] || 'absent'; // DEFAULT ABSENT IF UNMARKED
 
                   return (
-                    <div key={day} className="routine-day-block">
-                      <div className="routine-day-header">
-                        <strong>{day}</strong>
-                        <span className="count-tag">{dayClasses.length} Classes</span>
+                    <div
+                      key={cls.id}
+                      style={{
+                        padding: '12px 16px',
+                        borderRadius: '10px',
+                        background: status === 'attended' ? 'rgba(16,185,129,0.08)' : status === 'cancelled' ? 'rgba(255,255,255,0.03)' : 'rgba(239,68,68,0.08)',
+                        border: status === 'attended' ? '1px solid rgba(16,185,129,0.2)' : status === 'cancelled' ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(239,68,68,0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '10px'
+                      }}
+                    >
+                      <div>
+                        <strong style={{ color: '#ffffff', fontSize: '0.9rem', display: 'block' }}>{cls.subject}</strong>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          {cls.startTime} - {cls.endTime} · {cls.room}
+                        </span>
+                        {!dayLog.classes[cls.id] && (
+                          <span style={{ fontSize: '0.7rem', color: '#f87171', display: 'block', fontWeight: 600, marginTop: 2 }}>
+                            (Unmarked → Default Absent)
+                          </span>
+                        )}
                       </div>
 
-                      {dayClasses.length === 0 ? (
-                        <p className="no-class-text">No lectures scheduled for {day}</p>
-                      ) : (
-                        <div className="day-classes-grid">
-                          {dayClasses.map((cls) => (
-                            <div key={cls.id} className="routine-item-chip">
-                              <div className="chip-details">
-                                <span className="chip-time">{cls.startTime} - {cls.endTime}</span>
-                                <strong>{cls.subject}</strong>
-                                <span className="chip-room">{cls.room}</span>
-                              </div>
-                              <button
-                                type="button"
-                                className="delete-chip-btn"
-                                onClick={() => handleDeleteRoutineClass(day, cls.id)}
-                                title="Delete from timetable"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          onClick={() => markClassStatus(cls.id, 'attended')}
+                          className={`btn ${status === 'attended' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                          style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                        >
+                          <CheckCircle2 size={13} /> Present
+                        </button>
+                        <button
+                          onClick={() => markClassStatus(cls.id, 'absent')}
+                          className={`btn ${status === 'absent' && dayLog.classes[cls.id] ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                          style={{ fontSize: '0.75rem', padding: '4px 10px', color: status === 'absent' ? '#f87171' : undefined }}
+                        >
+                          <XCircle size={13} /> Absent
+                        </button>
+                        <button
+                          onClick={() => markClassStatus(cls.id, 'cancelled')}
+                          className={`btn ${status === 'cancelled' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                          style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                        >
+                          <MinusCircle size={13} /> Cancelled
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
               </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: WEEKLY TIMETABLE SETUP */}
+      {activeTab === 'routine' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', textAlign: 'left' }}>
+          {/* Add Class Form */}
+          <div className="glass-panel" style={{ padding: '20px' }}>
+            <h3 style={{ fontSize: '1.05rem', margin: '0 0 14px 0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Plus size={18} color="var(--primary)" /> Add Class to Weekly Routine
+            </h3>
+
+            <form onSubmit={handleAddRoutineClass} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.78rem' }}>Day of Week</label>
+                <select className="form-input" value={editingDay} onChange={(e) => setEditingDay(e.target.value)}>
+                  {DAYS_OF_WEEK.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontSize: '0.78rem' }}>Subject Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Data Structures & Algorithms"
+                  value={newSubName}
+                  onChange={(e) => setNewSubName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Start Time</label>
+                  <input type="text" className="form-input" value={newStartTime} onChange={(e) => setNewStartTime(e.target.value)} />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>End Time</label>
+                  <input type="text" className="form-input" value={newEndTime} onChange={(e) => setNewEndTime(e.target.value)} />
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontSize: '0.78rem' }}>Room / Venue</label>
+                <input type="text" className="form-input" value={newRoom} onChange={(e) => setNewRoom(e.target.value)} />
+              </div>
+
+              <button type="submit" className="btn btn-primary" style={{ marginTop: 6 }}>
+                Save Class to Timetable
+              </button>
+            </form>
+          </div>
+
+          {/* Current Routine View */}
+          <div className="glass-panel" style={{ padding: '20px' }}>
+            <h3 style={{ fontSize: '1.05rem', margin: '0 0 14px 0', color: '#ffffff' }}>Weekly Timetable Schedule</h3>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {DAYS_OF_WEEK.map((d) => {
+                const dayClasses = routine[d] || [];
+                return (
+                  <div key={d} style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <strong style={{ color: 'var(--primary)', fontSize: '0.85rem' }}>{d} ({dayClasses.length} classes)</strong>
+
+                    {dayClasses.length === 0 ? (
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: 2 }}>No classes</span>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+                        {dayClasses.map((c) => (
+                          <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', color: '#ffffff' }}>
+                            <span>{c.subject} ({c.startTime} - {c.endTime})</span>
+                            <button onClick={() => handleDeleteRoutineClass(d, c.id)} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer' }}>
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
       )}
 
-      {/* ========================================================= */}
-      {/* END SEMESTER CONFIRMATION MODAL                           */}
-      {/* ========================================================= */}
-      {showEndSemModal && (
-        <div style={modalStyles.overlay}>
-          <div className="glass-panel" style={modalStyles.box}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#a78bfa', marginBottom: '10px' }}>
-              <Archive size={24} />
-              <h2 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>End Current Semester?</h2>
-            </div>
+      {/* TAB 3: SUBJECT ANALYTICS */}
+      {activeTab === 'analytics' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+            {subjectAnalytics.map((sub) => (
+              <div
+                key={sub.subject}
+                className="glass-panel"
+                style={{
+                  padding: '20px',
+                  borderRadius: '16px',
+                  border: sub.isAlert ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(16,185,129,0.3)',
+                  background: sub.isAlert ? 'rgba(239,68,68,0.05)' : 'rgba(16,185,129,0.05)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <h4 style={{ fontSize: '1rem', margin: 0, color: '#ffffff' }}>{sub.subject}</h4>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 800, color: sub.isAlert ? '#f87171' : '#34d399' }}>
+                    {sub.percentage}%
+                  </span>
+                </div>
 
-            <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '16px' }}>
-              Ending your current semester will:
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span>Attended: {sub.attended} / Conducted: {sub.totalConducted}</span>
+                  <span>Absent (including default): {sub.absent} · Cancelled: {sub.cancelled}</span>
+                </div>
+
+                <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '0.78rem' }}>
+                  {sub.isAlert ? (
+                    <span style={{ color: '#f87171', fontWeight: 600 }}>
+                      ⚠️ Attendance Alert: You must attend the next <strong>{sub.neededClasses}</strong> classes to reach {sub.target}%.
+                    </span>
+                  ) : (
+                    <span style={{ color: '#34d399', fontWeight: 600 }}>
+                      ✔ Safe Margin: You can safely bunk up to <strong>{sub.safeBunks}</strong> upcoming classes.
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* START NEW SEMESTER MODAL */}
+      {showEndSemModal && (
+        <div className="modal-overlay">
+          <div className="glass-panel modal-card animate-fade-in" style={{ maxWidth: '440px', textAlign: 'left' }}>
+            <h3 style={{ fontSize: '1.1rem', margin: '0 0 10px 0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <RefreshCw size={18} color="var(--primary)" /> Start New Semester
+            </h3>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '16px' }}>
+              Starting a new semester will archive your current attendance records and reset daily logs. Please enter the starting date of your new semester:
             </p>
 
-            <ul style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: '1.6', paddingLeft: '20px', marginBottom: '20px' }}>
-              <li>Save a compact overview summary (Overall % & total classes attended).</li>
-              <li><strong>Delete all detailed daily logs</strong> to free up storage space.</li>
-              <li>Clear your weekly routine so you can register new subjects for the next semester.</li>
-            </ul>
+            <form onSubmit={(e) => { e.preventDefault(); handleConfirmNewSemester(); }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.78rem' }}>New Semester Start Date</label>
+                <input
+                  type="date"
+                  className="form-input"
+                  value={tempStartDateInput}
+                  onChange={(e) => setTempStartDateInput(e.target.value)}
+                  required
+                />
+              </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button className="btn btn-secondary" onClick={() => setShowEndSemModal(false)}>
-                Cancel
-              </button>
-              <button className="btn btn-primary" onClick={handleEndSemester}>
-                Confirm & Start New Semester
-              </button>
-            </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEndSemModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Archive & Start Semester</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CHANGE START DATE MODAL */}
+      {showStartDateModal && (
+        <div className="modal-overlay">
+          <div className="glass-panel modal-card animate-fade-in" style={{ maxWidth: '420px', textAlign: 'left' }}>
+            <h3 style={{ fontSize: '1.1rem', margin: '0 0 10px 0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <CalendarCheck size={18} color="var(--primary)" /> Update Semester Start Date
+            </h3>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '16px' }}>
+              Total conducted classes and attendance percentages are calculated from this start date up to today.
+            </p>
+
+            <form onSubmit={handleUpdateStartDateOnly} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.78rem' }}>Semester Start Date</label>
+                <input
+                  type="date"
+                  className="form-input"
+                  value={tempStartDateInput}
+                  onChange={(e) => setTempStartDateInput(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowStartDateModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Update Start Date</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -849,25 +755,11 @@ export default function AttendanceTracker({ setCurrentView }) {
   );
 }
 
-const modalStyles = {
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0,0,0,0.75)',
-    backdropFilter: 'blur(8px)',
-    zIndex: 9999,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '20px'
-  },
-  box: {
-    maxWidth: '480px',
+const styles = {
+  container: {
+    maxWidth: '1200px',
+    margin: '0 auto',
     width: '100%',
-    padding: '24px',
-    textAlign: 'left'
+    boxSizing: 'border-box'
   }
 };
