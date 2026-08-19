@@ -1079,24 +1079,35 @@ export function DatabaseProvider({ children }) {
 
     if (isSupabaseLive) {
       try {
-        await supabase
+        const payload = {
+          name: updatedUser.name,
+          username: updatedUser.username,
+          phone: updatedUser.phone || null,
+          college: updatedUser.college || null,
+          department: updatedUser.department || null,
+          interests: updatedUser.interests || null,
+          education_level: updatedUser.educationLevel || null,
+          course_name: updatedUser.courseName || null,
+          joining_year: updatedUser.joiningYear || null,
+          passing_year: updatedUser.passingYear || null,
+          total_semesters: updatedUser.totalSemesters || null,
+          dob: updatedUser.dob || null,
+          target_exam: updatedUser.targetExam || null,
+          onboarding_completed: true,
+          id_card_link: updatedUser.idCardLink || null,
+          verification_status: updatedUser.verificationStatus || 'none'
+        };
+
+        const { error: upErr } = await supabase
           .from('profiles')
-          .update({
-            name: updatedUser.name,
-            username: updatedUser.username,
-            phone: updatedUser.phone,
-            college: updatedUser.college,
-            department: updatedUser.department,
-            interests: updatedUser.interests,
-            education_level: updatedUser.educationLevel,
-            passing_year: updatedUser.passingYear,
-            dob: updatedUser.dob,
-            target_exam: updatedUser.targetExam,
-            onboarding_completed: true,
-            id_card_link: updatedUser.idCardLink,
-            verification_status: updatedUser.verificationStatus
-          })
+          .update(payload)
           .eq('id', userId);
+
+        if (upErr) {
+          console.error('[Supabase Profile Update Error]', upErr.code, upErr.message);
+        } else {
+          console.log('✅ [Supabase Profile Updated Successfully]:', userId);
+        }
       } catch (e) {
         console.warn('[Supabase Profile Update Error]', e);
       }

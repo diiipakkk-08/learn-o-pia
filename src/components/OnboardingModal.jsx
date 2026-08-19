@@ -2,6 +2,28 @@ import React, { useState } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
 import { GraduationCap, School, BookOpen, Calendar, Phone, Heart, ArrowRight, ArrowLeft, User, Award, CheckCircle2 } from 'lucide-react';
 
+const COUNTRY_CODES = [
+  { flag: '🇮🇳', name: 'India', code: '+91' },
+  { flag: '🇺🇸', name: 'USA', code: '+1' },
+  { flag: '🇬🇧', name: 'UK', code: '+44' },
+  { flag: '🇨🇦', name: 'Canada', code: '+1' },
+  { flag: '🇦🇺', name: 'Australia', code: '+61' },
+  { flag: '🇦🇪', name: 'UAE', code: '+971' },
+  { flag: '🇸🇬', name: 'Singapore', code: '+65' },
+  { flag: '🇩🇪', name: 'Germany', code: '+49' },
+  { flag: '🇫🇷', name: 'France', code: '+33' },
+  { flag: '🇧🇩', name: 'Bangladesh', code: '+880' },
+  { flag: '🇳🇵', name: 'Nepal', code: '+977' },
+  { flag: '🇵🇰', name: 'Pakistan', code: '+92' },
+  { flag: '🇱🇰', name: 'Sri Lanka', code: '+94' },
+  { flag: '🇳🇬', name: 'Nigeria', code: '+234' },
+  { flag: '🇰🇪', name: 'Kenya', code: '+254' },
+  { flag: '🇿🇦', name: 'South Africa', code: '+27' },
+  { flag: '🇸🇦', name: 'Saudi Arabia', code: '+966' },
+  { flag: '🇧🇷', name: 'Brazil', code: '+55' },
+  { flag: '🇯🇵', name: 'Japan', code: '+81' }
+];
+
 export default function OnboardingModal({ isOpen, onComplete }) {
   const { currentUser, updateUserProfile } = useDatabase();
 
@@ -9,16 +31,22 @@ export default function OnboardingModal({ isOpen, onComplete }) {
   const [step, setStep] = useState(1);
 
   // Step 1: Personal Details
-  const [fullName, setFullName] = useState(currentUser?.username || currentUser?.name || '');
-  const [phone, setPhone] = useState(currentUser?.phone || '');
+  const [fullName, setFullName] = useState(currentUser?.name || currentUser?.username || '');
+  const [countryCode, setCountryCode] = useState('+91');
+  const [phoneNumber, setPhoneNumber] = useState(() => {
+    if (currentUser?.phone) {
+      return currentUser.phone.replace(/^\+\d+\s*/, '');
+    }
+    return '';
+  });
   const [dob, setDob] = useState(currentUser?.dob || '2004-05-15');
 
   // Step 2: Academic Details
-  const [educationLevel, setEducationLevel] = useState('college'); // 'school' | 'higher_sec' | 'college' | 'postgrad'
+  const [educationLevel, setEducationLevel] = useState(currentUser?.educationLevel || 'college');
   const [courseName, setCourseName] = useState(currentUser?.courseName || 'B.Tech Computer Science');
   const [institutionName, setInstitutionName] = useState(currentUser?.college || '');
-  const [joiningYear, setJoiningYear] = useState('2023');
-  const [passingYear, setPassingYear] = useState('2027');
+  const [joiningYear, setJoiningYear] = useState(currentUser?.joiningYear || '2023');
+  const [passingYear, setPassingYear] = useState(currentUser?.passingYear || '2027');
   const [interests, setInterests] = useState(currentUser?.interests || 'Programming, Physics & AI');
 
   const [submitting, setSubmitting] = useState(false);
@@ -37,8 +65,8 @@ export default function OnboardingModal({ isOpen, onComplete }) {
       setError('Please enter your Full Name.');
       return;
     }
-    if (!phone.trim() || phone.trim().length < 8) {
-      setError('Please enter a valid WhatsApp or contact number.');
+    if (!phoneNumber.trim() || phoneNumber.trim().length < 7) {
+      setError('Please enter a valid mobile number (e.g. 10 digits).');
       return;
     }
     setStep(2);
@@ -55,10 +83,11 @@ export default function OnboardingModal({ isOpen, onComplete }) {
 
     setSubmitting(true);
     try {
+      const fullPhone = `${countryCode} ${phoneNumber.trim()}`;
       const profileData = {
         name: fullName.trim(),
         username: fullName.trim(),
-        phone: phone.trim(),
+        phone: fullPhone,
         dob,
         educationLevel,
         courseName: courseName.trim(),
@@ -155,16 +184,29 @@ export default function OnboardingModal({ isOpen, onComplete }) {
 
             <div>
               <label className="form-label" style={{ fontSize: '0.8rem' }}>WhatsApp / Contact Number</label>
-              <div style={{ position: 'relative' }}>
-                <Phone size={16} color="var(--text-muted)" style={{ position: 'absolute', left: 12, top: 12 }} />
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <select
+                  className="form-input"
+                  value={countryCode}
+                  onChange={(e) => setCountryCode(e.target.value)}
+                  style={{ width: '135px', flexShrink: 0, padding: '10px 8px', fontSize: '0.83rem' }}
+                >
+                  {COUNTRY_CODES.map((c) => (
+                    <option key={c.name + c.code} value={c.code}>
+                      {c.flag} {c.code} ({c.name})
+                    </option>
+                  ))}
+                </select>
+
                 <input
                   type="tel"
                   className="form-input"
-                  placeholder="+91 98765 43210"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  style={{ paddingLeft: '38px' }}
+                  placeholder="10-digit mobile number"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value.replace(/[^0-9]/g, ''))}
+                  maxLength={12}
                   required
+                  style={{ flex: 1 }}
                 />
               </div>
             </div>
