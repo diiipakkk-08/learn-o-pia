@@ -22,7 +22,8 @@ import {
   Database,
   CalendarCheck,
   Users,
-  Timer
+  Timer,
+  AlertTriangle
 } from 'lucide-react';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -52,6 +53,13 @@ const parseLocalDate = (dateStr) => {
   return new Date(parts[0], parts[1] - 1, parts[2]);
 };
 
+// Add or subtract days from a date string 'YYYY-MM-DD'
+const addDaysToDateStr = (dateStr, days) => {
+  const d = parseLocalDate(dateStr);
+  d.setDate(d.getDate() + days);
+  return formatLocalDate(d);
+};
+
 const getDefaultSemesterStartDate = () => {
   const currentYear = new Date().getFullYear();
   return `${currentYear}-06-30`;
@@ -69,17 +77,32 @@ const format12HourTime = (time24) => {
   return `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${period}`;
 };
 
-// Calculate End Time from Start Time (24h) + Duration in Minutes
-const calculateEndTime = (startTime24, durationMinutes) => {
+// Calculate End Time from Start Time (24h) + Duration Hours & Minutes
+const calculateEndTimeFromHM = (startTime24, durationHours, durationMins) => {
   if (!startTime24) return '10:00 AM';
   const [hStr, mStr] = startTime24.split(':');
   const h = parseInt(hStr, 10);
   const m = parseInt(mStr, 10);
   if (isNaN(h) || isNaN(m)) return '10:00 AM';
-  const totalMins = h * 60 + m + parseInt(durationMinutes, 10);
+
+  const totalDurationMins = (parseInt(durationHours, 10) || 0) * 60 + (parseInt(durationMins, 10) || 0);
+  const safeMins = totalDurationMins <= 0 ? 60 : totalDurationMins;
+
+  const totalMins = h * 60 + m + safeMins;
   const endH = Math.floor(totalMins / 60) % 24;
   const endM = totalMins % 60;
   return format12HourTime(`${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`);
+};
+
+// Format duration into clean text "1 hr 30 mins" or "45 mins"
+const formatDurationText = (durationHours, durationMins) => {
+  const h = parseInt(durationHours, 10) || 0;
+  const m = parseInt(durationMins, 10) || 0;
+  if (h === 0 && m === 0) return '1 hr';
+  let parts = [];
+  if (h > 0) parts.push(`${h} ${h === 1 ? 'hr' : 'hrs'}`);
+  if (m > 0) parts.push(`${m} ${m === 1 ? 'min' : 'mins'}`);
+  return parts.join(' ');
 };
 
 // Sort routine classes chronologically by start time
@@ -228,15 +251,23 @@ export default function AttendanceTracker({ setCurrentView }) {
   const [editingDay, setEditingDay] = useState('Monday');
   const [newSubName, setNewSubName] = useState('');
   const [newStartTime24, setNewStartTime24] = useState('09:00');
-  const [durationMinutes, setDurationMinutes] = useState('60'); // 60 mins default
+  const [durationHours, setDurationHours] = useState('1'); // 1 hour default
+  const [durationMins, setDurationMins] = useState('0'); // 0 mins default
   const [newRoom, setNewRoom] = useState('Room 101');
   const [targetPercent, setTargetPercent] = useState(75);
+
+  const todayStr = formatLocalDate(new Date());
+  const isSelectedPastDay = selectedDate < todayStr;
 
   const dateObj = useMemo(() => parseLocalDate(selectedDate), [selectedDate]);
   const dayName = useMemo(() => DAYS_OF_WEEK[dateObj.getDay()], [dateObj]);
 
   const scheduledToday = useMemo(() => sortClassesByTime(routine[dayName] || []), [routine, dayName]);
   const dayLog = useMemo(() => logs[selectedDate] || { isHoliday: false, classes: {} }, [logs, selectedDate]);
+
+  // Step Date Forward/Backward
+  const handlePrevDay = () => setSelectedDate((prev) => addDaysToDateStr(prev, -1));
+  const handleNextDay = () => setSelectedDate((prev) => addDaysToDateStr(prev, 1));
 
   // Mark class attendance status ('attended' | 'absent' | 'massbunk' | 'cancelled')
   const markClassStatus = (routineId, status) => {
@@ -286,13 +317,14 @@ export default function AttendanceTracker({ setCurrentView }) {
     });
   };
 
-  // Add Class to Routine with Duration & Auto End Time
+  // Add Class to Routine with Flexible Hours & Minutes Duration
   const handleAddRoutineClass = (e) => {
     e.preventDefault();
     if (!newSubName.trim()) return;
 
     const startTimeFormatted = format12HourTime(newStartTime24);
-    const endTimeFormatted = calculateEndTime(newStartTime24, durationMinutes);
+    const endTimeFormatted = calculateEndTimeFromHM(newStartTime24, durationHours, durationMins);
+    const totalMins = (parseInt(durationHours, 10) || 0) * 60 + (parseInt(durationMins, 10) || 0);
 
     const newClass = {
       id: `r-${Date.now()}`,
@@ -300,7 +332,10 @@ export default function AttendanceTracker({ setCurrentView }) {
       startTime24: newStartTime24,
       startTime: startTimeFormatted,
       endTime: endTimeFormatted,
-      duration: parseInt(durationMinutes, 10),
+      durationHours,
+      durationMins,
+      durationText: formatDurationText(durationHours, durationMins),
+      duration: totalMins || 60,
       room: newRoom.trim() || 'Room 101',
       minTarget: parseInt(targetPercent, 10) || 75
     };
@@ -345,11 +380,10 @@ export default function AttendanceTracker({ setCurrentView }) {
     }
   };
 
-  // ── OVERALL ATTENDANCE ANALYTICS (WITH MASS BUNK & DEFAULT ABSENTEE) ──
+  // ── OVERALL ATTENDANCE ANALYTICS (ONLY PASSED UNMARKED DAYS DEFAULT TO ABSENT) ──
   const subjectAnalytics = useMemo(() => {
     const statsMap = {};
 
-    // 1. Initialize stats for all subjects present in the routine
     Object.values(routine).forEach((dayList) => {
       dayList.forEach((cls) => {
         if (!statsMap[cls.subject]) {
@@ -367,13 +401,14 @@ export default function AttendanceTracker({ setCurrentView }) {
     });
 
     const startObj = parseLocalDate(semesterStartDate);
-    const todayObj = parseLocalDate(formatLocalDate(new Date()));
+    const todayObj = parseLocalDate(todayStr);
     const endDateObj = parseLocalDate(selectedDate) > todayObj ? parseLocalDate(selectedDate) : todayObj;
 
     const curr = new Date(startObj.getTime());
 
     while (curr <= endDateObj) {
       const dateStr = formatLocalDate(curr);
+      const isPast = dateStr < todayStr;
       const dName = DAYS_OF_WEEK[curr.getDay()];
       const dayClasses = routine[dName] || [];
       const logData = logs[dateStr] || { isHoliday: false, classes: {} };
@@ -391,11 +426,15 @@ export default function AttendanceTracker({ setCurrentView }) {
             } else if (status === 'massbunk') {
               statsMap[cls.subject].massbunk += 1;
               statsMap[cls.subject].totalConducted += 1;
-            } else {
-              // Explicitly marked absent OR Unmarked scheduled past class -> DEFAULT ABSENT
+            } else if (status === 'absent') {
+              statsMap[cls.subject].absent += 1;
+              statsMap[cls.subject].totalConducted += 1;
+            } else if (!status && isPast) {
+              // UNMARKED PASSED DAYS ONLY -> DEFAULT ABSENT
               statsMap[cls.subject].absent += 1;
               statsMap[cls.subject].totalConducted += 1;
             }
+            // Unmarked TODAY or FUTURE days remain pending and do NOT penalize attendance!
           }
         });
       }
@@ -426,7 +465,7 @@ export default function AttendanceTracker({ setCurrentView }) {
         isAlert: pct < item.target
       };
     });
-  }, [routine, logs, semesterStartDate, selectedDate]);
+  }, [routine, logs, semesterStartDate, selectedDate, todayStr]);
 
   // Overall Total Summary
   const overallStats = useMemo(() => {
@@ -464,7 +503,6 @@ export default function AttendanceTracker({ setCurrentView }) {
       Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [], Saturday: [], Sunday: []
     };
 
-    // WIPE ROUTINE & LOGS COMPLETELY FOR CLEAN NEW SEMESTER
     setRoutine(emptyRoutine);
     setLogs({});
     setSemesterStartDate(tempStartDateInput);
@@ -541,15 +579,23 @@ export default function AttendanceTracker({ setCurrentView }) {
               </button>
             </div>
 
-            <div style={{ marginBottom: '16px' }}>
-              <label className="form-label" style={{ fontSize: '0.78rem' }}>Select Log Date</label>
+            {/* Quick 1-Click Day Stepper & Date Picker */}
+            <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button onClick={handlePrevDay} className="btn btn-secondary btn-sm" title="Previous Day" style={{ padding: '8px 10px' }}>
+                <ChevronLeft size={16} /> Prev Day
+              </button>
+              
               <input
                 type="date"
                 className="form-input"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                style={{ width: '100%' }}
+                style={{ flex: 1, textAlign: 'center' }}
               />
+
+              <button onClick={handleNextDay} className="btn btn-secondary btn-sm" title="Next Day" style={{ padding: '8px 10px' }}>
+                Next Day <ChevronRight size={16} />
+              </button>
             </div>
 
             {dayLog.isHoliday ? (
@@ -565,7 +611,8 @@ export default function AttendanceTracker({ setCurrentView }) {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {scheduledToday.map((cls) => {
-                  const status = dayLog.classes[cls.id] || 'absent'; // DEFAULT ABSENT IF UNMARKED
+                  const rawStatus = dayLog.classes[cls.id];
+                  const status = rawStatus || (isSelectedPastDay ? 'absent' : null); // ONLY PAST UNMARKED DAYS DEFAULT TO ABSENT
 
                   return (
                     <div
@@ -573,8 +620,8 @@ export default function AttendanceTracker({ setCurrentView }) {
                       style={{
                         padding: '12px 16px',
                         borderRadius: '10px',
-                        background: status === 'attended' ? 'rgba(16,185,129,0.08)' : status === 'massbunk' ? 'rgba(245,158,11,0.08)' : status === 'cancelled' ? 'rgba(255,255,255,0.03)' : 'rgba(239,68,68,0.08)',
-                        border: status === 'attended' ? '1px solid rgba(16,185,129,0.2)' : status === 'massbunk' ? '1px solid rgba(245,158,11,0.2)' : status === 'cancelled' ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(239,68,68,0.2)',
+                        background: status === 'attended' ? 'rgba(16,185,129,0.08)' : status === 'massbunk' ? 'rgba(245,158,11,0.08)' : status === 'cancelled' ? 'rgba(255,255,255,0.03)' : status === 'absent' ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.02)',
+                        border: status === 'attended' ? '1px solid rgba(16,185,129,0.2)' : status === 'massbunk' ? '1px solid rgba(245,158,11,0.2)' : status === 'cancelled' ? '1px solid rgba(255,255,255,0.08)' : status === 'absent' ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(255,255,255,0.06)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -585,11 +632,16 @@ export default function AttendanceTracker({ setCurrentView }) {
                       <div>
                         <strong style={{ color: '#ffffff', fontSize: '0.9rem', display: 'block' }}>{cls.subject}</strong>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          {cls.startTime} - {cls.endTime} ({cls.duration || 60}m) · {cls.room}
+                          {cls.startTime} - {cls.endTime} ({cls.durationText || `${cls.duration || 60}m`}) · {cls.room}
                         </span>
-                        {!dayLog.classes[cls.id] && (
+                        {!rawStatus && isSelectedPastDay && (
                           <span style={{ fontSize: '0.7rem', color: '#f87171', display: 'block', fontWeight: 600, marginTop: 2 }}>
-                            (Unmarked → Default Absent)
+                            (Passed Day Unmarked → Default Absent)
+                          </span>
+                        )}
+                        {!rawStatus && !isSelectedPastDay && (
+                          <span style={{ fontSize: '0.7rem', color: '#a78bfa', display: 'block', fontWeight: 500, marginTop: 2 }}>
+                            (Select Attendance Status)
                           </span>
                         )}
                       </div>
@@ -597,28 +649,28 @@ export default function AttendanceTracker({ setCurrentView }) {
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                         <button
                           onClick={() => markClassStatus(cls.id, 'attended')}
-                          className={`btn ${status === 'attended' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                          className={`btn ${rawStatus === 'attended' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
                           style={{ fontSize: '0.72rem', padding: '4px 8px' }}
                         >
                           <CheckCircle2 size={13} /> Present
                         </button>
                         <button
                           onClick={() => markClassStatus(cls.id, 'absent')}
-                          className={`btn ${status === 'absent' && dayLog.classes[cls.id] ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                          style={{ fontSize: '0.72rem', padding: '4px 8px', color: status === 'absent' ? '#f87171' : undefined }}
+                          className={`btn ${rawStatus === 'absent' || (isSelectedPastDay && !rawStatus) ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                          style={{ fontSize: '0.72rem', padding: '4px 8px', color: (rawStatus === 'absent' || (isSelectedPastDay && !rawStatus)) ? '#f87171' : undefined }}
                         >
                           <XCircle size={13} /> Absent
                         </button>
                         <button
                           onClick={() => markClassStatus(cls.id, 'massbunk')}
-                          className={`btn ${status === 'massbunk' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                          style={{ fontSize: '0.72rem', padding: '4px 8px', color: status === 'massbunk' ? '#f59e0b' : undefined }}
+                          className={`btn ${rawStatus === 'massbunk' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                          style={{ fontSize: '0.72rem', padding: '4px 8px', color: rawStatus === 'massbunk' ? '#f59e0b' : undefined }}
                         >
                           <Users size={13} /> Mass Bunk
                         </button>
                         <button
                           onClick={() => markClassStatus(cls.id, 'cancelled')}
-                          className={`btn ${status === 'cancelled' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                          className={`btn ${rawStatus === 'cancelled' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
                           style={{ fontSize: '0.72rem', padding: '4px 8px' }}
                         >
                           <MinusCircle size={13} /> Cancelled
@@ -664,28 +716,40 @@ export default function AttendanceTracker({ setCurrentView }) {
                 />
               </div>
 
+              <div>
+                <label className="form-label" style={{ fontSize: '0.78rem' }}>Start Time</label>
+                <input
+                  type="time"
+                  className="form-input"
+                  value={newStartTime24}
+                  onChange={(e) => setNewStartTime24(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Flexible Duration: Hours & Minutes Selectors */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Start Time</label>
-                  <input
-                    type="time"
-                    className="form-input"
-                    value={newStartTime24}
-                    onChange={(e) => setNewStartTime24(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Class Duration</label>
-                  <select className="form-input" value={durationMinutes} onChange={(e) => setDurationMinutes(e.target.value)}>
-                    <option value="45">45 Minutes</option>
-                    <option value="50">50 Minutes</option>
-                    <option value="60">1 Hour (60m)</option>
-                    <option value="90">1.5 Hours (90m)</option>
-                    <option value="120">2 Hours (120m)</option>
-                    <option value="180">3 Hours (180m)</option>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Duration (Hours)</label>
+                  <select className="form-input" value={durationHours} onChange={(e) => setDurationHours(e.target.value)}>
+                    {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((h) => (
+                      <option key={h} value={h}>{h} {h === 1 ? 'Hour' : 'Hours'}</option>
+                    ))}
                   </select>
                 </div>
+
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Duration (Minutes)</label>
+                  <select className="form-input" value={durationMins} onChange={(e) => setDurationMins(e.target.value)}>
+                    {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
+                      <option key={m} value={m}>{m} Mins</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 600, background: 'rgba(139,92,246,0.1)', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(139,92,246,0.2)' }}>
+                ⏰ Class Time: {format12HourTime(newStartTime24)} → {calculateEndTimeFromHM(newStartTime24, durationHours, durationMins)} ({formatDurationText(durationHours, durationMins)})
               </div>
 
               <div>
@@ -693,7 +757,7 @@ export default function AttendanceTracker({ setCurrentView }) {
                 <input type="text" className="form-input" value={newRoom} onChange={(e) => setNewRoom(e.target.value)} />
               </div>
 
-              <button type="submit" className="btn btn-primary" style={{ marginTop: 6 }}>
+              <button type="submit" className="btn btn-primary" style={{ marginTop: 4 }}>
                 Save Class to Timetable
               </button>
             </form>
@@ -701,7 +765,7 @@ export default function AttendanceTracker({ setCurrentView }) {
 
           {/* Current Routine View (Sorted Chronologically) */}
           <div className="glass-panel" style={{ padding: '20px' }}>
-            <h3 style={{ fontSize: '1.05rem', margin: '0 0 14px 0', color: '#ffffff' }}>Weekly Timetable Schedule (Chronological)</h3>
+            <h3 style={{ fontSize: '1.05rem', margin: '0 0 14px 0', color: '#ffffff' }}>Weekly Timetable Schedule (Sorted Chronologically)</h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {DAYS_OF_WEEK.map((d) => {
@@ -756,7 +820,7 @@ export default function AttendanceTracker({ setCurrentView }) {
 
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <span>Attended: {sub.attended} / Conducted: {sub.totalConducted}</span>
-                  <span>Absent (including default): {sub.absent} · Mass Bunked: {sub.massbunk} · Cancelled: {sub.cancelled}</span>
+                  <span>Absent (including passed days): {sub.absent} · Mass Bunked: {sub.massbunk} · Cancelled: {sub.cancelled}</span>
                 </div>
 
                 <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '0.78rem' }}>
@@ -800,20 +864,62 @@ export default function AttendanceTracker({ setCurrentView }) {
         </div>
       )}
 
-      {/* START NEW SEMESTER MODAL */}
+      {/* CENTERED WARNING MODAL FOR ENDING / STARTING NEW SEMESTER */}
       {showEndSemModal && (
-        <div className="modal-overlay">
-          <div className="glass-panel modal-card animate-fade-in" style={{ maxWidth: '440px', textAlign: 'left' }}>
-            <h3 style={{ fontSize: '1.1rem', margin: '0 0 10px 0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <RefreshCw size={18} color="var(--primary)" /> End & Start New Semester
-            </h3>
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '16px' }}>
-              Ending the semester will archive your current stats and <strong>delete all current timetable routines and daily logs</strong> so you can build a clean new schedule.
-            </p>
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px'
+        }} className="animate-fade-in">
+          <div className="glass-panel" style={{
+            maxWidth: '500px',
+            width: '100%',
+            padding: '28px',
+            borderRadius: '24px',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.7)',
+            border: '1px solid rgba(239, 68, 68, 0.4)',
+            background: 'rgba(18, 14, 24, 0.95)',
+            textAlign: 'left'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+              <div style={{ background: 'rgba(239, 68, 68, 0.2)', padding: '10px', borderRadius: '14px' }}>
+                <AlertTriangle size={28} color="#ef4444" />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>End Current Semester?</h3>
+                <span style={{ fontSize: '0.8rem', color: '#f87171', fontWeight: 600 }}>
+                  ⚠️ Critical Action: Complete Timetable Wipe
+                </span>
+              </div>
+            </div>
+
+            <div style={{
+              padding: '14px',
+              borderRadius: '12px',
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+              color: 'var(--text-secondary)',
+              fontSize: '0.83rem',
+              lineHeight: 1.6,
+              marginBottom: '18px'
+            }}>
+              Starting a new semester will <strong>PERMANENTLY DELETE all your weekly routine subjects and daily attendance logs</strong> for the current semester.
+              <br /><br />
+              💡 <em>If you want to save your current semester stats or schedule, please take a screenshot or copy your analytics summary before proceeding.</em>
+            </div>
 
             <form onSubmit={(e) => { e.preventDefault(); handleConfirmNewSemester(); }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label className="form-label" style={{ fontSize: '0.78rem' }}>New Semester Start Date</label>
+                <label className="form-label" style={{ fontSize: '0.8rem' }}>New Semester Start Date</label>
                 <input
                   type="date"
                   className="form-input"
@@ -823,9 +929,27 @@ export default function AttendanceTracker({ setCurrentView }) {
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowEndSemModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Clear Routine & Start Semester</button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 10 }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEndSemModal(false)}>
+                  Cancel & Keep Routine
+                </button>
+                <button
+                  type="submit"
+                  className="btn"
+                  style={{
+                    background: '#ef4444',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    padding: '10px 18px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
+                >
+                  <Trash2 size={16} /> I Understand, Delete Routine & Start Semester
+                </button>
               </div>
             </form>
           </div>
@@ -834,8 +958,21 @@ export default function AttendanceTracker({ setCurrentView }) {
 
       {/* CHANGE START DATE MODAL */}
       {showStartDateModal && (
-        <div className="modal-overlay">
-          <div className="glass-panel modal-card animate-fade-in" style={{ maxWidth: '420px', textAlign: 'left' }}>
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px'
+        }} className="animate-fade-in">
+          <div className="glass-panel modal-card" style={{ maxWidth: '420px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left' }}>
             <h3 style={{ fontSize: '1.1rem', margin: '0 0 10px 0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
               <CalendarCheck size={18} color="var(--primary)" /> Update Semester Start Date
             </h3>
