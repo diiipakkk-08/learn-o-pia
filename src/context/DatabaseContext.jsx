@@ -279,19 +279,7 @@ export const fetchYoutubePlaylistVideos = async (playlistId) => {
 
 export const getUserDesignation = (user) => {
   if (!user) return 'Guest User';
-  const rawName = user.name || 'User';
-  
-  if (user.role === 'owner') return `Owner. ${rawName}`;
-  if (user.role === 'admin') return `Admin. ${rawName}`;
-  if (user.role === 'creator') return `Creator. ${rawName}`;
-  
-  if (user.isVerified) {
-    if (user.verificationType === 'professor') return `Prof. ${rawName}`;
-    if (user.verificationType === 'creator') return `Creator. ${rawName}`;
-    return `St. ${rawName}`;
-  }
-  
-  return rawName;
+  return user.name || user.username || 'User';
 };
 
 const mapProfile = (dbProfile) => {
@@ -1235,6 +1223,40 @@ export function DatabaseProvider({ children }) {
         setCurrentUser(updated);
         localStorage.setItem('learnopia_current_user_stable', JSON.stringify(updated));
       }
+    }
+  };
+
+  const unverifyUser = async (userId) => {
+    const targetId = userId || currentUser?.id;
+    if (!targetId) return;
+
+    if (isSupabaseLive) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({
+            is_verified: false,
+            verification_status: 'none'
+          })
+          .eq('id', targetId);
+      } catch (e) {
+        console.warn('[Unverify Error]', e);
+      }
+      try {
+        syncSupabase();
+      } catch (e) {}
+    }
+
+    setUsers(prev => {
+      const next = prev.map(u => u.id === targetId ? { ...u, isVerified: false, verificationStatus: 'none' } : u);
+      localStorage.setItem('learnopia_users_stable', JSON.stringify(next));
+      return next;
+    });
+
+    if (currentUser && currentUser.id === targetId) {
+      const updated = { ...currentUser, isVerified: false, verificationStatus: 'none' };
+      setCurrentUser(updated);
+      localStorage.setItem('learnopia_current_user_stable', JSON.stringify(updated));
     }
   };
 
@@ -2389,6 +2411,7 @@ export function DatabaseProvider({ children }) {
       requestCreatorStatus,
       updateUserProfile,
       adminVerifyUser,
+      unverifyUser,
       enrollInCourse,
       removeUserEnrollment,
       addCourse,

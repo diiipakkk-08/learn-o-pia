@@ -26,12 +26,13 @@ const COUNTRY_CODES = [
 ];
 
 export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
-  const { currentUser, courses, setPasswordForUser, updateUserProfile, logout, deleteUserAccount } = useDatabase();
+  const { currentUser, courses, setPasswordForUser, updateUserProfile, logout, deleteUserAccount, unverifyUser } = useDatabase();
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordBox, setShowPasswordBox] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showUnverifyConfirmModal, setShowUnverifyConfirmModal] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
 
   // Edit Profile Form State
@@ -44,8 +45,13 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
     }
     return '';
   });
+  const [dob, setDob] = useState(currentUser?.dob || '2004-05-15');
+  const [educationLevel, setEducationLevel] = useState(currentUser?.educationLevel || 'college');
+  const [courseName, setCourseName] = useState(currentUser?.courseName || 'B.Tech Computer Science');
   const [college, setCollege] = useState(currentUser?.college || '');
   const [department, setDepartment] = useState(currentUser?.department || '');
+  const [joiningYear, setJoiningYear] = useState(currentUser?.joiningYear || '2023');
+  const [passingYear, setPassingYear] = useState(currentUser?.passingYear || '2027');
   const [interests, setInterests] = useState(currentUser?.interests || '');
   const [verificationType, setVerificationType] = useState(currentUser?.verificationType || 'student');
   const [idCardLink, setIdCardLink] = useState(currentUser?.idCardLink || '');
@@ -62,6 +68,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
   if (!currentUser) return null;
 
   const formattedDesignation = getUserDesignation(currentUser);
+  const calculatedSemesters = Math.max(1, (parseInt(passingYear, 10) - parseInt(joiningYear, 10)) * 2);
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
@@ -75,8 +82,14 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
       name,
       username,
       phone: fullPhone,
+      dob,
+      educationLevel,
+      courseName,
       college,
       department,
+      joiningYear,
+      passingYear,
+      totalSemesters: calculatedSemesters,
       interests,
       verificationType,
       idCardLink,
@@ -90,6 +103,16 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
     } else {
       setSaveError(res.error || 'Failed to save profile details.');
     }
+  };
+
+  const handleConfirmUnverify = async () => {
+    if (unverifyUser) {
+      await unverifyUser(currentUser.id);
+    }
+    setShowUnverifyConfirmModal(false);
+    setIsEditing(true);
+    setSaveSuccess('Account unverified. All credentials are now unlocked for editing.');
+    setTimeout(() => setSaveSuccess(''), 4000);
   };
 
   const handleSavePassword = async (e) => {
@@ -238,16 +261,21 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
         </form>
       )}
 
-      {/* Profile Edit Form / Overview Grid */}
+      {/* Profile Edit Form Drawer */}
       {isEditing ? (
-        <form onSubmit={handleSaveProfile} className="glass-panel animate-fade-in" style={{ padding: '24px', textAlign: 'left', marginBottom: '24px' }}>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '8px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <User size={18} color="var(--primary)" /> Edit Profile & Verification Details
-          </h3>
+        <form onSubmit={handleSaveProfile} className="glass-panel animate-fade-in" style={{ padding: '24px', marginBottom: '24px', textAlign: 'left' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <h3 style={{ fontSize: '1.1rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Edit3 size={18} color="var(--primary)" /> Edit Profile & Academic Credentials
+            </h3>
+            <button type="button" onClick={() => setIsEditing(false)} className="btn btn-secondary btn-sm">
+              Cancel
+            </button>
+          </div>
 
           {currentUser.isVerified && (
             <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '8px', color: '#34d399', marginBottom: '16px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <CheckCircle2 size={16} /> <strong>Verified Account:</strong> Your core identity details (Name, Username, Phone, College, Verification Type) are officially verified and locked for security.
+              <CheckCircle2 size={16} /> <strong>Verified Account:</strong> Your core identity details (Name, Username, Phone, College, Verification Type) are locked. Click "Request Un-verification & Edit Details" above if you wish to reset verification and update them.
             </div>
           )}
 
@@ -261,7 +289,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
             {/* Full Name */}
             <div>
               <label className="form-label" style={{ fontSize: '0.78rem' }}>
-                Full Name {currentUser.isVerified && <span style={{ color: 'var(--text-muted)' }}>(Locked: Account Verified)</span>}
+                Full Name {currentUser.isVerified && <span style={{ color: 'var(--text-muted)' }}>(Locked)</span>}
               </label>
               <input
                 type="text"
@@ -277,7 +305,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
             {/* Username */}
             <div>
               <label className="form-label" style={{ fontSize: '0.78rem' }}>
-                Unique Username {currentUser.isVerified && <span style={{ color: 'var(--text-muted)' }}>(Locked: Account Verified)</span>}
+                Unique Username {currentUser.isVerified && <span style={{ color: 'var(--text-muted)' }}>(Locked)</span>}
               </label>
               <input
                 type="text"
@@ -294,7 +322,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
             {/* WhatsApp / Phone Number with Country Code Dropdown */}
             <div>
               <label className="form-label" style={{ fontSize: '0.78rem' }}>
-                WhatsApp / Contact Number {currentUser.isVerified && <span style={{ color: 'var(--text-muted)' }}>(Locked: Account Verified)</span>}
+                WhatsApp / Contact Number {currentUser.isVerified && <span style={{ color: 'var(--text-muted)' }}>(Locked)</span>}
               </label>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <select
@@ -324,10 +352,60 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
               </div>
             </div>
 
+            {/* Date of Birth */}
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>
+                Date of Birth (DOB)
+              </label>
+              <input
+                type="date"
+                className="form-input"
+                value={dob}
+                onChange={(e) => setDob(e.target.value)}
+                disabled={currentUser.isVerified}
+                style={{ opacity: currentUser.isVerified ? 0.6 : 1 }}
+              />
+            </div>
+
+            {/* Education Level */}
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>
+                Current Education Level
+              </label>
+              <select
+                className="form-input"
+                value={educationLevel}
+                onChange={(e) => setEducationLevel(e.target.value)}
+                disabled={currentUser.isVerified}
+                style={{ opacity: currentUser.isVerified ? 0.6 : 1 }}
+              >
+                <option value="school">School Student (Class 6-10)</option>
+                <option value="higher_sec">Higher Secondary (Class 11-12)</option>
+                <option value="college">College / University Student</option>
+                <option value="postgrad">Postgraduate / Researcher</option>
+              </select>
+            </div>
+
+            {/* Course / Stream */}
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>
+                Course / Stream Name {currentUser.isVerified && <span style={{ color: 'var(--text-muted)' }}>(Locked)</span>}
+              </label>
+              <input
+                type="text"
+                className="form-input"
+                value={courseName}
+                onChange={(e) => setCourseName(e.target.value)}
+                placeholder="e.g. B.Tech Computer Science"
+                disabled={currentUser.isVerified}
+                style={{ opacity: currentUser.isVerified ? 0.6 : 1 }}
+              />
+            </div>
+
             {/* College Name */}
             <div>
               <label className="form-label" style={{ fontSize: '0.78rem' }}>
-                College / University Name {currentUser.isVerified && <span style={{ color: 'var(--text-muted)' }}>(Locked)</span>}
+                College / School / University Name {currentUser.isVerified && <span style={{ color: 'var(--text-muted)' }}>(Locked)</span>}
               </label>
               <input
                 type="text"
@@ -340,20 +418,38 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
               />
             </div>
 
-            {/* Department */}
+            {/* Academic Tenure: Joining & Passing Year */}
             <div>
               <label className="form-label" style={{ fontSize: '0.78rem' }}>
-                Department / Branch {currentUser.isVerified && <span style={{ color: 'var(--text-muted)' }}>(Locked)</span>}
+                Academic Tenure (Joining → Passing Year)
               </label>
-              <input
-                type="text"
-                className="form-input"
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                placeholder="e.g. CSE / IT / ECE"
-                disabled={currentUser.isVerified}
-                style={{ opacity: currentUser.isVerified ? 0.6 : 1 }}
-              />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <select
+                  className="form-input"
+                  value={joiningYear}
+                  onChange={(e) => setJoiningYear(e.target.value)}
+                  disabled={currentUser.isVerified}
+                  style={{ opacity: currentUser.isVerified ? 0.6 : 1 }}
+                >
+                  {[2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028].map(yr => (
+                    <option key={yr} value={yr}>{yr}</option>
+                  ))}
+                </select>
+                <select
+                  className="form-input"
+                  value={passingYear}
+                  onChange={(e) => setPassingYear(e.target.value)}
+                  disabled={currentUser.isVerified}
+                  style={{ opacity: currentUser.isVerified ? 0.6 : 1 }}
+                >
+                  {[2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031, 2032].map(yr => (
+                    <option key={yr} value={yr}>{yr}</option>
+                  ))}
+                </select>
+              </div>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                Calculated Curriculum: {calculatedSemesters} Semesters
+              </span>
             </div>
 
             {/* Interests */}
@@ -608,6 +704,54 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
           <Trash2 size={16} /> Delete Account
         </button>
       </div>
+
+      {/* UN-VERIFY CONFIRMATION MODAL */}
+      {showUnverifyConfirmModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 10000, padding: '20px'
+        }} className="animate-fade-in">
+          <div className="glass-panel" style={{
+            maxWidth: '500px', width: '100%', padding: '28px', borderRadius: '24px',
+            border: '1px solid rgba(245, 158, 11, 0.5)', background: 'rgba(20, 16, 10, 0.95)', textAlign: 'left'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+              <div style={{ background: 'rgba(245, 158, 11, 0.2)', padding: '10px', borderRadius: '14px' }}>
+                <AlertTriangle size={28} color="#f59e0b" />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>Unlock & Edit Verified Credentials?</h3>
+                <span style={{ fontSize: '0.8rem', color: '#f59e0b', fontWeight: 600 }}>🔓 Reset Verification to Unverified</span>
+              </div>
+            </div>
+
+            <div style={{
+              padding: '14px', borderRadius: '12px', background: 'rgba(245, 158, 11, 0.1)',
+              border: '1px solid rgba(245, 158, 11, 0.25)', color: 'var(--text-secondary)',
+              fontSize: '0.83rem', lineHeight: 1.6, marginBottom: '18px'
+            }}>
+              Your account currently holds verified credentials. To change your Name, Username, Institution, or other details, your verified badge will be removed and status changed to <strong>Unverified</strong>.
+              <br /><br />
+              All fields will be unlocked immediately so you can make changes and submit a new document link for re-verification.
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setShowUnverifyConfirmModal(false)}>
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmUnverify}
+                className="btn"
+                style={{ background: '#f59e0b', color: '#000000', fontWeight: 700, padding: '10px 18px', borderRadius: '12px', border: 'none', display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <Check size={16} /> Yes, Unlock & Edit Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* CENTERED CRITICAL DELETE ACCOUNT WARNING MODAL */}
       {showDeleteModal && (

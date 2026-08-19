@@ -43,16 +43,20 @@ function AccessDenied({ requiredRole, setCurrentView }) {
 }
 
 function NotFound404({ setCurrentView }) {
+  useEffect(() => {
+    // Auto-redirect to learning workspace smoothly
+    const timer = setTimeout(() => {
+      if (setCurrentView) setCurrentView('learning');
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [setCurrentView]);
+
   return (
     <div style={{ textAlign: 'center', padding: '60px 20px', maxWidth: '500px', margin: '40px auto' }} className="glass-panel animate-fade-in">
-      <ShieldAlert size={48} color="var(--primary)" style={{ marginBottom: '16px' }} />
-      <h2 style={{ fontSize: '1.4rem', color: '#ffffff', marginBottom: '8px' }}>Page Not Found</h2>
-      <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '20px' }}>
-        The requested view does not exist or you were redirected from an external authentication link.
+      <h2 style={{ fontSize: '1.2rem', color: '#ffffff', marginBottom: '8px' }}>Loading Workspace…</h2>
+      <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+        Redirecting you to your learning workspace…
       </p>
-      <button onClick={() => setCurrentView('learning')} className="btn btn-primary" style={{ gap: 6 }}>
-        <ArrowLeft size={16} /> Return to Learning Workspace
-      </button>
     </div>
   );
 }
@@ -79,6 +83,7 @@ function AppContent() {
         try {
           window.history.replaceState(null, '', window.location.pathname);
         } catch (e) {}
+        setCurrentView('learning');
       }
     }
   }, []);

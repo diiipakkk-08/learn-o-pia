@@ -15,7 +15,8 @@ import {
   Shield,
   Key,
   Folder,
-  Sparkles
+  Sparkles,
+  CheckCircle2
 } from 'lucide-react';
 
 const DEFAULT_THREADS = [
@@ -198,21 +199,29 @@ export default function DiscussionsView({ setCurrentView }) {
     const formattedName = newThreadName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
     const randomCode = `THREAD-${Math.floor(1000 + Math.random() * 9000)}`;
 
+    const cleanSender = currentUser?.name || currentUser?.username || 'User';
+    const isUserVerified = !!(currentUser?.isVerified || currentUser?.verificationStatus === 'verified');
+    const userVerifType = currentUser?.verificationType || 'student';
+
     const newThread = {
       id: `thread-${Date.now()}`,
       code: randomCode,
       name: formattedName,
       title: newThreadTitle,
       isPrivate: isThreadPrivate,
-      author: activeDesignation,
+      author: cleanSender,
       authorRole: currentUser?.role || 'learner',
+      isVerified: isUserVerified,
+      verificationType: userVerifType,
       createdAt: new Date().toISOString().split('T')[0],
       messages: [
         {
           id: `m-${Date.now()}`,
-          sender: activeDesignation,
+          sender: cleanSender,
           role: currentUser?.role || 'learner',
-          text: `Thread #${formattedName} initialized by ${activeDesignation}. Welcome!`,
+          isVerified: isUserVerified,
+          verificationType: userVerifType,
+          text: `Thread #${formattedName} initialized by ${cleanSender}. Welcome!`,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]
@@ -230,10 +239,16 @@ export default function DiscussionsView({ setCurrentView }) {
     e.preventDefault();
     if (!messageText.trim() || !activeThread) return;
 
+    const cleanSender = currentUser?.name || currentUser?.username || 'User';
+    const isUserVerified = !!(currentUser?.isVerified || currentUser?.verificationStatus === 'verified');
+    const userVerifType = currentUser?.verificationType || 'student';
+
     const newMsg = {
       id: `m-${Date.now()}`,
-      sender: activeDesignation,
+      sender: cleanSender,
       role: currentUser?.role || 'learner',
+      isVerified: isUserVerified,
+      verificationType: userVerifType,
       text: messageText.trim(),
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       quotedMessage: replyingToMessage ? { sender: replyingToMessage.sender, text: replyingToMessage.text } : null
@@ -459,8 +474,21 @@ export default function DiscussionsView({ setCurrentView }) {
 
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <strong style={{ fontSize: '0.88rem', color: '#ffffff' }}>{msg.sender}</strong>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <strong style={{ fontSize: '0.88rem', color: '#ffffff' }}>
+                            {msg.sender?.replace(/^(Owner\.|Admin\.|Creator\.|Prof\.|St\.)\s*/i, '')}
+                          </strong>
+                          {msg.isVerified && (
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '4px',
+                              background: msg.verificationType === 'professor' ? 'rgba(99, 102, 241, 0.15)' : msg.verificationType === 'creator' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                              color: msg.verificationType === 'professor' ? '#a5b4fc' : msg.verificationType === 'creator' ? '#fcd34d' : '#6ee7b7',
+                              border: `1px solid ${msg.verificationType === 'professor' ? 'rgba(99, 102, 241, 0.3)' : msg.verificationType === 'creator' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+                              padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 700
+                            }}>
+                              <CheckCircle2 size={11} /> {msg.verificationType === 'professor' ? 'Verified Professor' : msg.verificationType === 'creator' ? 'Verified Creator' : 'Verified Student'}
+                            </span>
+                          )}
                           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{msg.time}</span>
                         </div>
 
