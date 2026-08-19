@@ -42,6 +42,21 @@ function AccessDenied({ requiredRole, setCurrentView }) {
   );
 }
 
+function NotFound404({ setCurrentView }) {
+  return (
+    <div style={{ textAlign: 'center', padding: '60px 20px', maxWidth: '500px', margin: '40px auto' }} className="glass-panel animate-fade-in">
+      <ShieldAlert size={48} color="var(--primary)" style={{ marginBottom: '16px' }} />
+      <h2 style={{ fontSize: '1.4rem', color: '#ffffff', marginBottom: '8px' }}>Page Not Found</h2>
+      <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '20px' }}>
+        The requested view does not exist or you were redirected from an external authentication link.
+      </p>
+      <button onClick={() => setCurrentView('learning')} className="btn btn-primary" style={{ gap: 6 }}>
+        <ArrowLeft size={16} /> Return to Learning Workspace
+      </button>
+    </div>
+  );
+}
+
 function AppContent() {
   const { currentUser, authLoading } = useDatabase();
   
@@ -56,6 +71,17 @@ function AppContent() {
     return val ? parseInt(val, 10) : 0;
   });
   const [isNavLoading, setIsNavLoading] = useState(false);
+
+  // Handle URL hash from Supabase Email Verification / OAuth redirects
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash) {
+      if (window.location.hash.includes('access_token=') || window.location.hash.includes('type=signup') || window.location.hash.includes('type=recovery')) {
+        try {
+          window.history.replaceState(null, '', window.location.pathname);
+        } catch (e) {}
+      }
+    }
+  }, []);
 
   // Keep localStorage in sync
   useEffect(() => {

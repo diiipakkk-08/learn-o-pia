@@ -297,8 +297,7 @@ export const getUserDesignation = (user) => {
 const mapProfile = (dbProfile) => {
   if (!dbProfile) return null;
   const isCompletedLocal = typeof window !== 'undefined' && dbProfile.id && localStorage.getItem(`learnopia_onboarding_done_${dbProfile.id}`) === 'true';
-  const hasDetails = !!(dbProfile.phone && dbProfile.college);
-  const isCompleted = dbProfile.onboarding_completed === true || (hasDetails && isCompletedLocal);
+  const isCompleted = dbProfile.onboarding_completed === true || isCompletedLocal;
   return {
     id: dbProfile.id,
     name: dbProfile.name || dbProfile.email?.split('@')[0] || 'User',
