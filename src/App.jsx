@@ -76,6 +76,15 @@ function AppContent() {
   });
   const [isNavLoading, setIsNavLoading] = useState(false);
 
+  // Local flag to instantly dismiss the onboarding modal after submission (before Supabase re-syncs)
+  // MUST be declared here (before any early returns) to satisfy React's Rules of Hooks
+  const [onboardingDone, setOnboardingDone] = useState(() => {
+    if (typeof window !== 'undefined' && currentUser?.id) {
+      return localStorage.getItem(`learnopia_onboarding_done_${currentUser?.id}`) === 'true';
+    }
+    return false;
+  });
+
   // Handle URL hash from Supabase Email Verification / OAuth redirects
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.hash) {
@@ -139,14 +148,6 @@ function AppContent() {
   const isCreatorOrAdmin = currentUser && (currentUser.role === 'creator' || currentUser.role === 'admin' || currentUser.role === 'owner');
   const isVerifiedCreator = currentUser && currentUser.role === 'creator' && currentUser.status === 'active';
   const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner');
-
-  // Local flag to instantly dismiss the onboarding modal after submission (before Supabase re-syncs)
-  const [onboardingDone, setOnboardingDone] = useState(() => {
-    if (typeof window !== 'undefined' && currentUser?.id) {
-      return localStorage.getItem(`learnopia_onboarding_done_${currentUser?.id}`) === 'true';
-    }
-    return false;
-  });
 
   const showOnboardingModal = !!currentUser && !currentUser.onboardingCompleted &&
     !(typeof window !== 'undefined' && localStorage.getItem(`learnopia_onboarding_done_${currentUser.id}`) === 'true') &&
