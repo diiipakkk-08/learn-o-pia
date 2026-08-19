@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { useDatabase, getUserDesignation } from '../context/DatabaseContext';
-import { User, Mail, Award, Shield, FileText, CheckCircle2, Clock, LogOut, Play, BookOpen, Lock, Edit3, Link as LinkIcon, Phone, Building, Sparkles, Check, AlertCircle, KeyRound, Scale } from 'lucide-react';
+import { User, Mail, Award, Shield, FileText, CheckCircle2, Clock, LogOut, Play, BookOpen, Lock, Edit3, Link as LinkIcon, Phone, Building, Sparkles, Check, AlertCircle, KeyRound, Scale, Trash2, AlertTriangle } from 'lucide-react';
 import TermsModal from './TermsModal';
 
 export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
-  const { currentUser, courses, setPasswordForUser, updateUserProfile, logout } = useDatabase();
+  const { currentUser, courses, setPasswordForUser, updateUserProfile, logout, deleteUserAccount } = useDatabase();
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordBox, setShowPasswordBox] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   // Edit Profile Form State
   const [name, setName] = useState(currentUser?.name || '');
@@ -78,6 +80,23 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
     setNewPass('');
     setConfirmPass('');
     setTimeout(() => setPassMsg(''), 4000);
+  };
+
+  const handleConfirmDeleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      if (deleteUserAccount) {
+        await deleteUserAccount(currentUser?.id);
+      } else {
+        await logout();
+      }
+      if (setCurrentView) setCurrentView('dashboard');
+    } catch (err) {
+      console.error('[Delete Account Error]', err);
+    } finally {
+      setDeletingAccount(false);
+      setShowDeleteModal(false);
+    }
   };
 
   // Filter courses user has purchased/enrolled in
@@ -441,6 +460,70 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
           </div>
         </div>
       </div>
+
+      {/* FULL WIDTH DANGER ZONE: DELETE ACCOUNT */}
+      <div className="glass-panel" style={{ padding: '24px', marginTop: '24px', border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.03)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', textAlign: 'left' }}>
+        <div>
+          <h4 style={{ color: '#f87171', margin: 0, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Trash2 size={18} /> Danger Zone: Delete Account
+          </h4>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '6px 0 0 0' }}>
+            Permanently delete your account, enrolled courses, attendance routines, and learning progress. This action cannot be reversed.
+          </p>
+        </div>
+        <button onClick={() => setShowDeleteModal(true)} className="btn" style={{ background: '#ef4444', color: '#ffffff', fontWeight: 600, padding: '10px 18px', borderRadius: '12px', border: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Trash2 size={16} /> Delete Account
+        </button>
+      </div>
+
+      {/* CENTERED CRITICAL DELETE ACCOUNT WARNING MODAL */}
+      {showDeleteModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 10000, padding: '20px'
+        }} className="animate-fade-in">
+          <div className="glass-panel" style={{
+            maxWidth: '500px', width: '100%', padding: '28px', borderRadius: '24px',
+            border: '1px solid rgba(239, 68, 68, 0.5)', background: 'rgba(18, 14, 24, 0.95)', textAlign: 'left'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+              <div style={{ background: 'rgba(239, 68, 68, 0.2)', padding: '10px', borderRadius: '14px' }}>
+                <AlertTriangle size={28} color="#ef4444" />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>Permanently Delete Account?</h3>
+                <span style={{ fontSize: '0.8rem', color: '#f87171', fontWeight: 600 }}>⚠️ Irreversible Action</span>
+              </div>
+            </div>
+
+            <div style={{
+              padding: '14px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.25)', color: 'var(--text-secondary)',
+              fontSize: '0.83rem', lineHeight: 1.6, marginBottom: '18px'
+            }}>
+              Deleting your account will <strong>PERMANENTLY ERASE all your profile details, enrolled courses, attendance routines, and discussion records</strong>.
+              <br /><br />
+              🚨 You will be logged out immediately and will NOT be able to recover this data.
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
+                Cancel & Keep Account
+              </button>
+              <button
+                onClick={handleConfirmDeleteAccount}
+                disabled={deletingAccount}
+                className="btn"
+                style={{ background: '#ef4444', color: '#ffffff', fontWeight: 700, padding: '10px 18px', borderRadius: '12px', border: 'none', display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <Trash2 size={16} /> {deletingAccount ? 'Deleting...' : 'Yes, Permanently Delete My Account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

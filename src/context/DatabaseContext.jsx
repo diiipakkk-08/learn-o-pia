@@ -1022,6 +1022,43 @@ export function DatabaseProvider({ children }) {
     return { success: true, user: updatedUser };
   };
 
+  const deleteUserAccount = async (userId) => {
+    const idToDelete = userId || currentUser?.id;
+    if (!idToDelete) return { success: false, error: 'No user ID' };
+
+    // 1. Delete from local state
+    setUsers(prev => {
+      const next = prev.filter(u => u.id !== idToDelete);
+      localStorage.setItem('learnopia_users_stable', JSON.stringify(next));
+      return next;
+    });
+
+    // 2. Remove all user-scoped localStorage keys
+    try {
+      localStorage.removeItem(`learnopia_onboarding_done_${idToDelete}`);
+      localStorage.removeItem(`learnopia_attendance_routine_${idToDelete}`);
+      localStorage.removeItem(`learnopia_attendance_logs_${idToDelete}`);
+      localStorage.removeItem(`learnopia_archived_semesters_${idToDelete}`);
+      localStorage.removeItem(`learnopia_semester_start_${idToDelete}`);
+    } catch (e) {}
+
+    // 3. Delete from Supabase tables
+    if (isSupabaseLive) {
+      try {
+        await supabase.from('profiles').delete().eq('id', idToDelete);
+        await supabase.from('user_routines').delete().eq('user_id', idToDelete);
+        await supabase.from('user_attendance_logs').delete().eq('user_id', idToDelete);
+        await supabase.from('user_archived_semesters').delete().eq('user_id', idToDelete);
+      } catch (e) {
+        console.warn('[Supabase Delete User Error]', e);
+      }
+    }
+
+    // 4. Logout the user
+    await logout();
+    return { success: true };
+  };
+
   const adminVerifyUser = async (userId, newStatus) => {
     const isVerified = newStatus === 'verified';
     if (isSupabaseLive) {
@@ -2127,6 +2164,58 @@ export function DatabaseProvider({ children }) {
     }
   };
 
+  // ── SUPABASE DISCUSSIONS PERSISTENCE HELPERS ──
+  const saveDiscussionThreadsToDb = async (threadsData) => {
+    if (isSupabaseLive) {
+      try {
+        const { data: existing } = await supabase
+          .from('discussion_threads')
+          .select('id')
+          .eq('id', 'global_threads')
+          .maybeSingle();
+
+        if (existing) {
+          const { error } = await supabase
+            .from('discussion_threads')
+            .update({
+              threads_json: threadsData,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', 'global_threads');
+          if (error) console.error('[Supabase Discussion Threads Update Error]', error.message);
+        } else {
+          const { error } = await supabase
+            .from('discussion_threads')
+            .insert([{
+              id: 'global_threads',
+              threads_json: threadsData,
+              updated_at: new Date().toISOString()
+            }]);
+          if (error) console.error('[Supabase Discussion Threads Insert Error]', error.message);
+        }
+      } catch (e) {
+        console.warn('[Supabase Discussions Sync Error]', e);
+      }
+    }
+  };
+
+  const getDiscussionThreadsFromDb = async () => {
+    if (isSupabaseLive) {
+      try {
+        const { data, error } = await supabase
+          .from('discussion_threads')
+          .select('threads_json')
+          .eq('id', 'global_threads')
+          .maybeSingle();
+        if (error) console.error('[Supabase Discussion Threads Fetch Error]', error.message);
+        if (data && data.threads_json) return data.threads_json;
+      } catch (e) {
+        console.warn('[Supabase Discussion Threads Fetch Error]', e);
+      }
+    }
+    return null;
+  };
+
   return (
     <DatabaseContext.Provider value={{
       users,
@@ -2180,7 +2269,10 @@ export function DatabaseProvider({ children }) {
       getUserRoutineFromDb,
       saveUserLogsToDb,
       getUserLogsFromDb,
-      saveUserArchivesToDb
+      saveUserArchivesToDb,
+      saveDiscussionThreadsToDb,
+      getDiscussionThreadsFromDb,
+      deleteUserAccount
     }}>
       {children}
     </DatabaseContext.Provider>

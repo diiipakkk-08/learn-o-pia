@@ -127,15 +127,37 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
       </section>
 
       {/* Filter and Search Bar */}
-      <div style={styles.filterRow}>
-        <div style={styles.searchBox} className="glass-panel">
-          <Search size={18} color="var(--text-muted)" />
+      <div style={{ marginBottom: '24px', width: '100%' }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: '12px',
+          padding: '12px 18px',
+          borderRadius: '14px',
+          background: 'rgba(255, 255, 255, 0.03)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          boxSizing: 'border-box',
+          width: '100%',
+          textAlign: 'left'
+        }}>
+          <Search size={20} color="var(--text-muted)" style={{ flexShrink: 0 }} />
           <input
             type="text"
             placeholder={activeTab === 'courses' ? "Search degree programs or subjects..." : "Search open PDFs, notes, formula sheets..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={styles.searchInput}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#ffffff',
+              fontSize: '0.92rem',
+              width: '100%',
+              outline: 'none',
+              fontFamily: 'var(--font-body)',
+              padding: 0,
+              margin: 0
+            }}
           />
         </div>
       </div>

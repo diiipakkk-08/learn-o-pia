@@ -78,7 +78,8 @@ const DEFAULT_THREADS = [
 ];
 
 export default function DiscussionsView({ setCurrentView }) {
-  const { currentUser } = useDatabase();
+  const { currentUser, saveDiscussionThreadsToDb, getDiscussionThreadsFromDb } = useDatabase();
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const [threads, setThreads] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -114,11 +115,36 @@ export default function DiscussionsView({ setCurrentView }) {
 
   const activeDesignation = getUserDesignation(currentUser);
 
+  // Fetch Remote Discussion Threads from Supabase
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    let isMounted = true;
+    const fetchRemoteThreads = async () => {
+      try {
+        if (getDiscussionThreadsFromDb) {
+          const dbThreads = await getDiscussionThreadsFromDb();
+          if (dbThreads && Array.isArray(dbThreads) && isMounted) {
+            setThreads(dbThreads);
+          }
+        }
+      } catch (e) {
+        console.warn('[Discussions Sync Error]', e);
+      } finally {
+        if (isMounted) setIsLoaded(true);
+      }
+    };
+    fetchRemoteThreads();
+    return () => { isMounted = false; };
+  }, []);
+
+  // Sync to LocalStorage & Supabase
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isLoaded) {
       localStorage.setItem('learnopia_discord_threads', JSON.stringify(threads));
+      if (saveDiscussionThreadsToDb) {
+        saveDiscussionThreadsToDb(threads);
+      }
     }
-  }, [threads]);
+  }, [threads, isLoaded]);
 
   const activeThread = useMemo(() => {
     return threads.find((t) => t.id === activeThreadId) || threads[0];

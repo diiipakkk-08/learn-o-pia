@@ -2468,5 +2468,42 @@ a:hover {
   }
 }
 
+/* Custom Select Dropdown Dark Contrast Fix */
+select, select.form-input, .form-input select {
+  background-color: #121422 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+select option, select.form-input option {
+  background-color: #121422 !important;
+  color: #ffffff !important;
+  padding: 10px;
+}
+
+/* Global Mobile Responsiveness & Container Overflow Fixes */
+@media (max-width: 768px) {
+  html, body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+  }
+  
+  .glass-panel, .modal-card, .main-content {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    word-break: break-word !important;
+  }
+
+  h1 {
+    font-size: 1.75rem !important;
+  }
+  h2 {
+    font-size: 1.25rem !important;
+  }
+  h3 {
+    font-size: 1.05rem !important;
+  }
+}
+
 
 
