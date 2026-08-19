@@ -299,11 +299,12 @@ const mapProfile = (dbProfile) => {
   const isCompletedLocal = typeof window !== 'undefined' && dbProfile.id && localStorage.getItem(`learnopia_onboarding_done_${dbProfile.id}`) === 'true';
   return {
     id: dbProfile.id,
-    name: dbProfile.name,
-    username: dbProfile.username,
+    name: dbProfile.name || dbProfile.email?.split('@')[0] || 'User',
+    username: dbProfile.username || `@${(dbProfile.name || dbProfile.email?.split('@')[0] || 'user').toLowerCase().replace(/\s+/g, '')}`,
     email: dbProfile.email,
+    password: dbProfile.password || '',
     picture: dbProfile.picture || dbProfile.avatar_url,
-    phone: dbProfile.phone,
+    phone: dbProfile.phone || '',
     college: dbProfile.college || 'MAKAUT / University',
     department: dbProfile.department || 'CSE/IT',
     interests: dbProfile.interests || 'Programming, Physics, Mathematics',
@@ -316,8 +317,8 @@ const mapProfile = (dbProfile) => {
     isVerified: !!dbProfile.is_verified,
     verificationStatus: dbProfile.verification_status || 'none',
     verificationType: dbProfile.verification_type || 'student',
-    role: dbProfile.role,
-    status: dbProfile.status,
+    role: dbProfile.role || 'learner',
+    status: dbProfile.status || 'active',
     creatorStatus: dbProfile.creator_status,
     enrolledCourses: dbProfile.enrolled_courses || []
   };
@@ -473,8 +474,15 @@ export function DatabaseProvider({ children }) {
   const setPasswordForUser = async (userId, newPassword) => {
     if (isSupabaseLive) {
       try {
+        await supabase.auth.updateUser({ password: newPassword });
+      } catch (authErr) {
+        console.warn('[Supabase Auth Password Update]', authErr);
+      }
+      try {
         await supabase.from('profiles').update({ password: newPassword }).eq('id', userId);
-      } catch (e) {}
+      } catch (e) {
+        console.warn('[Supabase Profile Password Update]', e);
+      }
     }
     setUsers(prev => {
       const next = prev.map(u => u.id === userId ? { ...u, password: newPassword } : u);
@@ -733,18 +741,54 @@ export function DatabaseProvider({ children }) {
 
   const login = async (email, password) => {
     if (isSupabaseLive) {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.toLowerCase(),
-        password
-      });
-      if (error) {
-        throw new Error(error.message || 'Login failed. Please check your credentials.');
+      let authUser = null;
+      let loginErr = null;
+
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.toLowerCase(),
+          password
+        });
+        if (!error && data?.user) {
+          authUser = data.user;
+        } else {
+          loginErr = error;
+        }
+      } catch (e) {
+        loginErr = e;
+      }
+
+      // If Supabase Auth signInWithPassword didn't match (e.g. Google OAuth user who set a profile password),
+      // check if profiles table has matching email & password
+      if (!authUser) {
+        try {
+          const { data: matchedProfile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('email', email.toLowerCase())
+            .eq('password', password)
+            .maybeSingle();
+
+          if (matchedProfile) {
+            if (matchedProfile.status === 'suspended') {
+              throw new Error('Your account has been suspended by an administrator.');
+            }
+            const mapped = mapProfile(matchedProfile);
+            setCurrentUser(mapped);
+            addLog(`User logged in: ${mapped.name} (${mapped.role.toUpperCase()})`);
+            return mapped;
+          }
+        } catch (dbErr) {
+          console.warn('[Database Login Fallback Error]', dbErr);
+        }
+
+        throw new Error(loginErr?.message || 'Invalid email or password. Please check your credentials.');
       }
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', data.user.id)
+        .eq('id', authUser.id)
         .maybeSingle();
 
       if (profileError) {
@@ -752,13 +796,14 @@ export function DatabaseProvider({ children }) {
       }
 
       if (!profile) {
-        // Auto-create profile if missing
+        // Auto-create profile if missing (e.g. after deletion or initial signup)
         const newProfile = {
-          id: data.user.id,
+          id: authUser.id,
           email: email.toLowerCase(),
-          name: email.split('@')[0],
+          name: authUser.user_metadata?.full_name || email.split('@')[0],
           role: 'learner',
           status: 'active',
+          password: password || null,
           enrolled_courses: []
         };
         const { error: createError } = await supabase.from('profiles').insert([newProfile]);
