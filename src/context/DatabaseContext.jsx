@@ -286,16 +286,8 @@ const mapProfile = (dbProfile) => {
   if (!dbProfile) return null;
   const isOwner = dbProfile.role === 'owner' || dbProfile.email?.toLowerCase() === 'admin@learnopia.edu';
   const isCompletedLocal = typeof window !== 'undefined' && dbProfile.id && localStorage.getItem(`learnopia_onboarding_done_${dbProfile.id}`) === 'true';
-  let isCompleted = isOwner;
-  if (!isOwner) {
-    if (typeof dbProfile.onboarding_completed === 'boolean') {
-      isCompleted = dbProfile.onboarding_completed;
-    } else if (typeof dbProfile.onboardingCompleted === 'boolean') {
-      isCompleted = dbProfile.onboardingCompleted;
-    } else {
-      isCompleted = isCompletedLocal;
-    }
-  }
+  const isCompletedInDb = dbProfile.onboarding_completed === true || dbProfile.onboardingCompleted === true;
+  const isCompleted = isOwner || isCompletedInDb || isCompletedLocal;
   
   // Retrieve saved local profile cache if available to prevent field loss during partial syncs
   let localCache = {};
