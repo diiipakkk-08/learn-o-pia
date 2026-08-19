@@ -175,26 +175,27 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* TAB 2: Student ID Card Verification Queue */}
+          {/* TAB 2: Identity Document Verification Queue */}
           {activeTab === 'student-verify' && (
             <div style={styles.pane}>
-              <h3 style={styles.paneTitle}>Student ID Document Verification Queue</h3>
-              <p style={styles.paneSub}>Review student identity card Drive links and approve verified accounts to lock name/username.</p>
+              <h3 style={styles.paneTitle}>Identity Document Verification Queue</h3>
+              <p style={styles.paneSub}>Review submitted identity cards & document Drive links. Approving a user grants their official designation badge and locks their profile credentials.</p>
 
               <div style={styles.tableWrapper}>
                 {pendingStudentVerifications.length === 0 ? (
                   <div style={styles.emptyVerification}>
                     <CheckCircle2 size={36} color="var(--success)" style={{ marginBottom: '8px' }} />
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>All Student IDs Reviewed</p>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>No student verification requests pending.</p>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Queue Clear</p>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>No identity verification requests currently awaiting review.</p>
                   </div>
                 ) : (
                   <table style={styles.table}>
                     <thead>
                       <tr style={styles.tableRowHead}>
-                        <th style={styles.th}>Student Name & Username</th>
-                        <th style={styles.th}>College / Dept</th>
-                        <th style={styles.th}>ID Card Document Link</th>
+                        <th style={styles.th}>Applicant</th>
+                        <th style={styles.th}>Type & Institution</th>
+                        <th style={styles.th}>Contact</th>
+                        <th style={styles.th}>Submitted Document</th>
                         <th style={styles.th}>Actions</th>
                       </tr>
                     </thead>
@@ -204,10 +205,17 @@ export default function AdminDashboard() {
                           <td style={styles.td}>
                             <strong>{student.name}</strong>
                             <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>{student.username || '@user'}</span>
+                            <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{student.email}</span>
                           </td>
                           <td style={styles.td}>
-                            <span style={{ fontSize: '0.8rem', color: '#ffffff' }}>{student.college || 'MAKAUT'}</span>
-                            <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)' }}>{student.department || 'CSE'}</span>
+                            <span className="badge badge-learner" style={{ fontSize: '0.65rem', marginBottom: '4px', display: 'inline-block' }}>
+                              {student.verificationType === 'professor' ? '👨‍🏫 Professor' : student.verificationType === 'creator' ? '✨ Creator' : '🎓 Student'}
+                            </span>
+                            <span style={{ display: 'block', fontSize: '0.8rem', color: '#ffffff' }}>{student.college || 'Institution not set'}</span>
+                            <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)' }}>{student.department || ''}</span>
+                          </td>
+                          <td style={styles.td}>
+                            <span style={{ fontSize: '0.8rem', color: '#ffffff' }}>{student.phone || 'No phone'}</span>
                           </td>
                           <td style={styles.td}>
                             {student.idCardLink ? (
@@ -216,7 +224,7 @@ export default function AdminDashboard() {
                                 target="_blank"
                                 rel="noreferrer"
                                 className="btn btn-secondary btn-sm"
-                                style={{ padding: '4px 10px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                style={{ padding: '4px 10px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--primary)' }}
                               >
                                 <ExternalLink size={13} /> View ID Link ↗
                               </a>
@@ -231,7 +239,7 @@ export default function AdminDashboard() {
                                 className="btn btn-primary"
                                 style={{ padding: '6px 12px', fontSize: '0.75rem', gap: '4px', background: 'var(--success)' }}
                               >
-                                <Check size={12} /> Verify Student
+                                <Check size={12} /> Approve & Verify
                               </button>
                               <button
                                 onClick={() => adminVerifyUser(student.id, 'rejected')}

@@ -297,6 +297,8 @@ export const getUserDesignation = (user) => {
 const mapProfile = (dbProfile) => {
   if (!dbProfile) return null;
   const isCompletedLocal = typeof window !== 'undefined' && dbProfile.id && localStorage.getItem(`learnopia_onboarding_done_${dbProfile.id}`) === 'true';
+  const hasDetails = !!(dbProfile.phone && dbProfile.college);
+  const isCompleted = dbProfile.onboarding_completed === true || (hasDetails && isCompletedLocal);
   return {
     id: dbProfile.id,
     name: dbProfile.name || dbProfile.email?.split('@')[0] || 'User',
@@ -305,17 +307,20 @@ const mapProfile = (dbProfile) => {
     password: dbProfile.password || '',
     picture: dbProfile.picture || dbProfile.avatar_url,
     phone: dbProfile.phone || '',
-    college: dbProfile.college || 'MAKAUT / University',
-    department: dbProfile.department || 'CSE/IT',
-    interests: dbProfile.interests || 'Programming, Physics, Mathematics',
+    college: dbProfile.college || '',
+    department: dbProfile.department || '',
+    courseName: dbProfile.course_name || '',
+    joiningYear: dbProfile.joining_year || '2023',
+    passingYear: dbProfile.passing_year || '2027',
+    totalSemesters: dbProfile.total_semesters || 8,
+    interests: dbProfile.interests || '',
     educationLevel: dbProfile.education_level || 'college',
-    passingYear: dbProfile.passing_year || '2028',
     dob: dbProfile.dob || '',
     targetExam: dbProfile.target_exam || '',
-    onboardingCompleted: dbProfile.onboarding_completed || isCompletedLocal || false,
+    onboardingCompleted: isCompleted,
     idCardLink: dbProfile.id_card_link || '',
     isVerified: !!dbProfile.is_verified,
-    verificationStatus: dbProfile.verification_status || 'none',
+    verificationStatus: dbProfile.verification_status || (dbProfile.is_verified ? 'verified' : (dbProfile.id_card_link ? 'pending' : 'none')),
     verificationType: dbProfile.verification_type || 'student',
     role: dbProfile.role || 'learner',
     status: dbProfile.status || 'active',
@@ -661,11 +666,14 @@ export function DatabaseProvider({ children }) {
             name: user.user_metadata?.full_name || user.email.split('@')[0],
             role: 'learner',
             status: 'active',
+            onboarding_completed: false,
             enrolled_courses: []
           };
-          await supabase.from('profiles').insert([newProfile]);
+          try {
+            await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
+          } catch (e) {}
           dbProfile = newProfile;
-          addLog(`New user registered via Google: ${newProfile.name}`);
+          addLog(`New user registered: ${newProfile.name}`);
         }
         
         const mapped = mapProfile(dbProfile);

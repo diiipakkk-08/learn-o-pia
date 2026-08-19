@@ -109,8 +109,7 @@ function AppContent() {
   const isVerifiedCreator = currentUser && currentUser.role === 'creator' && currentUser.status === 'active';
   const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner');
 
-  const isCompletedLocal = typeof window !== 'undefined' && currentUser?.id && localStorage.getItem(`learnopia_onboarding_done_${currentUser.id}`) === 'true';
-  const showOnboardingModal = !!currentUser && !currentUser.onboardingCompleted && !isCompletedLocal;
+  const showOnboardingModal = !!currentUser && !currentUser.onboardingCompleted;
 
   return (
     <div className="app-container">

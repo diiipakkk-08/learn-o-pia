@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDatabase, getUserDesignation } from '../context/DatabaseContext';
-import { User, Mail, Award, Shield, FileText, CheckCircle2, Clock, LogOut, Play, BookOpen, Lock, Edit3, Link as LinkIcon, Phone, Building, Sparkles, Check, AlertCircle, KeyRound, Scale, Trash2, AlertTriangle } from 'lucide-react';
+import { User, Mail, Award, Shield, FileText, CheckCircle2, Clock, LogOut, Play, BookOpen, Lock, Edit3, Link as LinkIcon, Phone, Building, Sparkles, Check, AlertCircle, KeyRound, Scale, Trash2, AlertTriangle, GraduationCap, Calendar, ExternalLink } from 'lucide-react';
 import TermsModal from './TermsModal';
 
 const COUNTRY_CODES = [
@@ -443,14 +443,48 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
               <Phone size={15} color="var(--text-muted)" />
               <span style={{ fontSize: '0.85rem' }}>{currentUser.phone || 'Not provided'}</span>
             </div>
+            {currentUser.dob && (
+              <div style={styles.infoItem}>
+                <Calendar size={15} color="var(--text-muted)" />
+                <span style={{ fontSize: '0.85rem' }}>DOB: {currentUser.dob}</span>
+              </div>
+            )}
+            <div style={styles.infoItem}>
+              <GraduationCap size={15} color="var(--text-muted)" />
+              <span style={{ fontSize: '0.85rem' }}>
+                Level: <strong style={{ textTransform: 'capitalize' }}>{currentUser.educationLevel?.replace('_', ' ') || 'Undergraduate'}</strong>
+                {currentUser.courseName && ` · ${currentUser.courseName}`}
+              </span>
+            </div>
             <div style={styles.infoItem}>
               <Building size={15} color="var(--text-muted)" />
-              <span style={{ fontSize: '0.85rem' }}>{currentUser.college || 'MAKAUT / University'}</span>
+              <span style={{ fontSize: '0.85rem' }}>{currentUser.college || 'Institution not specified'}</span>
             </div>
+            {(currentUser.joiningYear || currentUser.passingYear) && (
+              <div style={styles.infoItem}>
+                <Clock size={15} color="var(--text-muted)" />
+                <span style={{ fontSize: '0.85rem' }}>
+                  Tenure: {currentUser.joiningYear || '2023'} – {currentUser.passingYear || '2027'} ({currentUser.totalSemesters || 8} Semesters)
+                </span>
+              </div>
+            )}
             <div style={styles.infoItem}>
               <Sparkles size={15} color="var(--text-muted)" />
-              <span style={{ fontSize: '0.85rem' }}>Interests: {currentUser.interests || 'Programming'}</span>
+              <span style={{ fontSize: '0.85rem' }}>Interests: {currentUser.interests || 'Programming & Technology'}</span>
             </div>
+            {currentUser.idCardLink && (
+              <div style={styles.infoItem}>
+                <LinkIcon size={15} color="var(--text-muted)" />
+                <a
+                  href={currentUser.idCardLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ fontSize: '0.82rem', color: 'var(--primary)', textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                >
+                  Submitted Document Link <ExternalLink size={12} />
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Verification Badge Box */}
@@ -462,16 +496,42 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
                   <CheckCircle2 size={16} /> Verified {currentUser.verificationType === 'professor' ? 'Professor (Prof.)' : currentUser.verificationType === 'creator' ? 'Creator (Creator.)' : 'Student (St.)'}
                 </div>
               ) : currentUser.verificationStatus === 'pending' ? (
-                <div style={{ color: '#f59e0b', fontWeight: 700, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Clock size={16} /> Verification Pending Admin Review
+                <div>
+                  <div style={{ color: '#f59e0b', fontWeight: 700, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Clock size={16} /> Verification Pending Admin Review
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                    Your document link was submitted and is currently in the verification queue for admin approval.
+                  </p>
                 </div>
               ) : currentUser.verificationStatus === 'rejected' ? (
-                <div style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <AlertCircle size={16} /> Verification Request Rejected (Click Edit Profile to re-apply)
+                <div>
+                  <div style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <AlertCircle size={16} /> Verification Request Canceled / Rejected
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '4px 0 8px 0' }}>
+                    Your previous verification document was rejected by an administrator. Please review your details and re-apply.
+                  </p>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '0.78rem', padding: '5px 10px', color: 'var(--primary)', borderColor: 'var(--primary)' }}
+                  >
+                    🔄 Re-apply for Verification
+                  </button>
                 </div>
               ) : (
-                <div style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
-                  Unverified Account (Click Edit Profile to submit verification document)
+                <div>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginBottom: 6 }}>
+                    Unverified Account
+                  </div>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '0.78rem', padding: '5px 10px' }}
+                  >
+                    🛡️ Apply for Verification
+                  </button>
                 </div>
               )}
             </div>
