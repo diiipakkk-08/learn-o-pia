@@ -1143,7 +1143,24 @@ export function DatabaseProvider({ children }) {
           .eq('id', userId);
 
         if (upErr) {
-          console.error('[Supabase Profile Update Error]', upErr.code, upErr.message);
+          console.warn('[Supabase Profile Update Error, retrying with core columns]:', upErr.message);
+          const corePayload = {
+            name: updatedUser.name,
+            username: updatedUser.username,
+            phone: updatedUser.phone || null,
+            college: updatedUser.college || null,
+            department: updatedUser.department || null,
+            interests: updatedUser.interests || null,
+            is_verified: !!updatedUser.isVerified,
+            id_card_link: updatedUser.idCardLink || null,
+            verification_status: updatedUser.verificationStatus || 'none'
+          };
+          const { error: coreErr } = await supabase.from('profiles').update(corePayload).eq('id', userId);
+          if (coreErr) {
+            console.error('[Supabase Core Update Error]:', coreErr.message);
+          } else {
+            console.log('✅ [Supabase Core Profile Updated Successfully]:', userId);
+          }
         } else {
           console.log('✅ [Supabase Profile Updated Successfully]:', userId);
         }

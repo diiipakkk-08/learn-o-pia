@@ -31,7 +31,7 @@ export default function OnboardingModal({ isOpen, onComplete }) {
   const [step, setStep] = useState(1);
 
   // Step 1: Personal Details
-  const [fullName, setFullName] = useState(currentUser?.name || currentUser?.username || '');
+  const [fullName, setFullName] = useState(currentUser?.name || '');
   const [countryCode, setCountryCode] = useState('+91');
   const [phoneNumber, setPhoneNumber] = useState(() => {
     if (currentUser?.phone) {
@@ -39,15 +39,15 @@ export default function OnboardingModal({ isOpen, onComplete }) {
     }
     return '';
   });
-  const [dob, setDob] = useState(currentUser?.dob || '2004-05-15');
+  const [dob, setDob] = useState(currentUser?.dob || '');
 
   // Step 2: Academic Details
   const [educationLevel, setEducationLevel] = useState(currentUser?.educationLevel || 'college');
-  const [courseName, setCourseName] = useState(currentUser?.courseName || 'B.Tech Computer Science');
+  const [courseName, setCourseName] = useState(currentUser?.courseName || '');
   const [institutionName, setInstitutionName] = useState(currentUser?.college || '');
   const [joiningYear, setJoiningYear] = useState(currentUser?.joiningYear || '2023');
   const [passingYear, setPassingYear] = useState(currentUser?.passingYear || '2027');
-  const [interests, setInterests] = useState(currentUser?.interests || 'Programming, Physics & AI');
+  const [interests, setInterests] = useState(currentUser?.interests || '');
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -75,6 +75,11 @@ export default function OnboardingModal({ isOpen, onComplete }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (!courseName.trim()) {
+      setError('Please enter your Course or Stream name.');
+      return;
+    }
 
     if (!institutionName.trim()) {
       setError('Please enter your School, College, or University name.');
@@ -156,7 +161,7 @@ export default function OnboardingModal({ isOpen, onComplete }) {
               {step === 1 ? 'Step 1: Personal Details' : 'Step 2: Academic Details'}
             </h2>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>
-              {step === 1 ? 'Provide your basic contact information.' : 'Tell us about your educational background.'}
+              {step === 1 ? 'Provide your real contact information.' : 'Tell us about your educational background.'}
             </p>
           </div>
         </div>
@@ -180,6 +185,9 @@ export default function OnboardingModal({ isOpen, onComplete }) {
                 onChange={(e) => setFullName(e.target.value)}
                 required
               />
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                e.g. Deepak Shaw
+              </span>
             </div>
 
             <div>
@@ -209,6 +217,9 @@ export default function OnboardingModal({ isOpen, onComplete }) {
                   style={{ flex: 1 }}
                 />
               </div>
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                e.g. 9876543210
+              </span>
             </div>
 
             <div>
@@ -220,6 +231,9 @@ export default function OnboardingModal({ isOpen, onComplete }) {
                 onChange={(e) => setDob(e.target.value)}
                 required
               />
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                Select your birth date
+              </span>
             </div>
 
             <button
@@ -250,11 +264,14 @@ export default function OnboardingModal({ isOpen, onComplete }) {
               <input
                 type="text"
                 className="form-input"
-                placeholder="e.g. B.Tech CS, Science Stream, B.Sc Physics"
+                placeholder="Enter course or stream name"
                 value={courseName}
                 onChange={(e) => setCourseName(e.target.value)}
                 required
               />
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                e.g. B.Tech Computer Science, Class 12 Science, B.Sc Physics
+              </span>
             </div>
 
             <div>
@@ -264,11 +281,14 @@ export default function OnboardingModal({ isOpen, onComplete }) {
               <input
                 type="text"
                 className="form-input"
-                placeholder={educationLevel.includes('school') ? 'e.g. St. Xavier Senior Secondary' : 'e.g. Heritage Institute of Technology / MAKAUT'}
+                placeholder={educationLevel.includes('school') ? 'Enter school name' : 'Enter college or university name'}
                 value={institutionName}
                 onChange={(e) => setInstitutionName(e.target.value)}
                 required
               />
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                {educationLevel.includes('school') ? 'e.g. St. Xavier Senior Secondary School' : 'e.g. Heritage Institute of Technology, MAKAUT Campus'}
+              </span>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -300,10 +320,13 @@ export default function OnboardingModal({ isOpen, onComplete }) {
               <input
                 type="text"
                 className="form-input"
-                placeholder="e.g. Programming, Artificial Intelligence, Web Dev"
+                placeholder="Enter academic interests or goals"
                 value={interests}
                 onChange={(e) => setInterests(e.target.value)}
               />
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                e.g. GATE 2026, Artificial Intelligence, Web Development
+              </span>
             </div>
 
             <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>

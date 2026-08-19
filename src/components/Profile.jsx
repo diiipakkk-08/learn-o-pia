@@ -70,13 +70,20 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
   const formattedDesignation = getUserDesignation(currentUser);
   const calculatedSemesters = Math.max(1, (parseInt(passingYear, 10) - parseInt(joiningYear, 10)) * 2);
 
-  const handleSaveProfile = async (e) => {
-    e.preventDefault();
+  const handleSaveProfile = async (e, isRequestingVerification = false) => {
+    if (e && e.preventDefault) e.preventDefault();
     setSaveError('');
     setSaveSuccess('');
 
+    if (isRequestingVerification && !idCardLink.trim()) {
+      setSaveError('Please provide your ID card / Document Drive link to submit for verification.');
+      return;
+    }
+
     const fullPhone = phoneNumber.trim() ? `${countryCode} ${phoneNumber.trim()}` : (currentUser?.phone || '');
-    const isSubmittingVerif = idCardLink.trim() && (!currentUser.isVerified || currentUser.verificationStatus === 'rejected');
+    const newVerifStatus = isRequestingVerification 
+      ? 'pending' 
+      : (currentUser.isVerified ? 'verified' : (currentUser?.verificationStatus === 'pending' ? 'pending' : 'none'));
 
     const res = await updateUserProfile(currentUser.id, {
       name,
@@ -93,11 +100,13 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
       interests,
       verificationType,
       idCardLink,
-      verificationStatus: isSubmittingVerif ? 'pending' : (currentUser?.verificationStatus || 'none')
+      verificationStatus: newVerifStatus
     });
 
     if (res.success) {
-      setSaveSuccess('Profile details and verification request saved successfully!');
+      setSaveSuccess(isRequestingVerification 
+        ? 'Profile details and verification request submitted to admin successfully!' 
+        : 'Profile details saved successfully!');
       setIsEditing(false);
       setTimeout(() => setSaveSuccess(''), 3500);
     } else {
@@ -510,12 +519,29 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap' }}>
             <button type="button" className="btn btn-secondary" onClick={() => setIsEditing(false)}>
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">
-              Save Profile Details & Submit Verification
+
+            {!currentUser.isVerified && (
+              <button
+                type="button"
+                onClick={(e) => handleSaveProfile(e, false)}
+                className="btn btn-secondary"
+                style={{ borderColor: 'rgba(255,255,255,0.2)', color: '#ffffff' }}
+              >
+                💾 Save Details
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={(e) => handleSaveProfile(e, true)}
+              className="btn btn-primary"
+              style={{ gap: 6 }}
+            >
+              <Shield size={15} /> {currentUser.isVerified ? 'Save & Re-verify' : 'Save & Submit for Verification'}
             </button>
           </div>
         </form>
