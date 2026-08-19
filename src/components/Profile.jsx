@@ -53,9 +53,9 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
     }
     return '';
   });
-  const [dob, setDob] = useState(currentUser?.dob || '2004-05-15');
+  const [dob, setDob] = useState(currentUser?.dob || '');
   const [educationLevel, setEducationLevel] = useState(currentUser?.educationLevel || 'college');
-  const [courseName, setCourseName] = useState(currentUser?.courseName || 'B.Tech Computer Science');
+  const [courseName, setCourseName] = useState(currentUser?.courseName || '');
   const [college, setCollege] = useState(currentUser?.college || '');
   const [department, setDepartment] = useState(currentUser?.department || '');
   const [joiningYear, setJoiningYear] = useState(currentUser?.joiningYear || '2023');
@@ -63,6 +63,26 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
   const [interests, setInterests] = useState(currentUser?.interests || '');
   const [verificationType, setVerificationType] = useState(currentUser?.verificationType || 'student');
   const [idCardLink, setIdCardLink] = useState(currentUser?.idCardLink || '');
+
+  useEffect(() => {
+    if (currentUser) {
+      setName(currentUser.name || '');
+      setUsername(currentUser.username || '');
+      if (currentUser.phone) {
+        setPhoneNumber(currentUser.phone.replace(/^\+\d+\s*/, ''));
+      }
+      setDob(currentUser.dob || '');
+      setEducationLevel(currentUser.educationLevel || 'college');
+      setCourseName(currentUser.courseName || '');
+      setCollege(currentUser.college || '');
+      setDepartment(currentUser.department || '');
+      setJoiningYear(currentUser.joiningYear || '2023');
+      setPassingYear(currentUser.passingYear || '2027');
+      setInterests(currentUser.interests || '');
+      setVerificationType(currentUser.verificationType || 'student');
+      setIdCardLink(currentUser.idCardLink || '');
+    }
+  }, [currentUser]);
 
   // Password Management State
   const [newPass, setNewPass] = useState('');
@@ -725,78 +745,65 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
       </div>
 
       {isMobile && (
-        <div className="glass-panel" style={{ ...styles.mobileNavSection, marginTop: '24px' }}>
-          <button
-            onClick={() => setShowNavMenu(!showNavMenu)}
-            style={styles.mobileNavToggle}
-          >
-            <span style={{ fontWeight: 600, color: '#ffffff', fontSize: '0.9rem' }}>Quick Navigation</span>
-            {showNavMenu ? <ChevronUp size={20} color="#a78bfa" /> : <ChevronDown size={20} color="#a78bfa" />}
-          </button>
-          {showNavMenu && (
-            <div style={styles.mobileNavMenu}>
+        <div className="glass-panel" style={{ padding: '20px', marginTop: '24px', textAlign: 'left' }}>
+          <h3 style={{ fontSize: '1rem', color: '#ffffff', marginBottom: '14px', fontWeight: 700 }}>
+            Account Quick Navigation
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <button
+              onClick={() => setCurrentView('learning')}
+              style={styles.mobileNavItem}
+            >
+              <BookOpen size={20} color="var(--primary)" />
+              <span>Learning Dashboard</span>
+            </button>
+            <button
+              onClick={() => setCurrentView('attendance')}
+              style={styles.mobileNavItem}
+            >
+              <Calendar size={20} color="#10b981" />
+              <span>Attendance Tracker</span>
+            </button>
+            <button
+              onClick={() => setCurrentView('discussions')}
+              style={styles.mobileNavItem}
+            >
+              <MessageSquare size={20} color="#f59e0b" />
+              <span>Discussions Stream</span>
+            </button>
+            {((currentUser.role === 'creator' && currentUser.status === 'active') || currentUser.role === 'admin' || currentUser.role === 'owner') && (
               <button
-                onClick={() => setCurrentView('learning')}
+                onClick={() => setCurrentView('studio')}
                 style={styles.mobileNavItem}
               >
-                <BookOpen size={20} color="var(--primary)" />
-                <span>Learning Dashboard</span>
+                <Sparkles size={20} color="#a78bfa" />
+                <span>Creator Studio Workspace</span>
               </button>
+            )}
+            {(currentUser.role === 'admin' || currentUser.role === 'owner') && (
               <button
-                onClick={() => setCurrentView('attendance')}
+                onClick={() => setCurrentView('admin')}
                 style={styles.mobileNavItem}
               >
-                <Calendar size={20} color="#10b981" />
-                <span>Attendance Tracker</span>
+                <Shield size={20} color="#ef4444" />
+                <span>Admin Management Panel</span>
               </button>
-              <button
-                onClick={() => setCurrentView('discussions')}
-                style={styles.mobileNavItem}
-              >
-                <MessageSquare size={20} color="#f59e0b" />
-                <span>Discussions</span>
-              </button>
-              {(currentUser.role === 'creator' && currentUser.status === 'active') || currentUser.role === 'admin' || currentUser.role === 'owner' ? (
-                <button
-                  onClick={() => setCurrentView('studio')}
-                  style={styles.mobileNavItem}
-                >
-                  <Sparkles size={20} color="#a78bfa" />
-                  <span>Creator Studio</span>
-                </button>
-              ) : null}
-              {(currentUser.role === 'admin' || currentUser.role === 'owner') ? (
-                <button
-                  onClick={() => setCurrentView('admin')}
-                  style={styles.mobileNavItem}
-                >
-                  <Shield size={20} color="#ef4444" />
-                  <span>Admin Panel</span>
-                </button>
-              ) : null}
-              <button
-                onClick={() => setCurrentView('about')}
-                style={styles.mobileNavItem}
-              >
-                <Info size={20} color="var(--text-secondary)" />
-                <span>About Learn-o-pia</span>
-              </button>
-              <button
-                onClick={() => setCurrentView('landing')}
-                style={styles.mobileNavItem}
-              >
-                <ExternalLink size={20} color="var(--text-muted)" />
-                <span>Landing Page</span>
-              </button>
-              <button
-                onClick={logout}
-                style={{ ...styles.mobileNavItem, color: '#ef4444', marginTop: '8px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}
-              >
-                <LogOut size={20} />
-                <span>Sign Out</span>
-              </button>
-            </div>
-          )}
+            )}
+            <button
+              onClick={() => setCurrentView('landing')}
+              style={styles.mobileNavItem}
+            >
+              <ExternalLink size={20} color="var(--text-muted)" />
+              <span>About & Landing Page</span>
+            </button>
+            <button
+              onClick={logout}
+              style={{ ...styles.mobileNavItem, color: '#ef4444', marginTop: '8px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}
+            >
+              <LogOut size={20} />
+              <span>Sign Out</span>
+            </button>
+          </div>
         </div>
       )}
 

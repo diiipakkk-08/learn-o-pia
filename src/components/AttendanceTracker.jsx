@@ -774,25 +774,28 @@ export default function AttendanceTracker({ setCurrentView }) {
           </div>
 
           {/* Current Routine View (Sorted Chronologically) */}
-          <div className="glass-panel" style={{ padding: isMobile ? '16px' : '20px' }}>
-            <h3 style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', margin: '0 0 14px 0', color: '#ffffff' }}>Weekly Timetable Schedule (Sorted Chronologically)</h3>
+          <div className="glass-panel" style={{ padding: isMobile ? '16px' : '20px', maxWidth: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
+            <h3 style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', margin: '0 0 14px 0', color: '#ffffff' }}>Weekly Timetable Schedule</h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {DAYS_OF_WEEK.map((d) => {
                 const dayClasses = sortClassesByTime(routine[d] || []);
                 return (
-                  <div key={d} style={{ padding: isMobile ? '8px 12px' : '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div key={d} style={{ padding: isMobile ? '10px 12px' : '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', width: '100%', boxSizing: 'border-box' }}>
                     <strong style={{ color: 'var(--primary)', fontSize: isMobile ? '0.8rem' : '0.85rem' }}>{d} ({dayClasses.length} classes)</strong>
 
                     {dayClasses.length === 0 ? (
                       <span style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: 2 }}>No classes</span>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '4px' : '6px', marginTop: 4 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: 6 }}>
                         {dayClasses.map((c) => (
-                          <div key={c.id} style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: isMobile ? 'space-between' : 'space-between', gap: isMobile ? '4px' : 0, fontSize: isMobile ? '0.75rem' : '0.8rem', color: '#ffffff' }}>
-                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.subject} ({c.startTime} - {c.endTime})</span>
-                            <button onClick={() => handleDeleteRoutineClass(d, c.id)} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: isMobile ? '4px' : 0, marginTop: isMobile ? '4px' : 0 }}>
-                              <Trash2 size={isMobile ? 12 : 13} />
+                          <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: isMobile ? '0.78rem' : '0.82rem', color: '#ffffff', width: '100%', boxSizing: 'border-box' }}>
+                            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                              <span style={{ fontWeight: 600, color: '#ffffff', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.subject}</span>
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>{c.startTime} - {c.endTime} {c.room ? `· ${c.room}` : ''}</span>
+                            </div>
+                            <button onClick={() => handleDeleteRoutineClass(d, c.id)} title="Delete class" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', cursor: 'pointer', padding: '6px', borderRadius: '6px', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Trash2 size={14} />
                             </button>
                           </div>
                         ))}

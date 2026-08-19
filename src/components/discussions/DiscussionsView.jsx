@@ -19,7 +19,10 @@ import {
   CheckCircle2,
   ArrowLeft,
   ChevronLeft,
-  MoreHorizontal
+  MoreHorizontal,
+  X,
+  LogOut,
+  Info
 } from 'lucide-react';
 
 const DEFAULT_THREADS = [
@@ -80,7 +83,7 @@ const DEFAULT_THREADS = [
     ]
   }
 ];
- 
+
 const styles = {
   container: {
     maxWidth: '1400px',
@@ -123,9 +126,25 @@ export default function DiscussionsView({ setCurrentView }) {
     return DEFAULT_THREADS;
   });
 
+  const userId = currentUser?.id || 'guest';
+  const joinedKey = `learnopia_joined_threads_${userId}`;
+
+  // Joined thread IDs state
+  const [joinedThreadIds, setJoinedThreadIds] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(joinedKey);
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) {}
+      }
+    }
+    return ['thread-1'];
+  });
+
   const [activeThreadId, setActiveThreadId] = useState('thread-1');
   const [threadSearch, setThreadSearch] = useState('');
   const [mobileView, setMobileView] = useState('list'); // 'list' | 'chat'
+  const [viewMode, setViewMode] = useState('my_threads'); // 'my_threads' | 'search_public'
+  const [fabOpen, setFabOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
 
   useEffect(() => {
@@ -136,17 +155,28 @@ export default function DiscussionsView({ setCurrentView }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Join Private Thread Code State
+  // Sync Joined Threads to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(joinedKey, JSON.stringify(joinedThreadIds));
+    }
+  }, [joinedThreadIds, joinedKey]);
+
+  // Join Private Thread Code State & Modal
+  const [showJoinModal, setShowJoinModal] = useState(false);
   const [joinCodeInput, setJoinCodeInput] = useState('');
   const [joinMsg, setJoinMsg] = useState('');
   const [joinError, setJoinError] = useState('');
 
-  // Create Thread State
+  // Create Thread State & Modal
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showVerificationAlertModal, setShowVerificationAlertModal] = useState(false);
   const [newThreadName, setNewThreadName] = useState('');
   const [newThreadTitle, setNewThreadTitle] = useState('');
   const [isThreadPrivate, setIsThreadPrivate] = useState(false);
+
+  // Thread Details & Exit Modal State
+  const [showThreadDetailsModal, setShowThreadDetailsModal] = useState(false);
 
   // Message & Reply State
   const [messageText, setMessageText] = useState('');
@@ -196,8 +226,12 @@ export default function DiscussionsView({ setCurrentView }) {
   }, [threads]);
 
   const myThreads = useMemo(() => {
-    return threads.filter(t => t.author === activeDesignation || t.isPrivate);
-  }, [threads, activeDesignation]);
+    return threads.filter(t => 
+      joinedThreadIds.includes(t.id) || 
+      t.author === activeDesignation || 
+      t.messages?.some(m => m.sender === activeDesignation)
+    );
+  }, [threads, joinedThreadIds, activeDesignation]);
 
   const handleOpenCreateModal = () => {
     const canCreate = currentUser?.isVerified || currentUser?.role === 'creator' || currentUser?.role === 'admin' || currentUser?.role === 'owner';
@@ -209,7 +243,7 @@ export default function DiscussionsView({ setCurrentView }) {
   };
 
   const handleJoinThreadByCode = (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     setJoinMsg('');
     setJoinError('');
 
@@ -222,10 +256,18 @@ export default function DiscussionsView({ setCurrentView }) {
     const found = threads.find(t => t.code.toUpperCase() === codeToMatch);
 
     if (found) {
+      if (!joinedThreadIds.includes(found.id)) {
+        setJoinedThreadIds(prev => [...prev, found.id]);
+      }
       setActiveThreadId(found.id);
       setJoinMsg(`Joined thread #${found.name} successfully!`);
       setJoinCodeInput('');
-      setTimeout(() => setJoinMsg(''), 3000);
+      setTimeout(() => {
+        setJoinMsg('');
+        setShowJoinModal(false);
+        if (isMobile) setMobileView('chat');
+        setViewMode('my_threads');
+      }, 1200);
     } else {
       setJoinError('No thread found matching code ' + codeToMatch);
     }
@@ -267,16 +309,24 @@ export default function DiscussionsView({ setCurrentView }) {
     };
 
     setThreads([newThread, ...threads]);
+    setJoinedThreadIds(prev => [...prev, newThread.id]);
     setActiveThreadId(newThread.id);
     setShowCreateModal(false);
     setNewThreadName('');
     setNewThreadTitle('');
     setIsThreadPrivate(false);
+    if (isMobile) setMobileView('chat');
+    setViewMode('my_threads');
   };
 
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (!messageText.trim() || !activeThread) return;
+
+    // Auto-join thread on sending a message
+    if (!joinedThreadIds.includes(activeThread.id)) {
+      setJoinedThreadIds(prev => [...prev, activeThread.id]);
+    }
 
     const cleanSender = currentUser?.name || currentUser?.username || 'User';
     const isUserVerified = !!(currentUser?.isVerified || currentUser?.verificationStatus === 'verified');
@@ -309,6 +359,13 @@ export default function DiscussionsView({ setCurrentView }) {
     setReplyingToMessage(null);
   };
 
+  const handleExitThread = (threadId) => {
+    setJoinedThreadIds(prev => prev.filter(id => id !== threadId));
+    setShowThreadDetailsModal(false);
+    if (isMobile) setMobileView('list');
+    setViewMode('my_threads');
+  };
+
   const handleCopyCode = (code) => {
     if (typeof window !== 'undefined') {
       navigator.clipboard?.writeText(code);
@@ -317,7 +374,7 @@ export default function DiscussionsView({ setCurrentView }) {
     }
   };
 
-  // Handle thread selection on mobile - switch to chat view
+  // Handle thread selection
   const handleThreadSelect = (threadId) => {
     setActiveThreadId(threadId);
     if (isMobile) setMobileView('chat');
@@ -334,138 +391,148 @@ export default function DiscussionsView({ setCurrentView }) {
 
   const renderThreadList = () => (
     <div className="glass-panel" style={styles.sidebarCol}>
-      {/* 1. Join Thread with Code Box */}
-      <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: '8px' }}>
-          <Key size={13} /> Join Private Thread with Code
-        </span>
-        
-        <form onSubmit={handleJoinThreadByCode} style={{ display: 'flex', gap: '6px' }}>
-          <input
-            type="text"
-            className="form-input"
-            placeholder="e.g. DS-9182"
-            value={joinCodeInput}
-            onChange={(e) => setJoinCodeInput(e.target.value)}
-            style={{ fontSize: '0.8rem', padding: '6px 10px', flex: 1 }}
-          />
-          <button type="submit" className="btn btn-secondary btn-sm" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
-            Join
-          </button>
-        </form>
+      {/* Search Public Threads View */}
+      {viewMode === 'search_public' ? (
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Search size={15} /> Search All Public Threads
+            </span>
+            <button
+              onClick={() => setViewMode('my_threads')}
+              className="btn btn-secondary btn-sm"
+              style={{ padding: '3px 8px', fontSize: '0.72rem' }}
+            >
+              Back to My Threads
+            </button>
+          </div>
 
-        {joinMsg && <span style={{ fontSize: '0.72rem', color: '#10b981', marginTop: '4px', display: 'block' }}>{joinMsg}</span>}
-        {joinError && <span style={{ fontSize: '0.72rem', color: 'var(--error)', marginTop: '4px', display: 'block' }}>{joinError}</span>}
-      </div>
+          <div style={{ position: 'relative', marginBottom: '16px' }}>
+            <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: 10, top: 10 }} />
+            <input
+              type="text"
+              placeholder="Type to search public threads..."
+              value={threadSearch}
+              onChange={(e) => setThreadSearch(e.target.value)}
+              className="form-input"
+              style={{ fontSize: '0.82rem', padding: '6px 10px 6px 32px', width: '100%' }}
+              autoFocus
+            />
+          </div>
 
-      {/* 2. Thread Search Input */}
-      <div style={{ position: 'relative', marginBottom: '16px' }}>
-        <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: 10, top: 10 }} />
-        <input
-          type="text"
-          placeholder="Search threads..."
-          value={threadSearch}
-          onChange={(e) => setThreadSearch(e.target.value)}
-          className="form-input"
-          style={{ fontSize: '0.82rem', padding: '6px 10px 6px 32px', width: '100%' }}
-        />
-      </div>
-
-      {/* 3. VERTICAL LIST SECTION 1: PUBLIC THREADS */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: '8px', paddingBottom: '4px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <Globe size={13} color="var(--primary)" />
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Public Threads ({filteredPublicThreads.length})
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {filteredPublicThreads.length === 0 ? (
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: 8 }}>No public threads found matching "{threadSearch}".</span>
+            ) : (
+              filteredPublicThreads.map((thread) => {
+                const isActive = thread.id === activeThreadId;
+                const isJoined = joinedThreadIds.includes(thread.id);
+                return (
+                  <button
+                    key={thread.id}
+                    onClick={() => handleThreadSelect(thread.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justify: 'space-between',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      background: isActive ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.02)',
+                      border: isActive ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)',
+                      color: isActive ? '#ffffff' : 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                      <Hash size={15} color={isActive ? 'var(--primary)' : 'var(--text-muted)'} />
+                      <div>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', color: '#ffffff' }}>#{thread.name}</span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>{thread.title}</span>
+                      </div>
+                    </div>
+                    {isJoined ? (
+                      <span style={{ fontSize: '0.68rem', color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>Joined</span>
+                    ) : (
+                      <span style={{ fontSize: '0.68rem', color: 'var(--primary)', background: 'rgba(139,92,246,0.1)', padding: '2px 6px', borderRadius: '4px' }}>Explore</span>
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
         </div>
+      ) : (
+        /* My Threads View (WhatsApp Style Main List) */
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', paddingBottom: '6px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <MessageSquare size={14} /> My Joined Threads ({myThreads.length})
+            </span>
+            <button
+              onClick={() => setViewMode('search_public')}
+              style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+            >
+              <Search size={13} /> Search All
+            </button>
+          </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          {filteredPublicThreads.map((thread) => {
-            const isActive = thread.id === activeThreadId;
-            return (
-              <button
-                key={thread.id}
-                onClick={() => handleThreadSelect(thread.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  background: isActive ? 'rgba(139,92,246,0.15)' : 'transparent',
-                  border: isActive ? '1px solid var(--primary)' : '1px solid transparent',
-                  color: isActive ? '#ffffff' : 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  fontFamily: 'var(--font-heading)',
-                  transition: 'all 0.15s'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                  <Hash size={15} color={isActive ? 'var(--primary)' : 'var(--text-muted)'} />
-                  <span style={{ fontSize: '0.85rem', fontWeight: isActive ? 600 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {thread.name}
-                  </span>
-                </div>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)', padding: '2px 6px', borderRadius: '4px' }}>
-                  {thread.messages?.length || 0}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 4. VERTICAL LIST SECTION 2: MY THREADS & PRIVATE THREADS */}
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: '8px', paddingBottom: '4px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <User size={13} color="#f59e0b" />
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            My Threads & Private ({filteredMyThreads.length})
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          {filteredMyThreads.length === 0 ? (
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', paddingLeft: 8 }}>No joined private threads.</span>
-          ) : (
-            filteredMyThreads.map((thread) => {
-              const isActive = thread.id === activeThreadId;
-              return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {myThreads.length === 0 ? (
+              <div style={{ padding: '24px 12px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0 0 10px 0' }}>You haven't joined any discussion threads yet.</p>
                 <button
-                  key={thread.id}
-                  onClick={() => handleThreadSelect(thread.id)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    background: isActive ? 'rgba(245,158,11,0.15)' : 'transparent',
-                    border: isActive ? '1px solid #f59e0b' : '1px solid transparent',
-                    color: isActive ? '#ffffff' : 'var(--text-secondary)',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    fontFamily: 'var(--font-heading)',
-                    transition: 'all 0.15s'
-                  }}
+                  onClick={() => setViewMode('search_public')}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: '0.78rem' }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                    {thread.isPrivate ? <Lock size={14} color="#f59e0b" /> : <Hash size={14} color="var(--text-muted)" />}
-                    <span style={{ fontSize: '0.85rem', fontWeight: isActive ? 600 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {thread.name}
-                    </span>
-                  </div>
-                  <span style={{ fontSize: '0.7rem', color: '#f59e0b', background: 'rgba(245,158,11,0.1)', padding: '2px 6px', borderRadius: '4px' }}>
-                    {thread.code}
-                  </span>
+                  <Search size={13} /> Explore Public Threads
                 </button>
-              );
-            })
-          )}
+              </div>
+            ) : (
+              myThreads.map((thread) => {
+                const isActive = thread.id === activeThreadId;
+                const lastMsg = thread.messages && thread.messages.length > 0 ? thread.messages[thread.messages.length - 1] : null;
+                return (
+                  <button
+                    key={thread.id}
+                    onClick={() => handleThreadSelect(thread.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justify: 'space-between',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      background: isActive ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.02)',
+                      border: isActive ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)',
+                      color: isActive ? '#ffffff' : 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+                      <div style={{ width: 34, height: 34, borderRadius: '10px', background: thread.isPrivate ? 'rgba(245,158,11,0.15)' : 'rgba(139,92,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {thread.isPrivate ? <Lock size={16} color="#f59e0b" /> : <Hash size={16} color="var(--primary)" />}
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>#{thread.name}</span>
+                          {lastMsg && <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', flexShrink: 0 }}>{lastMsg.time}</span>}
+                        </div>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
+                          {lastMsg ? lastMsg.text : thread.title}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 
@@ -473,22 +540,30 @@ export default function DiscussionsView({ setCurrentView }) {
     <div className="glass-panel" style={styles.chatCol}>
       {activeThread ? (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          {/* Active Thread Bar Header - with back button on mobile */}
+          {/* Active Thread Bar Header - Clickable for Thread Info & Exit */}
           <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-            {isMobile && mobileView === 'chat' && (
+            {isMobile && (
               <button
                 onClick={() => setMobileView('list')}
                 style={{ background: 'none', border: 'none', padding: '8px', cursor: 'pointer', color: 'var(--text-secondary)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                title="Back to threads"
+                title="Back to threads list"
               >
                 <ChevronLeft size={22} />
               </button>
             )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+            
+            <div
+              onClick={() => setShowThreadDetailsModal(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0, cursor: 'pointer' }}
+              title="Click to view Thread Details & Exit options"
+            >
               <Hash size={22} color="var(--primary)" />
               <div style={{ minWidth: 0 }}>
-                <h3 style={{ fontSize: '1.1rem', margin: 0, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activeThread.name}</h3>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activeThread.title}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <h3 style={{ fontSize: '1.1rem', margin: 0, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>#{activeThread.name}</h3>
+                  <Info size={14} color="var(--text-muted)" />
+                </div>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>{activeThread.title}</span>
               </div>
             </div>
 
@@ -503,8 +578,8 @@ export default function DiscussionsView({ setCurrentView }) {
             </div>
           </div>
 
-          {/* Chat Messages Stream Area */}
-          <div style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Chat Messages Stream Area (Fixed Height, Internal Scrollbar) */}
+          <div style={{ flex: 1, height: '480px', maxHeight: 'calc(100vh - 280px)', minHeight: '350px', padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {activeThread.messages?.map((msg) => (
               <div key={msg.id} style={{ display: 'flex', gap: '12px', textAlign: 'left' }}>
                 <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
@@ -582,7 +657,7 @@ export default function DiscussionsView({ setCurrentView }) {
         </div>
       ) : (
         <div style={{ textAlign: 'center', padding: '60px' }}>
-          <p>Select a discussion thread from the sidebar.</p>
+          <p>Select a discussion thread from the list.</p>
         </div>
       )}
     </div>
@@ -609,11 +684,11 @@ export default function DiscussionsView({ setCurrentView }) {
         </button>
       </div>
 
-      {/* MOBILE VIEW: WhatsApp-style list/chat toggle */}
+      {/* WORKSPACE CONTENT: Mobile or Desktop Layout */}
       {(() => {
         if (isMobile) {
           return (
-            <div style={{ minHeight: '600px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ minHeight: '550px', display: 'flex', flexDirection: 'column' }}>
               {mobileView === 'list' ? (
                 <div style={{ flex: 1, overflow: 'auto' }}>
                   {renderThreadList()}
@@ -638,6 +713,199 @@ export default function DiscussionsView({ setCurrentView }) {
           );
         }
       })()}
+
+      {/* WHATSAPP-STYLE FLOATING ACTION BUTTON (FAB) WITH 3 EXPANDABLE CIRCLES */}
+      <div style={{
+        position: 'fixed',
+        bottom: isMobile ? '86px' : '30px',
+        right: '24px',
+        zIndex: 9999,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '12px'
+      }}>
+        {/* Expanded Stack of 3 Circular Actions */}
+        {fabOpen && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', marginBottom: '4px' }} className="animate-fade-in">
+            {/* Option 1: Search Public Threads */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ background: 'rgba(12, 13, 22, 0.9)', color: '#ffffff', padding: '4px 10px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 600, border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 4px 12px rgba(0,0,0,0.4)' }}>
+                Search Threads
+              </span>
+              <button
+                onClick={() => { setViewMode('search_public'); setFabOpen(false); if (isMobile) setMobileView('list'); }}
+                style={{
+                  width: '46px', height: '46px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                  border: 'none', color: '#ffffff', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 6px 16px rgba(99,102,241,0.5)'
+                }}
+                title="Search All Public Threads"
+              >
+                <Search size={20} />
+              </button>
+            </div>
+
+            {/* Option 2: Join Private Thread by Code */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ background: 'rgba(12, 13, 22, 0.9)', color: '#ffffff', padding: '4px 10px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 600, border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 4px 12px rgba(0,0,0,0.4)' }}>
+                Join Thread Code
+              </span>
+              <button
+                onClick={() => { setShowJoinModal(true); setFabOpen(false); }}
+                style={{
+                  width: '46px', height: '46px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                  border: 'none', color: '#ffffff', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 6px 16px rgba(245,158,11,0.5)'
+                }}
+                title="Join Private Thread with Code"
+              >
+                <Key size={20} />
+              </button>
+            </div>
+
+            {/* Option 3: Create Thread */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ background: 'rgba(12, 13, 22, 0.9)', color: '#ffffff', padding: '4px 10px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 600, border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 4px 12px rgba(0,0,0,0.4)' }}>
+                Create Thread
+              </span>
+              <button
+                onClick={() => { handleOpenCreateModal(); setFabOpen(false); }}
+                style={{
+                  width: '46px', height: '46px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  border: 'none', color: '#ffffff', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 6px 16px rgba(16,185,129,0.5)'
+                }}
+                title="Create a New Thread"
+              >
+                <Plus size={22} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Main Floating Trigger Button (+ / ×) */}
+        <button
+          onClick={() => setFabOpen(!fabOpen)}
+          style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            background: fabOpen ? '#ef4444' : 'linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%)',
+            border: 'none',
+            color: '#ffffff',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 10px 25px rgba(139, 92, 246, 0.6), 0 0 20px rgba(168, 85, 247, 0.4)',
+            transition: 'all 0.2s ease'
+          }}
+          title={fabOpen ? "Close menu" : "Add or Explore Threads"}
+        >
+          {fabOpen ? <X size={26} color="#ffffff" /> : <Plus size={26} color="#ffffff" />}
+        </button>
+      </div>
+
+      {/* JOIN THREAD BY CODE MODAL */}
+      {showJoinModal && (
+        <div className="modal-overlay">
+          <div className="glass-panel modal-card animate-fade-in" style={{ maxWidth: '400px', textAlign: 'left' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <h3 style={{ fontSize: '1.1rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Key size={18} color="#f59e0b" /> Enter Thread Access Code
+              </h3>
+              <button onClick={() => setShowJoinModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer' }}>×</button>
+            </div>
+
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '14px' }}>
+              Paste the 6-character thread code (e.g. <strong>DS-9182</strong> or <strong>PYQ-4410</strong>) to unlock and join the discussion.
+            </p>
+
+            <form onSubmit={handleJoinThreadByCode} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="e.g. DS-9182"
+                value={joinCodeInput}
+                onChange={(e) => setJoinCodeInput(e.target.value)}
+                required
+                style={{ fontSize: '0.9rem', padding: '10px' }}
+                autoFocus
+              />
+
+              {joinMsg && <span style={{ fontSize: '0.78rem', color: '#10b981' }}>{joinMsg}</span>}
+              {joinError && <span style={{ fontSize: '0.78rem', color: 'var(--error)' }}>{joinError}</span>}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 6 }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowJoinModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Join Thread</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* THREAD DETAILS & EXIT MODAL */}
+      {showThreadDetailsModal && activeThread && (
+        <div className="modal-overlay">
+          <div className="glass-panel modal-card animate-fade-in" style={{ maxWidth: '440px', textAlign: 'left' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '1.1rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Hash size={18} color="var(--primary)" /> Thread Information & Details
+              </h3>
+              <button onClick={() => setShowThreadDetailsModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer' }}>×</button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem' }}>
+              <div>
+                <strong style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'block' }}>THREAD HASHTAG</strong>
+                <span style={{ fontSize: '1.05rem', fontWeight: 700, color: '#ffffff' }}>#{activeThread.name}</span>
+              </div>
+
+              <div>
+                <strong style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'block' }}>TOPIC DESCRIPTION</strong>
+                <span style={{ color: 'var(--text-secondary)' }}>{activeThread.title}</span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <strong style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'block' }}>ACCESS CODE</strong>
+                  <span style={{ color: '#f59e0b', fontWeight: 700 }}>{activeThread.code}</span>
+                </div>
+
+                <div>
+                  <strong style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'block' }}>CREATED BY</strong>
+                  <span style={{ color: '#ffffff' }}>{activeThread.author}</span>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '10px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <button
+                  onClick={() => handleExitThread(activeThread.id)}
+                  className="btn btn-secondary btn-sm"
+                  style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)', gap: 6 }}
+                >
+                  <LogOut size={14} /> Exit & Leave Thread
+                </button>
+
+                <button
+                  onClick={() => setShowThreadDetailsModal(false)}
+                  className="btn btn-primary btn-sm"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* CREATE THREAD MODAL */}
       {showCreateModal && (

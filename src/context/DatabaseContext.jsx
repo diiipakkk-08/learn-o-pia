@@ -284,42 +284,53 @@ export const getUserDesignation = (user) => {
 
 const mapProfile = (dbProfile) => {
   if (!dbProfile) return null;
+  const isOwner = dbProfile.role === 'owner' || dbProfile.email?.toLowerCase() === 'admin@learnopia.edu';
   const isCompletedLocal = typeof window !== 'undefined' && dbProfile.id && localStorage.getItem(`learnopia_onboarding_done_${dbProfile.id}`) === 'true';
-  const isCompleted = dbProfile.onboarding_completed === true || isCompletedLocal;
+  const isCompleted = isOwner || dbProfile.onboarding_completed === true || dbProfile.onboardingCompleted === true || isCompletedLocal;
+  
+  // Retrieve saved local profile cache if available to prevent field loss during partial syncs
+  let localCache = {};
+  if (typeof window !== 'undefined' && dbProfile.id) {
+    try {
+      const cached = localStorage.getItem(`learnopia_profile_${dbProfile.id}`);
+      if (cached) localCache = JSON.parse(cached);
+    } catch (e) {}
+  }
+
   return {
     id: dbProfile.id,
-    name: dbProfile.name || dbProfile.email?.split('@')[0] || 'User',
-    username: dbProfile.username || `@${(dbProfile.name || dbProfile.email?.split('@')[0] || 'user').toLowerCase().replace(/\s+/g, '')}`,
+    name: dbProfile.name || localCache.name || dbProfile.email?.split('@')[0] || 'User',
+    username: dbProfile.username || localCache.username || `@${(dbProfile.name || dbProfile.email?.split('@')[0] || 'user').toLowerCase().replace(/\s+/g, '')}`,
     email: dbProfile.email,
-    password: dbProfile.password || '',
-    picture: dbProfile.picture || dbProfile.avatar_url,
-    phone: dbProfile.phone || '',
-    college: dbProfile.college || '',
-    department: dbProfile.department || '',
-    courseName: dbProfile.course_name || '',
-    joiningYear: dbProfile.joining_year || '2023',
-    passingYear: dbProfile.passing_year || '2027',
-    totalSemesters: dbProfile.total_semesters || 8,
-    interests: dbProfile.interests || '',
-    educationLevel: dbProfile.education_level || 'college',
-    dob: dbProfile.dob || '',
-    targetExam: dbProfile.target_exam || '',
+    password: dbProfile.password || localCache.password || '',
+    picture: dbProfile.picture || dbProfile.avatar_url || localCache.picture,
+    phone: dbProfile.phone || localCache.phone || '',
+    college: dbProfile.college || localCache.college || '',
+    department: dbProfile.department || localCache.department || '',
+    courseName: dbProfile.course_name || dbProfile.courseName || localCache.courseName || '',
+    joiningYear: dbProfile.joining_year || dbProfile.joiningYear || localCache.joiningYear || '2023',
+    passingYear: dbProfile.passing_year || dbProfile.passingYear || localCache.passingYear || '2027',
+    totalSemesters: dbProfile.total_semesters || dbProfile.totalSemesters || localCache.totalSemesters || 8,
+    interests: dbProfile.interests || localCache.interests || '',
+    educationLevel: dbProfile.education_level || dbProfile.educationLevel || localCache.educationLevel || 'college',
+    dob: dbProfile.dob || localCache.dob || '',
+    targetExam: dbProfile.target_exam || dbProfile.targetExam || localCache.targetExam || '',
     onboardingCompleted: isCompleted,
-    idCardLink: dbProfile.id_card_link || '',
-    isVerified: !!dbProfile.is_verified,
-    verificationStatus: dbProfile.verification_status || (dbProfile.is_verified ? 'verified' : (dbProfile.id_card_link ? 'pending' : 'none')),
-    verificationType: dbProfile.verification_type || 'student',
-    role: dbProfile.role || 'learner',
-    status: dbProfile.status || 'active',
-    creatorStatus: dbProfile.creator_status,
-    enrolledCourses: dbProfile.enrolled_courses || []
+    idCardLink: dbProfile.id_card_link || dbProfile.idCardLink || localCache.idCardLink || '',
+    isVerified: !!(dbProfile.is_verified || dbProfile.isVerified || localCache.isVerified),
+    verificationStatus: dbProfile.verification_status || dbProfile.verificationStatus || (dbProfile.is_verified ? 'verified' : ((dbProfile.id_card_link || dbProfile.idCardLink) ? 'pending' : 'none')),
+    verificationType: dbProfile.verification_type || dbProfile.verificationType || localCache.verificationType || 'student',
+    role: dbProfile.role || localCache.role || 'learner',
+    status: dbProfile.status || localCache.status || 'active',
+    creatorStatus: dbProfile.creator_status || localCache.creatorStatus,
+    enrolledCourses: dbProfile.enrolled_courses || dbProfile.enrolledCourses || localCache.enrolledCourses || []
   };
 };
 
 const SEED_USERS = [
-  { id: 'u-1', email: 'admin@learnopia.edu', name: 'Deepak Shaw', username: '@deepak_shaw', phone: '+91 9876543210', college: 'MAKAUT University', department: 'CSE/IT', interests: 'Computer Science, AI, Web Development', isVerified: true, verificationStatus: 'verified', verificationType: 'creator', role: 'owner', status: 'active', password: 'admin123', enrolledCourses: ['c-1'] },
-  { id: 'u-2', email: 'creator@learnopia.edu', name: 'Sarah Miller', username: '@sarah_miller', phone: '+91 9876543211', college: 'MAKAUT Campus', department: 'Physics', interests: 'Quantum Mechanics, Wave Optics', isVerified: true, verificationStatus: 'verified', verificationType: 'professor', role: 'creator', status: 'active', password: 'creator123', enrolledCourses: [] },
-  { id: 'u-3', email: 'learner@learnopia.edu', name: 'Alex Carter', username: '@alex_carter', phone: '+91 9876543212', college: 'Heritage Institute', department: 'CSE', interests: 'Data Structures, C Programming', isVerified: true, verificationStatus: 'verified', verificationType: 'student', role: 'learner', status: 'active', password: 'learner123', enrolledCourses: [] }
+  { id: 'u-1', email: 'admin@learnopia.edu', name: 'Deepak Shaw', username: '@deepak_shaw', phone: '+91 9876543210', college: 'MAKAUT University', department: 'CSE/IT', interests: 'Computer Science, AI, Web Development', isVerified: true, verificationStatus: 'verified', verificationType: 'creator', role: 'owner', status: 'active', password: 'admin123', onboardingCompleted: true, enrolledCourses: ['c-1'] },
+  { id: 'u-2', email: 'creator@learnopia.edu', name: 'Sarah Miller', username: '@sarah_miller', phone: '+91 9876543211', college: 'MAKAUT Campus', department: 'Physics', interests: 'Quantum Mechanics, Wave Optics', isVerified: true, verificationStatus: 'verified', verificationType: 'professor', role: 'creator', status: 'active', password: 'creator123', onboardingCompleted: false, enrolledCourses: [] },
+  { id: 'u-3', email: 'learner@learnopia.edu', name: 'Alex Carter', username: '@alex_carter', phone: '+91 9876543212', college: 'Heritage Institute', department: 'CSE', interests: 'Data Structures, C Programming', isVerified: true, verificationStatus: 'verified', verificationType: 'student', role: 'learner', status: 'active', password: 'learner123', onboardingCompleted: false, enrolledCourses: [] }
 ];
 
 const SEED_COURSES = [
@@ -1102,8 +1113,13 @@ export function DatabaseProvider({ children }) {
       ...userToUpdate,
       ...profileData,
       onboardingCompleted: true,
-      verificationStatus: profileData.idCardLink ? 'pending' : userToUpdate?.verificationStatus
+      verificationStatus: profileData.verificationStatus || (profileData.idCardLink ? 'pending' : userToUpdate?.verificationStatus || 'none')
     };
+
+    if (typeof window !== 'undefined' && userId) {
+      localStorage.setItem(`learnopia_onboarding_done_${userId}`, 'true');
+      localStorage.setItem(`learnopia_profile_${userId}`, JSON.stringify(updatedUser));
+    }
 
     setUsers(prev => {
       const next = prev.map(u => u.id === userId ? updatedUser : u);
@@ -1134,7 +1150,8 @@ export function DatabaseProvider({ children }) {
           target_exam: updatedUser.targetExam || null,
           onboarding_completed: true,
           id_card_link: updatedUser.idCardLink || null,
-          verification_status: updatedUser.verificationStatus || 'none'
+          verification_status: updatedUser.verificationStatus || 'none',
+          verification_type: updatedUser.verificationType || 'student'
         };
 
         const { error: upErr } = await supabase
@@ -1151,9 +1168,11 @@ export function DatabaseProvider({ children }) {
             college: updatedUser.college || null,
             department: updatedUser.department || null,
             interests: updatedUser.interests || null,
+            onboarding_completed: true,
             is_verified: !!updatedUser.isVerified,
             id_card_link: updatedUser.idCardLink || null,
-            verification_status: updatedUser.verificationStatus || 'none'
+            verification_status: updatedUser.verificationStatus || 'none',
+            verification_type: updatedUser.verificationType || 'student'
           };
           const { error: coreErr } = await supabase.from('profiles').update(corePayload).eq('id', userId);
           if (coreErr) {

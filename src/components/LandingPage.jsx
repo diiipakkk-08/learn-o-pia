@@ -29,6 +29,13 @@ import TermsModal from './TermsModal';
 export default function LandingPage({ setCurrentView, onOpenAuth }) {
   const { courses, currentUser } = useDatabase();
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Mouse Parallax 3D Effect State
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -76,29 +83,29 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
       <section style={{
         maxWidth: '1200px',
         margin: '0 auto',
-        padding: '70px 20px 40px 20px',
+        padding: isMobile ? '36px 16px 24px 16px' : '70px 20px 40px 20px',
         textAlign: 'center',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '24px'
+        gap: isMobile ? '16px' : '24px'
       }}>
         {/* Community Badge */}
         <div style={{
           display: 'inline-flex',
           alignItems: 'center',
           gap: '8px',
-          padding: '6px 18px',
+          padding: isMobile ? '4px 12px' : '6px 18px',
           borderRadius: '30px',
           background: 'rgba(139, 92, 246, 0.12)',
           border: '1px solid rgba(139, 92, 246, 0.3)',
           color: '#a78bfa',
-          fontSize: '0.85rem',
+          fontSize: isMobile ? '0.75rem' : '0.85rem',
           fontWeight: 700,
           letterSpacing: '0.04em'
         }}>
-          <Sparkles size={16} color="#a78bfa" />
-          <span>Universal Community Curation & Focus Learning Platform</span>
+          <Sparkles size={isMobile ? 14 : 16} color="#a78bfa" />
+          <span>Universal Community Curation & Focus Learning</span>
         </div>
 
         {/* 3D Main Headline */}
@@ -107,9 +114,9 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
           transition: 'transform 0.1s ease-out'
         }}>
           <h1 style={{
-            fontSize: '3.5rem',
+            fontSize: isMobile ? '1.8rem' : '3.5rem',
             fontWeight: 800,
-            lineHeight: 1.12,
+            lineHeight: 1.18,
             maxWidth: '960px',
             margin: '0 auto',
             background: 'linear-gradient(135deg, #ffffff 0%, #cbd5e1 40%, #8b5cf6 100%)',
@@ -122,7 +129,7 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
         </div>
 
         <p style={{
-          fontSize: '1.15rem',
+          fontSize: isMobile ? '0.92rem' : '1.15rem',
           color: 'var(--text-secondary, #9ca3af)',
           maxWidth: '840px',
           lineHeight: 1.6,
@@ -132,66 +139,66 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
         </p>
 
         {/* Dual Call To Actions */}
-        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '12px' }}>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '8px' }}>
           <button
             onClick={handleCourseClick}
             className="btn btn-primary"
             style={{
-              padding: '16px 36px',
-              fontSize: '1.05rem',
+              padding: isMobile ? '12px 20px' : '16px 36px',
+              fontSize: isMobile ? '0.9rem' : '1.05rem',
               fontWeight: 700,
-              borderRadius: '16px',
+              borderRadius: '14px',
               boxShadow: '0 10px 30px rgba(139, 92, 246, 0.4)',
-              gap: '10px'
+              gap: '8px'
             }}
           >
-            🚀 Explore Open Community Courses <ArrowRight size={18} />
+            🚀 Explore Open Courses <ArrowRight size={16} />
           </button>
 
           <button
             onClick={() => setCurrentView('studio')}
             className="btn btn-secondary"
             style={{
-              padding: '16px 30px',
-              fontSize: '1.05rem',
+              padding: isMobile ? '12px 20px' : '16px 30px',
+              fontSize: isMobile ? '0.9rem' : '1.05rem',
               fontWeight: 600,
-              borderRadius: '16px',
+              borderRadius: '14px',
               borderColor: 'rgba(255, 255, 255, 0.15)',
-              gap: '10px'
+              gap: '8px'
             }}
           >
-            <Sparkles size={18} color="#a78bfa" /> Curate & Sell a Course
+            <Sparkles size={16} color="#a78bfa" /> Curate & Sell a Course
           </button>
         </div>
 
         {/* Community Statistics Bar */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '20px',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+          gap: isMobile ? '12px' : '20px',
           width: '100%',
           maxWidth: '900px',
-          marginTop: '30px',
-          padding: '20px 24px',
+          marginTop: isMobile ? '16px' : '30px',
+          padding: isMobile ? '14px 16px' : '20px 24px',
           borderRadius: '20px',
           background: 'rgba(255, 255, 255, 0.02)',
           border: '1px solid rgba(255, 255, 255, 0.08)'
         }}>
           <div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#ffffff' }}>100% Free</div>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Community Open Access</span>
+            <div style={{ fontSize: isMobile ? '1.2rem' : '1.6rem', fontWeight: 800, color: '#ffffff' }}>100% Free</div>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Community Open Access</span>
           </div>
           <div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#34d399' }}>Zero Ads</div>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Pure Focus Theatre Player</span>
+            <div style={{ fontSize: isMobile ? '1.2rem' : '1.6rem', fontWeight: 800, color: '#34d399' }}>Zero Ads</div>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Pure Focus Theatre Player</span>
           </div>
           <div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#a78bfa' }}>Any Subject</div>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Coding, Skills & Academics</span>
+            <div style={{ fontSize: isMobile ? '1.2rem' : '1.6rem', fontWeight: 800, color: '#a78bfa' }}>Any Subject</div>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Coding & Academics</span>
           </div>
           <div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f59e0b' }}>Share & Sell</div>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Curator Revenue Engine</span>
+            <div style={{ fontSize: isMobile ? '1.2rem' : '1.6rem', fontWeight: 800, color: '#f59e0b' }}>Share & Sell</div>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Curator Revenue Engine</span>
           </div>
         </div>
       </section>
@@ -200,51 +207,59 @@ export default function LandingPage({ setCurrentView, onOpenAuth }) {
       <section style={{
         maxWidth: '1200px',
         margin: '0 auto',
-        padding: '50px 20px',
+        padding: isMobile ? '24px 16px' : '50px 20px',
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))',
-        gap: '24px'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+        gap: isMobile ? '16px' : '24px'
       }}>
         {/* Card 1: Universal Curation */}
         <div className="glass-panel" style={styles.featureCard}>
-          <div style={{ background: 'rgba(99, 102, 241, 0.15)', padding: '12px', borderRadius: '14px', width: 'fit-content' }}>
-            <Globe size={26} color="#6366f1" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ background: 'rgba(99, 102, 241, 0.15)', padding: '10px', borderRadius: '12px', flexShrink: 0 }}>
+              <Globe size={22} color="#6366f1" />
+            </div>
+            <h3 style={{ fontSize: '1.05rem', margin: 0, color: '#ffffff' }}>Universal Curation for Everyone</h3>
           </div>
-          <h3 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>Universal Curation for Everyone</h3>
-          <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
             Organize YouTube video series, PDF guides, and links into structured courses. Perfect for software engineering, self-development, business, or creative hobbies.
           </p>
         </div>
 
         {/* Card 2: Distraction Free Player */}
         <div className="glass-panel" style={styles.featureCard}>
-          <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '12px', borderRadius: '14px', width: 'fit-content' }}>
-            <Play size={26} color="#10b981" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '10px', borderRadius: '12px', flexShrink: 0 }}>
+              <Play size={22} color="#10b981" />
+            </div>
+            <h3 style={{ fontSize: '1.05rem', margin: 0, color: '#ffffff' }}>Distraction-Free Focus Stage</h3>
           </div>
-          <h3 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>Distraction-Free Focus Stage</h3>
-          <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
             Watch curated courses without YouTube recommendations, Shorts rabbit holes, or popups breaking your concentration.
           </p>
         </div>
 
         {/* Card 3: Community Discussions */}
         <div className="glass-panel" style={styles.featureCard}>
-          <div style={{ background: 'rgba(245, 158, 11, 0.15)', padding: '12px', borderRadius: '14px', width: 'fit-content' }}>
-            <MessageSquare size={26} color="#f59e0b" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ background: 'rgba(245, 158, 11, 0.15)', padding: '10px', borderRadius: '12px', flexShrink: 0 }}>
+              <MessageSquare size={22} color="#f59e0b" />
+            </div>
+            <h3 style={{ fontSize: '1.05rem', margin: 0, color: '#ffffff' }}>Community Threads & Code Joiner</h3>
           </div>
-          <h3 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>Community Threads & Code Joiner</h3>
-          <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
             Join public or private discussion streams (`DS-9182`), ask questions, reply directly to peers, and build learning communities.
           </p>
         </div>
 
         {/* Card 4: Creator Monetization & Donations */}
         <div className="glass-panel" style={styles.featureCard}>
-          <div style={{ background: 'rgba(236, 72, 153, 0.15)', padding: '12px', borderRadius: '14px', width: 'fit-content' }}>
-            <DollarSign size={26} color="#ec4899" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ background: 'rgba(236, 72, 153, 0.15)', padding: '10px', borderRadius: '12px', flexShrink: 0 }}>
+              <DollarSign size={22} color="#ec4899" />
+            </div>
+            <h3 style={{ fontSize: '1.05rem', margin: 0, color: '#ffffff' }}>Share Freely or Monetize Courses</h3>
           </div>
-          <h3 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>Share Freely or Monetize Courses</h3>
-          <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
             Share your curated learning paths freely with the community or offer paid access to monetize custom masterclasses and study notes.
           </p>
         </div>

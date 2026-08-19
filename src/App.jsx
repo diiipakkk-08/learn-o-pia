@@ -156,14 +156,11 @@ function AppContent() {
 
       {/* Main Container Viewport */}
       <main className="main-content">
-        {currentView === 'landing' && (
+        {(currentView === 'landing' || currentView === 'about') && (
           <LandingPage 
             setCurrentView={setCurrentView} 
             onOpenAuth={() => setCurrentView('auth')}
           />
-        )}
-        {currentView === 'about' && (
-          <About setCurrentView={setCurrentView} />
         )}
         {['results-404', 'discussions-404'].includes(currentView) && (
           <NotFound404 setCurrentView={setCurrentView} />

@@ -144,11 +144,11 @@ export default function Header({
               )}
 
               <button
-                onClick={() => setCurrentView('about')}
+                onClick={() => setCurrentView('landing')}
                 style={{
                   ...styles.navBtn,
-                  background: currentView === 'about' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                  color: currentView === 'about' ? '#ffffff' : 'var(--text-secondary)'
+                  background: (currentView === 'landing' || currentView === 'about') ? 'rgba(255,255,255,0.05)' : 'transparent',
+                  color: (currentView === 'landing' || currentView === 'about') ? '#ffffff' : 'var(--text-secondary)'
                 }}
               >
                 <Info size={15} /> About
@@ -162,29 +162,19 @@ export default function Header({
           {isMobile ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {currentUser ? (
-                <>
-                  <button
-                    onClick={() => setCurrentView('profile')}
-                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                    title="Profile"
-                  >
-                    {currentUser.picture ? (
-                      <img src={currentUser.picture} alt={currentUser.name} style={{ width: 34, height: 34, borderRadius: '50%', border: '1.5px solid var(--primary)' }} referrerPolicy="no-referrer" />
-                    ) : (
-                      <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%)', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem' }}>
-                        {avatarInitial}
-                      </div>
-                    )}
-                  </button>
-                  <button
-                    ref={mobileMenuRef}
-                    onClick={() => setShowMobileMenu(!showMobileMenu)}
-                    style={{ background: 'none', border: 'none', padding: '8px', cursor: 'pointer', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
-                    title="More Options"
-                  >
-                    {showMobileMenu ? <X size={22} color="#ffffff" /> : <MoreHorizontal size={22} />}
-                  </button>
-                </>
+                <button
+                  onClick={() => setCurrentView('profile')}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                  title="Profile & Settings"
+                >
+                  {currentUser.picture ? (
+                    <img src={currentUser.picture} alt={currentUser.name} style={{ width: 36, height: 36, borderRadius: '50%', border: '1.5px solid var(--primary)' }} referrerPolicy="no-referrer" />
+                  ) : (
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%)', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem' }}>
+                      {avatarInitial}
+                    </div>
+                  )}
+                </button>
               ) : (
                 <button className="btn btn-primary btn-sm" onClick={() => setCurrentView('auth')}>
                   Sign In
