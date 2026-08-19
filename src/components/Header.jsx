@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
-import { GraduationCap, LogOut, BookOpen, User, Info, Calendar, MessageSquare, Sparkles, Shield, Compass } from 'lucide-react';
+import { GraduationCap, LogOut, BookOpen, User, Info, Calendar, MessageSquare, Sparkles, Shield, Compass, MoreHorizontal, ChevronDown, X } from 'lucide-react';
 
 export default function Header({
   currentView,
@@ -10,13 +10,26 @@ export default function Header({
 }) {
   const { currentUser, logout } = useDatabase();
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const mobileMenuRef = useRef(null);
 
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
+      if (window.innerWidth > 768) setShowMobileMenu(false);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target)) {
+        setShowMobileMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const isCreatorOrAdmin = currentUser && ((currentUser.role === 'creator' && currentUser.status === 'active') || currentUser.role === 'admin' || currentUser.role === 'owner');
@@ -32,6 +45,16 @@ export default function Header({
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
+  const mobileMenuItems = [
+    { view: 'learning', icon: BookOpen, label: 'Learning', active: currentView === 'learning' || currentView === 'learning-player' },
+    { view: 'discussions', icon: MessageSquare, label: 'Discussions', active: currentView === 'discussions' },
+    { view: 'attendance', icon: Calendar, label: 'Attendance', active: currentView === 'attendance' },
+    { view: 'profile', icon: User, label: 'Profile', active: currentView === 'profile' },
+    ...(isCreatorOrAdmin ? [{ view: 'studio', icon: Sparkles, label: 'Studio', active: currentView === 'studio', iconColor: '#a78bfa' }] : []),
+    ...(isAdmin ? [{ view: 'admin', icon: Shield, label: 'Admin Panel', active: currentView === 'admin' }] : []),
+    { view: 'about', icon: Info, label: 'About', active: currentView === 'about' },
+  ];
 
   return (
     <>
@@ -139,18 +162,29 @@ export default function Header({
           {isMobile ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {currentUser ? (
-                <button
-                  onClick={() => setCurrentView('profile')}
-                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                >
-                  {currentUser.picture ? (
-                    <img src={currentUser.picture} alt={currentUser.name} style={{ width: 34, height: 34, borderRadius: '50%', border: '1.5px solid var(--primary)' }} referrerPolicy="no-referrer" />
-                  ) : (
-                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%)', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem' }}>
-                      {avatarInitial}
-                    </div>
-                  )}
-                </button>
+                <>
+                  <button
+                    onClick={() => setCurrentView('profile')}
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                    title="Profile"
+                  >
+                    {currentUser.picture ? (
+                      <img src={currentUser.picture} alt={currentUser.name} style={{ width: 34, height: 34, borderRadius: '50%', border: '1.5px solid var(--primary)' }} referrerPolicy="no-referrer" />
+                    ) : (
+                      <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%)', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem' }}>
+                        {avatarInitial}
+                      </div>
+                    )}
+                  </button>
+                  <button
+                    ref={mobileMenuRef}
+                    onClick={() => setShowMobileMenu(!showMobileMenu)}
+                    style={{ background: 'none', border: 'none', padding: '8px', cursor: 'pointer', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}
+                    title="More Options"
+                  >
+                    {showMobileMenu ? <X size={22} color="#ffffff" /> : <MoreHorizontal size={22} />}
+                  </button>
+                </>
               ) : (
                 <button className="btn btn-primary btn-sm" onClick={() => setCurrentView('auth')}>
                   Sign In
@@ -260,6 +294,52 @@ export default function Header({
             <User size={20} />
             <span style={styles.mobileTabLabel}>Profile</span>
           </button>
+        </div>
+      )}
+
+      {/* MOBILE MORE MENU DROPDOWN */}
+      {isMobile && currentUser && showMobileMenu && (
+        <div
+          ref={mobileMenuRef}
+          style={styles.mobileMenuDropdown}
+          className="glass-panel animate-fade-in"
+        >
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontWeight: 700, color: '#ffffff', fontSize: '0.85rem' }}>More Options</span>
+            <button onClick={() => setShowMobileMenu(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+              <X size={18} />
+            </button>
+          </div>
+          <div style={{ padding: '8px' }}>
+            {mobileMenuItems.map((item) => (
+              <button
+                key={item.view}
+                onClick={() => { setCurrentView(item.view); setShowMobileMenu(false); }}
+                style={{
+                  ...styles.mobileMenuItem,
+                  background: item.active ? 'rgba(139,92,246,0.15)' : 'transparent',
+                  borderColor: item.active ? 'rgba(139,92,246,0.4)' : 'transparent',
+                  color: item.active ? 'var(--primary)' : '#ffffff',
+                }}
+              >
+                <item.icon size={18} color={item.iconColor || (item.active ? 'var(--primary)' : 'var(--text-secondary)')} />
+                <span style={{ fontSize: '0.85rem', fontWeight: item.active ? 600 : 500 }}>{item.label}</span>
+              </button>
+            ))}
+            <button
+              onClick={logout}
+              style={{
+                ...styles.mobileMenuItem,
+                color: '#ef4444',
+                marginTop: '8px',
+                borderTop: '1px solid rgba(255,255,255,0.06)',
+                paddingTop: '12px',
+              }}
+            >
+              <LogOut size={18} />
+              <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>Sign Out</span>
+            </button>
+          </div>
         </div>
       )}
     </>
@@ -427,5 +507,37 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     boxShadow: '0 6px 20px rgba(139, 92, 246, 0.5), 0 0 15px rgba(168, 85, 247, 0.4)'
+  },
+  mobileMenuDropdown: {
+    position: 'fixed',
+    bottom: '88px',
+    right: '16px',
+    width: '280px',
+    maxWidth: 'calc(100vw - 32px)',
+    background: 'rgba(12, 13, 22, 0.95)',
+    backdropFilter: 'blur(16px)',
+    WebkitBackdropFilter: 'blur(16px)',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
+    borderRadius: '20px',
+    boxShadow: '0 20px 50px rgba(0,0,0,0.7), 0 0 30px rgba(139, 92, 246, 0.3)',
+    zIndex: 10000,
+    overflow: 'hidden'
+  },
+  mobileMenuItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    width: '100%',
+    padding: '12px 16px',
+    borderRadius: '12px',
+    border: '1px solid transparent',
+    background: 'transparent',
+    color: '#ffffff',
+    fontSize: '0.88rem',
+    fontWeight: 500,
+    cursor: 'pointer',
+    textAlign: 'left',
+    transition: 'all 0.15s ease',
+    fontFamily: 'var(--font-body)'
   }
 };

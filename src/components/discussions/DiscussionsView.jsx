@@ -16,7 +16,10 @@ import {
   Key,
   Folder,
   Sparkles,
-  CheckCircle2
+  CheckCircle2,
+  ArrowLeft,
+  ChevronLeft,
+  MoreHorizontal
 } from 'lucide-react';
 
 const DEFAULT_THREADS = [
@@ -77,6 +80,32 @@ const DEFAULT_THREADS = [
     ]
   }
 ];
+ 
+const styles = {
+  container: {
+    maxWidth: '1400px',
+    margin: '0 auto',
+    width: '100%',
+    boxSizing: 'border-box'
+  },
+  workspaceGrid: {
+    display: 'grid',
+    gridTemplateColumns: '320px 1fr',
+    gap: '20px',
+    minHeight: '650px'
+  },
+  sidebarCol: {
+    padding: '16px',
+    display: 'flex',
+    flexDirection: 'column',
+    textAlign: 'left'
+  },
+  chatCol: {
+    padding: 0,
+    display: 'flex',
+    flexDirection: 'column'
+  }
+};
 
 export default function DiscussionsView({ setCurrentView }) {
   const { currentUser, saveDiscussionThreadsToDb, getDiscussionThreadsFromDb } = useDatabase();
@@ -96,6 +125,16 @@ export default function DiscussionsView({ setCurrentView }) {
 
   const [activeThreadId, setActiveThreadId] = useState('thread-1');
   const [threadSearch, setThreadSearch] = useState('');
+  const [mobileView, setMobileView] = useState('list'); // 'list' | 'chat'
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(typeof window !== 'undefined' && window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Join Private Thread Code State
   const [joinCodeInput, setJoinCodeInput] = useState('');
@@ -278,6 +317,277 @@ export default function DiscussionsView({ setCurrentView }) {
     }
   };
 
+  // Handle thread selection on mobile - switch to chat view
+  const handleThreadSelect = (threadId) => {
+    setActiveThreadId(threadId);
+    if (isMobile) setMobileView('chat');
+  };
+
+  // Filter threads based on search
+  const filteredPublicThreads = useMemo(() => 
+    publicThreads.filter(t => t.name.toLowerCase().includes(threadSearch.toLowerCase()) || t.title.toLowerCase().includes(threadSearch.toLowerCase()))
+  , [publicThreads, threadSearch]);
+
+  const filteredMyThreads = useMemo(() => 
+    myThreads.filter(t => t.name.toLowerCase().includes(threadSearch.toLowerCase()) || t.title.toLowerCase().includes(threadSearch.toLowerCase()))
+  , [myThreads, threadSearch]);
+
+  const renderThreadList = () => (
+    <div className="glass-panel" style={styles.sidebarCol}>
+      {/* 1. Join Thread with Code Box */}
+      <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: '8px' }}>
+          <Key size={13} /> Join Private Thread with Code
+        </span>
+        
+        <form onSubmit={handleJoinThreadByCode} style={{ display: 'flex', gap: '6px' }}>
+          <input
+            type="text"
+            className="form-input"
+            placeholder="e.g. DS-9182"
+            value={joinCodeInput}
+            onChange={(e) => setJoinCodeInput(e.target.value)}
+            style={{ fontSize: '0.8rem', padding: '6px 10px', flex: 1 }}
+          />
+          <button type="submit" className="btn btn-secondary btn-sm" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
+            Join
+          </button>
+        </form>
+
+        {joinMsg && <span style={{ fontSize: '0.72rem', color: '#10b981', marginTop: '4px', display: 'block' }}>{joinMsg}</span>}
+        {joinError && <span style={{ fontSize: '0.72rem', color: 'var(--error)', marginTop: '4px', display: 'block' }}>{joinError}</span>}
+      </div>
+
+      {/* 2. Thread Search Input */}
+      <div style={{ position: 'relative', marginBottom: '16px' }}>
+        <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: 10, top: 10 }} />
+        <input
+          type="text"
+          placeholder="Search threads..."
+          value={threadSearch}
+          onChange={(e) => setThreadSearch(e.target.value)}
+          className="form-input"
+          style={{ fontSize: '0.82rem', padding: '6px 10px 6px 32px', width: '100%' }}
+        />
+      </div>
+
+      {/* 3. VERTICAL LIST SECTION 1: PUBLIC THREADS */}
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: '8px', paddingBottom: '4px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <Globe size={13} color="var(--primary)" />
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Public Threads ({filteredPublicThreads.length})
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {filteredPublicThreads.map((thread) => {
+            const isActive = thread.id === activeThreadId;
+            return (
+              <button
+                key={thread.id}
+                onClick={() => handleThreadSelect(thread.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  background: isActive ? 'rgba(139,92,246,0.15)' : 'transparent',
+                  border: isActive ? '1px solid var(--primary)' : '1px solid transparent',
+                  color: isActive ? '#ffffff' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  fontFamily: 'var(--font-heading)',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                  <Hash size={15} color={isActive ? 'var(--primary)' : 'var(--text-muted)'} />
+                  <span style={{ fontSize: '0.85rem', fontWeight: isActive ? 600 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {thread.name}
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)', padding: '2px 6px', borderRadius: '4px' }}>
+                  {thread.messages?.length || 0}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 4. VERTICAL LIST SECTION 2: MY THREADS & PRIVATE THREADS */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: '8px', paddingBottom: '4px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <User size={13} color="#f59e0b" />
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            My Threads & Private ({filteredMyThreads.length})
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {filteredMyThreads.length === 0 ? (
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', paddingLeft: 8 }}>No joined private threads.</span>
+          ) : (
+            filteredMyThreads.map((thread) => {
+              const isActive = thread.id === activeThreadId;
+              return (
+                <button
+                  key={thread.id}
+                  onClick={() => handleThreadSelect(thread.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    background: isActive ? 'rgba(245,158,11,0.15)' : 'transparent',
+                    border: isActive ? '1px solid #f59e0b' : '1px solid transparent',
+                    color: isActive ? '#ffffff' : 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontFamily: 'var(--font-heading)',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                    {thread.isPrivate ? <Lock size={14} color="#f59e0b" /> : <Hash size={14} color="var(--text-muted)" />}
+                    <span style={{ fontSize: '0.85rem', fontWeight: isActive ? 600 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {thread.name}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: '#f59e0b', background: 'rgba(245,158,11,0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                    {thread.code}
+                  </span>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderChatView = () => (
+    <div className="glass-panel" style={styles.chatCol}>
+      {activeThread ? (
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          {/* Active Thread Bar Header - with back button on mobile */}
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            {isMobile && mobileView === 'chat' && (
+              <button
+                onClick={() => setMobileView('list')}
+                style={{ background: 'none', border: 'none', padding: '8px', cursor: 'pointer', color: 'var(--text-secondary)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                title="Back to threads"
+              >
+                <ChevronLeft size={22} />
+              </button>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+              <Hash size={22} color="var(--primary)" />
+              <div style={{ minWidth: 0 }}>
+                <h3 style={{ fontSize: '1.1rem', margin: 0, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activeThread.name}</h3>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{activeThread.title}</span>
+              </div>
+            </div>
+
+            <div
+              onClick={() => handleCopyCode(activeThread.code)}
+              style={{ cursor: 'pointer', padding: '4px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#ffffff', flexShrink: 0 }}
+              title="Click to copy private thread code"
+            >
+              <Key size={13} color="var(--primary)" />
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>{activeThread.code}</span>
+              {copiedCode ? <Check size={12} color="var(--success)" /> : <Copy size={12} color="var(--text-muted)" />}
+            </div>
+          </div>
+
+          {/* Chat Messages Stream Area */}
+          <div style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {activeThread.messages?.map((msg) => (
+              <div key={msg.id} style={{ display: 'flex', gap: '12px', textAlign: 'left' }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                  <User size={18} color="#ffffff" />
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <strong style={{ fontSize: '0.88rem', color: '#ffffff' }}>
+                        {msg.sender?.replace(/^(Owner\.|Admin\.|Creator\.|Prof\.|St\.)\s*/i, '')}
+                      </strong>
+                      {msg.isVerified && (
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '4px',
+                          background: msg.verificationType === 'professor' ? 'rgba(99, 102, 241, 0.15)' : msg.verificationType === 'creator' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                          color: msg.verificationType === 'professor' ? '#a5b4fc' : msg.verificationType === 'creator' ? '#fcd34d' : '#6ee7b7',
+                          border: `1px solid ${msg.verificationType === 'professor' ? 'rgba(99, 102, 241, 0.3)' : msg.verificationType === 'creator' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+                          padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 700
+                        }}>
+                          <CheckCircle2 size={11} /> {msg.verificationType === 'professor' ? 'Verified Professor' : msg.verificationType === 'creator' ? 'Verified Creator' : 'Verified Student'}
+                        </span>
+                      )}
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{msg.time}</span>
+                    </div>
+
+                    {/* Reply Button */}
+                    <button
+                      onClick={() => setReplyingToMessage(msg)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ padding: '2px 8px', fontSize: '0.72rem', gap: 4 }}
+                    >
+                      <CornerDownRight size={12} /> Reply
+                    </button>
+                  </div>
+
+                  {/* Quoted Message Block if this message is a reply */}
+                  {msg.quotedMessage && (
+                    <div style={{ margin: '6px 0', padding: '6px 12px', background: 'rgba(139,92,246,0.08)', borderLeft: '3px solid var(--primary)', borderRadius: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                      <strong style={{ color: 'var(--primary)', display: 'block', fontSize: '0.73rem' }}>Replying to {msg.quotedMessage.sender}</strong>
+                      <p style={{ margin: 0, fontStyle: 'italic' }}>"{msg.quotedMessage.text}"</p>
+                    </div>
+                  )}
+
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-primary)', lineHeight: '1.5', margin: 0 }}>
+                    {msg.text}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Replying Preview Bar */}
+          {replyingToMessage && (
+            <div style={{ padding: '8px 16px', background: 'rgba(139,92,246,0.12)', borderTop: '1px solid rgba(139,92,246,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', color: '#ffffff' }}>
+              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Replying to <strong>{replyingToMessage.sender}</strong>: "{replyingToMessage.text.substring(0, 50)}…"</span>
+              <button onClick={() => setReplyingToMessage(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1rem', flexShrink: 0 }}>×</button>
+            </div>
+          )}
+
+          {/* Message Input Bar Pinned at Bottom */}
+          <form onSubmit={handleSendMessage} style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: '10px' }}>
+            <input
+              type="text"
+              placeholder={`Message #${activeThread.name}…`}
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              className="form-input"
+              style={{ flex: 1, padding: '10px 14px' }}
+            />
+            <button type="submit" className="btn btn-primary" style={{ padding: '10px 18px', gap: 6 }}>
+              <Send size={15} /> Send
+            </button>
+          </form>
+        </div>
+      ) : (
+        <div style={{ textAlign: 'center', padding: '60px' }}>
+          <p>Select a discussion thread from the sidebar.</p>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div style={styles.container} className="animate-fade-in">
       {/* Top Banner */}
@@ -299,255 +609,35 @@ export default function DiscussionsView({ setCurrentView }) {
         </button>
       </div>
 
-      {/* Main 2-Column Grid Layout */}
-      <div style={styles.workspaceGrid}>
-        
-        {/* LEFT SIDEBAR COLUMN: Thread Code Joiner & Vertical Lists */}
-        <div className="glass-panel" style={styles.sidebarCol}>
-          
-          {/* 1. Join Thread with Code Box */}
-          <div style={{ marginBottom: '16px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: '8px' }}>
-              <Key size={13} /> Join Private Thread with Code
-            </span>
-            
-            <form onSubmit={handleJoinThreadByCode} style={{ display: 'flex', gap: '6px' }}>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="e.g. DS-9182"
-                value={joinCodeInput}
-                onChange={(e) => setJoinCodeInput(e.target.value)}
-                style={{ fontSize: '0.8rem', padding: '6px 10px', flex: 1 }}
-              />
-              <button type="submit" className="btn btn-secondary btn-sm" style={{ padding: '6px 12px', fontSize: '0.78rem' }}>
-                Join
-              </button>
-            </form>
-
-            {joinMsg && <span style={{ fontSize: '0.72rem', color: '#10b981', marginTop: '4px', display: 'block' }}>{joinMsg}</span>}
-            {joinError && <span style={{ fontSize: '0.72rem', color: 'var(--error)', marginTop: '4px', display: 'block' }}>{joinError}</span>}
-          </div>
-
-          {/* 2. Thread Search Input */}
-          <div style={{ position: 'relative', marginBottom: '16px' }}>
-            <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: 10, top: 10 }} />
-            <input
-              type="text"
-              placeholder="Search threads..."
-              value={threadSearch}
-              onChange={(e) => setThreadSearch(e.target.value)}
-              className="form-input"
-              style={{ fontSize: '0.82rem', padding: '6px 10px 6px 32px', width: '100%' }}
-            />
-          </div>
-
-          {/* 3. VERTICAL LIST SECTION 1: PUBLIC THREADS */}
-          <div style={{ marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: '8px', paddingBottom: '4px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-              <Globe size={13} color="var(--primary)" />
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Public Threads ({publicThreads.length})
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {publicThreads.map((thread) => {
-                const isActive = thread.id === activeThreadId;
-                return (
-                  <button
-                    key={thread.id}
-                    onClick={() => setActiveThreadId(thread.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      background: isActive ? 'rgba(139,92,246,0.15)' : 'transparent',
-                      border: isActive ? '1px solid var(--primary)' : '1px solid transparent',
-                      color: isActive ? '#ffffff' : 'var(--text-secondary)',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      fontFamily: 'var(--font-heading)',
-                      transition: 'all 0.15s'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                      <Hash size={15} color={isActive ? 'var(--primary)' : 'var(--text-muted)'} />
-                      <span style={{ fontSize: '0.83rem', fontWeight: isActive ? 600 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {thread.name}
-                      </span>
-                    </div>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)', padding: '2px 6px', borderRadius: '4px' }}>
-                      {thread.messages?.length || 0}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 4. VERTICAL LIST SECTION 2: MY THREADS & PRIVATE THREADS */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: '8px', paddingBottom: '4px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-              <User size={13} color="#f59e0b" />
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                My Threads & Private ({myThreads.length})
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {myThreads.length === 0 ? (
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', paddingLeft: 8 }}>No joined private threads.</span>
+      {/* MOBILE VIEW: WhatsApp-style list/chat toggle */}
+      {(() => {
+        if (isMobile) {
+          return (
+            <div style={{ minHeight: '600px', display: 'flex', flexDirection: 'column' }}>
+              {mobileView === 'list' ? (
+                <div style={{ flex: 1, overflow: 'auto' }}>
+                  {renderThreadList()}
+                </div>
               ) : (
-                myThreads.map((thread) => {
-                  const isActive = thread.id === activeThreadId;
-                  return (
-                    <button
-                      key={thread.id}
-                      onClick={() => setActiveThreadId(thread.id)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justify: 'space-between',
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        background: isActive ? 'rgba(245,158,11,0.15)' : 'transparent',
-                        border: isActive ? '1px solid #f59e0b' : '1px solid transparent',
-                        color: isActive ? '#ffffff' : 'var(--text-secondary)',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        fontFamily: 'var(--font-heading)',
-                        transition: 'all 0.15s'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                        {thread.isPrivate ? <Lock size={14} color="#f59e0b" /> : <Hash size={14} color="var(--text-muted)" />}
-                        <span style={{ fontSize: '0.83rem', fontWeight: isActive ? 600 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {thread.name}
-                        </span>
-                      </div>
-                      <span style={{ fontSize: '0.7rem', color: '#f59e0b', background: 'rgba(245,158,11,0.1)', padding: '2px 6px', borderRadius: '4px' }}>
-                        {thread.code}
-                      </span>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN: Chat Stream Area (Spans entire remaining workspace width) */}
-        <div className="glass-panel" style={styles.chatCol}>
-          {activeThread ? (
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              {/* Active Thread Bar Header */}
-              <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Hash size={22} color="var(--primary)" />
-                  <div>
-                    <h3 style={{ fontSize: '1.1rem', margin: 0, color: '#ffffff' }}>{activeThread.name}</h3>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{activeThread.title}</span>
-                  </div>
-                </div>
-
-                <div
-                  onClick={() => handleCopyCode(activeThread.code)}
-                  style={{ cursor: 'pointer', padding: '4px 10px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#ffffff' }}
-                  title="Click to copy private thread code"
-                >
-                  <Key size={13} color="var(--primary)" />
-                  <span>{activeThread.code}</span>
-                  {copiedCode ? <Check size={12} color="var(--success)" /> : <Copy size={12} color="var(--text-muted)" />}
-                </div>
-              </div>
-
-              {/* Chat Messages Stream Area */}
-              <div style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {activeThread.messages?.map((msg) => (
-                  <div key={msg.id} style={{ display: 'flex', gap: '12px', textAlign: 'left' }}>
-                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                      <User size={18} color="#ffffff" />
-                    </div>
-
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <strong style={{ fontSize: '0.88rem', color: '#ffffff' }}>
-                            {msg.sender?.replace(/^(Owner\.|Admin\.|Creator\.|Prof\.|St\.)\s*/i, '')}
-                          </strong>
-                          {msg.isVerified && (
-                            <span style={{
-                              display: 'inline-flex', alignItems: 'center', gap: '4px',
-                              background: msg.verificationType === 'professor' ? 'rgba(99, 102, 241, 0.15)' : msg.verificationType === 'creator' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                              color: msg.verificationType === 'professor' ? '#a5b4fc' : msg.verificationType === 'creator' ? '#fcd34d' : '#6ee7b7',
-                              border: `1px solid ${msg.verificationType === 'professor' ? 'rgba(99, 102, 241, 0.3)' : msg.verificationType === 'creator' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
-                              padding: '2px 8px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 700
-                            }}>
-                              <CheckCircle2 size={11} /> {msg.verificationType === 'professor' ? 'Verified Professor' : msg.verificationType === 'creator' ? 'Verified Creator' : 'Verified Student'}
-                            </span>
-                          )}
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{msg.time}</span>
-                        </div>
-
-                        {/* Reply Button */}
-                        <button
-                          onClick={() => setReplyingToMessage(msg)}
-                          className="btn btn-secondary btn-sm"
-                          style={{ padding: '2px 8px', fontSize: '0.72rem', gap: 4 }}
-                        >
-                          <CornerDownRight size={12} /> Reply
-                        </button>
-                      </div>
-
-                      {/* Quoted Message Block if this message is a reply */}
-                      {msg.quotedMessage && (
-                        <div style={{ margin: '6px 0', padding: '6px 12px', background: 'rgba(139,92,246,0.08)', borderLeft: '3px solid var(--primary)', borderRadius: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                          <strong style={{ color: 'var(--primary)', display: 'block', fontSize: '0.73rem' }}>Replying to {msg.quotedMessage.sender}</strong>
-                          <p style={{ margin: 0, fontStyle: 'italic' }}>"{msg.quotedMessage.text}"</p>
-                        </div>
-                      )}
-
-                      <p style={{ fontSize: '0.88rem', color: 'var(--text-primary)', lineHeight: '1.5', margin: 0 }}>
-                        {msg.text}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Replying Preview Bar */}
-              {replyingToMessage && (
-                <div style={{ padding: '8px 16px', background: 'rgba(139,92,246,0.12)', borderTop: '1px solid rgba(139,92,246,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', color: '#ffffff' }}>
-                  <span>Replying to <strong>{replyingToMessage.sender}</strong>: "{replyingToMessage.text.substring(0, 50)}…"</span>
-                  <button onClick={() => setReplyingToMessage(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1rem' }}>×</button>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                  {renderChatView()}
                 </div>
               )}
-
-              {/* Message Input Bar Pinned at Bottom */}
-              <form onSubmit={handleSendMessage} style={{ padding: '16px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: '10px' }}>
-                <input
-                  type="text"
-                  placeholder={`Message #${activeThread.name}…`}
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  className="form-input"
-                  style={{ flex: 1, padding: '10px 14px' }}
-                />
-                <button type="submit" className="btn btn-primary" style={{ padding: '10px 18px', gap: 6 }}>
-                  <Send size={15} /> Send
-                </button>
-              </form>
             </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '60px' }}>
-              <p>Select a discussion thread from the sidebar.</p>
+          );
+        } else {
+          return (
+            <div style={styles.workspaceGrid}>
+              <div style={{ flexShrink: 0 }}>
+                {renderThreadList()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                {renderChatView()}
+              </div>
             </div>
-          )}
-        </div>
-      </div>
+          );
+        }
+      })()}
 
       {/* CREATE THREAD MODAL */}
       {showCreateModal && (
@@ -613,7 +703,7 @@ export default function DiscussionsView({ setCurrentView }) {
             </div>
 
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '16px' }}>
-              Only <strong>Verified Students</strong>, <strong>Professors</strong>, or <strong>Creators</strong> can publish new discussion threads.
+              Only <strong>Verified Students</strong>, <strong>Professors</strong>, or <strong>Creators</strong> can publish discussion threads.
             </p>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
@@ -628,29 +718,3 @@ export default function DiscussionsView({ setCurrentView }) {
     </div>
   );
 }
-
-const styles = {
-  container: {
-    maxWidth: '1400px',
-    margin: '0 auto',
-    width: '100%',
-    boxSizing: 'border-box'
-  },
-  workspaceGrid: {
-    display: 'grid',
-    gridTemplateColumns: '320px 1fr',
-    gap: '20px',
-    minHeight: '650px'
-  },
-  sidebarCol: {
-    padding: '16px',
-    display: 'flex',
-    flexDirection: 'column',
-    textAlign: 'left'
-  },
-  chatCol: {
-    padding: 0,
-    display: 'flex',
-    flexDirection: 'column'
-  }
-};

@@ -125,6 +125,14 @@ export default function AttendanceTracker({ setCurrentView }) {
     saveUserArchivesToDb
   } = useDatabase();
 
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const userId = currentUser?.id || 'guest';
   const routineKey = `learnopia_attendance_routine_${userId}`;
   const logsKey = `learnopia_attendance_logs_${userId}`;
@@ -525,20 +533,20 @@ export default function AttendanceTracker({ setCurrentView }) {
   return (
     <div style={styles.container} className="animate-fade-in">
       {/* Top Banner & Header */}
-      <div className="glass-panel" style={{ padding: '20px 24px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', textAlign: 'left' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg, var(--primary) 0%, #10b981 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Calendar size={22} color="#ffffff" />
+      <div className="glass-panel" style={{ padding: isMobile ? '16px' : '20px 24px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', textAlign: 'left' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '14px', minWidth: 0 }}>
+          <div style={{ width: isMobile ? 38 : 44, height: isMobile ? 38 : 44, borderRadius: isMobile ? 12 : 14, background: 'linear-gradient(135deg, var(--primary) 0%, #10b981 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Calendar size={isMobile ? 18 : 22} color="#ffffff" />
           </div>
-          <div>
-            <h2 style={{ fontSize: '1.25rem', margin: 0, color: '#ffffff' }}>Semester Attendance Tracker</h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+          <div style={{ minWidth: 0 }}>
+            <h2 style={{ fontSize: isMobile ? '1rem' : '1.25rem', margin: 0, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Semester Attendance Tracker</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                 Semester Started: <strong>{semesterStartDate}</strong>
               </span>
               <button
                 onClick={() => { setTempStartDateInput(semesterStartDate); setShowStartDateModal(true); }}
-                style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: isMobile ? '0.68rem' : '0.75rem', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
               >
                 Change Date
               </button>
@@ -546,43 +554,43 @@ export default function AttendanceTracker({ setCurrentView }) {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button className="btn btn-secondary" onClick={() => { setTempStartDateInput(formatLocalDate(new Date())); setShowEndSemModal(true); }}>
-            <RefreshCw size={15} /> End & Start New Semester
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary" onClick={() => { setTempStartDateInput(formatLocalDate(new Date())); setShowEndSemModal(true); }} style={{ padding: isMobile ? '8px 12px' : undefined, fontSize: isMobile ? '0.75rem' : undefined }}>
+            <RefreshCw size={isMobile ? 13 : 15} /> {isMobile ? 'New Semester' : 'End & Start New Semester'}
           </button>
         </div>
       </div>
 
-      {/* Tabs Row */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
-        <button className={`btn ${activeTab === 'tracker' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('tracker')}>
-          <CalendarCheck size={16} /> Daily Attendance Logger
+      {/* Tabs Row - Scrollable on mobile */}
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px', overflowX: 'auto', flexWrap: 'nowrap', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <button className={`btn ${activeTab === 'tracker' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('tracker')} style={{ flex: '0 0 auto', minWidth: isMobile ? '110px' : '130px', justifyContent: 'center', fontSize: isMobile ? '0.75rem' : '0.82rem', padding: isMobile ? '8px 10px' : '9px 12px', whiteSpace: 'nowrap' }}>
+          <CalendarCheck size={isMobile ? 14 : 16} /> {isMobile ? 'Logger' : 'Daily Logger'}
         </button>
-        <button className={`btn ${activeTab === 'routine' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('routine')}>
-          <Settings size={16} /> Weekly Timetable Setup
+        <button className={`btn ${activeTab === 'routine' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('routine')} style={{ flex: '0 0 auto', minWidth: isMobile ? '110px' : '130px', justifyContent: 'center', fontSize: isMobile ? '0.75rem' : '0.82rem', padding: isMobile ? '8px 10px' : '9px 12px', whiteSpace: 'nowrap' }}>
+          <Settings size={isMobile ? 14 : 16} /> {isMobile ? 'Timetable' : 'Weekly Timetable'}
         </button>
-        <button className={`btn ${activeTab === 'analytics' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('analytics')}>
-          <TrendingUp size={16} /> Subject Analytics ({overallStats.pct}%)
+        <button className={`btn ${activeTab === 'analytics' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('analytics')} style={{ flex: '0 0 auto', minWidth: isMobile ? '110px' : '130px', justifyContent: 'center', fontSize: isMobile ? '0.75rem' : '0.82rem', padding: isMobile ? '8px 10px' : '9px 12px', whiteSpace: 'nowrap' }}>
+          <TrendingUp size={isMobile ? 14 : 16} /> {isMobile ? 'Analytics' : 'Analytics'}
         </button>
       </div>
 
       {/* TAB 1: DAILY ATTENDANCE LOGGER */}
       {activeTab === 'tracker' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', textAlign: 'left' }}>
-          <div className="glass-panel" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '1.05rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Clock size={18} color="var(--primary)" /> Classes for {selectedDate} ({dayName})
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))', gap: isMobile ? '16px' : '20px', textAlign: 'left' }}>
+          <div className="glass-panel" style={{ padding: isMobile ? '16px' : '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+              <h3 style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Clock size={isMobile ? 16 : 18} color="var(--primary)" /> Classes for {selectedDate} ({dayName})
               </h3>
-              <button onClick={toggleHoliday} className={`btn ${dayLog.isHoliday ? 'btn-primary' : 'btn-secondary'} btn-sm`}>
-                <Sun size={14} /> {dayLog.isHoliday ? 'Holiday Marked' : 'Mark Holiday'}
+              <button onClick={toggleHoliday} className={`btn ${dayLog.isHoliday ? 'btn-primary' : 'btn-secondary'} btn-sm`} style={{ padding: isMobile ? '6px 10px' : undefined, fontSize: isMobile ? '0.7rem' : undefined }}>
+                <Sun size={isMobile ? 12 : 14} /> {dayLog.isHoliday ? 'Holiday' : 'Mark Holiday'}
               </button>
             </div>
 
             {/* Quick 1-Click Day Stepper & Date Picker */}
-            <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button onClick={handlePrevDay} className="btn btn-secondary btn-sm" title="Previous Day" style={{ padding: '8px 10px' }}>
-                <ChevronLeft size={16} /> Prev Day
+            <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '8px', flexWrap: 'wrap' }}>
+              <button onClick={handlePrevDay} className="btn btn-secondary btn-sm" title="Previous Day" style={{ padding: isMobile ? '6px 10px' : '8px 12px', whiteSpace: 'nowrap', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <ChevronLeft size={isMobile ? 14 : 16} /> {isMobile ? '' : 'Prev'}
               </button>
               
               <input
@@ -590,26 +598,26 @@ export default function AttendanceTracker({ setCurrentView }) {
                 className="form-input"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                style={{ flex: 1, textAlign: 'center' }}
+                style={{ flex: 1, minWidth: isMobile ? '100px' : '120px', textAlign: 'center', fontSize: isMobile ? '0.8rem' : undefined }}
               />
 
-              <button onClick={handleNextDay} className="btn btn-secondary btn-sm" title="Next Day" style={{ padding: '8px 10px' }}>
-                Next Day <ChevronRight size={16} />
+              <button onClick={handleNextDay} className="btn btn-secondary btn-sm" title="Next Day" style={{ padding: isMobile ? '6px 10px' : '8px 12px', whiteSpace: 'nowrap', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                {isMobile ? '' : 'Next '}<ChevronRight size={isMobile ? 14 : 16} />
               </button>
             </div>
 
             {dayLog.isHoliday ? (
-              <div style={{ padding: '30px', textAlign: 'center', background: 'rgba(245,158,11,0.1)', borderRadius: '12px', border: '1px solid rgba(245,158,11,0.2)' }}>
-                <Sun size={32} color="#f59e0b" style={{ marginBottom: 8 }} />
-                <h4 style={{ color: '#ffffff', margin: 0 }}>Official Holiday / Off Day</h4>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 4 }}>No classes count against your attendance record on holidays.</p>
+              <div style={{ padding: isMobile ? '20px' : '30px', textAlign: 'center', background: 'rgba(245,158,11,0.1)', borderRadius: '12px', border: '1px solid rgba(245,158,11,0.2)' }}>
+                <Sun size={isMobile ? 28 : 32} color="#f59e0b" style={{ marginBottom: 8 }} />
+                <h4 style={{ color: '#ffffff', margin: 0, fontSize: isMobile ? '1rem' : undefined }}>Official Holiday / Off Day</h4>
+                <p style={{ fontSize: isMobile ? '0.75rem' : '0.8rem', color: 'var(--text-secondary)', marginTop: 4 }}>No classes count against your attendance record on holidays.</p>
               </div>
             ) : scheduledToday.length === 0 ? (
-              <div style={{ padding: '30px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No classes scheduled in your weekly routine for {dayName}.</p>
+              <div style={{ padding: isMobile ? '20px' : '30px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: isMobile ? '0.8rem' : '0.85rem' }}>No classes scheduled in your weekly routine for {dayName}.</p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {scheduledToday.map((cls) => {
                   const rawStatus = dayLog.classes[cls.id];
                   const status = rawStatus || (isSelectedPastDay ? 'absent' : null); // ONLY PAST UNMARKED DAYS DEFAULT TO ABSENT
@@ -618,62 +626,62 @@ export default function AttendanceTracker({ setCurrentView }) {
                     <div
                       key={cls.id}
                       style={{
-                        padding: '12px 16px',
+                        padding: isMobile ? '10px 12px' : '12px 16px',
                         borderRadius: '10px',
                         background: status === 'attended' ? 'rgba(16,185,129,0.08)' : status === 'massbunk' ? 'rgba(245,158,11,0.08)' : status === 'cancelled' ? 'rgba(255,255,255,0.03)' : status === 'absent' ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.02)',
                         border: status === 'attended' ? '1px solid rgba(16,185,129,0.2)' : status === 'massbunk' ? '1px solid rgba(245,158,11,0.2)' : status === 'cancelled' ? '1px solid rgba(255,255,255,0.08)' : status === 'absent' ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(255,255,255,0.06)',
                         display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        flexWrap: 'wrap',
-                        gap: '10px'
+                        flexDirection: isMobile ? 'column' : 'row',
+                        alignItems: isMobile ? 'flex-start' : 'center',
+                        justifyContent: isMobile ? 'flex-start' : 'space-between',
+                        gap: isMobile ? '8px' : '10px'
                       }}
                     >
-                      <div>
-                        <strong style={{ color: '#ffffff', fontSize: '0.9rem', display: 'block' }}>{cls.subject}</strong>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <strong style={{ color: '#ffffff', fontSize: isMobile ? '0.85rem' : '0.9rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cls.subject}</strong>
+                        <span style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {cls.startTime} - {cls.endTime} ({cls.durationText || `${cls.duration || 60}m`}) · {cls.room}
                         </span>
                         {!rawStatus && isSelectedPastDay && (
-                          <span style={{ fontSize: '0.7rem', color: '#f87171', display: 'block', fontWeight: 600, marginTop: 2 }}>
+                          <span style={{ fontSize: isMobile ? '0.65rem' : '0.7rem', color: '#f87171', display: 'block', fontWeight: 600, marginTop: 2 }}>
                             (Passed Day Unmarked → Default Absent)
                           </span>
                         )}
                         {!rawStatus && !isSelectedPastDay && (
-                          <span style={{ fontSize: '0.7rem', color: '#a78bfa', display: 'block', fontWeight: 500, marginTop: 2 }}>
+                          <span style={{ fontSize: isMobile ? '0.65rem' : '0.7rem', color: '#a78bfa', display: 'block', fontWeight: 500, marginTop: 2 }}>
                             (Select Attendance Status)
                           </span>
                         )}
                       </div>
 
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: isMobile ? '4px' : '6px', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'flex-start' : 'flex-end' }}>
                         <button
                           onClick={() => markClassStatus(cls.id, 'attended')}
                           className={`btn ${rawStatus === 'attended' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                          style={{ fontSize: '0.72rem', padding: '4px 8px' }}
+                          style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', padding: isMobile ? '4px 8px' : '4px 8px', flex: isMobile ? '1 1 auto' : 'none', minWidth: isMobile ? '70px' : undefined }}
                         >
-                          <CheckCircle2 size={13} /> Present
+                          <CheckCircle2 size={isMobile ? 11 : 13} /> {isMobile ? 'P' : 'Present'}
                         </button>
                         <button
                           onClick={() => markClassStatus(cls.id, 'absent')}
                           className={`btn ${rawStatus === 'absent' || (isSelectedPastDay && !rawStatus) ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                          style={{ fontSize: '0.72rem', padding: '4px 8px', color: (rawStatus === 'absent' || (isSelectedPastDay && !rawStatus)) ? '#f87171' : undefined }}
+                          style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', padding: isMobile ? '4px 8px' : '4px 8px', color: (rawStatus === 'absent' || (isSelectedPastDay && !rawStatus)) ? '#f87171' : undefined, flex: isMobile ? '1 1 auto' : 'none', minWidth: isMobile ? '70px' : undefined }}
                         >
-                          <XCircle size={13} /> Absent
+                          <XCircle size={isMobile ? 11 : 13} /> {isMobile ? 'A' : 'Absent'}
                         </button>
                         <button
                           onClick={() => markClassStatus(cls.id, 'massbunk')}
                           className={`btn ${rawStatus === 'massbunk' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                          style={{ fontSize: '0.72rem', padding: '4px 8px', color: rawStatus === 'massbunk' ? '#f59e0b' : undefined }}
+                          style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', padding: isMobile ? '4px 8px' : '4px 8px', color: rawStatus === 'massbunk' ? '#f59e0b' : undefined, flex: isMobile ? '1 1 auto' : 'none', minWidth: isMobile ? '70px' : undefined }}
                         >
-                          <Users size={13} /> Mass Bunk
+                          <Users size={isMobile ? 11 : 13} /> {isMobile ? 'MB' : 'Mass Bunk'}
                         </button>
                         <button
                           onClick={() => markClassStatus(cls.id, 'cancelled')}
                           className={`btn ${rawStatus === 'cancelled' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                          style={{ fontSize: '0.72rem', padding: '4px 8px' }}
+                          style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', padding: isMobile ? '4px 8px' : '4px 8px', flex: isMobile ? '1 1 auto' : 'none', minWidth: isMobile ? '70px' : undefined }}
                         >
-                          <MinusCircle size={13} /> Cancelled
+                          <MinusCircle size={isMobile ? 11 : 13} /> {isMobile ? 'X' : 'Cancelled'}
                         </button>
                       </div>
                     </div>
@@ -687,17 +695,17 @@ export default function AttendanceTracker({ setCurrentView }) {
 
       {/* TAB 2: WEEKLY TIMETABLE SETUP */}
       {activeTab === 'routine' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', textAlign: 'left' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))', gap: isMobile ? '16px' : '20px', textAlign: 'left' }}>
           {/* Add Class Form */}
-          <div className="glass-panel" style={{ padding: '20px' }}>
-            <h3 style={{ fontSize: '1.05rem', margin: '0 0 14px 0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Plus size={18} color="var(--primary)" /> Add Class to Weekly Routine
+          <div className="glass-panel" style={{ padding: isMobile ? '16px' : '20px' }}>
+            <h3 style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', margin: '0 0 14px 0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Plus size={isMobile ? 16 : 18} color="var(--primary)" /> Add Class to Weekly Routine
             </h3>
 
-            <form onSubmit={handleAddRoutineClass} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <form onSubmit={handleAddRoutineClass} style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '12px' }}>
               <div>
-                <label className="form-label" style={{ fontSize: '0.78rem' }}>Day of Week</label>
-                <select className="form-input" value={editingDay} onChange={(e) => setEditingDay(e.target.value)}>
+                <label className="form-label" style={{ fontSize: isMobile ? '0.7rem' : '0.78rem' }}>Day of Week</label>
+                <select className="form-input" value={editingDay} onChange={(e) => setEditingDay(e.target.value)} style={{ fontSize: isMobile ? '0.8rem' : undefined }}>
                   {DAYS_OF_WEEK.map((d) => (
                     <option key={d} value={d}>{d}</option>
                   ))}
@@ -705,7 +713,7 @@ export default function AttendanceTracker({ setCurrentView }) {
               </div>
 
               <div>
-                <label className="form-label" style={{ fontSize: '0.78rem' }}>Subject Name</label>
+                <label className="form-label" style={{ fontSize: isMobile ? '0.7rem' : '0.78rem' }}>Subject Name</label>
                 <input
                   type="text"
                   className="form-input"
@@ -713,25 +721,27 @@ export default function AttendanceTracker({ setCurrentView }) {
                   value={newSubName}
                   onChange={(e) => setNewSubName(e.target.value)}
                   required
+                  style={{ fontSize: isMobile ? '0.8rem' : undefined }}
                 />
               </div>
 
               <div>
-                <label className="form-label" style={{ fontSize: '0.78rem' }}>Start Time</label>
+                <label className="form-label" style={{ fontSize: isMobile ? '0.7rem' : '0.78rem' }}>Start Time</label>
                 <input
                   type="time"
                   className="form-input"
                   value={newStartTime24}
                   onChange={(e) => setNewStartTime24(e.target.value)}
                   required
+                  style={{ fontSize: isMobile ? '0.8rem' : undefined }}
                 />
               </div>
 
               {/* Flexible Duration: Hours & Minutes Selectors */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: isMobile ? '8px' : '10px' }}>
                 <div>
-                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Duration (Hours)</label>
-                  <select className="form-input" value={durationHours} onChange={(e) => setDurationHours(e.target.value)}>
+                  <label className="form-label" style={{ fontSize: isMobile ? '0.7rem' : '0.78rem' }}>Duration (Hours)</label>
+                  <select className="form-input" value={durationHours} onChange={(e) => setDurationHours(e.target.value)} style={{ fontSize: isMobile ? '0.8rem' : undefined }}>
                     {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((h) => (
                       <option key={h} value={h}>{h} {h === 1 ? 'Hour' : 'Hours'}</option>
                     ))}
@@ -739,8 +749,8 @@ export default function AttendanceTracker({ setCurrentView }) {
                 </div>
 
                 <div>
-                  <label className="form-label" style={{ fontSize: '0.78rem' }}>Duration (Minutes)</label>
-                  <select className="form-input" value={durationMins} onChange={(e) => setDurationMins(e.target.value)}>
+                  <label className="form-label" style={{ fontSize: isMobile ? '0.7rem' : '0.78rem' }}>Duration (Minutes)</label>
+                  <select className="form-input" value={durationMins} onChange={(e) => setDurationMins(e.target.value)} style={{ fontSize: isMobile ? '0.8rem' : undefined }}>
                     {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
                       <option key={m} value={m}>{m} Mins</option>
                     ))}
@@ -748,41 +758,41 @@ export default function AttendanceTracker({ setCurrentView }) {
                 </div>
               </div>
 
-              <div style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 600, background: 'rgba(139,92,246,0.1)', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(139,92,246,0.2)' }}>
+              <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--primary)', fontWeight: 600, background: 'rgba(139,92,246,0.1)', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(139,92,246,0.2)', wordBreak: 'break-word' }}>
                 ⏰ Class Time: {format12HourTime(newStartTime24)} → {calculateEndTimeFromHM(newStartTime24, durationHours, durationMins)} ({formatDurationText(durationHours, durationMins)})
               </div>
 
               <div>
-                <label className="form-label" style={{ fontSize: '0.78rem' }}>Room / Venue</label>
-                <input type="text" className="form-input" value={newRoom} onChange={(e) => setNewRoom(e.target.value)} />
+                <label className="form-label" style={{ fontSize: isMobile ? '0.7rem' : '0.78rem' }}>Room / Venue</label>
+                <input type="text" className="form-input" value={newRoom} onChange={(e) => setNewRoom(e.target.value)} style={{ fontSize: isMobile ? '0.8rem' : undefined }} />
               </div>
 
-              <button type="submit" className="btn btn-primary" style={{ marginTop: 4 }}>
+              <button type="submit" className="btn btn-primary" style={{ marginTop: 4, padding: isMobile ? '10px' : undefined, fontSize: isMobile ? '0.8rem' : undefined }}>
                 Save Class to Timetable
               </button>
             </form>
           </div>
 
           {/* Current Routine View (Sorted Chronologically) */}
-          <div className="glass-panel" style={{ padding: '20px' }}>
-            <h3 style={{ fontSize: '1.05rem', margin: '0 0 14px 0', color: '#ffffff' }}>Weekly Timetable Schedule (Sorted Chronologically)</h3>
+          <div className="glass-panel" style={{ padding: isMobile ? '16px' : '20px' }}>
+            <h3 style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', margin: '0 0 14px 0', color: '#ffffff' }}>Weekly Timetable Schedule (Sorted Chronologically)</h3>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {DAYS_OF_WEEK.map((d) => {
                 const dayClasses = sortClassesByTime(routine[d] || []);
                 return (
-                  <div key={d} style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <strong style={{ color: 'var(--primary)', fontSize: '0.85rem' }}>{d} ({dayClasses.length} classes)</strong>
+                  <div key={d} style={{ padding: isMobile ? '8px 12px' : '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <strong style={{ color: 'var(--primary)', fontSize: isMobile ? '0.8rem' : '0.85rem' }}>{d} ({dayClasses.length} classes)</strong>
 
                     {dayClasses.length === 0 ? (
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: 2 }}>No classes</span>
+                      <span style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: 2 }}>No classes</span>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '4px' : '6px', marginTop: 4 }}>
                         {dayClasses.map((c) => (
-                          <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', color: '#ffffff' }}>
-                            <span>{c.subject} ({c.startTime} - {c.endTime})</span>
-                            <button onClick={() => handleDeleteRoutineClass(d, c.id)} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer' }}>
-                              <Trash2 size={13} />
+                          <div key={c.id} style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: isMobile ? 'space-between' : 'space-between', gap: isMobile ? '4px' : 0, fontSize: isMobile ? '0.75rem' : '0.8rem', color: '#ffffff' }}>
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.subject} ({c.startTime} - {c.endTime})</span>
+                            <button onClick={() => handleDeleteRoutineClass(d, c.id)} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: isMobile ? '4px' : 0, marginTop: isMobile ? '4px' : 0 }}>
+                              <Trash2 size={isMobile ? 12 : 13} />
                             </button>
                           </div>
                         ))}
@@ -798,32 +808,32 @@ export default function AttendanceTracker({ setCurrentView }) {
 
       {/* TAB 3: SUBJECT ANALYTICS & ARCHIVES */}
       {activeTab === 'analytics' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '20px', textAlign: 'left' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(260px, 1fr))', gap: isMobile ? '12px' : '16px' }}>
             {subjectAnalytics.map((sub) => (
               <div
                 key={sub.subject}
                 className="glass-panel"
                 style={{
-                  padding: '20px',
+                  padding: isMobile ? '16px' : '20px',
                   borderRadius: '16px',
                   border: sub.isAlert ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(16,185,129,0.3)',
                   background: sub.isAlert ? 'rgba(239,68,68,0.05)' : 'rgba(16,185,129,0.05)'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <h4 style={{ fontSize: '1rem', margin: 0, color: '#ffffff' }}>{sub.subject}</h4>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 800, color: sub.isAlert ? '#f87171' : '#34d399' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                  <h4 style={{ fontSize: isMobile ? '0.9rem' : '1rem', margin: 0, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub.subject}</h4>
+                  <span style={{ fontSize: isMobile ? '1rem' : '1.1rem', fontWeight: 800, color: sub.isAlert ? '#f87171' : '#34d399' }}>
                     {sub.percentage}%
                   </span>
                 </div>
 
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   <span>Attended: {sub.attended} / Conducted: {sub.totalConducted}</span>
-                  <span>Absent (including passed days): {sub.absent} · Mass Bunked: {sub.massbunk} · Cancelled: {sub.cancelled}</span>
+                  <span>Absent: {sub.absent} · Mass Bunked: {sub.massbunk} · Cancelled: {sub.cancelled}</span>
                 </div>
 
-                <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '0.78rem' }}>
+                <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: isMobile ? '0.7rem' : '0.78rem' }}>
                   {sub.isAlert ? (
                     <span style={{ color: '#f87171', fontWeight: 600 }}>
                       ⚠️ Attendance Alert: You must attend the next <strong>{sub.neededClasses}</strong> classes to reach {sub.target}%.
@@ -840,21 +850,21 @@ export default function AttendanceTracker({ setCurrentView }) {
 
           {/* Archived Semesters History */}
           {archivedSemesters.length > 0 && (
-            <div className="glass-panel" style={{ padding: '20px', marginTop: '10px' }}>
-              <h3 style={{ fontSize: '1.05rem', margin: '0 0 14px 0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Archive size={18} color="var(--primary)" /> Past Semester Records ({archivedSemesters.length})
+            <div className="glass-panel" style={{ padding: isMobile ? '16px' : '20px', marginTop: '10px' }}>
+              <h3 style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', margin: '0 0 14px 0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Archive size={isMobile ? 16 : 18} color="var(--primary)" /> Past Semester Records ({archivedSemesters.length})
               </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {archivedSemesters.map((arch) => (
-                  <div key={arch.id} style={{ padding: '12px 16px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-                    <div>
-                      <strong style={{ color: '#ffffff', fontSize: '0.9rem' }}>Semester ({arch.startDate} to {arch.endDate})</strong>
-                      <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'block', marginTop: 2 }}>
+                  <div key={arch.id} style={{ padding: isMobile ? '10px 12px' : '12px 16px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', gap: isMobile ? '8px' : 10 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <strong style={{ color: '#ffffff', fontSize: isMobile ? '0.8rem' : '0.9rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Semester ({arch.startDate} to {arch.endDate})</strong>
+                      <span style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--text-secondary)', display: 'block', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         Overall Score: {arch.percentage}% ({arch.totalAttended} / {arch.totalConducted} classes attended)
                       </span>
                     </div>
-                    <button onClick={() => handleDeleteArchive(arch.id)} className="btn btn-secondary btn-sm" style={{ color: '#f87171' }}>
-                      <Trash2 size={13} /> Delete Record
+                    <button onClick={() => handleDeleteArchive(arch.id)} className="btn btn-secondary btn-sm" style={{ color: '#f87171', padding: isMobile ? '6px 10px' : undefined, fontSize: isMobile ? '0.7rem' : undefined, alignSelf: isMobile ? 'flex-start' : 'auto' }}>
+                      <Trash2 size={isMobile ? 11 : 13} /> {isMobile ? 'Delete' : 'Delete Record'}
                     </button>
                   </div>
                 ))}

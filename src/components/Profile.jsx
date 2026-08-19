@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDatabase, getUserDesignation } from '../context/DatabaseContext';
-import { User, Mail, Award, Shield, FileText, CheckCircle2, Clock, LogOut, Play, BookOpen, Lock, Edit3, Link as LinkIcon, Phone, Building, Sparkles, Check, AlertCircle, KeyRound, Scale, Trash2, AlertTriangle, GraduationCap, Calendar, ExternalLink } from 'lucide-react';
+import { User, Mail, Award, Shield, FileText, CheckCircle2, Clock, LogOut, Play, BookOpen, Lock, Edit3, Link as LinkIcon, Phone, Building, Sparkles, Check, AlertCircle, KeyRound, Scale, Trash2, AlertTriangle, GraduationCap, Calendar, ExternalLink, MessageSquare, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import TermsModal from './TermsModal';
 
 const COUNTRY_CODES = [
@@ -34,6 +34,14 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showUnverifyConfirmModal, setShowUnverifyConfirmModal] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
+  const [showNavMenu, setShowNavMenu] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Edit Profile Form State
   const [name, setName] = useState(currentUser?.name || '');
@@ -711,12 +719,88 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
                   ))}
                 </div>
               )}
-            </div>
+</div>
           </div>
         </div>
       </div>
 
-      {/* FULL WIDTH DANGER ZONE: DELETE ACCOUNT */}
+      {isMobile && (
+        <div className="glass-panel" style={{ ...styles.mobileNavSection, marginTop: '24px' }}>
+          <button
+            onClick={() => setShowNavMenu(!showNavMenu)}
+            style={styles.mobileNavToggle}
+          >
+            <span style={{ fontWeight: 600, color: '#ffffff', fontSize: '0.9rem' }}>Quick Navigation</span>
+            {showNavMenu ? <ChevronUp size={20} color="#a78bfa" /> : <ChevronDown size={20} color="#a78bfa" />}
+          </button>
+          {showNavMenu && (
+            <div style={styles.mobileNavMenu}>
+              <button
+                onClick={() => setCurrentView('learning')}
+                style={styles.mobileNavItem}
+              >
+                <BookOpen size={20} color="var(--primary)" />
+                <span>Learning Dashboard</span>
+              </button>
+              <button
+                onClick={() => setCurrentView('attendance')}
+                style={styles.mobileNavItem}
+              >
+                <Calendar size={20} color="#10b981" />
+                <span>Attendance Tracker</span>
+              </button>
+              <button
+                onClick={() => setCurrentView('discussions')}
+                style={styles.mobileNavItem}
+              >
+                <MessageSquare size={20} color="#f59e0b" />
+                <span>Discussions</span>
+              </button>
+              {(currentUser.role === 'creator' && currentUser.status === 'active') || currentUser.role === 'admin' || currentUser.role === 'owner' ? (
+                <button
+                  onClick={() => setCurrentView('studio')}
+                  style={styles.mobileNavItem}
+                >
+                  <Sparkles size={20} color="#a78bfa" />
+                  <span>Creator Studio</span>
+                </button>
+              ) : null}
+              {(currentUser.role === 'admin' || currentUser.role === 'owner') ? (
+                <button
+                  onClick={() => setCurrentView('admin')}
+                  style={styles.mobileNavItem}
+                >
+                  <Shield size={20} color="#ef4444" />
+                  <span>Admin Panel</span>
+                </button>
+              ) : null}
+              <button
+                onClick={() => setCurrentView('about')}
+                style={styles.mobileNavItem}
+              >
+                <Info size={20} color="var(--text-secondary)" />
+                <span>About Learn-o-pia</span>
+              </button>
+              <button
+                onClick={() => setCurrentView('landing')}
+                style={styles.mobileNavItem}
+              >
+                <ExternalLink size={20} color="var(--text-muted)" />
+                <span>Landing Page</span>
+              </button>
+              <button
+                onClick={logout}
+                style={{ ...styles.mobileNavItem, color: '#ef4444', marginTop: '8px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '12px' }}
+              >
+                <LogOut size={20} />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* UN-VERIFY CONFIRMATION MODAL */}
       <div className="glass-panel" style={{ padding: '24px', marginTop: '24px', border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.03)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', textAlign: 'left' }}>
         <div>
           <h4 style={{ color: '#f87171', margin: 0, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -902,5 +986,48 @@ const styles = {
     justifyContent: 'space-between',
     gap: '12px',
     alignItems: 'flex-start'
+  },
+  mobileNavSection: {
+    padding: '16px',
+    borderRadius: '16px',
+    border: '1px solid rgba(139, 92, 246, 0.2)',
+    background: 'rgba(139, 92, 246, 0.05)'
+  },
+  mobileNavToggle: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    background: 'none',
+    border: 'none',
+    color: '#ffffff',
+    cursor: 'pointer',
+    padding: '8px 0',
+    fontFamily: 'var(--font-body)'
+  },
+  mobileNavMenu: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    marginTop: '12px',
+    paddingTop: '12px',
+    borderTop: '1px solid rgba(255,255,255,0.08)'
+  },
+  mobileNavItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    width: '100%',
+    padding: '12px 16px',
+    borderRadius: '12px',
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid rgba(255,255,255,0.06)',
+    color: '#ffffff',
+    fontSize: '0.88rem',
+    fontWeight: 500,
+    cursor: 'pointer',
+    textAlign: 'left',
+    transition: 'all 0.15s ease',
+    fontFamily: 'var(--font-body)'
   }
 };

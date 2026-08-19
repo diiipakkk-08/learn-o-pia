@@ -82,6 +82,13 @@ export default function About({ setCurrentView }) {
 
         <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '6px' }}>
           <button
+            onClick={() => setCurrentView('landing')}
+            className="btn btn-secondary"
+            style={{ padding: '12px 28px', fontSize: '0.95rem', borderRadius: '12px', gap: '8px' }}
+          >
+            <Globe size={18} /> Back to Landing Page
+          </button>
+          <button
             onClick={() => setCurrentView('learning')}
             className="btn btn-primary"
             style={{ padding: '12px 28px', fontSize: '0.95rem', borderRadius: '12px', gap: '8px' }}
