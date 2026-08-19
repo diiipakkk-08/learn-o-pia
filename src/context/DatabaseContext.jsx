@@ -1969,11 +1969,15 @@ export function DatabaseProvider({ children }) {
   const saveUserRoutineToDb = async (userId, routineData, semesterStartDate) => {
     if (isSupabaseLive && userId) {
       try {
-        const { data: existing } = await supabase
+        const { data: existing, error: selectError } = await supabase
           .from('user_routines')
           .select('id')
           .eq('user_id', userId)
           .maybeSingle();
+
+        if (selectError) {
+          console.error('[Supabase Routine Select Error]', selectError.code, selectError.message);
+        }
 
         if (existing) {
           const { error } = await supabase
@@ -1984,7 +1988,11 @@ export function DatabaseProvider({ children }) {
               updated_at: new Date().toISOString()
             })
             .eq('user_id', userId);
-          if (error) console.error('[Supabase Routine Update Error]', error.message);
+          if (error) {
+            console.error('[Supabase Routine Update Error]', error.code, error.message, error.details);
+          } else {
+            console.log('✅ [Supabase Routine Updated Successfully for user]:', userId);
+          }
         } else {
           const { error } = await supabase
             .from('user_routines')
@@ -1994,7 +2002,11 @@ export function DatabaseProvider({ children }) {
               semester_start_date: semesterStartDate,
               updated_at: new Date().toISOString()
             }]);
-          if (error) console.error('[Supabase Routine Insert Error]', error.message);
+          if (error) {
+            console.error('[Supabase Routine Insert Error]', error.code, error.message, error.details);
+          } else {
+            console.log('✅ [Supabase Routine Inserted Successfully for user]:', userId);
+          }
         }
       } catch (e) {
         console.warn('[Supabase Routine Sync Error]', e);
@@ -2010,7 +2022,7 @@ export function DatabaseProvider({ children }) {
           .select('routine_json, semester_start_date')
           .eq('user_id', userId)
           .maybeSingle();
-        if (error) console.error('[Supabase Routine Fetch Error]', error.message);
+        if (error) console.error('[Supabase Routine Fetch Error]', error.code, error.message);
         if (data) return data;
       } catch (e) {
         console.warn('[Supabase Routine Fetch Error]', e);
@@ -2022,11 +2034,15 @@ export function DatabaseProvider({ children }) {
   const saveUserLogsToDb = async (userId, logsData) => {
     if (isSupabaseLive && userId) {
       try {
-        const { data: existing } = await supabase
+        const { data: existing, error: selectError } = await supabase
           .from('user_attendance_logs')
           .select('id')
           .eq('user_id', userId)
           .maybeSingle();
+
+        if (selectError) {
+          console.error('[Supabase Logs Select Error]', selectError.code, selectError.message);
+        }
 
         if (existing) {
           const { error } = await supabase
@@ -2036,7 +2052,11 @@ export function DatabaseProvider({ children }) {
               updated_at: new Date().toISOString()
             })
             .eq('user_id', userId);
-          if (error) console.error('[Supabase Logs Update Error]', error.message);
+          if (error) {
+            console.error('[Supabase Logs Update Error]', error.code, error.message, error.details);
+          } else {
+            console.log('✅ [Supabase Attendance Logs Updated Successfully for user]:', userId);
+          }
         } else {
           const { error } = await supabase
             .from('user_attendance_logs')
@@ -2045,7 +2065,11 @@ export function DatabaseProvider({ children }) {
               logs_json: logsData,
               updated_at: new Date().toISOString()
             }]);
-          if (error) console.error('[Supabase Logs Insert Error]', error.message);
+          if (error) {
+            console.error('[Supabase Logs Insert Error]', error.code, error.message, error.details);
+          } else {
+            console.log('✅ [Supabase Attendance Logs Inserted Successfully for user]:', userId);
+          }
         }
       } catch (e) {
         console.warn('[Supabase Logs Sync Error]', e);
