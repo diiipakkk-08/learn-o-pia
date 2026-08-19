@@ -737,8 +737,8 @@ export default function DiscussionsView({ setCurrentView }) {
       {/* ── FLOATING ACTION BUTTON (FAB) & EXPANDABLE MENU ── */}
       <div style={{
         position: 'fixed',
-        bottom: isMobile ? '85px' : '30px',
-        right: '20px',
+        bottom: isMobile ? '90px' : '30px',
+        right: isMobile ? '16px' : '20px',
         zIndex: 9999,
         display: 'flex',
         flexDirection: 'column',

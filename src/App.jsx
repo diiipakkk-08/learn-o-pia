@@ -140,7 +140,25 @@ function AppContent() {
   const isVerifiedCreator = currentUser && currentUser.role === 'creator' && currentUser.status === 'active';
   const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner');
 
-  const showOnboardingModal = !!currentUser && !currentUser.onboardingCompleted;
+  // Local flag to instantly dismiss the onboarding modal after submission (before Supabase re-syncs)
+  const [onboardingDone, setOnboardingDone] = useState(() => {
+    if (typeof window !== 'undefined' && currentUser?.id) {
+      return localStorage.getItem(`learnopia_onboarding_done_${currentUser?.id}`) === 'true';
+    }
+    return false;
+  });
+
+  const showOnboardingModal = !!currentUser && !currentUser.onboardingCompleted &&
+    !(typeof window !== 'undefined' && localStorage.getItem(`learnopia_onboarding_done_${currentUser.id}`) === 'true') &&
+    !onboardingDone;
+
+  const handleOnboardingComplete = () => {
+    // Mark in localStorage AND in state so the modal closes immediately before Supabase re-syncs
+    if (currentUser?.id) {
+      localStorage.setItem(`learnopia_onboarding_done_${currentUser.id}`, 'true');
+    }
+    setOnboardingDone(true);
+  };
 
   return (
     <div className="app-container">
@@ -238,8 +256,8 @@ function AppContent() {
         )}
       </main>
 
-      {/* Mandatory Onboarding Modal for New Accounts */}
-      <OnboardingModal isOpen={showOnboardingModal} />
+      {/* Mandatory Onboarding Modal — keeps showing until onboardingCompleted is true */}
+      <OnboardingModal isOpen={showOnboardingModal} onComplete={handleOnboardingComplete} />
     </div>
   );
 }

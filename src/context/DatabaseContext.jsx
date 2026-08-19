@@ -286,7 +286,7 @@ const mapProfile = (dbProfile) => {
   if (!dbProfile) return null;
   const isOwner = dbProfile.role === 'owner' || dbProfile.email?.toLowerCase() === 'admin@learnopia.edu';
   const isCompletedLocal = typeof window !== 'undefined' && dbProfile.id && localStorage.getItem(`learnopia_onboarding_done_${dbProfile.id}`) === 'true';
-  const isCompletedInDb = dbProfile.onboarding_completed === true || dbProfile.onboardingCompleted === true;
+  const isCompletedInDb = dbProfile.onboarding_completed === true || dbProfile.onboarding_completed === 'true' || dbProfile.onboardingCompleted === true || dbProfile.onboardingCompleted === 'true';
   const isCompleted = isOwner || isCompletedInDb || isCompletedLocal;
   
   // Retrieve saved local profile cache if available to prevent field loss during partial syncs
@@ -857,7 +857,7 @@ export function DatabaseProvider({ children }) {
           password: password || null,
           enrolled_courses: []
         };
-        const { error: createError } = await supabase.from('profiles').insert([newProfile]);
+        const { error: createError } = await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
         if (createError) {
           throw new Error('Failed to initialize user database profile.');
         }
@@ -962,13 +962,14 @@ export function DatabaseProvider({ children }) {
                               (error && error.message?.toLowerCase().includes('already registered'));
 
       if (isAlreadyInAuth) {
-        // Try sign in with the provided password
+        // Try sign in with the provided password first (handles re-registration after password-based delete)
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email: email.toLowerCase(),
           password
         });
 
         if (!signInError && signInData?.user) {
+          // Signed in — upsert profile (covers case where profile was deleted but auth record remained)
           const newProfile = {
             id: signInData.user.id,
             email: email.toLowerCase(),
@@ -976,15 +977,21 @@ export function DatabaseProvider({ children }) {
             role: 'learner',
             status: 'active',
             password: password,
+            onboarding_completed: false,
             enrolled_courses: []
           };
-          await supabase.from('profiles').upsert([newProfile]);
+          await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
           const mapped = mapProfile(newProfile);
           setCurrentUser(mapped);
+          addLog(`User re-registered: ${name}`);
           return mapped;
         }
 
-        throw new Error('This email is already linked to an account (e.g. via Google Sign-In or previous registration). Please Sign In using Google or Sign In with your password.');
+        // signInWithPassword failed — user was a Google OAuth user (no password set).
+        // We need to re-link: update their auth password and upsert a fresh profile.
+        // This requires the user to sign in with Google first to re-link their account.
+        // Best we can do from client: instruct the user clearly.
+        throw new Error('This email is already linked to a Google account. Please Sign In with Google instead, or use "Forgot Password" to set a password for this email.');
       }
 
       if (error) {
@@ -1007,7 +1014,7 @@ export function DatabaseProvider({ children }) {
         enrolled_courses: []
       };
 
-      const { error: insertError } = await supabase.from('profiles').insert([newProfile]);
+      const { error: insertError } = await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
       if (insertError) {
         throw new Error(insertError.message || 'Profile insertion failed.');
       }
@@ -1104,7 +1111,7 @@ export function DatabaseProvider({ children }) {
       profileData.username = formattedUsername;
     }
 
-    const userToUpdate = users.find(u => u.id === userId) || currentUser;
+    const userToUpdate = users.find(u => u.id === userId) || currentUser || {};
     if (userToUpdate?.isVerified) {
       delete profileData.name;
       delete profileData.username;
@@ -1113,6 +1120,8 @@ export function DatabaseProvider({ children }) {
     const updatedUser = {
       ...userToUpdate,
       ...profileData,
+      id: userId,
+      email: userToUpdate.email || currentUser?.email || profileData.email || '',
       onboardingCompleted: true,
       verificationStatus: profileData.verificationStatus || (profileData.idCardLink ? 'pending' : userToUpdate?.verificationStatus || 'none')
     };
@@ -1123,7 +1132,10 @@ export function DatabaseProvider({ children }) {
     }
 
     setUsers(prev => {
-      const next = prev.map(u => u.id === userId ? updatedUser : u);
+      const exists = prev.some(u => u.id === userId);
+      const next = exists
+        ? prev.map(u => u.id === userId ? updatedUser : u)
+        : [...prev, updatedUser];
       localStorage.setItem('learnopia_users_stable', JSON.stringify(next));
       return next;
     });
@@ -1192,8 +1204,9 @@ export function DatabaseProvider({ children }) {
       } catch (e) {
         console.warn('[Supabase Profile Upsert Error]', e);
       }
+      // Always sync to refresh all users state (ensures admin panel sees verification requests)
       try {
-        syncSupabase();
+        await syncSupabase();
       } catch (e) {}
     }
 
@@ -1214,27 +1227,30 @@ export function DatabaseProvider({ children }) {
     // 2. Remove all user-scoped localStorage keys
     try {
       localStorage.removeItem(`learnopia_onboarding_done_${idToDelete}`);
+      localStorage.removeItem(`learnopia_profile_${idToDelete}`);
       localStorage.removeItem(`learnopia_attendance_routine_${idToDelete}`);
       localStorage.removeItem(`learnopia_attendance_logs_${idToDelete}`);
       localStorage.removeItem(`learnopia_archived_semesters_${idToDelete}`);
       localStorage.removeItem(`learnopia_semester_start_${idToDelete}`);
     } catch (e) {}
 
-    // 3. Delete from Supabase tables
+    // 3. Delete from Supabase tables + Auth
     if (isSupabaseLive) {
+      try {
+        // First call the RPC to delete auth.users record (requires server-side function)
+        // This must run BEFORE signing out, while we still have a valid session
+        await supabase.rpc('delete_user_account');
+      } catch (rpcErr) {
+        console.warn('[Supabase RPC delete_user_account Error]', rpcErr);
+      }
+
       try {
         await supabase.from('profiles').delete().eq('id', idToDelete);
         await supabase.from('user_routines').delete().eq('user_id', idToDelete);
         await supabase.from('user_attendance_logs').delete().eq('user_id', idToDelete);
         await supabase.from('user_archived_semesters').delete().eq('user_id', idToDelete);
       } catch (e) {
-        console.warn('[Supabase Delete User Error]', e);
-      }
-
-      try {
-        await supabase.rpc('delete_user_account');
-      } catch (rpcErr) {
-        console.warn('[Supabase RPC Delete User Error]', rpcErr);
+        console.warn('[Supabase Delete User Tables Error]', e);
       }
     }
 
