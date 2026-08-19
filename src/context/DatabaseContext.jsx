@@ -820,6 +820,14 @@ export function DatabaseProvider({ children }) {
         throw new Error('Your account has been suspended by an administrator.');
       }
 
+      // Sync password to profile if not yet stored
+      if (password && (!profile.password || profile.password !== password)) {
+        try {
+          await supabase.from('profiles').update({ password }).eq('id', authUser.id);
+          profile.password = password;
+        } catch (e) {}
+      }
+
       const mapped = mapProfile(profile);
       setCurrentUser(mapped);
       addLog(`User logged in: ${mapped.name} (${mapped.role.toUpperCase()})`);
@@ -881,10 +889,10 @@ export function DatabaseProvider({ children }) {
 
   const registerUser = async (email, name, password) => {
     if (isSupabaseLive) {
-      // Pre-check if email already exists in profiles to prevent user enumeration fake UUID issues
+      // 1. Check if email already exists in profiles
       const { data: existingProfile } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, email')
         .eq('email', email.toLowerCase())
         .maybeSingle();
 
@@ -892,10 +900,42 @@ export function DatabaseProvider({ children }) {
         throw new Error('This email address is already registered. Please sign in instead.');
       }
 
+      // 2. Attempt auth signUp
       const { data, error } = await supabase.auth.signUp({
         email: email.toLowerCase(),
         password
       });
+
+      // Handle case where user exists in auth.users (e.g. recreation after deletion or Google sign-in)
+      const isAlreadyInAuth = (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) ||
+                              (error && error.message?.toLowerCase().includes('already registered'));
+
+      if (isAlreadyInAuth) {
+        // Try sign in with the provided password
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: email.toLowerCase(),
+          password
+        });
+
+        if (!signInError && signInData?.user) {
+          const newProfile = {
+            id: signInData.user.id,
+            email: email.toLowerCase(),
+            name: name.trim(),
+            role: 'learner',
+            status: 'active',
+            password: password,
+            enrolled_courses: []
+          };
+          await supabase.from('profiles').upsert([newProfile]);
+          const mapped = mapProfile(newProfile);
+          setCurrentUser(mapped);
+          return mapped;
+        }
+
+        throw new Error('This email is already linked to an account (e.g. via Google Sign-In or previous registration). Please Sign In using Google or Sign In with your password.');
+      }
+
       if (error) {
         throw new Error(error.message || 'Registration failed.');
       }
@@ -909,9 +949,10 @@ export function DatabaseProvider({ children }) {
       const newProfile = {
         id: data.user.id,
         email: email.toLowerCase(),
-        name,
+        name: name.trim(),
         role: 'learner',
         status: 'active',
+        password: password,
         enrolled_courses: []
       };
 
@@ -1096,6 +1137,12 @@ export function DatabaseProvider({ children }) {
         await supabase.from('user_archived_semesters').delete().eq('user_id', idToDelete);
       } catch (e) {
         console.warn('[Supabase Delete User Error]', e);
+      }
+
+      try {
+        await supabase.rpc('delete_user_account');
+      } catch (rpcErr) {
+        console.warn('[Supabase RPC Delete User Error]', rpcErr);
       }
     }
 
