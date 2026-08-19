@@ -144,11 +144,17 @@ export default function AttendanceTracker({ setCurrentView }) {
     return [];
   });
 
+  // Initial load tracking state to prevent overwriting remote database on mount
+  const [isLoaded, setIsLoaded] = useState(false);
+
   // Load Supabase Database routine & logs on account login
   useEffect(() => {
     let isMounted = true;
     const fetchRemoteData = async () => {
-      if (!userId || userId === 'guest') return;
+      if (!userId || userId === 'guest') {
+        if (isMounted) setIsLoaded(true);
+        return;
+      }
       try {
         if (getUserRoutineFromDb) {
           const dbRoutineData = await getUserRoutineFromDb(userId);
@@ -166,6 +172,8 @@ export default function AttendanceTracker({ setCurrentView }) {
         }
       } catch (e) {
         console.warn('[Supabase Sync Warn]', e);
+      } finally {
+        if (isMounted) setIsLoaded(true);
       }
     };
     fetchRemoteData();
@@ -179,40 +187,39 @@ export default function AttendanceTracker({ setCurrentView }) {
     const nowObj = new Date();
     const diffDays = (nowObj - startObj) / (1000 * 60 * 60 * 24);
 
-    // If 1 full year (365 days) has elapsed, check if user needs to start new semester
     if (diffDays >= 365) {
       console.warn('[Attendance Tracker] Semester data is older than 1 year. Requesting semester reset.');
     }
   }, [semesterStartDate]);
 
-  // Sync to User LocalStorage & Supabase
+  // Sync to User LocalStorage & Supabase (Only when isLoaded is true)
   useEffect(() => {
-    if (typeof window !== 'undefined' && userId) {
+    if (typeof window !== 'undefined' && userId && isLoaded) {
       localStorage.setItem(routineKey, JSON.stringify(routine));
       localStorage.setItem(startDateKey, semesterStartDate);
       if (saveUserRoutineToDb) {
         saveUserRoutineToDb(userId, routine, semesterStartDate);
       }
     }
-  }, [routine, semesterStartDate, userId, routineKey, startDateKey]);
+  }, [routine, semesterStartDate, userId, routineKey, startDateKey, isLoaded]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && userId) {
+    if (typeof window !== 'undefined' && userId && isLoaded) {
       localStorage.setItem(logsKey, JSON.stringify(logs));
       if (saveUserLogsToDb) {
         saveUserLogsToDb(userId, logs);
       }
     }
-  }, [logs, userId, logsKey]);
+  }, [logs, userId, logsKey, isLoaded]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && userId) {
+    if (typeof window !== 'undefined' && userId && isLoaded) {
       localStorage.setItem(archivesKey, JSON.stringify(archivedSemesters));
       if (saveUserArchivesToDb) {
         saveUserArchivesToDb(userId, archivedSemesters);
       }
     }
-  }, [archivedSemesters, userId, archivesKey]);
+  }, [archivedSemesters, userId, archivesKey, isLoaded]);
 
   // Form State for Routine Manager
   const [editingDay, setEditingDay] = useState('Monday');
@@ -228,7 +235,7 @@ export default function AttendanceTracker({ setCurrentView }) {
   const scheduledToday = useMemo(() => routine[dayName] || [], [routine, dayName]);
   const dayLog = useMemo(() => logs[selectedDate] || { isHoliday: false, classes: {} }, [logs, selectedDate]);
 
-  // Mark class attendance status
+  // Mark class attendance status (with immediate direct Supabase save)
   const markClassStatus = (routineId, status) => {
     setLogs((prev) => {
       const currentDay = prev[selectedDate] || { isHoliday: false, classes: {} };
@@ -240,31 +247,43 @@ export default function AttendanceTracker({ setCurrentView }) {
         nextClasses[routineId] = status;
       }
 
-      return {
+      const updatedLogs = {
         ...prev,
         [selectedDate]: {
           ...currentDay,
           classes: nextClasses
         }
       };
+
+      if (userId && saveUserLogsToDb) {
+        saveUserLogsToDb(userId, updatedLogs);
+      }
+
+      return updatedLogs;
     });
   };
 
-  // Toggle Day Holiday Status
+  // Toggle Day Holiday Status (with immediate direct Supabase save)
   const toggleHoliday = () => {
     setLogs((prev) => {
       const currentDay = prev[selectedDate] || { isHoliday: false, classes: {} };
-      return {
+      const updatedLogs = {
         ...prev,
         [selectedDate]: {
           ...currentDay,
           isHoliday: !currentDay.isHoliday
         }
       };
+
+      if (userId && saveUserLogsToDb) {
+        saveUserLogsToDb(userId, updatedLogs);
+      }
+
+      return updatedLogs;
     });
   };
 
-  // Add Class to Routine
+  // Add Class to Routine (with immediate direct Supabase save)
   const handleAddRoutineClass = (e) => {
     e.preventDefault();
     if (!newSubName.trim()) return;
@@ -278,19 +297,32 @@ export default function AttendanceTracker({ setCurrentView }) {
       minTarget: parseInt(targetPercent, 10) || 75
     };
 
-    setRoutine((prev) => ({
-      ...prev,
-      [editingDay]: [...(prev[editingDay] || []), newClass]
-    }));
+    const updatedRoutine = {
+      ...routine,
+      [editingDay]: [...(routine[editingDay] || []), newClass]
+    };
+
+    setRoutine(updatedRoutine);
+
+    if (userId && saveUserRoutineToDb) {
+      saveUserRoutineToDb(userId, updatedRoutine, semesterStartDate);
+    }
 
     setNewSubName('');
   };
 
+  // Delete class from routine (with immediate direct Supabase save)
   const handleDeleteRoutineClass = (day, classId) => {
-    setRoutine((prev) => ({
-      ...prev,
-      [day]: (prev[day] || []).filter((c) => c.id !== classId)
-    }));
+    const updatedRoutine = {
+      ...routine,
+      [day]: (routine[day] || []).filter((c) => c.id !== classId)
+    };
+
+    setRoutine(updatedRoutine);
+
+    if (userId && saveUserRoutineToDb) {
+      saveUserRoutineToDb(userId, updatedRoutine, semesterStartDate);
+    }
   };
 
   // ── OVERALL ATTENDANCE ANALYTICS (WITH DEFAULT ABSENTEE FOR UNMARKED PAST CLASSES) ──
