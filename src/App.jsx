@@ -194,7 +194,7 @@ function AppContent() {
         )}
 
         {/* Authenticated Workspace Views */}
-        {!currentUser && !['landing', 'auth'].includes(currentView) ? (
+        {!currentUser && !['landing', 'auth', 'about', 'results-404', 'discussions-404'].includes(currentView) ? (
           <Auth setCurrentView={setCurrentView} />
         ) : (
           <>

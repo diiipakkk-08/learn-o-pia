@@ -11,7 +11,7 @@ if (typeof window !== 'undefined') {
       '🔴 [SUPABASE DISCONNECTED]: VITE_SUPABASE_ANON_KEY is missing or empty!\n' +
       '   ➜ Local: Add it to your .env file\n' +
       '   ➜ Vercel: Add it in Project Settings → Environment Variables → Redeploy\n' +
-      '   ➜ Get your key from: https://supabase.com/dashboard/project/qwtjeusllzpuncvcmck/settings/api'
+      '   ➜ Get your key from: https://supabase.com/dashboard/project/gwtjeusllzpuncvcmck/settings/api'
     );
   } else {
     console.log('⚡ [SUPABASE CONNECTED]: Live connection to', supabaseUrl);
