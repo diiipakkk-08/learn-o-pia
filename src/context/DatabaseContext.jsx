@@ -449,11 +449,31 @@ const SEED_SUBJECTS = [
 ];
 
 export function DatabaseProvider({ children }) {
-  const [users, setUsers] = useState([]);
-  const [courses, setCourses] = useState([]);
-  const [subjects, setSubjects] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [activityLogs, setActivityLogs] = useState([]);
+  const [users, setUsers] = useState(() => {
+    if (typeof window === 'undefined') return SEED_USERS;
+    const saved = localStorage.getItem('learnopia_users_stable');
+    return saved ? JSON.parse(saved) : SEED_USERS;
+  });
+  const [courses, setCourses] = useState(() => {
+    if (typeof window === 'undefined') return SEED_COURSES;
+    const saved = localStorage.getItem('learnopia_courses_stable');
+    return saved ? JSON.parse(saved) : SEED_COURSES;
+  });
+  const [subjects, setSubjects] = useState(() => {
+    if (typeof window === 'undefined') return SEED_SUBJECTS;
+    const saved = localStorage.getItem('learnopia_subjects_stable');
+    return saved ? JSON.parse(saved) : SEED_SUBJECTS;
+  });
+  const [currentUser, setCurrentUser] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const saved = localStorage.getItem('learnopia_current_user_stable');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [activityLogs, setActivityLogs] = useState(() => {
+    if (typeof window === 'undefined') return [];
+    const saved = localStorage.getItem('learnopia_activity_logs');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [authLoading, setAuthLoading] = useState(true);
 
   const [standaloneResources, setStandaloneResources] = useState(() => {
@@ -561,9 +581,12 @@ export function DatabaseProvider({ children }) {
   };
 
   const syncSupabase = async () => {
+    // ── STEP 1: Auth session check with max 3.5s timeout protection ──────────
+    const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 3500));
     try {
-      // ── STEP 1: Auth session first — resolves fast, unblocks the UI ──────────
-      const { data: authSession } = await supabase.auth.getSession();
+      const sessionPromise = supabase.auth.getSession();
+      const authResult = await Promise.race([sessionPromise, timeoutPromise]);
+      const authSession = authResult?.data;
 
       if (authSession?.session?.user) {
         const user = authSession.session.user;
@@ -596,18 +619,18 @@ export function DatabaseProvider({ children }) {
             setCurrentUser(null);
           } else {
             setCurrentUser(mapped);
+            localStorage.setItem('learnopia_current_user_stable', JSON.stringify(mapped));
           }
         }
       }
     } catch (err) {
-      console.error('Supabase auth load error:', err);
+      console.warn('Supabase auth load warning:', err);
     } finally {
-      // ── Remove loading spinner as soon as auth is resolved ────────────────────
+      // ── Always unblock the UI immediately ─────────────────────────────────
       setAuthLoading(false);
     }
 
     // ── STEP 2: Load all remaining data in PARALLEL in the background ─────────
-    // This runs after the UI is already shown — user sees the app instantly
     try {
       const [
         { data: profiles },
@@ -627,10 +650,14 @@ export function DatabaseProvider({ children }) {
         supabase.from('activity_logs').select('*').order('timestamp', { ascending: false })
       ]);
 
-      if (profiles) setUsers(profiles.map(mapProfile));
+      if (profiles && profiles.length > 0) {
+        const mappedUsers = profiles.map(mapProfile);
+        setUsers(mappedUsers);
+        localStorage.setItem('learnopia_users_stable', JSON.stringify(mappedUsers));
+      }
 
-      if (coursesData) {
-        setCourses(coursesData.map(c => ({
+      if (coursesData && coursesData.length > 0) {
+        const mappedCourses = coursesData.map(c => ({
           id: c.id,
           title: c.title,
           department: c.department,
@@ -640,10 +667,12 @@ export function DatabaseProvider({ children }) {
           creatorName: c.creator_name,
           isDegree: c.is_degree,
           author: c.author
-        })));
+        }));
+        setCourses(mappedCourses);
+        localStorage.setItem('learnopia_courses_stable', JSON.stringify(mappedCourses));
       }
 
-      if (subs) {
+      if (subs && subs.length > 0) {
         const sortedSubs = [...subs].sort((a, b) => (a.position || 0) - (b.position || 0));
         const assembled = sortedSubs.map(s => {
           const subPlaylists = (playlists || [])
@@ -694,12 +723,16 @@ export function DatabaseProvider({ children }) {
           };
         });
         setSubjects(assembled);
+        localStorage.setItem('learnopia_subjects_stable', JSON.stringify(assembled));
       }
 
-      if (logs) setActivityLogs(logs);
+      if (logs && logs.length > 0) {
+        setActivityLogs(logs);
+        localStorage.setItem('learnopia_activity_logs', JSON.stringify(logs));
+      }
 
     } catch (err) {
-      console.error('Supabase background data load error:', err);
+      console.warn('Supabase background data load warning:', err);
     }
   };
 
