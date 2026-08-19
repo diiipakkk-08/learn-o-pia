@@ -3,6 +3,28 @@ import { useDatabase, getUserDesignation } from '../context/DatabaseContext';
 import { User, Mail, Award, Shield, FileText, CheckCircle2, Clock, LogOut, Play, BookOpen, Lock, Edit3, Link as LinkIcon, Phone, Building, Sparkles, Check, AlertCircle, KeyRound, Scale, Trash2, AlertTriangle } from 'lucide-react';
 import TermsModal from './TermsModal';
 
+const COUNTRY_CODES = [
+  { flag: '🇮🇳', name: 'India', code: '+91' },
+  { flag: '🇺🇸', name: 'USA', code: '+1' },
+  { flag: '🇬🇧', name: 'UK', code: '+44' },
+  { flag: '🇨🇦', name: 'Canada', code: '+1' },
+  { flag: '🇦🇺', name: 'Australia', code: '+61' },
+  { flag: '🇦🇪', name: 'UAE', code: '+971' },
+  { flag: '🇸🇬', name: 'Singapore', code: '+65' },
+  { flag: '🇩🇪', name: 'Germany', code: '+49' },
+  { flag: '🇫🇷', name: 'France', code: '+33' },
+  { flag: '🇧🇩', name: 'Bangladesh', code: '+880' },
+  { flag: '🇳🇵', name: 'Nepal', code: '+977' },
+  { flag: '🇵🇰', name: 'Pakistan', code: '+92' },
+  { flag: '🇱🇰', name: 'Sri Lanka', code: '+94' },
+  { flag: '🇳🇬', name: 'Nigeria', code: '+234' },
+  { flag: '🇰🇪', name: 'Kenya', code: '+254' },
+  { flag: '🇿🇦', name: 'South Africa', code: '+27' },
+  { flag: '🇸🇦', name: 'Saudi Arabia', code: '+966' },
+  { flag: '🇧🇷', name: 'Brazil', code: '+55' },
+  { flag: '🇯🇵', name: 'Japan', code: '+81' }
+];
+
 export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
   const { currentUser, courses, setPasswordForUser, updateUserProfile, logout, deleteUserAccount } = useDatabase();
   const [loading, setLoading] = useState(false);
@@ -15,7 +37,13 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
   // Edit Profile Form State
   const [name, setName] = useState(currentUser?.name || '');
   const [username, setUsername] = useState(currentUser?.username || '');
-  const [phone, setPhone] = useState(currentUser?.phone || '');
+  const [countryCode, setCountryCode] = useState('+91');
+  const [phoneNumber, setPhoneNumber] = useState(() => {
+    if (currentUser?.phone) {
+      return currentUser.phone.replace(/^\+\d+\s*/, '');
+    }
+    return '';
+  });
   const [college, setCollege] = useState(currentUser?.college || '');
   const [department, setDepartment] = useState(currentUser?.department || '');
   const [interests, setInterests] = useState(currentUser?.interests || '');
@@ -40,19 +68,23 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
     setSaveError('');
     setSaveSuccess('');
 
+    const fullPhone = phoneNumber.trim() ? `${countryCode} ${phoneNumber.trim()}` : (currentUser?.phone || '');
+    const isSubmittingVerif = idCardLink.trim() && (!currentUser.isVerified || currentUser.verificationStatus === 'rejected');
+
     const res = await updateUserProfile(currentUser.id, {
       name,
       username,
-      phone,
+      phone: fullPhone,
       college,
       department,
       interests,
       verificationType,
-      idCardLink
+      idCardLink,
+      verificationStatus: isSubmittingVerif ? 'pending' : (currentUser?.verificationStatus || 'none')
     });
 
     if (res.success) {
-      setSaveSuccess('Profile details and verification request submitted successfully!');
+      setSaveSuccess('Profile details and verification request saved successfully!');
       setIsEditing(false);
       setTimeout(() => setSaveSuccess(''), 3500);
     } else {
@@ -209,9 +241,15 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
       {/* Profile Edit Form / Overview Grid */}
       {isEditing ? (
         <form onSubmit={handleSaveProfile} className="glass-panel animate-fade-in" style={{ padding: '24px', textAlign: 'left', marginBottom: '24px' }}>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '16px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h3 style={{ fontSize: '1.1rem', marginBottom: '8px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
             <User size={18} color="var(--primary)" /> Edit Profile & Verification Details
           </h3>
+
+          {currentUser.isVerified && (
+            <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '8px', color: '#34d399', marginBottom: '16px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <CheckCircle2 size={16} /> <strong>Verified Account:</strong> Your core identity details (Name, Username, Phone, College, Verification Type) are officially verified and locked for security.
+            </div>
+          )}
 
           {saveError && (
             <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', color: '#f87171', marginBottom: '16px', fontSize: '0.85rem' }}>
@@ -253,45 +291,74 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
               />
             </div>
 
-            {/* Phone Number */}
+            {/* WhatsApp / Phone Number with Country Code Dropdown */}
             <div>
-              <label className="form-label" style={{ fontSize: '0.78rem' }}>Phone Number</label>
-              <input
-                type="text"
-                className="form-input"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+91 9876543210"
-              />
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>
+                WhatsApp / Contact Number {currentUser.isVerified && <span style={{ color: 'var(--text-muted)' }}>(Locked: Account Verified)</span>}
+              </label>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <select
+                  className="form-input"
+                  value={countryCode}
+                  onChange={(e) => setCountryCode(e.target.value)}
+                  disabled={currentUser.isVerified}
+                  style={{ width: '130px', flexShrink: 0, padding: '10px 8px', fontSize: '0.82rem', opacity: currentUser.isVerified ? 0.6 : 1 }}
+                >
+                  {COUNTRY_CODES.map((c) => (
+                    <option key={c.name + c.code} value={c.code}>
+                      {c.flag} {c.code} ({c.name})
+                    </option>
+                  ))}
+                </select>
+
+                <input
+                  type="tel"
+                  className="form-input"
+                  placeholder="10-digit mobile number"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value.replace(/[^0-9]/g, ''))}
+                  maxLength={12}
+                  disabled={currentUser.isVerified}
+                  style={{ flex: 1, opacity: currentUser.isVerified ? 0.6 : 1 }}
+                />
+              </div>
             </div>
 
             {/* College Name */}
             <div>
-              <label className="form-label" style={{ fontSize: '0.78rem' }}>College / University Name</label>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>
+                College / University Name {currentUser.isVerified && <span style={{ color: 'var(--text-muted)' }}>(Locked)</span>}
+              </label>
               <input
                 type="text"
                 className="form-input"
                 value={college}
                 onChange={(e) => setCollege(e.target.value)}
                 placeholder="e.g. MAKAUT Campus"
+                disabled={currentUser.isVerified}
+                style={{ opacity: currentUser.isVerified ? 0.6 : 1 }}
               />
             </div>
 
             {/* Department */}
             <div>
-              <label className="form-label" style={{ fontSize: '0.78rem' }}>Department / Branch</label>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>
+                Department / Branch {currentUser.isVerified && <span style={{ color: 'var(--text-muted)' }}>(Locked)</span>}
+              </label>
               <input
                 type="text"
                 className="form-input"
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
                 placeholder="e.g. CSE / IT / ECE"
+                disabled={currentUser.isVerified}
+                style={{ opacity: currentUser.isVerified ? 0.6 : 1 }}
               />
             </div>
 
             {/* Interests */}
             <div>
-              <label className="form-label" style={{ fontSize: '0.78rem' }}>Academic Interests</label>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>Academic Interests & Goals</label>
               <input
                 type="text"
                 className="form-input"
@@ -312,18 +379,18 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', marginBottom: '14px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: verificationType === 'student' ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.02)', border: verificationType === 'student' ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)', cursor: 'pointer', fontSize: '0.82rem' }}>
-                <input type="radio" name="verifType" value="student" checked={verificationType === 'student'} onChange={() => setVerificationType('student')} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: verificationType === 'student' ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.02)', border: verificationType === 'student' ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)', cursor: currentUser.isVerified ? 'not-allowed' : 'pointer', fontSize: '0.82rem', opacity: currentUser.isVerified ? 0.6 : 1 }}>
+                <input type="radio" name="verifType" value="student" checked={verificationType === 'student'} onChange={() => !currentUser.isVerified && setVerificationType('student')} disabled={currentUser.isVerified} />
                 <span>🎓 Student Verification (St.)</span>
               </label>
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: verificationType === 'professor' ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.02)', border: verificationType === 'professor' ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)', cursor: 'pointer', fontSize: '0.82rem' }}>
-                <input type="radio" name="verifType" value="professor" checked={verificationType === 'professor'} onChange={() => setVerificationType('professor')} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: verificationType === 'professor' ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.02)', border: verificationType === 'professor' ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)', cursor: currentUser.isVerified ? 'not-allowed' : 'pointer', fontSize: '0.82rem', opacity: currentUser.isVerified ? 0.6 : 1 }}>
+                <input type="radio" name="verifType" value="professor" checked={verificationType === 'professor'} onChange={() => !currentUser.isVerified && setVerificationType('professor')} disabled={currentUser.isVerified} />
                 <span>👨‍🏫 Professor Verification (Prof.)</span>
               </label>
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: verificationType === 'creator' ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.02)', border: verificationType === 'creator' ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)', cursor: 'pointer', fontSize: '0.82rem' }}>
-                <input type="radio" name="verifType" value="creator" checked={verificationType === 'creator'} onChange={() => setVerificationType('creator')} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: verificationType === 'creator' ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.02)', border: verificationType === 'creator' ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)', cursor: currentUser.isVerified ? 'not-allowed' : 'pointer', fontSize: '0.82rem', opacity: currentUser.isVerified ? 0.6 : 1 }}>
+                <input type="radio" name="verifType" value="creator" checked={verificationType === 'creator'} onChange={() => !currentUser.isVerified && setVerificationType('creator')} disabled={currentUser.isVerified} />
                 <span>✨ Creator Verification (Creator.)</span>
               </label>
             </div>
@@ -336,6 +403,8 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
                 placeholder="https://drive.google.com/file/d/..."
                 value={idCardLink}
                 onChange={(e) => setIdCardLink(e.target.value)}
+                disabled={currentUser.isVerified}
+                style={{ opacity: currentUser.isVerified ? 0.6 : 1 }}
               />
               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
                 {verificationType === 'student' && 'Upload student ID card link.'}
@@ -350,7 +419,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
               Cancel
             </button>
             <button type="submit" className="btn btn-primary">
-              Submit Profile Details & Verification
+              Save Profile Details & Submit Verification
             </button>
           </div>
         </form>
@@ -385,21 +454,25 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
           </div>
 
           {/* Verification Badge Box */}
-          <div style={{ marginTop: '20px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)', textAlign: 'left' }}>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Verification Clearance</span>
-            <div style={{ marginTop: '4px' }}>
-              {currentUser.isVerified ? (
-                <span style={{ color: '#10b981', fontWeight: 700, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <CheckCircle2 size={15} /> Verified {currentUser.verificationType === 'professor' ? 'Professor' : currentUser.verificationType === 'creator' ? 'Creator' : 'Student'}
-                </span>
+          <div style={{ marginTop: '20px', padding: '14px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)', textAlign: 'left' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Verification Clearance</span>
+            <div style={{ marginTop: '6px' }}>
+              {currentUser.isVerified || currentUser.verificationStatus === 'verified' ? (
+                <div style={{ color: '#10b981', fontWeight: 700, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <CheckCircle2 size={16} /> Verified {currentUser.verificationType === 'professor' ? 'Professor (Prof.)' : currentUser.verificationType === 'creator' ? 'Creator (Creator.)' : 'Student (St.)'}
+                </div>
               ) : currentUser.verificationStatus === 'pending' ? (
-                <span style={{ color: '#f59e0b', fontWeight: 700, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Clock size={15} /> Verification Pending Admin Review
-                </span>
+                <div style={{ color: '#f59e0b', fontWeight: 700, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Clock size={16} /> Verification Pending Admin Review
+                </div>
+              ) : currentUser.verificationStatus === 'rejected' ? (
+                <div style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <AlertCircle size={16} /> Verification Request Rejected (Click Edit Profile to re-apply)
+                </div>
               ) : (
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
-                  Unverified Account (Click Edit Profile to opt for verification)
-                </span>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
+                  Unverified Account (Click Edit Profile to submit verification document)
+                </div>
               )}
             </div>
           </div>

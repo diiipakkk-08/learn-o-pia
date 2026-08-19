@@ -688,6 +688,50 @@ export function DatabaseProvider({ children }) {
   useEffect(() => {
     if (isSupabaseLive) {
       syncSupabase();
+
+      const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (session?.user) {
+          try {
+            let { data: dbProfile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .maybeSingle();
+
+            if (!dbProfile) {
+              const newProfile = {
+                id: session.user.id,
+                email: session.user.email.toLowerCase(),
+                name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
+                role: 'learner',
+                status: 'active',
+                onboarding_completed: false,
+                enrolled_courses: []
+              };
+              await supabase.from('profiles').upsert([newProfile]);
+              dbProfile = newProfile;
+            }
+
+            const mapped = mapProfile(dbProfile);
+            if (mapped) {
+              if (mapped.status === 'suspended') {
+                await supabase.auth.signOut();
+                setCurrentUser(null);
+              } else {
+                setCurrentUser(mapped);
+              }
+            }
+          } catch (err) {
+            console.warn('[onAuthStateChange Profile Sync]', err);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setCurrentUser(null);
+        }
+      });
+
+      return () => {
+        authListener?.subscription?.unsubscribe();
+      };
     } else {
       syncLocal();
     }
