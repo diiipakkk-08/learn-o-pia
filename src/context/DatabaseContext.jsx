@@ -562,12 +562,73 @@ export function DatabaseProvider({ children }) {
 
   const syncSupabase = async () => {
     try {
-      // 1. Users profiles
-      const { data: profiles } = await supabase.from('profiles').select('*');
+      // ── STEP 1: Auth session first — resolves fast, unblocks the UI ──────────
+      const { data: authSession } = await supabase.auth.getSession();
+
+      if (authSession?.session?.user) {
+        const user = authSession.session.user;
+        let { data: dbProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (!dbProfile) {
+          const newProfile = {
+            id: user.id,
+            email: user.email.toLowerCase(),
+            name: user.user_metadata?.full_name || user.email.split('@')[0],
+            role: 'learner',
+            status: 'active',
+            onboarding_completed: false,
+            enrolled_courses: []
+          };
+          try {
+            await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
+          } catch (e) {}
+          dbProfile = newProfile;
+        }
+
+        const mapped = mapProfile(dbProfile);
+        if (mapped) {
+          if (mapped.status === 'suspended') {
+            await supabase.auth.signOut();
+            setCurrentUser(null);
+          } else {
+            setCurrentUser(mapped);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Supabase auth load error:', err);
+    } finally {
+      // ── Remove loading spinner as soon as auth is resolved ────────────────────
+      setAuthLoading(false);
+    }
+
+    // ── STEP 2: Load all remaining data in PARALLEL in the background ─────────
+    // This runs after the UI is already shown — user sees the app instantly
+    try {
+      const [
+        { data: profiles },
+        { data: coursesData },
+        { data: subs },
+        { data: playlists },
+        { data: videos },
+        { data: materials },
+        { data: logs }
+      ] = await Promise.all([
+        supabase.from('profiles').select('*'),
+        supabase.from('courses').select('*'),
+        supabase.from('subjects').select('*'),
+        supabase.from('playlists').select('*'),
+        supabase.from('videos').select('*'),
+        supabase.from('materials').select('*'),
+        supabase.from('activity_logs').select('*').order('timestamp', { ascending: false })
+      ]);
+
       if (profiles) setUsers(profiles.map(mapProfile));
 
-      // 2. Courses
-      const { data: coursesData } = await supabase.from('courses').select('*');
       if (coursesData) {
         setCourses(coursesData.map(c => ({
           id: c.id,
@@ -581,12 +642,6 @@ export function DatabaseProvider({ children }) {
           author: c.author
         })));
       }
-
-      // 3. Subjects assembly (nested structure)
-      const { data: subs } = await supabase.from('subjects').select('*');
-      const { data: playlists } = await supabase.from('playlists').select('*');
-      const { data: videos } = await supabase.from('videos').select('*');
-      const { data: materials } = await supabase.from('materials').select('*');
 
       if (subs) {
         const sortedSubs = [...subs].sort((a, b) => (a.position || 0) - (b.position || 0));
@@ -641,54 +696,10 @@ export function DatabaseProvider({ children }) {
         setSubjects(assembled);
       }
 
-      // 4. Logs
-      const { data: logs } = await supabase
-        .from('activity_logs')
-        .select('*')
-        .order('timestamp', { ascending: false });
       if (logs) setActivityLogs(logs);
 
-      // 5. Auth Sync
-      const { data: authSession } = await supabase.auth.getSession();
-      if (authSession?.session?.user) {
-        const user = authSession.session.user;
-        let { data: dbProfile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (!dbProfile) {
-          const newProfile = {
-            id: user.id,
-            email: user.email.toLowerCase(),
-            name: user.user_metadata?.full_name || user.email.split('@')[0],
-            role: 'learner',
-            status: 'active',
-            onboarding_completed: false,
-            enrolled_courses: []
-          };
-          try {
-            await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
-          } catch (e) {}
-          dbProfile = newProfile;
-          addLog(`New user registered: ${newProfile.name}`);
-        }
-        
-        const mapped = mapProfile(dbProfile);
-        if (mapped) {
-          if (mapped.status === 'suspended') {
-            await supabase.auth.signOut();
-            setCurrentUser(null);
-          } else {
-            setCurrentUser(mapped);
-          }
-        }
-      }
     } catch (err) {
-      console.error('Supabase load error:', err);
-    } finally {
-      setAuthLoading(false);
+      console.error('Supabase background data load error:', err);
     }
   };
 
