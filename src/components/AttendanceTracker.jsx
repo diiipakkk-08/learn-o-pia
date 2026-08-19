@@ -146,6 +146,7 @@ export default function AttendanceTracker({ setCurrentView }) {
   const [activeTab, setActiveTab] = useState('tracker');
   const [showEndSemModal, setShowEndSemModal] = useState(false);
   const [showStartDateModal, setShowStartDateModal] = useState(false);
+  const [showAddClassForm, setShowAddClassForm] = useState(false);
 
   // Semester Start Date State
   const [semesterStartDate, setSemesterStartDate] = useState(() => {
@@ -695,101 +696,62 @@ export default function AttendanceTracker({ setCurrentView }) {
 
       {/* TAB 2: WEEKLY TIMETABLE SETUP */}
       {activeTab === 'routine' && (
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))', gap: isMobile ? '16px' : '20px', textAlign: 'left' }}>
-          {/* Add Class Form */}
-          <div className="glass-panel" style={{ padding: isMobile ? '16px' : '20px' }}>
-            <h3 style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', margin: '0 0 14px 0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Plus size={isMobile ? 16 : 18} color="var(--primary)" /> Add Class to Weekly Routine
-            </h3>
-
-            <form onSubmit={handleAddRoutineClass} style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '12px' }}>
-              <div>
-                <label className="form-label" style={{ fontSize: isMobile ? '0.7rem' : '0.78rem' }}>Day of Week</label>
-                <select className="form-input" value={editingDay} onChange={(e) => setEditingDay(e.target.value)} style={{ fontSize: isMobile ? '0.8rem' : undefined }}>
-                  {DAYS_OF_WEEK.map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="form-label" style={{ fontSize: isMobile ? '0.7rem' : '0.78rem' }}>Subject Name</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="e.g. Data Structures & Algorithms"
-                  value={newSubName}
-                  onChange={(e) => setNewSubName(e.target.value)}
-                  required
-                  style={{ fontSize: isMobile ? '0.8rem' : undefined }}
-                />
-              </div>
-
-              <div>
-                <label className="form-label" style={{ fontSize: isMobile ? '0.7rem' : '0.78rem' }}>Start Time</label>
-                <input
-                  type="time"
-                  className="form-input"
-                  value={newStartTime24}
-                  onChange={(e) => setNewStartTime24(e.target.value)}
-                  required
-                  style={{ fontSize: isMobile ? '0.8rem' : undefined }}
-                />
-              </div>
-
-              {/* Flexible Duration: Hours & Minutes Selectors */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: isMobile ? '8px' : '10px' }}>
-                <div>
-                  <label className="form-label" style={{ fontSize: isMobile ? '0.7rem' : '0.78rem' }}>Duration (Hours)</label>
-                  <select className="form-input" value={durationHours} onChange={(e) => setDurationHours(e.target.value)} style={{ fontSize: isMobile ? '0.8rem' : undefined }}>
-                    {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((h) => (
-                      <option key={h} value={h}>{h} {h === 1 ? 'Hour' : 'Hours'}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="form-label" style={{ fontSize: isMobile ? '0.7rem' : '0.78rem' }}>Duration (Minutes)</label>
-                  <select className="form-input" value={durationMins} onChange={(e) => setDurationMins(e.target.value)} style={{ fontSize: isMobile ? '0.8rem' : undefined }}>
-                    {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
-                      <option key={m} value={m}>{m} Mins</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--primary)', fontWeight: 600, background: 'rgba(139,92,246,0.1)', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(139,92,246,0.2)', wordBreak: 'break-word' }}>
-                ⏰ Class Time: {format12HourTime(newStartTime24)} → {calculateEndTimeFromHM(newStartTime24, durationHours, durationMins)} ({formatDurationText(durationHours, durationMins)})
-              </div>
-
-              <div>
-                <label className="form-label" style={{ fontSize: isMobile ? '0.7rem' : '0.78rem' }}>Room / Venue</label>
-                <input type="text" className="form-input" value={newRoom} onChange={(e) => setNewRoom(e.target.value)} style={{ fontSize: isMobile ? '0.8rem' : undefined }} />
-              </div>
-
-              <button type="submit" className="btn btn-primary" style={{ marginTop: 4, padding: isMobile ? '10px' : undefined, fontSize: isMobile ? '0.8rem' : undefined }}>
-                Save Class to Timetable
-              </button>
-            </form>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '20px', textAlign: 'left' }}>
+          {/* Header Action Bar */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', background: 'rgba(255,255,255,0.02)', padding: '12px 16px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div>
+              <h3 style={{ fontSize: isMobile ? '1rem' : '1.15rem', margin: 0, color: '#ffffff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CalendarCheck size={20} color="var(--primary)" /> Weekly Timetable Routine
+              </h3>
+              <span style={{ fontSize: isMobile ? '0.75rem' : '0.82rem', color: 'var(--text-secondary)', display: 'block', marginTop: '2px' }}>
+                Review your weekly class schedule or add new classes below.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAddClassForm(prev => !prev)}
+              className="btn btn-primary"
+              style={{ padding: isMobile ? '8px 14px' : '9px 18px', fontSize: isMobile ? '0.8rem' : '0.86rem', gap: '6px' }}
+            >
+              {showAddClassForm ? <X size={16} /> : <Plus size={16} />}
+              {showAddClassForm ? 'Hide Add Class Form' : '+ Add New Class'}
+            </button>
           </div>
 
-          {/* Current Routine View (Sorted Chronologically) */}
+          {/* FIRST SECTION: Current Routine View (Sorted Chronologically) */}
           <div className="glass-panel" style={{ padding: isMobile ? '16px' : '20px', maxWidth: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
-            <h3 style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', margin: '0 0 14px 0', color: '#ffffff' }}>Weekly Timetable Schedule</h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <h3 style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', margin: 0, color: '#ffffff', fontWeight: 700 }}>
+                Weekly Timetable Schedule
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAddClassForm(true)}
+                className="btn btn-secondary"
+                style={{ padding: '6px 12px', fontSize: '0.78rem', gap: '4px' }}
+              >
+                <Plus size={14} /> Add Class
+              </button>
+            </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
               {DAYS_OF_WEEK.map((d) => {
                 const dayClasses = sortClassesByTime(routine[d] || []);
                 return (
-                  <div key={d} style={{ padding: isMobile ? '10px 12px' : '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', width: '100%', boxSizing: 'border-box' }}>
-                    <strong style={{ color: 'var(--primary)', fontSize: isMobile ? '0.8rem' : '0.85rem' }}>{d} ({dayClasses.length} classes)</strong>
+                  <div key={d} style={{ padding: isMobile ? '10px 12px' : '12px 14px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', width: '100%', boxSizing: 'border-box' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <strong style={{ color: 'var(--primary)', fontSize: isMobile ? '0.8rem' : '0.85rem' }}>{d}</strong>
+                      <span style={{ fontSize: '0.72rem', color: dayClasses.length > 0 ? '#10b981' : 'var(--text-muted)', fontWeight: 600 }}>
+                        {dayClasses.length} {dayClasses.length === 1 ? 'class' : 'classes'}
+                      </span>
+                    </div>
 
                     {dayClasses.length === 0 ? (
-                      <span style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: 2 }}>No classes</span>
+                      <span style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: 2 }}>No classes scheduled</span>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: 6 }}>
                         {dayClasses.map((c) => (
-                          <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: isMobile ? '0.78rem' : '0.82rem', color: '#ffffff', width: '100%', boxSizing: 'border-box' }}>
+                          <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: isMobile ? '0.78rem' : '0.82rem', color: '#ffffff', width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.03)', padding: '6px 8px', borderRadius: '8px' }}>
                             <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                               <span style={{ fontWeight: 600, color: '#ffffff', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.subject}</span>
                               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>{c.startTime} - {c.endTime} {c.room ? `· ${c.room}` : ''}</span>
@@ -806,6 +768,111 @@ export default function AttendanceTracker({ setCurrentView }) {
               })}
             </div>
           </div>
+
+          {/* SECOND SECTION: Add Class Form (Placed below routine or expanded) */}
+          {showAddClassForm ? (
+            <div className="glass-panel animate-fade-in" style={{ padding: isMobile ? '16px' : '22px', border: '1px solid rgba(139,92,246,0.3)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <h3 style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Plus size={isMobile ? 16 : 18} color="var(--primary)" /> Add Class to Weekly Routine
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowAddClassForm(false)}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleAddRoutineClass} style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '14px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '10px' : '14px' }}>
+                  <div>
+                    <label className="form-label" style={{ fontSize: isMobile ? '0.7rem' : '0.78rem' }}>Day of Week</label>
+                    <select className="form-input" value={editingDay} onChange={(e) => setEditingDay(e.target.value)} style={{ fontSize: isMobile ? '0.8rem' : undefined }}>
+                      {DAYS_OF_WEEK.map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="form-label" style={{ fontSize: isMobile ? '0.7rem' : '0.78rem' }}>Subject Name</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. Data Structures & Algorithms"
+                      value={newSubName}
+                      onChange={(e) => setNewSubName(e.target.value)}
+                      required
+                      style={{ fontSize: isMobile ? '0.8rem' : undefined }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: isMobile ? '10px' : '14px' }}>
+                  <div>
+                    <label className="form-label" style={{ fontSize: isMobile ? '0.7rem' : '0.78rem' }}>Start Time</label>
+                    <input
+                      type="time"
+                      className="form-input"
+                      value={newStartTime24}
+                      onChange={(e) => setNewStartTime24(e.target.value)}
+                      required
+                      style={{ fontSize: isMobile ? '0.8rem' : undefined }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="form-label" style={{ fontSize: isMobile ? '0.7rem' : '0.78rem' }}>Duration (Hours)</label>
+                    <select className="form-input" value={durationHours} onChange={(e) => setDurationHours(e.target.value)} style={{ fontSize: isMobile ? '0.8rem' : undefined }}>
+                      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((h) => (
+                        <option key={h} value={h}>{h} {h === 1 ? 'Hour' : 'Hours'}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="form-label" style={{ fontSize: isMobile ? '0.7rem' : '0.78rem' }}>Duration (Minutes)</label>
+                    <select className="form-input" value={durationMins} onChange={(e) => setDurationMins(e.target.value)} style={{ fontSize: isMobile ? '0.8rem' : undefined }}>
+                      {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
+                        <option key={m} value={m}>{m} Mins</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--primary)', fontWeight: 600, background: 'rgba(139,92,246,0.1)', padding: '8px 12px', borderRadius: '10px', border: '1px solid rgba(139,92,246,0.2)', wordBreak: 'break-word' }}>
+                  ⏰ Calculated Class Time: {format12HourTime(newStartTime24)} → {calculateEndTimeFromHM(newStartTime24, durationHours, durationMins)} ({formatDurationText(durationHours, durationMins)})
+                </div>
+
+                <div>
+                  <label className="form-label" style={{ fontSize: isMobile ? '0.7rem' : '0.78rem' }}>Room / Venue (Optional)</label>
+                  <input type="text" className="form-input" placeholder="e.g. Lab 3, Room 102" value={newRoom} onChange={(e) => setNewRoom(e.target.value)} style={{ fontSize: isMobile ? '0.8rem' : undefined }} />
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', marginTop: 4 }}>
+                  <button type="submit" className="btn btn-primary" style={{ flex: 1, padding: isMobile ? '10px' : '12px', fontSize: isMobile ? '0.82rem' : '0.9rem' }}>
+                    Save Class to Timetable
+                  </button>
+                  <button type="button" onClick={() => setShowAddClassForm(false)} className="btn btn-secondary" style={{ padding: isMobile ? '10px 14px' : '12px 18px', fontSize: isMobile ? '0.82rem' : '0.9rem' }}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', marginTop: '6px' }}>
+              <button
+                type="button"
+                onClick={() => setShowAddClassForm(true)}
+                className="btn btn-secondary"
+                style={{ padding: '10px 24px', fontSize: '0.88rem', gap: '8px', margin: '0 auto' }}
+              >
+                <Plus size={18} color="var(--primary)" /> + Add New Class Below Timetable
+              </button>
+            </div>
+          )}
         </div>
       )}
 

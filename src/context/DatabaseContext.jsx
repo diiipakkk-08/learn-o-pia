@@ -286,7 +286,16 @@ const mapProfile = (dbProfile) => {
   if (!dbProfile) return null;
   const isOwner = dbProfile.role === 'owner' || dbProfile.email?.toLowerCase() === 'admin@learnopia.edu';
   const isCompletedLocal = typeof window !== 'undefined' && dbProfile.id && localStorage.getItem(`learnopia_onboarding_done_${dbProfile.id}`) === 'true';
-  const isCompleted = isOwner || dbProfile.onboarding_completed === true || dbProfile.onboardingCompleted === true || isCompletedLocal;
+  let isCompleted = isOwner;
+  if (!isOwner) {
+    if (typeof dbProfile.onboarding_completed === 'boolean') {
+      isCompleted = dbProfile.onboarding_completed;
+    } else if (typeof dbProfile.onboardingCompleted === 'boolean') {
+      isCompleted = dbProfile.onboardingCompleted;
+    } else {
+      isCompleted = isCompletedLocal;
+    }
+  }
   
   // Retrieve saved local profile cache if available to prevent field loss during partial syncs
   let localCache = {};
@@ -1134,7 +1143,10 @@ export function DatabaseProvider({ children }) {
 
     if (isSupabaseLive) {
       try {
+        const userEmail = updatedUser.email || currentUser?.email || '';
         const payload = {
+          id: userId,
+          email: userEmail.toLowerCase(),
           name: updatedUser.name,
           username: updatedUser.username,
           phone: updatedUser.phone || null,
@@ -1151,17 +1163,19 @@ export function DatabaseProvider({ children }) {
           onboarding_completed: true,
           id_card_link: updatedUser.idCardLink || null,
           verification_status: updatedUser.verificationStatus || 'none',
-          verification_type: updatedUser.verificationType || 'student'
+          verification_type: updatedUser.verificationType || 'student',
+          updated_at: new Date().toISOString()
         };
 
         const { error: upErr } = await supabase
           .from('profiles')
-          .update(payload)
-          .eq('id', userId);
+          .upsert([payload], { onConflict: 'id' });
 
         if (upErr) {
-          console.warn('[Supabase Profile Update Error, retrying with core columns]:', upErr.message);
+          console.warn('[Supabase Profile Upsert Error, retrying with core columns]:', upErr.message);
           const corePayload = {
+            id: userId,
+            email: userEmail.toLowerCase(),
             name: updatedUser.name,
             username: updatedUser.username,
             phone: updatedUser.phone || null,
@@ -1174,17 +1188,17 @@ export function DatabaseProvider({ children }) {
             verification_status: updatedUser.verificationStatus || 'none',
             verification_type: updatedUser.verificationType || 'student'
           };
-          const { error: coreErr } = await supabase.from('profiles').update(corePayload).eq('id', userId);
+          const { error: coreErr } = await supabase.from('profiles').upsert([corePayload], { onConflict: 'id' });
           if (coreErr) {
-            console.error('[Supabase Core Update Error]:', coreErr.message);
+            console.error('[Supabase Core Upsert Error]:', coreErr.message);
           } else {
-            console.log('✅ [Supabase Core Profile Updated Successfully]:', userId);
+            console.log('✅ [Supabase Core Profile Upserted Successfully]:', userId);
           }
         } else {
-          console.log('✅ [Supabase Profile Updated Successfully]:', userId);
+          console.log('✅ [Supabase Profile Upserted Successfully]:', userId);
         }
       } catch (e) {
-        console.warn('[Supabase Profile Update Error]', e);
+        console.warn('[Supabase Profile Upsert Error]', e);
       }
       try {
         syncSupabase();
