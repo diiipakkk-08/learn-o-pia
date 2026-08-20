@@ -133,12 +133,12 @@ function AppContent() {
     }, 1200);
   };
 
-  if (authLoading || isNavLoading) {
+  if (isNavLoading) {
     return (
       <div style={styles.loadingContainer}>
         <div style={styles.spinner}></div>
         <p style={{ marginTop: '16px', color: '#8b5cf6', fontSize: '0.82rem', letterSpacing: '0.08em', fontWeight: 700 }}>
-          {isNavLoading ? 'LOADING LEARN-O-PIA HOMEPAGE...' : 'LOADING SYSTEM PROFILE...'}
+          LOADING LEARN-O-PIA HOMEPAGE...
         </p>
       </div>
     );

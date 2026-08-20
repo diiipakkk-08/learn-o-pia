@@ -474,7 +474,7 @@ export function DatabaseProvider({ children }) {
     const saved = localStorage.getItem('learnopia_activity_logs');
     return saved ? JSON.parse(saved) : [];
   });
-  const [authLoading, setAuthLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(false);
 
   const [standaloneResources, setStandaloneResources] = useState(() => {
     const saved = localStorage.getItem('learnopia_standalone_resources');
