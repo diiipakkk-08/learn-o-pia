@@ -1,29 +1,34 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Sanitize input values by removing whitespace, quotes, or trailing slashes
+const rawUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim().replace(/^["']|["']$/g, '').replace(/\/+$/, '');
+const rawKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim().replace(/^["']|["']$/g, '');
 
-const isConfigured = !!(supabaseUrl && supabaseAnonKey && supabaseAnonKey.length > 20);
+let client = null;
+const isConfigured = Boolean(rawUrl && rawKey && rawKey.length > 20 && rawUrl.startsWith('http'));
 
-if (typeof window !== 'undefined') {
-  if (!isConfigured) {
-    console.error(
-      '🔴 [SUPABASE DISCONNECTED]: VITE_SUPABASE_ANON_KEY is missing or empty!\n' +
-      '   ➜ Local: Add it to your .env file\n' +
-      '   ➜ Vercel: Add it in Project Settings → Environment Variables → Redeploy\n' +
-      '   ➜ Get your key from: https://supabase.com/dashboard/project/gwtjeusllzpuncvcmck/settings/api'
-    );
-  } else {
-    console.log('⚡ [SUPABASE CONNECTED]: Live connection to', supabaseUrl);
-  }
-}
-
-export const supabase = isConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey, {
+if (isConfigured) {
+  try {
+    client = createClient(rawUrl, rawKey, {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true
       }
-    })
-  : null;
+    });
+    if (typeof window !== 'undefined') {
+      console.log('⚡ [SUPABASE CONNECTED]: Live connection to', rawUrl);
+    }
+  } catch (err) {
+    console.error('🔴 [SUPABASE INIT ERROR]: Could not initialize Supabase client:', err);
+    client = null;
+  }
+} else if (typeof window !== 'undefined') {
+  console.warn(
+    '⚠️ [SUPABASE DISCONNECTED]: Running in offline mode.\n' +
+    '   ➜ Local: Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env\n' +
+    '   ➜ Vercel: Add them in Project Settings → Environment Variables → Redeploy'
+  );
+}
+
+export const supabase = client;

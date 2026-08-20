@@ -13,6 +13,20 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Global safety error catcher to display any fatal runtime errors on screen instead of a blank screen
+      window.addEventListener('error', function(e) {
+        var root = document.getElementById('root');
+        if (root && (!root.innerHTML || root.innerHTML.trim() === '')) {
+          root.innerHTML = '<div style="padding: 40px; color: #ff5555; background: #0c0b14; min-height: 100vh; font-family: monospace; z-index: 9999; position: relative;">' +
+            '<h2 style="color: #ffffff; margin-bottom: 12px;">System Startup Diagnostic</h2>' +
+            '<p style="color: #ef4444; margin-bottom: 16px; font-size: 1.1rem;">' + (e.message || 'An error occurred during startup.') + '</p>' +
+            '<pre style="background: rgba(255,255,255,0.05); padding: 16px; border-radius: 8px; color: #cbd5e1; white-space: pre-wrap; font-size: 0.85rem;">' + (e.filename || '') + (e.lineno ? (':' + e.lineno) : '') + '</pre>' +
+            '<button onclick="localStorage.clear(); sessionStorage.clear(); window.location.reload();" style="margin-top: 20px; padding: 10px 20px; background: #8b5cf6; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Reset App Cache & Reload</button>' +
+          '</div>';
+        }
+      });
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
