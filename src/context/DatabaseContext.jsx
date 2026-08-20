@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { supabase, isSupabaseLive } from '../lib/supabaseClient';
 
 const DatabaseContext = createContext();
 
@@ -284,58 +284,40 @@ export const getUserDesignation = (user) => {
 
 const mapProfile = (dbProfile) => {
   if (!dbProfile) return null;
-  const normalizedEmail = (dbProfile?.email || '').toLowerCase().replace(/\\./g, '');
   
-  // If Supabase is live, the database 'role' column is the absolute source of truth.
-  // We only use the email check if we are in offline mode (no DB) to allow local admin access.
-  const isOwner = dbProfile?.role === 'owner' || 
-                  (!isSupabaseLive && (
-                    dbProfile?.email?.toLowerCase() === 'admin@learnopia.edu' ||
-                    normalizedEmail === 'dipakshaw827600@gmailcom' ||
-                    normalizedEmail.includes('deepakshaw')
-                  ));
-                  
-  const isCompletedLocal = typeof window !== 'undefined' && dbProfile.id && localStorage.getItem(`learnopia_onboarding_done_${dbProfile.id}`) === 'true';
+  // Database 'role' is the single source of truth.
+  // In offline mode (no Supabase), admin@learnopia.edu defaults to owner.
+  const isOwner = dbProfile.role === 'owner' || (!isSupabaseLive && dbProfile.email?.toLowerCase() === 'admin@learnopia.edu');
   const isCompletedInDb = dbProfile.onboarding_completed === true || dbProfile.onboarding_completed === 'true' || dbProfile.onboardingCompleted === true || dbProfile.onboardingCompleted === 'true';
-  const isCompleted = isOwner || isCompletedInDb || isCompletedLocal;
-  
-  // Only use local cache as a fallback if offline. If Supabase is live, we completely ignore local cache 
-  // to ensure edits/deletions in Supabase are accurately reflected in the UI.
-  let localCache = {};
-  if (!isSupabaseLive && typeof window !== 'undefined' && dbProfile.id) {
-    try {
-      const cached = localStorage.getItem(`learnopia_profile_${dbProfile.id}`);
-      if (cached) localCache = JSON.parse(cached);
-    } catch (e) {}
-  }
+  const isCompleted = isOwner || isCompletedInDb;
 
   return {
     id: dbProfile.id,
-    name: dbProfile.name || localCache.name || (isOwner ? 'Deepak Shaw' : (dbProfile.email?.split('@')[0] || 'User')),
-    username: dbProfile.username || localCache.username || `@${(dbProfile.name || (isOwner ? 'deepak_shaw' : (dbProfile.email?.split('@')[0] || 'user'))).toLowerCase().replace(/\s+/g, '')}`,
+    name: dbProfile.name || (dbProfile.email ? dbProfile.email.split('@')[0] : 'User'),
+    username: dbProfile.username || `@${(dbProfile.name || (dbProfile.email ? dbProfile.email.split('@')[0] : 'user')).toLowerCase().replace(/\s+/g, '')}`,
     email: dbProfile.email,
-    password: dbProfile.password || localCache.password || '',
-    picture: dbProfile.picture || dbProfile.avatar_url || localCache.picture,
-    phone: dbProfile.phone || localCache.phone || '',
-    college: dbProfile.college || localCache.college || '',
-    department: dbProfile.department || localCache.department || '',
-    courseName: dbProfile.course_name || dbProfile.courseName || localCache.courseName || '',
-    joiningYear: dbProfile.joining_year || dbProfile.joiningYear || localCache.joiningYear || '',
-    passingYear: dbProfile.passing_year || dbProfile.passingYear || localCache.passingYear || '',
-    totalSemesters: dbProfile.total_semesters || dbProfile.totalSemesters || localCache.totalSemesters || 8,
-    interests: dbProfile.interests || localCache.interests || '',
-    educationLevel: dbProfile.education_level || dbProfile.educationLevel || localCache.educationLevel || 'college',
-    dob: dbProfile.dob || localCache.dob || '',
-    targetExam: dbProfile.target_exam || dbProfile.targetExam || localCache.targetExam || '',
+    password: dbProfile.password || '',
+    picture: dbProfile.picture || dbProfile.avatar_url || null,
+    phone: dbProfile.phone || '',
+    college: dbProfile.college || '',
+    department: dbProfile.department || '',
+    courseName: dbProfile.course_name || dbProfile.courseName || '',
+    joiningYear: dbProfile.joining_year || dbProfile.joiningYear || '',
+    passingYear: dbProfile.passing_year || dbProfile.passingYear || '',
+    totalSemesters: dbProfile.total_semesters || dbProfile.totalSemesters || 8,
+    interests: dbProfile.interests || '',
+    educationLevel: dbProfile.education_level || dbProfile.educationLevel || 'college',
+    dob: dbProfile.dob || '',
+    targetExam: dbProfile.target_exam || dbProfile.targetExam || '',
     onboardingCompleted: isCompleted,
-    idCardLink: dbProfile.id_card_link || dbProfile.idCardLink || localCache.idCardLink || '',
-    isVerified: !!(dbProfile.is_verified || dbProfile.isVerified || localCache.isVerified || isOwner),
+    idCardLink: dbProfile.id_card_link || dbProfile.idCardLink || '',
+    isVerified: !!(dbProfile.is_verified || dbProfile.isVerified || isOwner),
     verificationStatus: dbProfile.verification_status || dbProfile.verificationStatus || (isOwner ? 'verified' : ((dbProfile.id_card_link || dbProfile.idCardLink) ? 'pending' : 'none')),
-    verificationType: dbProfile.verification_type || dbProfile.verificationType || localCache.verificationType || (isOwner ? 'creator' : 'student'),
-    role: dbProfile.role || localCache.role || (isOwner ? 'owner' : 'learner'),
-    status: dbProfile.status || localCache.status || 'active',
-    creatorStatus: dbProfile.creator_status || localCache.creatorStatus,
-    enrolledCourses: dbProfile.enrolled_courses || dbProfile.enrolledCourses || localCache.enrolledCourses || []
+    verificationType: dbProfile.verification_type || dbProfile.verificationType || (isOwner ? 'creator' : 'student'),
+    role: dbProfile.role || (isOwner ? 'owner' : 'learner'),
+    status: dbProfile.status || 'active',
+    creatorStatus: dbProfile.creator_status || dbProfile.creatorStatus || null,
+    enrolledCourses: dbProfile.enrolled_courses || dbProfile.enrolledCourses || []
   };
 };
 
@@ -604,34 +586,41 @@ export function DatabaseProvider({ children }) {
         let { data: dbProfile } = await supabase
           .from('profiles')
           .select('*')
-          .or(`id.eq.${user.id},email.ilike.${user.email.toLowerCase()}`)
+          .eq('id', user.id)
           .maybeSingle();
 
-        const isOwnerAccount = user.email?.toLowerCase() === 'admin@learnopia.edu' ||
-                               user.email?.toLowerCase() === 'dipakshaw827600@gmail.com' ||
-                               (user.email || '').toLowerCase().replace(/\./g, '').includes('deepakshaw') ||
-                               dbProfile?.role === 'owner';
-
         if (!dbProfile) {
-          const newProfile = {
-            id: user.id,
-            email: user.email.toLowerCase(),
-            name: user.user_metadata?.full_name || (isOwnerAccount ? 'Deepak Shaw' : user.email.split('@')[0]),
-            role: isOwnerAccount ? 'owner' : 'learner',
-            status: 'active',
-            is_verified: isOwnerAccount,
-            verification_status: isOwnerAccount ? 'verified' : 'none',
-            verification_type: isOwnerAccount ? 'creator' : 'student',
-            onboarding_completed: isOwnerAccount,
-            college: isOwnerAccount ? 'MAKAUT University' : '',
-            department: isOwnerAccount ? 'CSE/IT' : '',
-            interests: isOwnerAccount ? 'Computer Science, AI, Web Development' : '',
-            enrolled_courses: []
-          };
-          try {
-            await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
-          } catch (e) {}
-          dbProfile = newProfile;
+          // If not found by ID, try email lookup
+          const { data: profileByEmail } = await supabase
+            .from('profiles')
+            .select('*')
+            .ilike('email', user.email.toLowerCase())
+            .maybeSingle();
+
+          if (profileByEmail) {
+            dbProfile = profileByEmail;
+          } else {
+            const isInitialOwner = user.email?.toLowerCase() === 'admin@learnopia.edu';
+            const newProfile = {
+              id: user.id,
+              email: user.email.toLowerCase(),
+              name: user.user_metadata?.full_name || user.email.split('@')[0],
+              role: isInitialOwner ? 'owner' : 'learner',
+              status: 'active',
+              is_verified: isInitialOwner,
+              verification_status: isInitialOwner ? 'verified' : 'none',
+              verification_type: isInitialOwner ? 'creator' : 'student',
+              onboarding_completed: isInitialOwner,
+              college: '',
+              department: '',
+              interests: '',
+              enrolled_courses: []
+            };
+            try {
+              await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
+            } catch (e) {}
+            dbProfile = newProfile;
+          }
         }
 
         const mapped = mapProfile(dbProfile);
@@ -642,9 +631,6 @@ export function DatabaseProvider({ children }) {
           } else {
             setCurrentUser(mapped);
             localStorage.setItem('learnopia_current_user_stable', JSON.stringify(mapped));
-            if (isOwnerAccount && mapped.id) {
-              localStorage.setItem(`learnopia_onboarding_done_${mapped.id}`, 'true');
-            }
           }
         }
       }
@@ -771,32 +757,38 @@ export function DatabaseProvider({ children }) {
             let { data: dbProfile } = await supabase
               .from('profiles')
               .select('*')
-              .or(`id.eq.${session.user.id},email.ilike.${session.user.email.toLowerCase()}`)
+              .eq('id', session.user.id)
               .maybeSingle();
 
-            const isOwnerAccount = session.user.email?.toLowerCase() === 'admin@learnopia.edu' ||
-                                   session.user.email?.toLowerCase() === 'dipakshaw827600@gmail.com' ||
-                                   (session.user.email || '').toLowerCase().replace(/\./g, '').includes('deepakshaw') ||
-                                   dbProfile?.role === 'owner';
-
             if (!dbProfile) {
-              const newProfile = {
-                id: session.user.id,
-                email: session.user.email.toLowerCase(),
-                name: session.user.user_metadata?.full_name || (isOwnerAccount ? 'Deepak Shaw' : session.user.email.split('@')[0]),
-                role: isOwnerAccount ? 'owner' : 'learner',
-                status: 'active',
-                is_verified: isOwnerAccount,
-                verification_status: isOwnerAccount ? 'verified' : 'none',
-                verification_type: isOwnerAccount ? 'creator' : 'student',
-                onboarding_completed: isOwnerAccount,
-                college: isOwnerAccount ? 'MAKAUT University' : '',
-                department: isOwnerAccount ? 'CSE/IT' : '',
-                interests: isOwnerAccount ? 'Computer Science, AI, Web Development' : '',
-                enrolled_courses: []
-              };
-              await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
-              dbProfile = newProfile;
+              const { data: profileByEmail } = await supabase
+                .from('profiles')
+                .select('*')
+                .ilike('email', session.user.email.toLowerCase())
+                .maybeSingle();
+
+              if (profileByEmail) {
+                dbProfile = profileByEmail;
+              } else {
+                const isInitialOwner = session.user.email?.toLowerCase() === 'admin@learnopia.edu';
+                const newProfile = {
+                  id: session.user.id,
+                  email: session.user.email.toLowerCase(),
+                  name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
+                  role: isInitialOwner ? 'owner' : 'learner',
+                  status: 'active',
+                  is_verified: isInitialOwner,
+                  verification_status: isInitialOwner ? 'verified' : 'none',
+                  verification_type: isInitialOwner ? 'creator' : 'student',
+                  onboarding_completed: isInitialOwner,
+                  college: '',
+                  department: '',
+                  interests: '',
+                  enrolled_courses: []
+                };
+                await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
+                dbProfile = newProfile;
+              }
             }
 
             const mapped = mapProfile(dbProfile);
@@ -807,9 +799,6 @@ export function DatabaseProvider({ children }) {
               } else {
                 setCurrentUser(mapped);
                 localStorage.setItem('learnopia_current_user_stable', JSON.stringify(mapped));
-                if (isOwnerAccount && mapped.id) {
-                  localStorage.setItem(`learnopia_onboarding_done_${mapped.id}`, 'true');
-                }
               }
             }
           } catch (err) {
@@ -923,37 +912,42 @@ export function DatabaseProvider({ children }) {
       let { data: profile } = await supabase
         .from('profiles')
         .select('*')
-        .or(`id.eq.${authUser.id},email.ilike.${authUser.email.toLowerCase()}`)
+        .eq('id', authUser.id)
         .maybeSingle();
 
-      const isOwnerAccount = authUser.email?.toLowerCase() === 'admin@learnopia.edu' ||
-                             authUser.email?.toLowerCase() === 'dipakshaw827600@gmail.com' ||
-                             (authUser.email || '').toLowerCase().replace(/\./g, '').includes('deepakshaw') ||
-                             profile?.role === 'owner';
-
       if (!profile) {
-        // Auto-create profile if missing
-        const newProfile = {
-          id: authUser.id,
-          email: email.toLowerCase(),
-          name: authUser.user_metadata?.full_name || (isOwnerAccount ? 'Deepak Shaw' : email.split('@')[0]),
-          role: isOwnerAccount ? 'owner' : 'learner',
-          status: 'active',
-          is_verified: isOwnerAccount,
-          verification_status: isOwnerAccount ? 'verified' : 'none',
-          verification_type: isOwnerAccount ? 'creator' : 'student',
-          onboarding_completed: isOwnerAccount,
-          college: isOwnerAccount ? 'MAKAUT University' : '',
-          department: isOwnerAccount ? 'CSE/IT' : '',
-          interests: isOwnerAccount ? 'Computer Science, AI, Web Development' : '',
-          password: password || null,
-          enrolled_courses: []
-        };
-        const { error: createError } = await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
-        if (createError) {
-          console.warn('Profile upsert warning:', createError);
+        const { data: profileByEmail } = await supabase
+          .from('profiles')
+          .select('*')
+          .ilike('email', email.toLowerCase())
+          .maybeSingle();
+
+        if (profileByEmail) {
+          profile = profileByEmail;
+        } else {
+          const isInitialOwner = email.toLowerCase() === 'admin@learnopia.edu';
+          const newProfile = {
+            id: authUser.id,
+            email: email.toLowerCase(),
+            name: authUser.user_metadata?.full_name || email.split('@')[0],
+            role: isInitialOwner ? 'owner' : 'learner',
+            status: 'active',
+            is_verified: isInitialOwner,
+            verification_status: isInitialOwner ? 'verified' : 'none',
+            verification_type: isInitialOwner ? 'creator' : 'student',
+            onboarding_completed: isInitialOwner,
+            college: '',
+            department: '',
+            interests: '',
+            password: password || null,
+            enrolled_courses: []
+          };
+          const { error: createError } = await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
+          if (createError) {
+            console.warn('Profile upsert warning:', createError);
+          }
+          profile = newProfile;
         }
-        profile = newProfile;
       }
 
       if (profile.status === 'suspended') {
@@ -972,9 +966,6 @@ export function DatabaseProvider({ children }) {
       const mapped = mapProfile(profile);
       setCurrentUser(mapped);
       localStorage.setItem('learnopia_current_user_stable', JSON.stringify(mapped));
-      if (isOwnerAccount && mapped.id) {
-        localStorage.setItem(`learnopia_onboarding_done_${mapped.id}`, 'true');
-      }
       addLog(`User logged in: ${mapped.name} (${mapped.role.toUpperCase()})`);
       return mapped;
     } else {

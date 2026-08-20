@@ -46,4 +46,5 @@ if (isConfigured) {
   );
 }
 
+export const isSupabaseLive = Boolean(client);
 export const supabase = client;
