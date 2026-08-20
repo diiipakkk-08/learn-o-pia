@@ -17,7 +17,7 @@ function GoogleIcon() {
 }
 
 export default function Auth({ setCurrentView }) {
-  const { users, login, loginWithGoogle, registerUser, setPasswordForUser } = useDatabase();
+  const { users, login, loginWithGoogle, registerUser, setPasswordForUser, isSupabaseLive } = useDatabase();
 
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');

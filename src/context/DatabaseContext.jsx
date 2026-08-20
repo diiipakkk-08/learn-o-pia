@@ -1053,8 +1053,8 @@ export function DatabaseProvider({ children }) {
         throw new Error('Registration failed.');
       }
 
-      // Check if user requires email confirmation (confirmed_at is null)
-      const requiresConfirmation = !data.user.confirmed_at;
+      // Check if user requires email confirmation (session is null and confirmed_at is null)
+      const requiresConfirmation = !data.session && !data.user.confirmed_at;
 
       const newProfile = {
         id: data.user.id,
