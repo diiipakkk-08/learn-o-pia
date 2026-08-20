@@ -938,47 +938,55 @@ export function DatabaseProvider({ children }) {
   };
 
   const loginWithGoogle = async (googleUser = null) => {
-    if (isSupabaseLive) {
+    if (supabase) {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: window.location.origin
         }
       });
-      if (error) throw new Error(error.message || 'Google OAuth redirect failed.');
+      if (error) {
+        if (error.message?.includes('provider is not enabled') || error.message?.includes('Unsupported provider')) {
+          throw new Error('Google Sign-In is not enabled yet in your Supabase project. Please enable Google in Supabase Dashboard → Authentication → Providers → Google, or sign in with your email & password.');
+        }
+        throw new Error(error.message || 'Google OAuth redirect failed.');
+      }
       return data;
     } else {
-      const email = googleUser?.email || 'learner@learnopia.edu';
-      const name = googleUser?.name || 'Alex Carter';
-      const picture = googleUser?.picture || null;
-      
-      const existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-      if (existing) {
-        setCurrentUser(existing);
-        localStorage.setItem('learnopia_current_user_stable', JSON.stringify(existing));
-        addLog(`User logged in via Google: ${existing.name}`);
-        return existing;
+      if (googleUser && googleUser.email) {
+        const email = googleUser.email;
+        const name = googleUser.name || email.split('@')[0];
+        const picture = googleUser.picture || null;
+        
+        const existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+        if (existing) {
+          setCurrentUser(existing);
+          localStorage.setItem('learnopia_current_user_stable', JSON.stringify(existing));
+          addLog(`User logged in via Google: ${existing.name}`);
+          return existing;
+        }
+        const newUser = {
+          id: 'u-g-' + Date.now(),
+          email: email.toLowerCase(),
+          name,
+          username: `@${name.toLowerCase().replace(/\s+/g, '')}`,
+          picture,
+          role: 'learner',
+          status: 'active',
+          password: null,
+          enrolledCourses: []
+        };
+        setUsers(prev => {
+          const next = [...prev, newUser];
+          localStorage.setItem('learnopia_users_stable', JSON.stringify(next));
+          return next;
+        });
+        setCurrentUser(newUser);
+        localStorage.setItem('learnopia_current_user_stable', JSON.stringify(newUser));
+        addLog(`New user registered via Google: ${newUser.name}`);
+        return newUser;
       }
-      const newUser = {
-        id: 'u-g-' + Date.now(),
-        email: email.toLowerCase(),
-        name,
-        username: `@${name.toLowerCase().replace(/\s+/g, '')}`,
-        picture,
-        role: 'learner',
-        status: 'active',
-        password: null,
-        enrolledCourses: []
-      };
-      setUsers(prev => {
-        const next = [...prev, newUser];
-        localStorage.setItem('learnopia_users_stable', JSON.stringify(next));
-        return next;
-      });
-      setCurrentUser(newUser);
-      localStorage.setItem('learnopia_current_user_stable', JSON.stringify(newUser));
-      addLog(`New user registered via Google: ${newUser.name}`);
-      return newUser;
+      throw new Error('Google Sign-In is unavailable without an active Supabase connection or Google OAuth credentials. Please sign in with your email and password.');
     }
   };
 
@@ -2551,7 +2559,8 @@ export function DatabaseProvider({ children }) {
       saveUserArchivesToDb,
       saveDiscussionThreadsToDb,
       getDiscussionThreadsFromDb,
-      deleteUserAccount
+      deleteUserAccount,
+      isSupabaseLive
     }}>
       {children}
     </DatabaseContext.Provider>

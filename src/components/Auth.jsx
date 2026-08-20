@@ -204,19 +204,24 @@ export default function Auth({ setCurrentView }) {
           </div>
         )}
 
-        {/* ── Google Sign-In Button (Original clean implementation) ── */}
+        {/* ── Google Sign-In Button ── */}
         <button
           type="button"
-          onClick={() => {
-            const isSupabaseLive = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
-            if (isSupabaseLive) {
-              setGoogleLoading(true);
-              loginWithGoogle().catch((err) => {
-                setError('Google redirect failed: ' + err.message);
-                setGoogleLoading(false);
-              });
-            } else {
-              googleLogin();
+          onClick={async () => {
+            setError(null);
+            setSuccess(null);
+            setGoogleLoading(true);
+            try {
+              if (isSupabaseLive) {
+                await loginWithGoogle();
+              } else {
+                googleLogin();
+              }
+            } catch (err) {
+              console.error('[Google Login Error]', err);
+              setError(err?.message || 'Google Sign-In is currently unavailable. Please sign in with email and password.');
+            } finally {
+              setGoogleLoading(false);
             }
           }}
           disabled={googleLoading}
