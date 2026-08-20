@@ -274,8 +274,22 @@ export default function AttendanceTracker({ setCurrentView }) {
   const scheduledToday = useMemo(() => sortClassesByTime(routine[dayName] || []), [routine, dayName]);
   const dayLog = useMemo(() => logs[selectedDate] || { isHoliday: false, classes: {} }, [logs, selectedDate]);
 
-  // Step Date Forward/Backward
-  const handlePrevDay = () => setSelectedDate((prev) => addDaysToDateStr(prev, -1));
+  const isAtSemesterStart = selectedDate <= semesterStartDate;
+
+  useEffect(() => {
+    if (selectedDate < semesterStartDate) {
+      setSelectedDate(semesterStartDate);
+    }
+  }, [semesterStartDate, selectedDate]);
+
+  // Step Date Forward/Backward (Cannot navigate earlier than semesterStartDate)
+  const handlePrevDay = () => {
+    if (selectedDate <= semesterStartDate) return;
+    setSelectedDate((prev) => {
+      const nextDate = addDaysToDateStr(prev, -1);
+      return nextDate < semesterStartDate ? semesterStartDate : nextDate;
+    });
+  };
   const handleNextDay = () => setSelectedDate((prev) => addDaysToDateStr(prev, 1));
 
   // Mark class attendance status ('attended' | 'absent' | 'massbunk' | 'cancelled')
@@ -607,7 +621,22 @@ export default function AttendanceTracker({ setCurrentView }) {
 
             {/* Quick 1-Click Day Stepper & Date Picker */}
             <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '8px', flexWrap: 'wrap' }}>
-              <button onClick={handlePrevDay} className="btn btn-secondary btn-sm" title="Previous Day" style={{ padding: isMobile ? '6px 10px' : '8px 12px', whiteSpace: 'nowrap', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <button
+                onClick={handlePrevDay}
+                disabled={isAtSemesterStart}
+                className="btn btn-secondary btn-sm"
+                title={isAtSemesterStart ? "Semester Start Date Reached" : "Previous Day"}
+                style={{
+                  padding: isMobile ? '6px 10px' : '8px 12px',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  opacity: isAtSemesterStart ? 0.45 : 1,
+                  cursor: isAtSemesterStart ? 'not-allowed' : 'pointer'
+                }}
+              >
                 <ChevronLeft size={isMobile ? 14 : 16} /> {isMobile ? '' : 'Prev'}
               </button>
               
@@ -615,7 +644,16 @@ export default function AttendanceTracker({ setCurrentView }) {
                 type="date"
                 className="form-input"
                 value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
+                min={semesterStartDate}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val) return;
+                  if (val < semesterStartDate) {
+                    setSelectedDate(semesterStartDate);
+                  } else {
+                    setSelectedDate(val);
+                  }
+                }}
                 style={{ flex: 1, minWidth: isMobile ? '100px' : '120px', textAlign: 'center', fontSize: isMobile ? '0.8rem' : undefined }}
               />
 
