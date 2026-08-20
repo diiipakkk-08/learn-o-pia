@@ -284,18 +284,25 @@ export const getUserDesignation = (user) => {
 
 const mapProfile = (dbProfile) => {
   if (!dbProfile) return null;
-const normalizedEmail = (dbProfile?.email || '').toLowerCase().replace(/\\./g, '');
+  const normalizedEmail = (dbProfile?.email || '').toLowerCase().replace(/\\./g, '');
+  
+  // If Supabase is live, the database 'role' column is the absolute source of truth.
+  // We only use the email check if we are in offline mode (no DB) to allow local admin access.
   const isOwner = dbProfile?.role === 'owner' || 
-                  dbProfile?.email?.toLowerCase() === 'admin@learnopia.edu' ||
-                  normalizedEmail === 'dipakshaw827600@gmailcom' ||
-                  normalizedEmail.includes('deepakshaw');
+                  (!isSupabaseLive && (
+                    dbProfile?.email?.toLowerCase() === 'admin@learnopia.edu' ||
+                    normalizedEmail === 'dipakshaw827600@gmailcom' ||
+                    normalizedEmail.includes('deepakshaw')
+                  ));
+                  
   const isCompletedLocal = typeof window !== 'undefined' && dbProfile.id && localStorage.getItem(`learnopia_onboarding_done_${dbProfile.id}`) === 'true';
   const isCompletedInDb = dbProfile.onboarding_completed === true || dbProfile.onboarding_completed === 'true' || dbProfile.onboardingCompleted === true || dbProfile.onboardingCompleted === 'true';
   const isCompleted = isOwner || isCompletedInDb || isCompletedLocal;
   
-  // Retrieve saved local profile cache if available to prevent field loss during partial syncs
+  // Only use local cache as a fallback if offline. If Supabase is live, we completely ignore local cache 
+  // to ensure edits/deletions in Supabase are accurately reflected in the UI.
   let localCache = {};
-  if (typeof window !== 'undefined' && dbProfile.id) {
+  if (!isSupabaseLive && typeof window !== 'undefined' && dbProfile.id) {
     try {
       const cached = localStorage.getItem(`learnopia_profile_${dbProfile.id}`);
       if (cached) localCache = JSON.parse(cached);
@@ -304,28 +311,28 @@ const normalizedEmail = (dbProfile?.email || '').toLowerCase().replace(/\\./g, '
 
   return {
     id: dbProfile.id,
-    name: dbProfile.name || (isOwner ? 'Deepak Shaw' : (localCache.name || dbProfile.email?.split('@')[0] || 'User')),
+    name: dbProfile.name || localCache.name || (isOwner ? 'Deepak Shaw' : (dbProfile.email?.split('@')[0] || 'User')),
     username: dbProfile.username || localCache.username || `@${(dbProfile.name || (isOwner ? 'deepak_shaw' : (dbProfile.email?.split('@')[0] || 'user'))).toLowerCase().replace(/\s+/g, '')}`,
     email: dbProfile.email,
     password: dbProfile.password || localCache.password || '',
     picture: dbProfile.picture || dbProfile.avatar_url || localCache.picture,
     phone: dbProfile.phone || localCache.phone || '',
-    college: dbProfile.college || localCache.college || (isOwner ? 'MAKAUT University' : ''),
-    department: dbProfile.department || localCache.department || (isOwner ? 'CSE/IT' : ''),
+    college: dbProfile.college || localCache.college || '',
+    department: dbProfile.department || localCache.department || '',
     courseName: dbProfile.course_name || dbProfile.courseName || localCache.courseName || '',
-    joiningYear: dbProfile.joining_year || dbProfile.joiningYear || localCache.joiningYear || '2023',
-    passingYear: dbProfile.passing_year || dbProfile.passingYear || localCache.passingYear || '2027',
+    joiningYear: dbProfile.joining_year || dbProfile.joiningYear || localCache.joiningYear || '',
+    passingYear: dbProfile.passing_year || dbProfile.passingYear || localCache.passingYear || '',
     totalSemesters: dbProfile.total_semesters || dbProfile.totalSemesters || localCache.totalSemesters || 8,
-    interests: dbProfile.interests || localCache.interests || (isOwner ? 'Computer Science, AI, Web Development' : ''),
+    interests: dbProfile.interests || localCache.interests || '',
     educationLevel: dbProfile.education_level || dbProfile.educationLevel || localCache.educationLevel || 'college',
     dob: dbProfile.dob || localCache.dob || '',
     targetExam: dbProfile.target_exam || dbProfile.targetExam || localCache.targetExam || '',
     onboardingCompleted: isCompleted,
     idCardLink: dbProfile.id_card_link || dbProfile.idCardLink || localCache.idCardLink || '',
-    isVerified: isOwner ? true : !!(dbProfile.is_verified || dbProfile.isVerified || localCache.isVerified),
-    verificationStatus: isOwner ? 'verified' : (dbProfile.verification_status || dbProfile.verificationStatus || (dbProfile.is_verified ? 'verified' : ((dbProfile.id_card_link || dbProfile.idCardLink) ? 'pending' : 'none'))),
-    verificationType: isOwner ? 'creator' : (dbProfile.verification_type || dbProfile.verificationType || localCache.verificationType || 'student'),
-    role: isOwner ? 'owner' : (dbProfile.role || localCache.role || 'learner'),
+    isVerified: !!(dbProfile.is_verified || dbProfile.isVerified || localCache.isVerified || isOwner),
+    verificationStatus: dbProfile.verification_status || dbProfile.verificationStatus || (isOwner ? 'verified' : ((dbProfile.id_card_link || dbProfile.idCardLink) ? 'pending' : 'none')),
+    verificationType: dbProfile.verification_type || dbProfile.verificationType || localCache.verificationType || (isOwner ? 'creator' : 'student'),
+    role: dbProfile.role || localCache.role || (isOwner ? 'owner' : 'learner'),
     status: dbProfile.status || localCache.status || 'active',
     creatorStatus: dbProfile.creator_status || localCache.creatorStatus,
     enrolledCourses: dbProfile.enrolled_courses || dbProfile.enrolledCourses || localCache.enrolledCourses || []
@@ -625,17 +632,6 @@ export function DatabaseProvider({ children }) {
             await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
           } catch (e) {}
           dbProfile = newProfile;
-        } else if (isOwnerAccount && (dbProfile.role !== 'owner' || !dbProfile.onboarding_completed)) {
-          try {
-            await supabase.from('profiles').update({
-              role: 'owner',
-              onboarding_completed: true,
-              is_verified: true,
-              verification_status: 'verified'
-            }).eq('id', dbProfile.id);
-            dbProfile.role = 'owner';
-            dbProfile.onboarding_completed = true;
-          } catch (e) {}
         }
 
         const mapped = mapProfile(dbProfile);
@@ -801,17 +797,6 @@ export function DatabaseProvider({ children }) {
               };
               await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
               dbProfile = newProfile;
-            } else if (isOwnerAccount && (dbProfile.role !== 'owner' || !dbProfile.onboarding_completed)) {
-              try {
-                await supabase.from('profiles').update({
-                  role: 'owner',
-                  onboarding_completed: true,
-                  is_verified: true,
-                  verification_status: 'verified'
-                }).eq('id', dbProfile.id);
-                dbProfile.role = 'owner';
-                dbProfile.onboarding_completed = true;
-              } catch (e) {}
             }
 
             const mapped = mapProfile(dbProfile);
@@ -969,17 +954,6 @@ export function DatabaseProvider({ children }) {
           console.warn('Profile upsert warning:', createError);
         }
         profile = newProfile;
-      } else if (isOwnerAccount && (profile.role !== 'owner' || !profile.onboarding_completed)) {
-        try {
-          await supabase.from('profiles').update({
-            role: 'owner',
-            onboarding_completed: true,
-            is_verified: true,
-            verification_status: 'verified'
-          }).eq('id', profile.id);
-          profile.role = 'owner';
-          profile.onboarding_completed = true;
-        } catch (e) {}
       }
 
       if (profile.status === 'suspended') {

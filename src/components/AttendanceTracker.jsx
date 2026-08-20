@@ -479,15 +479,32 @@ export default function AttendanceTracker({ setCurrentView }) {
   // Overall Total Summary
   const overallStats = useMemo(() => {
     let totAttended = 0;
+    let totAbsent = 0;
+    let totMassBunk = 0;
+    let totCancelled = 0;
     let totConducted = 0;
 
     subjectAnalytics.forEach((s) => {
       totAttended += s.attended;
+      totAbsent += s.absent;
+      totMassBunk += s.massbunk;
+      totCancelled += s.cancelled;
       totConducted += s.totalConducted;
     });
 
-    const pct = totConducted > 0 ? Math.round((totAttended / totConducted) * 100) : 100;
-    return { totAttended, totConducted, pct };
+    const pctOfficial = totConducted > 0 ? Math.round((totAttended / totConducted) * 100) : 100;
+    const conductedWithoutMassBunks = totConducted - totMassBunk;
+    const pctWithoutMassBunks = conductedWithoutMassBunks > 0 ? Math.round((totAttended / conductedWithoutMassBunks) * 100) : 100;
+
+    return { 
+      totAttended, 
+      totAbsent, 
+      totMassBunk, 
+      totCancelled, 
+      totConducted, 
+      pct: pctOfficial, 
+      pctWithoutMassBunks 
+    };
   }, [subjectAnalytics]);
 
   // End Semester Handler -> Clears & Resets Routine Completely
@@ -879,6 +896,69 @@ export default function AttendanceTracker({ setCurrentView }) {
       {/* TAB 3: SUBJECT ANALYTICS & ARCHIVES */}
       {activeTab === 'analytics' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '20px', textAlign: 'left' }}>
+          {/* OVERALL ANALYTICS */}
+          <div className="glass-panel" style={{ padding: isMobile ? '16px' : '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <h3 style={{ fontSize: isMobile ? '1rem' : '1.1rem', margin: '0 0 16px 0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <TrendingUp size={isMobile ? 18 : 20} color="var(--primary)" /> Overall Analytics
+            </h3>
+            
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between' }}>
+              <div style={{ flex: '1 1 min-content', minWidth: '120px' }}>
+                <div style={{ fontSize: isMobile ? '0.75rem' : '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Actual Attendance</div>
+                <div style={{ fontSize: isMobile ? '1.5rem' : '1.8rem', fontWeight: 800, color: overallStats.pct < 75 ? '#f87171' : '#34d399' }}>
+                  {overallStats.pct}%
+                </div>
+                <div style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  (Includes Mass Bunks)
+                </div>
+              </div>
+
+              <div style={{ flex: '1 1 min-content', minWidth: '120px' }}>
+                <div style={{ fontSize: isMobile ? '0.75rem' : '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Ignoring Mass Bunks</div>
+                <div style={{ fontSize: isMobile ? '1.5rem' : '1.8rem', fontWeight: 800, color: overallStats.pctWithoutMassBunks < 75 ? '#f87171' : '#34d399' }}>
+                  {overallStats.pctWithoutMassBunks}%
+                </div>
+                <div style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  (If Bunks Were Cancelled)
+                </div>
+              </div>
+            </div>
+
+            <div style={{ 
+              marginTop: '16px', 
+              paddingTop: '16px', 
+              borderTop: '1px solid rgba(255,255,255,0.08)',
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', 
+              gap: '12px' 
+            }}>
+              <div>
+                <div style={{ fontSize: isMobile ? '0.7rem' : '0.8rem', color: 'var(--text-secondary)' }}>Total Classes</div>
+                <div style={{ fontSize: isMobile ? '0.9rem' : '1.1rem', fontWeight: 700, color: '#fff' }}>{overallStats.totConducted}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: isMobile ? '0.7rem' : '0.8rem', color: 'var(--text-secondary)' }}>Attended</div>
+                <div style={{ fontSize: isMobile ? '0.9rem' : '1.1rem', fontWeight: 700, color: '#34d399' }}>{overallStats.totAttended}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: isMobile ? '0.7rem' : '0.8rem', color: 'var(--text-secondary)' }}>Absent</div>
+                <div style={{ fontSize: isMobile ? '0.9rem' : '1.1rem', fontWeight: 700, color: '#f87171' }}>{overallStats.totAbsent}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: isMobile ? '0.7rem' : '0.8rem', color: 'var(--text-secondary)' }}>Mass Bunks</div>
+                <div style={{ fontSize: isMobile ? '0.9rem' : '1.1rem', fontWeight: 700, color: '#fbbf24' }}>{overallStats.totMassBunk}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: isMobile ? '0.7rem' : '0.8rem', color: 'var(--text-secondary)' }}>Cancelled</div>
+                <div style={{ fontSize: isMobile ? '0.9rem' : '1.1rem', fontWeight: 700, color: '#94a3b8' }}>{overallStats.totCancelled}</div>
+              </div>
+            </div>
+          </div>
+
+          <h3 style={{ fontSize: isMobile ? '1rem' : '1.1rem', margin: '0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
+             Subject-wise Breakdown
+          </h3>
+
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(260px, 1fr))', gap: isMobile ? '12px' : '16px' }}>
             {subjectAnalytics.map((sub) => (
               <div
