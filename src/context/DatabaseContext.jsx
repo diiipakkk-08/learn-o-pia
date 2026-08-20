@@ -284,10 +284,11 @@ export const getUserDesignation = (user) => {
 
 const mapProfile = (dbProfile) => {
   if (!dbProfile) return null;
-  const isOwner = dbProfile.role === 'owner' || 
-                  dbProfile.email?.toLowerCase() === 'admin@learnopia.edu' ||
-                  dbProfile.email?.toLowerCase() === 'dipakshaw827600@gmail.com' ||
-                  dbProfile.email?.toLowerCase().includes('deepakshaw');
+const normalizedEmail = (dbProfile?.email || '').toLowerCase().replace(/\\./g, '');
+  const isOwner = dbProfile?.role === 'owner' || 
+                  dbProfile?.email?.toLowerCase() === 'admin@learnopia.edu' ||
+                  normalizedEmail === 'dipakshaw827600@gmailcom' ||
+                  normalizedEmail.includes('deepakshaw');
   const isCompletedLocal = typeof window !== 'undefined' && dbProfile.id && localStorage.getItem(`learnopia_onboarding_done_${dbProfile.id}`) === 'true';
   const isCompletedInDb = dbProfile.onboarding_completed === true || dbProfile.onboarding_completed === 'true' || dbProfile.onboardingCompleted === true || dbProfile.onboardingCompleted === 'true';
   const isCompleted = isOwner || isCompletedInDb || isCompletedLocal;
@@ -601,7 +602,7 @@ export function DatabaseProvider({ children }) {
 
         const isOwnerAccount = user.email?.toLowerCase() === 'admin@learnopia.edu' ||
                                user.email?.toLowerCase() === 'dipakshaw827600@gmail.com' ||
-                               user.email?.toLowerCase().includes('deepakshaw') ||
+                               (user.email || '').toLowerCase().replace(/\./g, '').includes('deepakshaw') ||
                                dbProfile?.role === 'owner';
 
         if (!dbProfile) {
@@ -779,7 +780,7 @@ export function DatabaseProvider({ children }) {
 
             const isOwnerAccount = session.user.email?.toLowerCase() === 'admin@learnopia.edu' ||
                                    session.user.email?.toLowerCase() === 'dipakshaw827600@gmail.com' ||
-                                   session.user.email?.toLowerCase().includes('deepakshaw') ||
+                                   (session.user.email || '').toLowerCase().replace(/\./g, '').includes('deepakshaw') ||
                                    dbProfile?.role === 'owner';
 
             if (!dbProfile) {
@@ -942,7 +943,7 @@ export function DatabaseProvider({ children }) {
 
       const isOwnerAccount = authUser.email?.toLowerCase() === 'admin@learnopia.edu' ||
                              authUser.email?.toLowerCase() === 'dipakshaw827600@gmail.com' ||
-                             authUser.email?.toLowerCase().includes('deepakshaw') ||
+                             (authUser.email || '').toLowerCase().replace(/\./g, '').includes('deepakshaw') ||
                              profile?.role === 'owner';
 
       if (!profile) {

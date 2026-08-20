@@ -1,15 +1,24 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Sanitize input values by removing whitespace, quotes, or trailing slashes
-const rawUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim().replace(/^["']|["']$/g, '').replace(/\/+$/, '');
-const rawKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim().replace(/^["']|["']$/g, '');
+const getEnvStr = (val) => {
+  if (!val) return '';
+  let str = String(val).trim();
+  if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
+    str = str.substring(1, str.length - 1);
+  }
+  return str.replace(/\/+$/, '');
+};
+
+const rawUrl = getEnvStr(import.meta.env.VITE_SUPABASE_URL);
+const rawKey = getEnvStr(import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 let client = null;
-const isConfigured = Boolean(rawUrl && rawKey && rawKey.length > 20 && rawUrl.startsWith('http'));
+const isConfigured = Boolean(rawUrl && rawKey && rawKey.length > 20);
 
 if (isConfigured) {
   try {
-    client = createClient(rawUrl, rawKey, {
+    const finalUrl = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
+    client = createClient(finalUrl, rawKey, {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
@@ -17,7 +26,7 @@ if (isConfigured) {
       }
     });
     if (typeof window !== 'undefined') {
-      console.log('⚡ [SUPABASE CONNECTED]: Live connection to', rawUrl);
+      console.log('⚡ [SUPABASE CONNECTED]: Live connection to', finalUrl);
     }
   } catch (err) {
     console.error('🔴 [SUPABASE INIT ERROR]: Could not initialize Supabase client:', err);
