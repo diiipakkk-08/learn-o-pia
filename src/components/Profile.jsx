@@ -208,6 +208,14 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(16,185,129,0.15)', color: '#10b981', padding: '3px 8px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 800 }}>
                   <CheckCircle2 size={13} /> {currentUser.verificationType === 'professor' ? 'Verified Professor' : currentUser.verificationType === 'creator' ? 'Verified Creator' : 'Verified Student'}
                 </span>
+              ) : currentUser.verificationStatus === 'rejected' ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(239,68,68,0.15)', color: '#f87171', padding: '3px 8px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 800 }}>
+                  <XCircle size={13} /> Verification Rejected
+                </span>
+              ) : currentUser.verificationStatus === 'pending' ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(245,158,11,0.15)', color: '#fbbf24', padding: '3px 8px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 800 }}>
+                  <Clock size={13} /> Verification Pending
+                </span>
               ) : (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)', padding: '3px 8px', borderRadius: '999px', fontSize: '0.72rem' }}>
                   Unverified Account
@@ -235,6 +243,15 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
       </div>
 
       <TermsModal isOpen={showTermsModal} onClose={() => setShowTermsModal(false)} />
+
+      {currentUser.verificationStatus === 'rejected' && !currentUser.isVerified && (
+        <div style={{ padding: '14px 18px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '14px', color: '#f87171', marginBottom: '20px', textAlign: 'left', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <AlertCircle size={20} style={{ flexShrink: 0 }} />
+          <div>
+            <strong>Verification Not Approved:</strong> Your identity verification request was reviewed and rejected. Please click "Edit Profile" below to verify your details, upload a valid student/faculty ID card link, and re-apply.
+          </div>
+        </div>
+      )}
 
       {saveSuccess && (
         <div style={{ padding: '12px', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', color: '#10b981', marginBottom: '20px', textAlign: 'left', fontSize: '0.88rem' }}>

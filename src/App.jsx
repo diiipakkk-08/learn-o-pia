@@ -97,10 +97,12 @@ function AppContent() {
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.hash) {
       if (window.location.hash.includes('access_token=') || window.location.hash.includes('type=signup') || window.location.hash.includes('type=recovery')) {
-        try {
-          window.history.replaceState(null, '', window.location.pathname);
-        } catch (e) {}
-        setCurrentView('learning');
+        const timer = setTimeout(() => {
+          try {
+            window.history.replaceState(null, '', window.location.pathname);
+          } catch (e) {}
+        }, 1200);
+        return () => clearTimeout(timer);
       }
     }
   }, []);

@@ -608,7 +608,6 @@ export function DatabaseProvider({ children }) {
               id: user.id,
               email: user.email.toLowerCase(),
               name: defaultName,
-              username: `@${defaultName.toLowerCase().replace(/[^a-z0-9_]/g, '')}`,
               role: isInitialOwner ? 'owner' : 'learner',
               status: 'active',
               is_verified: isInitialOwner,
@@ -2710,6 +2709,45 @@ export function DatabaseProvider({ children }) {
     return null;
   };
 
+  const getAllSharedRoutines = async () => {
+    let routines = [];
+    if (isSupabaseLive) {
+      try {
+        const { data, error } = await supabase
+          .from('shared_routines')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (data) {
+          routines = data;
+        }
+      } catch (e) {
+        console.warn('[Supabase Shared Routines Fetch All Error]', e);
+      }
+    }
+    try {
+      const localPool = JSON.parse(localStorage.getItem('learnopia_shared_routines') || '{}');
+      Object.values(localPool).forEach(localR => {
+        if (!routines.some(r => r.share_code === localR.share_code)) {
+          routines.push(localR);
+        }
+      });
+    } catch (e) {}
+    return routines;
+  };
+
+  const deleteSharedRoutine = async (shareCode) => {
+    if (isSupabaseLive) {
+      try {
+        await supabase.from('shared_routines').delete().eq('share_code', shareCode);
+      } catch (e) {}
+    }
+    try {
+      const localPool = JSON.parse(localStorage.getItem('learnopia_shared_routines') || '{}');
+      delete localPool[shareCode];
+      localStorage.setItem('learnopia_shared_routines', JSON.stringify(localPool));
+    } catch (e) {}
+  };
+
   // ── COMMUNITY AD & POP-UP SETTINGS ──────────────────────────────────────────
   const DEFAULT_AD_SETTINGS = {
     enabled: true,
@@ -2785,6 +2823,8 @@ export function DatabaseProvider({ children }) {
       updateAdSettings,
       createSharedRoutine,
       getSharedRoutineByCode,
+      getAllSharedRoutines,
+      deleteSharedRoutine,
       addStandaloneResource,
       setPasswordForUser,
       resetPasswordByEmail,
