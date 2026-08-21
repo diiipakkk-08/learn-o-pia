@@ -115,7 +115,6 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
 
     const res = await updateUserProfile(currentUser.id, {
       name,
-      username,
       phone: fullPhone,
       dob,
       educationLevel,
@@ -215,7 +214,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
                 </span>
               )}
             </div>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{currentUser.username || '@user'} · {currentUser.email}</span>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{currentUser.email}</span>
           </div>
         </div>
 
@@ -247,12 +246,12 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
       {showPasswordBox && (
         <form onSubmit={handleSavePassword} className="glass-panel animate-fade-in" style={{ padding: '20px', textAlign: 'left', marginBottom: '20px' }}>
           <h3 style={{ fontSize: '1rem', color: '#ffffff', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <KeyRound size={18} color="var(--primary)" /> {currentUser.password ? 'Change Password' : 'Set Password & Enable Password Login'}
+            <KeyRound size={18} color="var(--primary)" /> {currentUser.password ? 'Change Password' : 'Set Password & Enable Direct Sign-In'}
           </h3>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '14px' }}>
             {currentUser.password
-              ? 'Update your password for standard email/username sign-in.'
-              : 'Logged in with Google? Set a password here to enable logging in via username/email + password on any browser!'}
+              ? 'Update your password for standard email and password sign-in.'
+              : 'Logged in with Google? Set a password here to enable logging in via email and password on any device!'}
           </p>
 
           {passError && (
@@ -312,7 +311,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
 
           {currentUser.isVerified && (
             <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '8px', color: '#34d399', marginBottom: '16px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <CheckCircle2 size={16} /> <strong>Verified Account:</strong> Your core identity details (Name, Username, Phone, College, Verification Type) are locked. Click "Request Un-verification & Edit Details" above if you wish to reset verification and update them.
+              <CheckCircle2 size={16} /> <strong>Verified Account:</strong> Your core identity details (Name, Phone, College, Verification Type) are locked. Click "Request Un-verification & Edit Details" above if you wish to reset verification and update them.
             </div>
           )}
 
@@ -333,23 +332,6 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
                 className="form-input"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                disabled={currentUser.isVerified}
-                style={{ opacity: currentUser.isVerified ? 0.6 : 1 }}
-                required
-              />
-            </div>
-
-            {/* Username */}
-            <div>
-              <label className="form-label" style={{ fontSize: '0.78rem' }}>
-                Unique Username {currentUser.isVerified && <span style={{ color: 'var(--text-muted)' }}>(Locked)</span>}
-              </label>
-              <input
-                type="text"
-                className="form-input"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="@alex_carter"
                 disabled={currentUser.isVerified}
                 style={{ opacity: currentUser.isVerified ? 0.6 : 1 }}
                 required

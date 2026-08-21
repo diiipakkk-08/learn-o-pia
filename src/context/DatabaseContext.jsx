@@ -1282,11 +1282,10 @@ export function DatabaseProvider({ children }) {
         const validDob = rawDob && rawDob.length === 10 ? rawDob : null;
         const totalSemestersVal = parseInt(updatedUser.totalSemesters, 10) || 8;
 
-        const payload = {
+        let payloadToSave = {
           id: userId,
           email: userEmail.toLowerCase(),
           name: updatedUser.name || '',
-          username: updatedUser.username || '',
           phone: updatedUser.phone || null,
           college: updatedUser.college || null,
           department: updatedUser.department || null,
@@ -1307,40 +1306,59 @@ export function DatabaseProvider({ children }) {
           updated_at: new Date().toISOString()
         };
 
-        // 1. Direct upsert with all payload columns
-        const { error: upsertErr } = await supabase
-          .from('profiles')
-          .upsert([payload], { onConflict: 'id' });
+        // Resilient upsert: automatically strips any column that doesn't exist in Supabase profiles schema
+        let saved = false;
+        let lastError = null;
+        for (let attempt = 0; attempt < 8; attempt++) {
+          const { error: upsertErr } = await supabase
+            .from('profiles')
+            .upsert([payloadToSave], { onConflict: 'id' });
 
-        if (upsertErr) {
-          console.warn('[Supabase Profile Upsert with full schema warned, retrying with core columns]:', upsertErr.message);
-          const corePayload = {
-            id: userId,
-            email: userEmail.toLowerCase(),
-            name: updatedUser.name || '',
-            username: updatedUser.username || '',
-            phone: updatedUser.phone || null,
-            college: updatedUser.college || null,
-            department: updatedUser.department || null,
-            course_name: updatedUser.courseName || null,
-            joining_year: updatedUser.joiningYear || null,
-            passing_year: updatedUser.passingYear || null,
-            total_semesters: totalSemestersVal,
-            interests: updatedUser.interests || null,
-            onboarding_completed: true,
-            is_verified: !!updatedUser.isVerified,
-            id_card_link: updatedUser.idCardLink || null,
-            verification_status: updatedUser.verificationStatus || 'none',
-            verification_type: updatedUser.verificationType || 'student',
-            password: updatedUser.password || null
-          };
-          const { error: coreErr } = await supabase.from('profiles').upsert([corePayload], { onConflict: 'id' });
-          if (coreErr) {
-            console.error('[Supabase Profile Core Upsert Failed]:', coreErr.message);
-            throw new Error(`Database save error: ${coreErr.message}`);
+          if (!upsertErr) {
+            saved = true;
+            console.log('✅ [Supabase Profile Persisted Successfully in Database]:', userId);
+            break;
           }
+
+          lastError = upsertErr;
+          console.warn(`[Supabase Upsert Attempt ${attempt + 1}] Error:`, upsertErr.message);
+
+          // Check if error is due to a missing column in Supabase schema cache
+          const missingCol = upsertErr.message?.match(/Could not find the '([^']+)' column/i)?.[1] ||
+                             upsertErr.details?.match(/column "([^"]+)" of relation "profiles" does not exist/i)?.[1];
+
+          if (missingCol && payloadToSave.hasOwnProperty(missingCol)) {
+            console.warn(`⚠️ [Supabase Schema Mismatch] Column '${missingCol}' does not exist in 'profiles'. Omitting and retrying...`);
+            delete payloadToSave[missingCol];
+            continue;
+          }
+
+          // If no specific missing column identified on first failure, fall back to core columns
+          if (attempt === 0) {
+            payloadToSave = {
+              id: userId,
+              email: userEmail.toLowerCase(),
+              name: updatedUser.name || '',
+              phone: updatedUser.phone || null,
+              college: updatedUser.college || null,
+              course_name: updatedUser.courseName || null,
+              joining_year: updatedUser.joiningYear || null,
+              passing_year: updatedUser.passingYear || null,
+              total_semesters: totalSemestersVal,
+              interests: updatedUser.interests || null,
+              onboarding_completed: true,
+              password: updatedUser.password || null
+            };
+            continue;
+          }
+
+          break;
         }
-        console.log('✅ [Supabase Profile Persisted Successfully in Database]:', userId);
+
+        if (!saved && lastError) {
+          console.error('[Supabase Profile Upsert Final Failure]:', lastError);
+          throw new Error(`Database save error: ${lastError.message}`);
+        }
       } catch (e) {
         console.error('[Supabase Profile Upsert Error]', e);
         throw e;

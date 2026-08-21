@@ -78,7 +78,7 @@ export default function AdminDashboard() {
   const filteredUsers = users.filter(u => {
     if (!userSearchQuery.trim()) return true;
     const q = userSearchQuery.toLowerCase().trim();
-    return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || (u.username && u.username.toLowerCase().includes(q));
+    return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
   });
 
   return (
@@ -339,7 +339,7 @@ export default function AdminDashboard() {
               <div style={{ marginBottom: '16px', maxWidth: '340px' }}>
                 <input 
                   type="text" 
-                  placeholder="Search users by name, username or email..." 
+                  placeholder="Search users by name or email..." 
                   value={userSearchQuery} 
                   onChange={(e) => setUserSearchQuery(e.target.value)} 
                   className="form-input"
@@ -351,7 +351,7 @@ export default function AdminDashboard() {
                 <table style={styles.table}>
                   <thead>
                     <tr style={styles.tableRowHead}>
-                      <th style={styles.th}>Full Name & Handle</th>
+                      <th style={styles.th}>Full Name</th>
                       <th style={styles.th}>Email Address</th>
                       <th style={styles.th}>Role</th>
                       <th style={styles.th}>Verified Status</th>
@@ -363,7 +363,6 @@ export default function AdminDashboard() {
                       <tr key={user.id} style={styles.tableRow}>
                         <td style={styles.td}>
                           <strong>{user.name}</strong>
-                          <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user.username || '@user'}</span>
                         </td>
                         <td style={styles.td}>{user.email}</td>
                         <td style={styles.td}>

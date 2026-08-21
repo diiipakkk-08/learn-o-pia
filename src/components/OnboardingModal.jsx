@@ -123,7 +123,6 @@ export default function OnboardingModal({ isOpen, onComplete }) {
       const fullPhone = `${countryCode} ${phoneNumber.trim()}`;
       const profileData = {
         name: fullName.trim(),
-        username: `@${fullName.trim().toLowerCase().replace(/[^a-z0-9_]/g, '')}`,
         phone: fullPhone,
         dob,
         educationLevel,

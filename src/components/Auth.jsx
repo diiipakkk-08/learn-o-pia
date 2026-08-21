@@ -116,19 +116,15 @@ export default function Auth({ setCurrentView }) {
     setForgotSuccess('');
 
     if (!forgotInput.trim()) {
-      setForgotError('Please enter your account email or username.');
+      setForgotError('Please enter your account email address.');
       return;
     }
 
     const q = forgotInput.trim().toLowerCase();
-    const target = users.find(u =>
-      u.email.toLowerCase() === q ||
-      u.username?.toLowerCase() === q ||
-      u.username?.toLowerCase() === `@${q}`
-    );
+    const target = users.find(u => u.email.toLowerCase() === q);
 
     if (!target) {
-      setForgotError('No user account matches that email address or username.');
+      setForgotError('No user account matches that email address.');
       return;
     }
 
@@ -256,12 +252,12 @@ export default function Auth({ setCurrentView }) {
           )}
 
           <div style={styles.inputGroup}>
-            <label style={styles.label}>Email Address or Username</label>
+            <label style={styles.label}>Email Address</label>
             <div style={styles.inputWrapper}>
               <Mail size={18} style={styles.inputIcon} />
               <input
-                type="text"
-                placeholder="you@example.com or @username"
+                type="email"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 style={styles.input}
@@ -405,11 +401,11 @@ export default function Auth({ setCurrentView }) {
             {resetStep === 1 && (
               <form onSubmit={handleRequestCode} style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left' }}>
                 <div>
-                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Enter Email Address or Username</label>
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Enter Email Address</label>
                   <input
-                    type="text"
+                    type="email"
                     className="form-input"
-                    placeholder="e.g. learner@learnopia.edu or @alex_carter"
+                    placeholder="e.g. you@example.com"
                     value={forgotInput}
                     onChange={(e) => setForgotInput(e.target.value)}
                     required
