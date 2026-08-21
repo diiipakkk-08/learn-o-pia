@@ -16,6 +16,30 @@ function GoogleIcon() {
   );
 }
 
+const formatAuthError = (err) => {
+  if (!err) return 'An unexpected authentication error occurred.';
+  if (typeof err === 'string') return err;
+  
+  const msg = err.message || err.error_description || err.msg || err.details;
+  if (msg && typeof msg === 'string' && msg.trim() !== '' && msg !== '{}') {
+    return msg;
+  }
+  
+  if (typeof err === 'object') {
+    try {
+      const str = JSON.stringify(err);
+      if (str && str !== '{}' && str !== '[]') return str;
+    } catch (e) {}
+  }
+  
+  const strVal = String(err);
+  if (strVal && strVal !== '[object Object]' && strVal !== '{}') {
+    return strVal;
+  }
+  
+  return 'Authentication failed. Please check your credentials or network connection.';
+};
+
 export default function Auth({ setCurrentView }) {
   const { users, login, loginWithGoogle, registerUser, setPasswordForUser, isSupabaseLive } = useDatabase();
 
@@ -73,8 +97,7 @@ export default function Auth({ setCurrentView }) {
       }
     } catch (err) {
       console.error('[Learnopia Auth Error]', err);
-      const msg = err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err)) || 'An unexpected authentication error occurred.';
-      setError(msg);
+      setError(formatAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -98,7 +121,7 @@ export default function Auth({ setCurrentView }) {
       if (setCurrentView) setCurrentView('learning');
     } catch (err) {
       console.error('[Google OAuth Error]', err);
-      setError('Google Sign-In failed. Please try again.');
+      setError(formatAuthError(err));
     } finally {
       setGoogleLoading(false);
     }

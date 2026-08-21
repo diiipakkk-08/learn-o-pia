@@ -933,7 +933,12 @@ export function DatabaseProvider({ children }) {
           console.warn('[Database Login Fallback Error]', dbErr);
         }
 
-        throw new Error(loginErr?.message || 'Invalid email or password. If your account was deleted or you are a new user, please click "Create one now" below to register.');
+        const errMsg = loginErr?.message || '';
+        const userFriendlyMsg = (errMsg.toLowerCase().includes('invalid login credentials') || errMsg.toLowerCase().includes('user not found'))
+          ? 'Invalid email or password. If this account was deleted from Supabase, please click "Create one now" below to register it again.'
+          : (errMsg || 'Invalid email or password. If your account was deleted or you are a new user, please click "Create one now" below to register.');
+
+        throw new Error(userFriendlyMsg);
       }
 
       let { data: profile } = await supabase
@@ -1100,18 +1105,18 @@ export function DatabaseProvider({ children }) {
             onboarding_completed: false,
             enrolled_courses: []
           };
-          await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
+          try {
+            await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
+          } catch (e) {
+            console.warn('[Re-register profile upsert warn]', e);
+          }
           const mapped = mapProfile(newProfile);
           setCurrentUser(mapped);
           addLog(`User re-registered: ${name}`);
           return mapped;
         }
 
-        // signInWithPassword failed — user was a Google OAuth user (no password set).
-        // We need to re-link: update their auth password and upsert a fresh profile.
-        // This requires the user to sign in with Google first to re-link their account.
-        // Best we can do from client: instruct the user clearly.
-        throw new Error('This email is already linked to a Google account. Please Sign In with Google instead, or use "Forgot Password" to set a password for this email.');
+        throw new Error('This email address is already registered in Supabase. Please Sign In with your email and password, or use Google Sign-In if you previously used Google.');
       }
 
       if (error) {
@@ -1134,9 +1139,13 @@ export function DatabaseProvider({ children }) {
         enrolled_courses: []
       };
 
-      const { error: insertError } = await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
-      if (insertError) {
-        throw new Error(insertError.message || 'Profile insertion failed.');
+      try {
+        const { error: insertError } = await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
+        if (insertError) {
+          console.warn('[Profile upsert warn on register]', insertError);
+        }
+      } catch (e) {
+        console.warn('[Profile upsert exception on register]', e);
       }
 
       addLog(`New user registered: ${name}`);
