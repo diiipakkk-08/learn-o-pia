@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
-import { Users, BookOpen, ShieldCheck, Check, Ban, Award, FileText, Shield, X, ExternalLink, CheckCircle2, Heart, Video, Sliders, Clock, Sparkles } from 'lucide-react';
+import { Users, BookOpen, ShieldCheck, Check, Ban, Award, FileText, Shield, X, ExternalLink, CheckCircle2, Heart, Video, Sliders, Clock, Sparkles, PowerOff, Power } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { currentUser, users, courses, subjects, activityLogs, approveCreator, rejectCreator, makeAdmin, toggleUserStatus, changeUserRole, adminVerifyUser, adSettings, updateAdSettings } = useDatabase();
@@ -17,10 +17,40 @@ export default function AdminDashboard() {
   const [adUrl, setAdUrl] = useState(adSettings?.targetUrl || "https://github.com/diiipakkk-08/learn-o-pia");
   const [adSavedToast, setAdSavedToast] = useState('');
 
-  const handleSaveAds = (e) => {
+  // Sync state when remote adSettings from Supabase changes
+  useEffect(() => {
+    if (adSettings) {
+      setAdEnabled(adSettings.enabled !== false);
+      setAdInterval(adSettings.intervalMinutes || 15);
+      setAdSkipDelay(adSettings.skipDelaySeconds || 10);
+      setAdYoutubeUrl(adSettings.youtubeUrl || '');
+      setAdTitle(adSettings.title || "Support Learn-o-pia's Open Education Infrastructure");
+      setAdMsg(adSettings.message || "Learn-o-pia is built by students, for students. Help us keep all engineering degree curricula, attendance algorithms, and YouTube lecture sync servers fast, open, and free for everyone!");
+      setAdUrl(adSettings.targetUrl || "https://github.com/diiipakkk-08/learn-o-pia");
+    }
+  }, [adSettings]);
+
+  const handleToggleAdSystemForever = async (targetState) => {
+    setAdEnabled(targetState);
+    if (updateAdSettings) {
+      await updateAdSettings({
+        enabled: targetState,
+        intervalMinutes: parseInt(adInterval, 10) || 15,
+        skipDelaySeconds: parseInt(adSkipDelay, 10) || 10,
+        youtubeUrl: adYoutubeUrl.trim(),
+        title: adTitle.trim(),
+        message: adMsg.trim(),
+        targetUrl: adUrl.trim()
+      });
+      setAdSavedToast(targetState ? '🟢 Ad System is now ENABLED and saved to Supabase!' : '🛑 Ad System is now COMPLETELY TURNED OFF FOREVER and saved to Supabase!');
+      setTimeout(() => setAdSavedToast(''), 4500);
+    }
+  };
+
+  const handleSaveAds = async (e) => {
     e.preventDefault();
     if (updateAdSettings) {
-      updateAdSettings({
+      await updateAdSettings({
         enabled: adEnabled,
         intervalMinutes: parseInt(adInterval, 10) || 15,
         skipDelaySeconds: parseInt(adSkipDelay, 10) || 10,
@@ -29,7 +59,7 @@ export default function AdminDashboard() {
         message: adMsg.trim(),
         targetUrl: adUrl.trim()
       });
-      setAdSavedToast('Community Ad & Video parameters updated and broadcast live!');
+      setAdSavedToast('✅ Community Ad & Video parameters updated and saved to Supabase!');
       setTimeout(() => setAdSavedToast(''), 4000);
     }
   };
@@ -390,45 +420,100 @@ export default function AdminDashboard() {
                 <div>
                   <h3 style={styles.paneTitle}>Community Support Ads & Pop-up Controls</h3>
                   <p style={styles.paneSub}>
-                    Configure the purple header countdown bar, interval frequency, 10-second skip delay, video ads (YouTube URL), and donation links.
+                    Configure the purple header countdown bar, interval frequency, 10-second skip delay, video ads (YouTube URL), and global on/off state.
                   </p>
                 </div>
               </div>
 
               {adSavedToast && (
-                <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#34d399', marginBottom: '16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <CheckCircle2 size={16} /> {adSavedToast}
+                <div style={{ padding: '12px 16px', borderRadius: '12px', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.35)', color: '#34d399', marginBottom: '16px', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 8 }} className="animate-fade-in">
+                  <CheckCircle2 size={18} /> {adSavedToast}
                 </div>
               )}
 
-              <form onSubmit={handleSaveAds} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                
-                {/* Global Toggle Box */}
-                <div style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#ffffff', display: 'block' }}>
-                      Enable Community Ad / Donation System
-                    </span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      When active, users without ad-free credits see the visual purple countdown bar and pop-up modal. Turn off to disable completely.
-                    </span>
+              {/* MASTER CONTROL CARD (Turn Off Forever / Turn On) */}
+              <div style={{
+                padding: '20px',
+                background: adEnabled ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                borderRadius: '16px',
+                border: adEnabled ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '16px',
+                marginBottom: '20px'
+              }}>
+                <div style={{ maxWidth: '560px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <div style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: '50%',
+                      background: adEnabled ? '#10b981' : '#ef4444',
+                      boxShadow: adEnabled ? '0 0 10px #10b981' : '0 0 10px #ef4444'
+                    }} />
+                    <strong style={{ fontSize: '1rem', color: '#ffffff' }}>
+                      {adEnabled ? 'Ad System is Active & Broadcasting' : 'Ad System is Completely TURNED OFF FOREVER'}
+                    </strong>
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setAdEnabled(!adEnabled)}
-                    className={`btn ${adEnabled ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{
-                      background: adEnabled ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
-                      color: '#ffffff',
-                      fontWeight: 700,
-                      padding: '8px 16px',
-                      fontSize: '0.82rem'
-                    }}
-                  >
-                    {adEnabled ? '✔ Active (Broadcasting)' : 'Paused / Turned Off'}
-                  </button>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'block', lineHeight: 1.4 }}>
+                    {adEnabled
+                      ? 'When active, logged-in learners without credits see the top purple countdown bar and pop-up modal. Click the button on the right to disable completely.'
+                      : 'All ads, countdown progress bars, and donation pop-ups are completely silenced across the entire platform. No user will see any ads.'}
+                  </span>
                 </div>
+
+                <div>
+                  {adEnabled ? (
+                    <button
+                      type="button"
+                      onClick={() => handleToggleAdSystemForever(false)}
+                      className="btn"
+                      style={{
+                        background: 'rgba(239, 68, 68, 0.2)',
+                        border: '1px solid rgba(239, 68, 68, 0.5)',
+                        color: '#f87171',
+                        padding: '10px 20px',
+                        fontWeight: 700,
+                        fontSize: '0.86rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        cursor: 'pointer',
+                        borderRadius: '10px'
+                      }}
+                      title="Turn off the ad system forever"
+                    >
+                      <PowerOff size={16} /> Turn Off Ads Forever (Disable Completely)
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleToggleAdSystemForever(true)}
+                      className="btn"
+                      style={{
+                        background: 'rgba(16, 185, 129, 0.2)',
+                        border: '1px solid rgba(16, 185, 129, 0.5)',
+                        color: '#34d399',
+                        padding: '10px 20px',
+                        fontWeight: 700,
+                        fontSize: '0.86rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        cursor: 'pointer',
+                        borderRadius: '10px'
+                      }}
+                      title="Turn on the ad system"
+                    >
+                      <Power size={16} /> ▶ Turn On Ad System Live
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <form onSubmit={handleSaveAds} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
                 {/* Interval & Skip Controls */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>

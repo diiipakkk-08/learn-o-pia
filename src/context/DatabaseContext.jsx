@@ -600,26 +600,41 @@ export function DatabaseProvider({ children }) {
           if (profileByEmail) {
             dbProfile = profileByEmail;
           } else {
-            const isInitialOwner = user.email?.toLowerCase() === 'admin@learnopia.edu';
-            const newProfile = {
-              id: user.id,
-              email: user.email.toLowerCase(),
-              name: user.user_metadata?.full_name || user.email.split('@')[0],
-              role: isInitialOwner ? 'owner' : 'learner',
-              status: 'active',
-              is_verified: isInitialOwner,
-              verification_status: isInitialOwner ? 'verified' : 'none',
-              verification_type: isInitialOwner ? 'creator' : 'student',
-              onboarding_completed: isInitialOwner,
-              college: '',
-              department: '',
-              interests: '',
-              enrolled_courses: []
-            };
-            try {
-              await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
-            } catch (e) {}
-            dbProfile = newProfile;
+            // Check if this is a newly registered OAuth signup (user created in last 60 seconds)
+            const isFreshOAuth = user.app_metadata?.provider === 'google' && 
+                                 user.created_at && 
+                                 (Date.now() - new Date(user.created_at).getTime() < 60000);
+
+            if (isFreshOAuth) {
+              const isInitialOwner = user.email?.toLowerCase() === 'admin@learnopia.edu';
+              const newProfile = {
+                id: user.id,
+                email: user.email.toLowerCase(),
+                name: user.user_metadata?.full_name || user.email.split('@')[0],
+                role: isInitialOwner ? 'owner' : 'learner',
+                status: 'active',
+                is_verified: isInitialOwner,
+                verification_status: isInitialOwner ? 'verified' : 'none',
+                verification_type: isInitialOwner ? 'creator' : 'student',
+                onboarding_completed: isInitialOwner,
+                college: '',
+                department: '',
+                interests: '',
+                enrolled_courses: []
+              };
+              try {
+                await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
+              } catch (e) {}
+              dbProfile = newProfile;
+            } else {
+              // Account was deleted in DB. Sign out stale session immediately!
+              console.log('🚪 [Stale Session] Profile not found in database (account was deleted). Signing out.');
+              await supabase.auth.signOut();
+              setCurrentUser(null);
+              localStorage.removeItem('learnopia_current_user_stable');
+              setAuthLoading(false);
+              return;
+            }
           }
         }
 
@@ -740,6 +755,22 @@ export function DatabaseProvider({ children }) {
       if (logs && logs.length > 0) {
         setActivityLogs(logs);
         localStorage.setItem('learnopia_activity_logs', JSON.stringify(logs));
+      }
+
+      // Load platform / global ad settings from Supabase
+      try {
+        const { data: adRow } = await supabase
+          .from('platform_settings')
+          .select('settings_json')
+          .eq('id', 'global_ad_settings')
+          .maybeSingle();
+
+        if (adRow && adRow.settings_json) {
+          setAdSettings(adRow.settings_json);
+          localStorage.setItem('learnopia_ad_settings_stable', JSON.stringify(adRow.settings_json));
+        }
+      } catch (adLoadErr) {
+        console.warn('Ad settings remote load warn:', adLoadErr);
       }
 
     } catch (err) {
@@ -1193,22 +1224,20 @@ export function DatabaseProvider({ children }) {
       }
     }
 
+    // If Supabase is live, get the active session user ID (UUID)
+    if (isSupabaseLive) {
+      try {
+        const session = (await supabase.auth.getSession())?.data?.session;
+        if (session?.user?.id) {
+          userId = session.user.id;
+          if (!profileData.email) profileData.email = session.user.email;
+        }
+      } catch (e) {}
+    }
+
     if (!userId) return { success: false, error: 'No user ID specified.' };
 
-    if (profileData.username) {
-      const formattedUsername = profileData.username.startsWith('@') ? profileData.username : `@${profileData.username}`;
-      const isTaken = users.some(u => u.id !== userId && u.username?.toLowerCase() === formattedUsername.toLowerCase());
-      if (isTaken) {
-        return { success: false, error: `Username ${formattedUsername} is already taken by another user.` };
-      }
-      profileData.username = formattedUsername;
-    }
-
     const userToUpdate = users.find(u => u.id === userId) || currentUser || {};
-    if (userToUpdate?.isVerified) {
-      delete profileData.name;
-      delete profileData.username;
-    }
 
     const updatedUser = {
       ...userToUpdate,
@@ -1218,11 +1247,6 @@ export function DatabaseProvider({ children }) {
       onboardingCompleted: true,
       verificationStatus: profileData.verificationStatus || (profileData.idCardLink ? 'pending' : userToUpdate?.verificationStatus || 'none')
     };
-
-    if (typeof window !== 'undefined' && userId) {
-      localStorage.setItem(`learnopia_onboarding_done_${userId}`, 'true');
-      localStorage.setItem(`learnopia_profile_${userId}`, JSON.stringify(updatedUser));
-    }
 
     setUsers(prev => {
       const exists = prev.some(u => u.id === userId);
@@ -1312,7 +1336,8 @@ export function DatabaseProvider({ children }) {
       } catch (e) {
         console.warn('[Supabase Profile Upsert Error]', e);
       }
-      // Always sync to refresh all users state (ensures admin panel sees verification requests)
+
+      // Sync Supabase to refresh all users state
       try {
         await syncSupabase();
       } catch (e) {}
@@ -1325,14 +1350,38 @@ export function DatabaseProvider({ children }) {
     const idToDelete = userId || currentUser?.id;
     if (!idToDelete) return { success: false, error: 'No user ID' };
 
-    // 1. Delete from local state
+    // 1. Delete from Supabase tables + Sign Out session
+    if (isSupabaseLive) {
+      try {
+        await supabase.from('profiles').delete().eq('id', idToDelete);
+        await supabase.from('user_routines').delete().eq('user_id', idToDelete);
+        await supabase.from('user_attendance_logs').delete().eq('user_id', idToDelete);
+        await supabase.from('user_archived_semesters').delete().eq('user_id', idToDelete);
+      } catch (e) {
+        console.warn('[Supabase Delete User Tables Error]', e);
+      }
+
+      try {
+        await supabase.rpc('delete_user_account');
+      } catch (rpcErr) {}
+
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (e) {}
+    }
+
+    // 2. Delete from local state and clean all storage
     setUsers(prev => {
       const next = prev.filter(u => u.id !== idToDelete);
       localStorage.setItem('learnopia_users_stable', JSON.stringify(next));
       return next;
     });
 
-    // 2. Remove all user-scoped localStorage keys
+    setCurrentUser(null);
+    localStorage.removeItem('learnopia_current_user_stable');
+    localStorage.removeItem('learnopia_view');
+    localStorage.removeItem('learnopia_selected_playlist');
+    localStorage.removeItem('learnopia_selected_video');
     try {
       localStorage.removeItem(`learnopia_onboarding_done_${idToDelete}`);
       localStorage.removeItem(`learnopia_profile_${idToDelete}`);
@@ -1342,28 +1391,6 @@ export function DatabaseProvider({ children }) {
       localStorage.removeItem(`learnopia_semester_start_${idToDelete}`);
     } catch (e) {}
 
-    // 3. Delete from Supabase tables + Auth
-    if (isSupabaseLive) {
-      try {
-        // First call the RPC to delete auth.users record (requires server-side function)
-        // This must run BEFORE signing out, while we still have a valid session
-        await supabase.rpc('delete_user_account');
-      } catch (rpcErr) {
-        console.warn('[Supabase RPC delete_user_account Error]', rpcErr);
-      }
-
-      try {
-        await supabase.from('profiles').delete().eq('id', idToDelete);
-        await supabase.from('user_routines').delete().eq('user_id', idToDelete);
-        await supabase.from('user_attendance_logs').delete().eq('user_id', idToDelete);
-        await supabase.from('user_archived_semesters').delete().eq('user_id', idToDelete);
-      } catch (e) {
-        console.warn('[Supabase Delete User Tables Error]', e);
-      }
-    }
-
-    // 4. Logout the user
-    await logout();
     return { success: true };
   };
 
@@ -2677,12 +2704,44 @@ export function DatabaseProvider({ children }) {
     return DEFAULT_AD_SETTINGS;
   });
 
-  const updateAdSettings = (newSettings) => {
+  const updateAdSettings = async (newSettings) => {
     const merged = { ...adSettings, ...newSettings };
     setAdSettings(merged);
     if (typeof window !== 'undefined') {
       localStorage.setItem('learnopia_ad_settings_stable', JSON.stringify(merged));
     }
+
+    if (isSupabaseLive) {
+      try {
+        const { data: existing } = await supabase
+          .from('platform_settings')
+          .select('id')
+          .eq('id', 'global_ad_settings')
+          .maybeSingle();
+
+        if (existing) {
+          await supabase
+            .from('platform_settings')
+            .update({
+              settings_json: merged,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', 'global_ad_settings');
+        } else {
+          await supabase
+            .from('platform_settings')
+            .insert([{
+              id: 'global_ad_settings',
+              settings_json: merged,
+              updated_at: new Date().toISOString()
+            }]);
+        }
+        console.log('✅ [Supabase Global Ad Settings Saved]:', merged);
+      } catch (e) {
+        console.warn('[Supabase Global Ad Settings Save Error]', e);
+      }
+    }
+
     addLog(`Admin updated Community Ad parameters (Status: ${merged.enabled ? 'Enabled' : 'Disabled'}, Interval: ${merged.intervalMinutes}m, Skip Delay: ${merged.skipDelaySeconds}s)`);
   };
 

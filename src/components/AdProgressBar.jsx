@@ -16,7 +16,7 @@ export default function AdProgressBar({ onTriggerAd }) {
   }, [intervalSeconds]);
 
   useEffect(() => {
-    if (!isEnabled || userCredits > 0) return;
+    if (!currentUser || !isEnabled || userCredits > 0) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -29,9 +29,10 @@ export default function AdProgressBar({ onTriggerAd }) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isEnabled, userCredits, intervalSeconds, onTriggerAd]);
+  }, [currentUser, isEnabled, userCredits, intervalSeconds, onTriggerAd]);
 
-  if (!isEnabled || userCredits > 0) {
+  // NEVER render if user is not logged in, ads are turned off by admin, or user has credits
+  if (!currentUser || !isEnabled || userCredits > 0) {
     return null;
   }
 
@@ -40,24 +41,25 @@ export default function AdProgressBar({ onTriggerAd }) {
   return (
     <div
       style={{
-        position: 'sticky',
-        top: '60px',
+        position: 'fixed',
+        top: 0,
         left: 0,
+        right: 0,
         width: '100%',
         height: '3px',
-        background: 'rgba(139, 92, 246, 0.2)', // Light purple track
-        zIndex: 9998,
-        overflow: 'hidden'
+        background: 'rgba(139, 92, 246, 0.25)', // Light purple base track
+        zIndex: 999999, // Above everything including navigation bar
+        pointerEvents: 'none'
       }}
       title={`Community Support reminder in ${Math.ceil(timeLeft / 60)}m`}
     >
-      {/* Deep Purple Shrinking Progress Line */}
+      {/* Deep Vibrant Purple Shrinking Progress Line */}
       <div
         style={{
           height: '100%',
           width: `${progressPercent}%`,
           background: 'linear-gradient(90deg, #7c3aed 0%, #a855f7 50%, #c084fc 100%)',
-          boxShadow: '0 0 10px rgba(168, 85, 247, 0.8)',
+          boxShadow: '0 0 10px rgba(168, 85, 247, 0.9), 0 0 4px #c084fc',
           transition: 'width 1s linear'
         }}
       />

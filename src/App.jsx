@@ -178,8 +178,8 @@ function AppContent() {
         onLogoClick={handleLogoClick}
       />
 
-      {/* Visual Purple Shrinking Ad Countdown Bar */}
-      <AdProgressBar onTriggerAd={() => setShowAdModal(true)} />
+      {/* Visual Purple Shrinking Ad Countdown Bar (Only for logged-in users) */}
+      {currentUser && <AdProgressBar onTriggerAd={() => setShowAdModal(true)} />}
 
       {/* Main Container Viewport */}
       <main className="main-content">
