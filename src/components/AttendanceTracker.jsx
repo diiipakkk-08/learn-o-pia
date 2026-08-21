@@ -23,7 +23,14 @@ import {
   CalendarCheck,
   Users,
   Timer,
-  AlertTriangle
+  AlertTriangle,
+  Share2,
+  Download,
+  Copy,
+  Code,
+  Check,
+  Upload,
+  X
 } from 'lucide-react';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -37,6 +44,77 @@ const DEFAULT_ROUTINE = {
   Saturday: [],
   Sunday: []
 };
+
+// Robust Parser & Sanitizer for Raw / AI-generated Routine JSON
+function sanitizeAndFormatRoutineJson(rawJson) {
+  let parsed = rawJson;
+  if (typeof rawJson === 'string') {
+    try {
+      parsed = JSON.parse(rawJson);
+    } catch (err) {
+      throw new Error('Invalid JSON format. Please paste valid JSON text.');
+    }
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('Provided input is not a valid JSON object.');
+  }
+
+  // Handle various formats: { routine: { ... } }, { weeklySchedule: { ... } }, { timetable: { ... } }, or direct day mapping
+  const routineObj = parsed.routine || parsed.weeklySchedule || parsed.timetable || parsed;
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const formattedRoutine = {
+    Monday: [],
+    Tuesday: [],
+    Wednesday: [],
+    Thursday: [],
+    Friday: [],
+    Saturday: [],
+    Sunday: []
+  };
+
+  let totalClassesCount = 0;
+
+  for (const day of DAYS) {
+    const key = Object.keys(routineObj).find(k => k.toLowerCase() === day.toLowerCase());
+    const dayList = key && Array.isArray(routineObj[key]) ? routineObj[key] : [];
+
+    formattedRoutine[day] = dayList.map((item, idx) => {
+      totalClassesCount++;
+      const subject = item.subject || item.name || item.course || item.title || `Class ${idx + 1}`;
+      const startTime24 = item.startTime24 || item.time24 || item.start || '09:00';
+      const durationHours = parseInt(item.durationHours ?? item.hours ?? 1, 10);
+      const durationMins = parseInt(item.durationMins ?? item.mins ?? 0, 10);
+      const room = item.room || item.venue || item.location || '';
+      const minTarget = parseInt(item.minTarget ?? item.target ?? 75, 10);
+
+      const startTime = item.startTime || format12HourTime(startTime24);
+      const endTime = item.endTime || calculateEndTimeFromHM(startTime24, durationHours, durationMins);
+      const durationText = item.durationText || formatDurationText(durationHours, durationMins);
+
+      return {
+        id: item.id || `r-${Date.now()}-${Math.random().toString(36).substr(2, 6)}-${idx}`,
+        subject: String(subject).trim(),
+        startTime24,
+        durationHours,
+        durationMins,
+        startTime,
+        endTime,
+        durationText,
+        room: String(room).trim(),
+        minTarget
+      };
+    });
+  }
+
+  if (totalClassesCount === 0) {
+    throw new Error('No valid class schedules found under Monday - Sunday in the provided JSON.');
+  }
+
+  const semesterStartDate = parsed.semester_start_date || parsed.semesterStartDate || null;
+
+  return { routine: formattedRoutine, semesterStartDate, totalClassesCount };
+}
 
 // Safe Local Date Helpers (prevents UTC shifts)
 const formatLocalDate = (date) => {
@@ -122,7 +200,9 @@ export default function AttendanceTracker({ setCurrentView }) {
     getUserRoutineFromDb,
     saveUserLogsToDb,
     getUserLogsFromDb,
-    saveUserArchivesToDb
+    saveUserArchivesToDb,
+    createSharedRoutine,
+    getSharedRoutineByCode
   } = useDatabase();
 
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
@@ -138,6 +218,99 @@ export default function AttendanceTracker({ setCurrentView }) {
   const logsKey = `learnopia_attendance_logs_${userId}`;
   const archivesKey = `learnopia_archived_semesters_${userId}`;
   const startDateKey = `learnopia_semester_start_${userId}`;
+
+  // Sharing & Import States
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [activeShareCode, setActiveShareCode] = useState('');
+  const [shareCopied, setShareCopied] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
+
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importCodeInput, setImportCodeInput] = useState('');
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState('');
+
+  // Admin / Owner JSON Importer Modal State
+  const [showAdminJsonModal, setShowAdminJsonModal] = useState(false);
+  const [adminJsonInput, setAdminJsonInput] = useState('');
+  const [adminJsonError, setAdminJsonError] = useState('');
+  const [adminGeneratedCode, setAdminGeneratedCode] = useState('');
+  const [adminCodeCopied, setAdminCodeCopied] = useState(false);
+
+  const [routineToast, setRoutineToast] = useState('');
+
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'owner';
+
+  const handleOpenShareModal = async () => {
+    setShareLoading(true);
+    try {
+      if (createSharedRoutine) {
+        const code = await createSharedRoutine(routine, semesterStartDate, `${currentUser?.name || 'Student'}'s Routine`);
+        setActiveShareCode(code);
+        setShareCopied(false);
+        setShowShareModal(true);
+      }
+    } catch (err) {
+      console.warn('Share error:', err);
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const handleCopyShareCode = () => {
+    if (activeShareCode && typeof navigator !== 'undefined') {
+      navigator.clipboard.writeText(activeShareCode);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 3000);
+    }
+  };
+
+  const handleImportByCode = async (e) => {
+    e.preventDefault();
+    setImportError('');
+    if (!importCodeInput.trim()) return;
+
+    setImportLoading(true);
+    try {
+      const data = await getSharedRoutineByCode(importCodeInput.trim());
+      if (!data || !data.routine) {
+        setImportError('Routine ID not found. Please verify the 6-character code and try again.');
+        return;
+      }
+
+      setRoutine(data.routine);
+      if (data.semesterStartDate) {
+        setSemesterStartDate(data.semesterStartDate);
+        setTempStartDateInput(data.semesterStartDate);
+      }
+
+      setShowImportModal(false);
+      setImportCodeInput('');
+      setRoutineToast(`✅ Routine (${data.shareCode}) successfully imported!`);
+      setTimeout(() => setRoutineToast(''), 4500);
+    } catch (err) {
+      setImportError(err?.message || 'Failed to load routine. Please check the ID.');
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const handleAdminGenerateFromJson = async (e) => {
+    e.preventDefault();
+    setAdminJsonError('');
+    if (!adminJsonInput.trim()) return;
+
+    try {
+      const sanitized = sanitizeAndFormatRoutineJson(adminJsonInput.trim());
+      const code = await createSharedRoutine(sanitized.routine, sanitized.semesterStartDate, 'Admin Curated Routine');
+      setAdminGeneratedCode(code);
+      setAdminCodeCopied(false);
+      setRoutineToast(`✅ Routine ID ${code} generated and saved!`);
+      setTimeout(() => setRoutineToast(''), 4500);
+    } catch (err) {
+      setAdminJsonError(err.message || 'Invalid routine JSON format.');
+    }
+  };
 
   // Selected date state (defaults to today)
   const [selectedDate, setSelectedDate] = useState(() => formatLocalDate(new Date()));
@@ -759,19 +932,71 @@ export default function AttendanceTracker({ setCurrentView }) {
                 <CalendarCheck size={20} color="var(--primary)" /> Weekly Timetable Routine
               </h3>
               <span style={{ fontSize: isMobile ? '0.75rem' : '0.82rem', color: 'var(--text-secondary)', display: 'block', marginTop: '2px' }}>
-                Review your weekly class schedule or add new classes below.
+                Review schedule, share unique Routine ID, or load classmate's routine.
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowAddClassForm(prev => !prev)}
-              className="btn btn-primary"
-              style={{ padding: isMobile ? '8px 14px' : '9px 18px', fontSize: isMobile ? '0.8rem' : '0.86rem', gap: '6px' }}
-            >
-              {showAddClassForm ? <X size={16} /> : <Plus size={16} />}
-              {showAddClassForm ? 'Hide Add Class Form' : '+ Add New Class'}
-            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={handleOpenShareModal}
+                disabled={shareLoading}
+                className="btn btn-secondary"
+                style={{ padding: isMobile ? '7px 12px' : '8px 16px', fontSize: isMobile ? '0.78rem' : '0.84rem', gap: '6px' }}
+                title="Share your routine ID with classmates"
+              >
+                <Share2 size={15} color="var(--primary)" />
+                {shareLoading ? 'Generating...' : 'Share Routine ID'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setImportError(''); setImportCodeInput(''); setShowImportModal(true); }}
+                className="btn btn-secondary"
+                style={{ padding: isMobile ? '7px 12px' : '8px 16px', fontSize: isMobile ? '0.78rem' : '0.84rem', gap: '6px' }}
+                title="Import a routine shared by a friend"
+              >
+                <Download size={15} color="#10b981" />
+                Import Routine
+              </button>
+
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => { setAdminJsonError(''); setAdminGeneratedCode(''); setShowAdminJsonModal(true); }}
+                  className="btn btn-secondary"
+                  style={{
+                    padding: isMobile ? '7px 12px' : '8px 16px',
+                    fontSize: isMobile ? '0.78rem' : '0.84rem',
+                    gap: '6px',
+                    borderColor: 'rgba(139,92,246,0.4)',
+                    background: 'rgba(139,92,246,0.1)',
+                    color: '#c4b5fd'
+                  }}
+                  title="Admin AI / JSON Routine Importer"
+                >
+                  <Code size={15} color="#c4b5fd" />
+                  Admin JSON Importer
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setShowAddClassForm(prev => !prev)}
+                className="btn btn-primary"
+                style={{ padding: isMobile ? '8px 14px' : '9px 18px', fontSize: isMobile ? '0.8rem' : '0.86rem', gap: '6px' }}
+              >
+                {showAddClassForm ? <X size={16} /> : <Plus size={16} />}
+                {showAddClassForm ? 'Hide Form' : '+ Add Class'}
+              </button>
+            </div>
           </div>
+
+          {routineToast && (
+            <div style={{ padding: '10px 16px', borderRadius: '10px', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#34d399', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 8 }} className="animate-fade-in">
+              <CheckCircle2 size={16} /> {routineToast}
+            </div>
+          )}
 
           {/* FIRST SECTION: Current Routine View (Sorted Chronologically) */}
           <div className="glass-panel" style={{ padding: isMobile ? '16px' : '20px', maxWidth: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
@@ -1195,6 +1420,252 @@ export default function AttendanceTracker({ setCurrentView }) {
                 <button type="submit" className="btn btn-primary">Update Start Date</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 1. SHARE ROUTINE MODAL */}
+      {showShareModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px'
+        }} className="animate-fade-in">
+          <div className="glass-panel modal-card" style={{ maxWidth: '440px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <h3 style={{ fontSize: '1.15rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Share2 size={18} color="var(--primary)" /> Share Routine ID
+              </h3>
+              <button onClick={() => setShowShareModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '16px' }}>
+              Share this unique 6-character Routine ID with your classmates. Anyone can paste this code into their Attendance Tracker to instantly load your schedule!
+            </p>
+
+            <div style={{ padding: '20px', background: 'rgba(139, 92, 246, 0.12)', border: '1px solid rgba(139, 92, 246, 0.35)', borderRadius: '16px', textAlign: 'center', marginBottom: '16px' }}>
+              <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#c4b5fd', fontWeight: 700 }}>
+                Unique Timetable ID
+              </span>
+              <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#ffffff', letterSpacing: '0.12em', margin: '8px 0', fontFamily: 'monospace' }}>
+                {activeShareCode}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleCopyShareCode}
+                className="btn btn-primary"
+                style={{ margin: '8px auto 0 auto', padding: '10px 20px', fontSize: '0.86rem', gap: 8 }}
+              >
+                {shareCopied ? <Check size={16} /> : <Copy size={16} />}
+                {shareCopied ? 'Copied to Clipboard!' : 'Copy Routine ID'}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setShowShareModal(false)}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. IMPORT SHARED ROUTINE MODAL */}
+      {showImportModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px'
+        }} className="animate-fade-in">
+          <div className="glass-panel modal-card" style={{ maxWidth: '440px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <h3 style={{ fontSize: '1.15rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Download size={18} color="#10b981" /> Import Routine by ID
+              </h3>
+              <button onClick={() => setShowImportModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '16px' }}>
+              Paste the 6-character Routine ID shared by your classmate or professor to load their timetable into your tracker.
+            </p>
+
+            {importError && (
+              <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#f87171', fontSize: '0.8rem', marginBottom: '14px' }}>
+                ⚠️ {importError}
+              </div>
+            )}
+
+            <form onSubmit={handleImportByCode} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.78rem' }}>Enter Routine ID</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. RT-9X4K2A"
+                  value={importCodeInput}
+                  onChange={(e) => setImportCodeInput(e.target.value.toUpperCase())}
+                  style={{ textTransform: 'uppercase', fontFamily: 'monospace', letterSpacing: '0.08em', fontSize: '1.1rem', textAlign: 'center', padding: '10px' }}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 6 }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowImportModal(false)}>Cancel</button>
+                <button type="submit" disabled={importLoading} className="btn btn-primary" style={{ padding: '10px 18px' }}>
+                  {importLoading ? 'Fetching...' : 'Load & Apply Routine'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 3. ADMIN / OWNER JSON ROUTINE CREATOR MODAL */}
+      {showAdminJsonModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0, 0, 0, 0.88)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px'
+        }} className="animate-fade-in">
+          <div className="glass-panel modal-card" style={{ maxWidth: '620px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Code size={18} color="var(--primary)" />
+                <h3 style={{ fontSize: '1.15rem', margin: 0, color: '#ffffff' }}>Admin / AI JSON Routine Creator</h3>
+              </div>
+              <button onClick={() => setShowAdminJsonModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4', marginBottom: '14px' }}>
+              Paste routine JSON generated by an AI or exported from another curriculum. The system will validate the schema, clean missing fields, and generate a shareable Routine ID!
+            </p>
+
+            {adminJsonError && (
+              <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#f87171', fontSize: '0.8rem', marginBottom: '14px' }}>
+                ⚠️ {adminJsonError}
+              </div>
+            )}
+
+            {adminGeneratedCode ? (
+              <div style={{ padding: '20px', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.35)', borderRadius: '16px', textAlign: 'center', marginBottom: '16px' }}>
+                <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6ee7b7', fontWeight: 700 }}>
+                  Generated Routine ID for Students
+                </span>
+                <div style={{ fontSize: '2.4rem', fontWeight: 800, color: '#ffffff', letterSpacing: '0.12em', margin: '8px 0', fontFamily: 'monospace' }}>
+                  {adminGeneratedCode}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof navigator !== 'undefined') {
+                        navigator.clipboard.writeText(adminGeneratedCode);
+                        setAdminCodeCopied(true);
+                        setTimeout(() => setAdminCodeCopied(false), 3000);
+                      }
+                    }}
+                    className="btn btn-primary"
+                    style={{ padding: '8px 18px', fontSize: '0.85rem', gap: 6 }}
+                  >
+                    {adminCodeCopied ? <Check size={16} /> : <Copy size={16} />}
+                    {adminCodeCopied ? 'Copied ID!' : 'Copy Routine ID'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdminGeneratedCode('');
+                      setAdminJsonInput('');
+                      setShowAdminJsonModal(false);
+                    }}
+                    className="btn btn-secondary"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleAdminGenerateFromJson} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label className="form-label" style={{ fontSize: '0.78rem', margin: 0 }}>Routine JSON Payload</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAdminJsonInput(JSON.stringify({
+                          semester_start_date: "2026-06-30",
+                          routine: {
+                            Monday: [
+                              { subject: "Data Structures & Algorithms", startTime24: "09:30", durationHours: 1, durationMins: 30, room: "Lab 3" },
+                              { subject: "Database Management Systems", startTime24: "11:15", durationHours: 1, durationMins: 0, room: "Room 402" }
+                            ],
+                            Tuesday: [
+                              { subject: "Operating Systems", startTime24: "10:00", durationHours: 1, durationMins: 0, room: "Room 201" }
+                            ],
+                            Wednesday: [
+                              { subject: "Discrete Mathematics", startTime24: "09:00", durationHours: 1, durationMins: 30, room: "Room 105" }
+                            ],
+                            Thursday: [
+                              { subject: "Computer Networks", startTime24: "14:00", durationHours: 2, durationMins: 0, room: "Network Lab" }
+                            ],
+                            Friday: [
+                              { subject: "Software Engineering", startTime24: "10:30", durationHours: 1, durationMins: 0, room: "Room 302" }
+                            ],
+                            Saturday: [],
+                            Sunday: []
+                          }
+                        }, null, 2));
+                      }}
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: '0.7rem', padding: '2px 8px' }}
+                    >
+                      Fill Example Schema
+                    </button>
+                  </div>
+
+                  <textarea
+                    className="form-input"
+                    rows={10}
+                    placeholder="Paste valid JSON routine here..."
+                    value={adminJsonInput}
+                    onChange={(e) => setAdminJsonInput(e.target.value)}
+                    style={{ fontFamily: 'monospace', fontSize: '0.78rem', resize: 'vertical' }}
+                    required
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowAdminJsonModal(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" style={{ padding: '10px 20px', gap: 6 }}>
+                    <Sparkles size={15} /> Validate & Generate Routine ID
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

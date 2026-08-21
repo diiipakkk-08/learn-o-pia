@@ -1,11 +1,38 @@
 import React, { useState } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
-import { Users, BookOpen, ShieldCheck, Check, Ban, Award, FileText, Shield, X, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { Users, BookOpen, ShieldCheck, Check, Ban, Award, FileText, Shield, X, ExternalLink, CheckCircle2, Heart, Video, Sliders, Clock, Sparkles } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const { currentUser, users, courses, subjects, activityLogs, approveCreator, rejectCreator, makeAdmin, toggleUserStatus, changeUserRole, adminVerifyUser } = useDatabase();
+  const { currentUser, users, courses, subjects, activityLogs, approveCreator, rejectCreator, makeAdmin, toggleUserStatus, changeUserRole, adminVerifyUser, adSettings, updateAdSettings } = useDatabase();
   const [activeTab, setActiveTab] = useState('verification');
   const [userSearchQuery, setUserSearchQuery] = useState('');
+
+  // Ad Settings Form State
+  const [adEnabled, setAdEnabled] = useState(adSettings?.enabled !== false);
+  const [adInterval, setAdInterval] = useState(adSettings?.intervalMinutes || 15);
+  const [adSkipDelay, setAdSkipDelay] = useState(adSettings?.skipDelaySeconds || 10);
+  const [adYoutubeUrl, setAdYoutubeUrl] = useState(adSettings?.youtubeUrl || '');
+  const [adTitle, setAdTitle] = useState(adSettings?.title || "Support Learn-o-pia's Open Education Infrastructure");
+  const [adMsg, setAdMsg] = useState(adSettings?.message || "Learn-o-pia is built by students, for students. Help us keep all engineering degree curricula, attendance algorithms, and YouTube lecture sync servers fast, open, and free for everyone!");
+  const [adUrl, setAdUrl] = useState(adSettings?.targetUrl || "https://github.com/diiipakkk-08/learn-o-pia");
+  const [adSavedToast, setAdSavedToast] = useState('');
+
+  const handleSaveAds = (e) => {
+    e.preventDefault();
+    if (updateAdSettings) {
+      updateAdSettings({
+        enabled: adEnabled,
+        intervalMinutes: parseInt(adInterval, 10) || 15,
+        skipDelaySeconds: parseInt(adSkipDelay, 10) || 10,
+        youtubeUrl: adYoutubeUrl.trim(),
+        title: adTitle.trim(),
+        message: adMsg.trim(),
+        targetUrl: adUrl.trim()
+      });
+      setAdSavedToast('Community Ad & Video parameters updated and broadcast live!');
+      setTimeout(() => setAdSavedToast(''), 4000);
+    }
+  };
 
   const totalCourses = courses.length;
   const totalVideos = subjects.reduce((acc, s) => {
@@ -108,6 +135,19 @@ export default function AdminDashboard() {
             >
               <Users size={15} />
               User Directories
+            </button>
+
+            <button 
+              onClick={() => setActiveTab('ads')}
+              style={{
+                ...styles.sideTab,
+                background: activeTab === 'ads' ? 'rgba(139, 92, 246, 0.15)' : 'transparent',
+                borderLeftColor: activeTab === 'ads' ? 'var(--primary)' : 'transparent',
+                color: activeTab === 'ads' ? '#c4b5fd' : 'var(--text-secondary)'
+              }}
+            >
+              <Heart size={15} color="var(--primary)" />
+              Ads & Pop-up Controls
             </button>
           </div>
         </div>
@@ -340,6 +380,184 @@ export default function AdminDashboard() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {/* TAB 4: Community Ads & Pop-up Configuration */}
+          {activeTab === 'ads' && (
+            <div style={styles.pane} className="animate-fade-in">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <div>
+                  <h3 style={styles.paneTitle}>Community Support Ads & Pop-up Controls</h3>
+                  <p style={styles.paneSub}>
+                    Configure the purple header countdown bar, interval frequency, 10-second skip delay, video ads (YouTube URL), and donation links.
+                  </p>
+                </div>
+              </div>
+
+              {adSavedToast && (
+                <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#34d399', marginBottom: '16px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <CheckCircle2 size={16} /> {adSavedToast}
+                </div>
+              )}
+
+              <form onSubmit={handleSaveAds} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                
+                {/* Global Toggle Box */}
+                <div style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#ffffff', display: 'block' }}>
+                      Enable Community Ad / Donation System
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      When active, users without ad-free credits see the visual purple countdown bar and pop-up modal. Turn off to disable completely.
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setAdEnabled(!adEnabled)}
+                    className={`btn ${adEnabled ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{
+                      background: adEnabled ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      padding: '8px 16px',
+                      fontSize: '0.82rem'
+                    }}
+                  >
+                    {adEnabled ? '✔ Active (Broadcasting)' : 'Paused / Turned Off'}
+                  </button>
+                </div>
+
+                {/* Interval & Skip Controls */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
+                  <div style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Clock size={14} color="var(--primary)" /> Ad Frequency Interval (Minutes)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="180"
+                      className="form-input"
+                      value={adInterval}
+                      onChange={e => setAdInterval(e.target.value)}
+                      style={{ marginTop: '8px' }}
+                      required
+                    />
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+                      {[5, 15, 30, 60].map(m => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setAdInterval(m)}
+                          className="btn btn-secondary btn-sm"
+                          style={{ padding: '4px 8px', fontSize: '0.7rem' }}
+                        >
+                          {m}m
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Sliders size={14} color="var(--primary)" /> Skip Button Delay (Seconds)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="60"
+                      className="form-input"
+                      value={adSkipDelay}
+                      onChange={e => setAdSkipDelay(e.target.value)}
+                      style={{ marginTop: '8px' }}
+                      required
+                    />
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+                      {[5, 10, 15, 20].map(s => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setAdSkipDelay(s)}
+                          className="btn btn-secondary btn-sm"
+                          style={{ padding: '4px 8px', fontSize: '0.7rem' }}
+                        >
+                          {s}s
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Video Ad YouTube Link */}
+                <div style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <label className="form-label" style={{ fontSize: '0.8rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Video size={14} color="var(--primary)" /> YouTube Video Ad / Sponsor Link (Optional)
+                  </label>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '2px 0 8px 0' }}>
+                    If provided, this video will autoplay in the ad modal when it triggers (background learning videos pause automatically).
+                  </p>
+                  <input
+                    type="url"
+                    className="form-input"
+                    placeholder="e.g. https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                    value={adYoutubeUrl}
+                    onChange={e => setAdYoutubeUrl(e.target.value)}
+                  />
+                </div>
+
+                {/* Pop-up Text & Target URL */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.78rem' }}>Ad Pop-up Headline / Title</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={adTitle}
+                      onChange={e => setAdTitle(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.78rem' }}>Ad Message Body</label>
+                    <textarea
+                      className="form-input"
+                      rows={3}
+                      value={adMsg}
+                      onChange={e => setAdMsg(e.target.value)}
+                      style={{ resize: 'vertical' }}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.78rem' }}>Support / Donation / External URL</label>
+                    <input
+                      type="url"
+                      className="form-input"
+                      value={adUrl}
+                      onChange={e => setAdUrl(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    style={{
+                      padding: '10px 20px',
+                      fontSize: '0.88rem'
+                    }}
+                  >
+                    💾 Save & Broadcast Ad Settings
+                  </button>
+                </div>
+              </form>
             </div>
           )}
 

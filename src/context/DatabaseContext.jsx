@@ -1241,6 +1241,10 @@ export function DatabaseProvider({ children }) {
     if (isSupabaseLive) {
       try {
         const userEmail = updatedUser.email || currentUser?.email || '';
+        const rawDob = updatedUser.dob ? String(updatedUser.dob).trim() : null;
+        const validDob = rawDob && rawDob.length === 10 ? rawDob : null;
+        const totalSemestersVal = parseInt(updatedUser.totalSemesters, 10) || 8;
+
         const payload = {
           id: userId,
           email: userEmail.toLowerCase(),
@@ -1250,12 +1254,12 @@ export function DatabaseProvider({ children }) {
           college: updatedUser.college || null,
           department: updatedUser.department || null,
           interests: updatedUser.interests || null,
-          education_level: updatedUser.educationLevel || null,
+          education_level: updatedUser.educationLevel || 'college',
           course_name: updatedUser.courseName || null,
           joining_year: updatedUser.joiningYear || null,
           passing_year: updatedUser.passingYear || null,
-          total_semesters: updatedUser.totalSemesters || null,
-          dob: updatedUser.dob || null,
+          total_semesters: totalSemestersVal,
+          dob: validDob,
           target_exam: updatedUser.targetExam || null,
           onboarding_completed: true,
           id_card_link: updatedUser.idCardLink || null,
@@ -1264,36 +1268,47 @@ export function DatabaseProvider({ children }) {
           updated_at: new Date().toISOString()
         };
 
-        const { error: upErr } = await supabase
+        // 1. Direct update by ID
+        const { data: updatedRows, error: upErr } = await supabase
           .from('profiles')
-          .upsert([payload], { onConflict: 'id' });
+          .update(payload)
+          .eq('id', userId)
+          .select('id');
 
-        if (upErr) {
-          console.warn('[Supabase Profile Upsert Error, retrying with core columns]:', upErr.message);
-          const corePayload = {
-            id: userId,
-            email: userEmail.toLowerCase(),
-            name: updatedUser.name,
-            username: updatedUser.username,
-            phone: updatedUser.phone || null,
-            college: updatedUser.college || null,
-            department: updatedUser.department || null,
-            interests: updatedUser.interests || null,
-            onboarding_completed: true,
-            is_verified: !!updatedUser.isVerified,
-            id_card_link: updatedUser.idCardLink || null,
-            verification_status: updatedUser.verificationStatus || 'none',
-            verification_type: updatedUser.verificationType || 'student'
-          };
-          const { error: coreErr } = await supabase.from('profiles').upsert([corePayload], { onConflict: 'id' });
-          if (coreErr) {
-            console.error('[Supabase Core Upsert Error]:', coreErr.message);
-          } else {
-            console.log('✅ [Supabase Core Profile Upserted Successfully]:', userId);
+        if (upErr || !updatedRows || updatedRows.length === 0) {
+          // 2. Fallback upsert if record didn't exist yet
+          const { error: upsertErr } = await supabase
+            .from('profiles')
+            .upsert([payload], { onConflict: 'id' });
+
+          if (upsertErr) {
+            console.warn('[Supabase Profile Upsert Error, retrying with core columns]:', upsertErr.message);
+            const corePayload = {
+              id: userId,
+              email: userEmail.toLowerCase(),
+              name: updatedUser.name,
+              username: updatedUser.username,
+              phone: updatedUser.phone || null,
+              college: updatedUser.college || null,
+              department: updatedUser.department || null,
+              course_name: updatedUser.courseName || null,
+              joining_year: updatedUser.joiningYear || null,
+              passing_year: updatedUser.passingYear || null,
+              total_semesters: totalSemestersVal,
+              interests: updatedUser.interests || null,
+              onboarding_completed: true,
+              is_verified: !!updatedUser.isVerified,
+              id_card_link: updatedUser.idCardLink || null,
+              verification_status: updatedUser.verificationStatus || 'none',
+              verification_type: updatedUser.verificationType || 'student'
+            };
+            const { error: coreErr } = await supabase.from('profiles').update(corePayload).eq('id', userId);
+            if (coreErr) {
+              await supabase.from('profiles').upsert([corePayload], { onConflict: 'id' });
+            }
           }
-        } else {
-          console.log('✅ [Supabase Profile Upserted Successfully]:', userId);
         }
+        console.log('✅ [Supabase Profile Persisted Successfully]:', userId);
       } catch (e) {
         console.warn('[Supabase Profile Upsert Error]', e);
       }
@@ -2543,6 +2558,134 @@ export function DatabaseProvider({ children }) {
     return null;
   };
 
+  // ── SHARED ROUTINES ENGINE (Unique Routine ID / Share Code) ───────────────────
+  const createSharedRoutine = async (routineJson, semesterStartDate = null, title = 'Weekly Class Schedule') => {
+    const randomChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let codeBody = '';
+    for (let i = 0; i < 6; i++) {
+      codeBody += randomChars.charAt(Math.floor(Math.random() * randomChars.length));
+    }
+    const shareCode = `RT-${codeBody}`;
+    const id = `shared-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+    const creatorId = currentUser?.id || 'guest';
+    const creatorName = currentUser?.name || 'Learn-o-pia Learner';
+
+    const record = {
+      id,
+      share_code: shareCode,
+      title: title || 'Weekly Routine',
+      routine_json: routineJson,
+      semester_start_date: semesterStartDate,
+      creator_id: creatorId,
+      creator_name: creatorName,
+      created_at: new Date().toISOString()
+    };
+
+    // 1. Save to local storage pool
+    try {
+      const localPool = JSON.parse(localStorage.getItem('learnopia_shared_routines') || '{}');
+      localPool[shareCode] = record;
+      localStorage.setItem('learnopia_shared_routines', JSON.stringify(localPool));
+    } catch (e) {}
+
+    // 2. Save to Supabase shared_routines table
+    if (isSupabaseLive) {
+      try {
+        const { error } = await supabase
+          .from('shared_routines')
+          .insert([record]);
+        if (error) {
+          console.warn('[Supabase Shared Routine Insert Error]', error.message);
+        } else {
+          console.log('✅ [Supabase Shared Routine Saved]:', shareCode);
+        }
+      } catch (e) {
+        console.warn('[Supabase Shared Routine Warn]', e);
+      }
+    }
+
+    addLog(`Routine shared with ID: ${shareCode}`);
+    return shareCode;
+  };
+
+  const getSharedRoutineByCode = async (rawCode) => {
+    if (!rawCode) return null;
+    let cleanCode = rawCode.trim().toUpperCase();
+    if (!cleanCode.startsWith('RT-') && cleanCode.length === 6) {
+      cleanCode = `RT-${cleanCode}`;
+    }
+
+    // 1. Fetch from Supabase
+    if (isSupabaseLive) {
+      try {
+        const { data, error } = await supabase
+          .from('shared_routines')
+          .select('*')
+          .or(`share_code.eq.${cleanCode},id.eq.${cleanCode}`)
+          .maybeSingle();
+
+        if (data && data.routine_json) {
+          return {
+            shareCode: data.share_code || cleanCode,
+            title: data.title,
+            routine: data.routine_json,
+            semesterStartDate: data.semester_start_date,
+            creatorName: data.creator_name
+          };
+        }
+      } catch (e) {
+        console.warn('[Supabase Shared Routine Fetch]', e);
+      }
+    }
+
+    // 2. Fallback to local storage pool
+    try {
+      const localPool = JSON.parse(localStorage.getItem('learnopia_shared_routines') || '{}');
+      if (localPool[cleanCode]) {
+        const localData = localPool[cleanCode];
+        return {
+          shareCode: localData.share_code || cleanCode,
+          title: localData.title,
+          routine: localData.routine_json,
+          semesterStartDate: localData.semester_start_date,
+          creatorName: localData.creator_name
+        };
+      }
+    } catch (e) {}
+
+    return null;
+  };
+
+  // ── COMMUNITY AD & POP-UP SETTINGS ──────────────────────────────────────────
+  const DEFAULT_AD_SETTINGS = {
+    enabled: true,
+    intervalMinutes: 15,
+    skipDelaySeconds: 10,
+    title: "Support Learn-o-pia's Open Education Infrastructure",
+    message: "Learn-o-pia is built by students, for students. Help us keep all engineering degree curricula, attendance algorithms, and YouTube lecture sync servers fast, open, and free for everyone!",
+    targetUrl: "https://github.com/diiipakkk-08/learn-o-pia",
+    youtubeUrl: ""
+  };
+
+  const [adSettings, setAdSettings] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('learnopia_ad_settings_stable');
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) {}
+      }
+    }
+    return DEFAULT_AD_SETTINGS;
+  });
+
+  const updateAdSettings = (newSettings) => {
+    const merged = { ...adSettings, ...newSettings };
+    setAdSettings(merged);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('learnopia_ad_settings_stable', JSON.stringify(merged));
+    }
+    addLog(`Admin updated Community Ad parameters (Status: ${merged.enabled ? 'Enabled' : 'Disabled'}, Interval: ${merged.intervalMinutes}m, Skip Delay: ${merged.skipDelaySeconds}s)`);
+  };
+
   return (
     <DatabaseContext.Provider value={{
       users,
@@ -2552,6 +2695,10 @@ export function DatabaseProvider({ children }) {
       authLoading,
       activityLogs,
       standaloneResources,
+      adSettings,
+      updateAdSettings,
+      createSharedRoutine,
+      getSharedRoutineByCode,
       addStandaloneResource,
       setPasswordForUser,
       resetPasswordByEmail,

@@ -6,6 +6,8 @@ import Profile from './components/Profile';
 import LandingPage from './components/LandingPage';
 import About from './components/About';
 import OnboardingModal from './components/OnboardingModal';
+import AdProgressBar from './components/AdProgressBar';
+import AdDonationModal from './components/AdDonationModal';
 
 // Shared Learning Views
 import CoursesDashboard from './components/learning/CoursesDashboard';
@@ -75,6 +77,9 @@ function AppContent() {
     return val ? parseInt(val, 10) : 0;
   });
   const [isNavLoading, setIsNavLoading] = useState(false);
+
+  // Community Ad Modal State
+  const [showAdModal, setShowAdModal] = useState(false);
 
   // Local flag to instantly dismiss the onboarding modal after submission (before Supabase re-syncs)
   // MUST be declared here (before any early returns) to satisfy React's Rules of Hooks
@@ -173,6 +178,9 @@ function AppContent() {
         onLogoClick={handleLogoClick}
       />
 
+      {/* Visual Purple Shrinking Ad Countdown Bar */}
+      <AdProgressBar onTriggerAd={() => setShowAdModal(true)} />
+
       {/* Main Container Viewport */}
       <main className="main-content">
         {currentView === 'landing' && (
@@ -259,6 +267,9 @@ function AppContent() {
 
       {/* Mandatory Onboarding Modal — keeps showing until onboardingCompleted is true */}
       <OnboardingModal isOpen={showOnboardingModal} onComplete={handleOnboardingComplete} />
+
+      {/* Community Ad & Support Pop-up Modal */}
+      <AdDonationModal isOpen={showAdModal} onClose={() => setShowAdModal(false)} />
     </div>
   );
 }

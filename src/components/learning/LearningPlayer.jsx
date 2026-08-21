@@ -178,6 +178,20 @@ export default function LearningPlayer({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Listen for Ad Pop-up trigger to pause lecture video immediately
+  useEffect(() => {
+    const handlePauseMedia = () => {
+      const playerIframe = document.querySelector('.oracle-video-wrapper iframe');
+      if (playerIframe) {
+        try {
+          playerIframe.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo' }), '*');
+        } catch (e) {}
+      }
+    };
+    window.addEventListener('learnopia-pause-media', handlePauseMedia);
+    return () => window.removeEventListener('learnopia-pause-media', handlePauseMedia);
+  }, []);
+
   const course = courses.find((c) => c.id === playlistId);
   const isDegree = course?.isDegree;
 
