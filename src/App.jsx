@@ -82,13 +82,16 @@ function AppContent() {
   const [showAdModal, setShowAdModal] = useState(false);
 
   // Local flag to instantly dismiss the onboarding modal after submission (before Supabase re-syncs)
-  // MUST be declared here (before any early returns) to satisfy React's Rules of Hooks
-  const [onboardingDone, setOnboardingDone] = useState(() => {
-    if (typeof window !== 'undefined' && currentUser?.id) {
-      return localStorage.getItem(`learnopia_onboarding_done_${currentUser?.id}`) === 'true';
+  const [onboardingDone, setOnboardingDone] = useState(false);
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      const isDone = Boolean(currentUser.onboardingCompleted);
+      setOnboardingDone(isDone);
+    } else {
+      setOnboardingDone(false);
     }
-    return false;
-  });
+  }, [currentUser?.id, currentUser?.onboardingCompleted]);
 
   // Handle URL hash from Supabase Email Verification / OAuth redirects
   useEffect(() => {
@@ -154,15 +157,9 @@ function AppContent() {
   const isVerifiedCreator = currentUser && currentUser.role === 'creator' && currentUser.status === 'active';
   const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner');
 
-  const showOnboardingModal = !!currentUser && !currentUser.onboardingCompleted &&
-    !(typeof window !== 'undefined' && localStorage.getItem(`learnopia_onboarding_done_${currentUser.id}`) === 'true') &&
-    !onboardingDone;
+  const showOnboardingModal = !!currentUser && !currentUser.onboardingCompleted && !onboardingDone;
 
   const handleOnboardingComplete = () => {
-    // Mark in localStorage AND in state so the modal closes immediately before Supabase re-syncs
-    if (currentUser?.id) {
-      localStorage.setItem(`learnopia_onboarding_done_${currentUser.id}`, 'true');
-    }
     setOnboardingDone(true);
   };
 

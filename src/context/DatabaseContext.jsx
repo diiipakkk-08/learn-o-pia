@@ -600,41 +600,32 @@ export function DatabaseProvider({ children }) {
           if (profileByEmail) {
             dbProfile = profileByEmail;
           } else {
-            // Check if this is a newly registered OAuth signup (user created in last 60 seconds)
-            const isFreshOAuth = user.app_metadata?.provider === 'google' && 
-                                 user.created_at && 
-                                 (Date.now() - new Date(user.created_at).getTime() < 60000);
-
-            if (isFreshOAuth) {
-              const isInitialOwner = user.email?.toLowerCase() === 'admin@learnopia.edu';
-              const newProfile = {
-                id: user.id,
-                email: user.email.toLowerCase(),
-                name: user.user_metadata?.full_name || user.email.split('@')[0],
-                role: isInitialOwner ? 'owner' : 'learner',
-                status: 'active',
-                is_verified: isInitialOwner,
-                verification_status: isInitialOwner ? 'verified' : 'none',
-                verification_type: isInitialOwner ? 'creator' : 'student',
-                onboarding_completed: isInitialOwner,
-                college: '',
-                department: '',
-                interests: '',
-                enrolled_courses: []
-              };
-              try {
-                await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
-              } catch (e) {}
-              dbProfile = newProfile;
-            } else {
-              // Account was deleted in DB. Sign out stale session immediately!
-              console.log('🚪 [Stale Session] Profile not found in database (account was deleted). Signing out.');
-              await supabase.auth.signOut();
-              setCurrentUser(null);
-              localStorage.removeItem('learnopia_current_user_stable');
-              setAuthLoading(false);
-              return;
+            // Profile does not exist yet (new OAuth signup or account was recreated)
+            // Automatically create their profile row in Supabase!
+            const isInitialOwner = user.email?.toLowerCase() === 'admin@learnopia.edu';
+            const defaultName = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
+            const newProfile = {
+              id: user.id,
+              email: user.email.toLowerCase(),
+              name: defaultName,
+              username: `@${defaultName.toLowerCase().replace(/[^a-z0-9_]/g, '')}`,
+              role: isInitialOwner ? 'owner' : 'learner',
+              status: 'active',
+              is_verified: isInitialOwner,
+              verification_status: isInitialOwner ? 'verified' : 'none',
+              verification_type: isInitialOwner ? 'creator' : 'student',
+              onboarding_completed: isInitialOwner,
+              college: '',
+              department: '',
+              interests: '',
+              enrolled_courses: []
+            };
+            try {
+              await supabase.from('profiles').upsert([newProfile], { onConflict: 'id' });
+            } catch (e) {
+              console.warn('[Sync Profile Auto-create Warn]', e);
             }
+            dbProfile = newProfile;
           }
         }
 
@@ -643,11 +634,16 @@ export function DatabaseProvider({ children }) {
           if (mapped.status === 'suspended') {
             await supabase.auth.signOut();
             setCurrentUser(null);
+            localStorage.removeItem('learnopia_current_user_stable');
           } else {
             setCurrentUser(mapped);
             localStorage.setItem('learnopia_current_user_stable', JSON.stringify(mapped));
           }
         }
+      } else {
+        // No active auth session in Supabase — clear stale cached state
+        setCurrentUser(null);
+        localStorage.removeItem('learnopia_current_user_stable');
       }
     } catch (err) {
       console.warn('Supabase auth load warning:', err);
@@ -835,8 +831,9 @@ export function DatabaseProvider({ children }) {
           } catch (err) {
             console.warn('[onAuthStateChange Profile Sync]', err);
           }
-        } else if (event === 'SIGNED_OUT') {
+        } else if (event === 'SIGNED_OUT' || !session?.user) {
           setCurrentUser(null);
+          localStorage.removeItem('learnopia_current_user_stable');
         }
       });
 
@@ -937,7 +934,7 @@ export function DatabaseProvider({ children }) {
           console.warn('[Database Login Fallback Error]', dbErr);
         }
 
-        throw new Error(loginErr?.message || 'Invalid email or password. Please check your credentials.');
+        throw new Error(loginErr?.message || 'Invalid email or password. If your account was deleted or you are a new user, please click "Create one now" below to register.');
       }
 
       let { data: profile } = await supabase
@@ -1176,12 +1173,17 @@ export function DatabaseProvider({ children }) {
 
   const logout = async () => {
     if (isSupabaseLive) {
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (e) {
+        console.warn('[Supabase SignOut Warn]', e);
+      }
     }
     if (currentUser) {
       addLog(`User logged out: ${currentUser.name}`);
     }
     setCurrentUser(null);
+    localStorage.removeItem('learnopia_current_user_stable');
     localStorage.removeItem('learnopia_view');
     localStorage.removeItem('learnopia_selected_playlist');
     localStorage.removeItem('learnopia_selected_video');
@@ -1244,6 +1246,7 @@ export function DatabaseProvider({ children }) {
       ...profileData,
       id: userId,
       email: userToUpdate.email || currentUser?.email || profileData.email || '',
+      password: profileData.password || userToUpdate.password || currentUser?.password || '',
       onboardingCompleted: true,
       verificationStatus: profileData.verificationStatus || (profileData.idCardLink ? 'pending' : userToUpdate?.verificationStatus || 'none')
     };
@@ -1264,6 +1267,16 @@ export function DatabaseProvider({ children }) {
 
     if (isSupabaseLive) {
       try {
+        // If password is provided, update user auth password in Supabase
+        if (profileData.password && profileData.password.length >= 6) {
+          try {
+            await supabase.auth.updateUser({ password: profileData.password });
+            console.log('🔑 [Supabase Auth Password Updated for user]:', userId);
+          } catch (passErr) {
+            console.warn('[Supabase Auth Password Update Warning]:', passErr.message);
+          }
+        }
+
         const userEmail = updatedUser.email || currentUser?.email || '';
         const rawDob = updatedUser.dob ? String(updatedUser.dob).trim() : null;
         const validDob = rawDob && rawDob.length === 10 ? rawDob : null;
@@ -1272,8 +1285,8 @@ export function DatabaseProvider({ children }) {
         const payload = {
           id: userId,
           email: userEmail.toLowerCase(),
-          name: updatedUser.name,
-          username: updatedUser.username,
+          name: updatedUser.name || '',
+          username: updatedUser.username || '',
           phone: updatedUser.phone || null,
           college: updatedUser.college || null,
           department: updatedUser.department || null,
@@ -1289,52 +1302,48 @@ export function DatabaseProvider({ children }) {
           id_card_link: updatedUser.idCardLink || null,
           verification_status: updatedUser.verificationStatus || 'none',
           verification_type: updatedUser.verificationType || 'student',
+          is_verified: !!updatedUser.isVerified,
+          password: updatedUser.password || null,
           updated_at: new Date().toISOString()
         };
 
-        // 1. Direct update by ID
-        const { data: updatedRows, error: upErr } = await supabase
+        // 1. Direct upsert with all payload columns
+        const { error: upsertErr } = await supabase
           .from('profiles')
-          .update(payload)
-          .eq('id', userId)
-          .select('id');
+          .upsert([payload], { onConflict: 'id' });
 
-        if (upErr || !updatedRows || updatedRows.length === 0) {
-          // 2. Fallback upsert if record didn't exist yet
-          const { error: upsertErr } = await supabase
-            .from('profiles')
-            .upsert([payload], { onConflict: 'id' });
-
-          if (upsertErr) {
-            console.warn('[Supabase Profile Upsert Error, retrying with core columns]:', upsertErr.message);
-            const corePayload = {
-              id: userId,
-              email: userEmail.toLowerCase(),
-              name: updatedUser.name,
-              username: updatedUser.username,
-              phone: updatedUser.phone || null,
-              college: updatedUser.college || null,
-              department: updatedUser.department || null,
-              course_name: updatedUser.courseName || null,
-              joining_year: updatedUser.joiningYear || null,
-              passing_year: updatedUser.passingYear || null,
-              total_semesters: totalSemestersVal,
-              interests: updatedUser.interests || null,
-              onboarding_completed: true,
-              is_verified: !!updatedUser.isVerified,
-              id_card_link: updatedUser.idCardLink || null,
-              verification_status: updatedUser.verificationStatus || 'none',
-              verification_type: updatedUser.verificationType || 'student'
-            };
-            const { error: coreErr } = await supabase.from('profiles').update(corePayload).eq('id', userId);
-            if (coreErr) {
-              await supabase.from('profiles').upsert([corePayload], { onConflict: 'id' });
-            }
+        if (upsertErr) {
+          console.warn('[Supabase Profile Upsert with full schema warned, retrying with core columns]:', upsertErr.message);
+          const corePayload = {
+            id: userId,
+            email: userEmail.toLowerCase(),
+            name: updatedUser.name || '',
+            username: updatedUser.username || '',
+            phone: updatedUser.phone || null,
+            college: updatedUser.college || null,
+            department: updatedUser.department || null,
+            course_name: updatedUser.courseName || null,
+            joining_year: updatedUser.joiningYear || null,
+            passing_year: updatedUser.passingYear || null,
+            total_semesters: totalSemestersVal,
+            interests: updatedUser.interests || null,
+            onboarding_completed: true,
+            is_verified: !!updatedUser.isVerified,
+            id_card_link: updatedUser.idCardLink || null,
+            verification_status: updatedUser.verificationStatus || 'none',
+            verification_type: updatedUser.verificationType || 'student',
+            password: updatedUser.password || null
+          };
+          const { error: coreErr } = await supabase.from('profiles').upsert([corePayload], { onConflict: 'id' });
+          if (coreErr) {
+            console.error('[Supabase Profile Core Upsert Failed]:', coreErr.message);
+            throw new Error(`Database save error: ${coreErr.message}`);
           }
         }
-        console.log('✅ [Supabase Profile Persisted Successfully]:', userId);
+        console.log('✅ [Supabase Profile Persisted Successfully in Database]:', userId);
       } catch (e) {
-        console.warn('[Supabase Profile Upsert Error]', e);
+        console.error('[Supabase Profile Upsert Error]', e);
+        throw e;
       }
 
       // Sync Supabase to refresh all users state
