@@ -278,6 +278,22 @@ export default function CreatorStudio() {
         setPlaylistError('Please provide a valid YouTube Playlist link or ID (e.g. https://www.youtube.com/playlist?list=PLr6-S4ER...)');
         return;
       }
+
+      // Check if YouTube Playlist ID already exists in the database
+      let existingPlaylist = null;
+      (subjects || []).forEach(sub => {
+        (sub.playlists || []).forEach(pl => {
+          if (pl.youtubePlaylistId && (pl.youtubePlaylistId === ytPlaylistId || pl.id === `pl-${ytPlaylistId}`)) {
+            existingPlaylist = { id: pl.id, title: pl.title, subjectTitle: sub.title };
+          }
+        });
+      });
+
+      if (existingPlaylist) {
+        setPlaylistError(`Notice: This YouTube playlist already exists in our database under Subject "${existingPlaylist.subjectTitle}" (ID: ${existingPlaylist.id}) as "${existingPlaylist.title}".`);
+        return;
+      }
+
       setIsCreatingPlaylist(true);
       try {
         fetchedVideos = await fetchYoutubePlaylistVideos(ytPlaylistId);
@@ -571,9 +587,11 @@ export default function CreatorStudio() {
                     <div style={{ marginBottom: '6px' }}>
                       <InlineEdit value={activeCourse.description} onSave={v => editCourse(activeCourse.id, { description: v })} multiline inputStyle={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }} />
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Price (₹):</span>
                       <InlineEdit value={String(activeCourse.price)} onSave={v => editCourse(activeCourse.id, { price: parseFloat(v) || 0 })} inputStyle={{ fontSize: '0.85rem', color: 'var(--success)', width: '90px' }} />
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '12px' }}>Banner Image URL:</span>
+                      <InlineEdit value={activeCourse.bannerUrl || ''} onSave={v => editCourse(activeCourse.id, { bannerUrl: v })} placeholder="Paste Banner Image URL..." inputStyle={{ fontSize: '0.78rem', color: '#a78bfa', maxWidth: '280px' }} />
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '6px' }}>

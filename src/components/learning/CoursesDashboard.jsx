@@ -54,58 +54,47 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
   return (
     <div style={styles.container} className="animate-fade-in">
       
-      {/* Top Header Control Bar: Search & Sorting */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '10px', flexWrap: 'wrap' }} className="glass-panel-sm">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <h2 style={{ fontSize: '1.15rem', color: '#ffffff', margin: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <BookOpen size={18} color="var(--primary)" /> Degree Curricula & Courses ({processedCourses.length})
-          </h2>
-        </div>
-
-        {/* Right Action Controls: Expandable Search + Sorting Filter */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          
-          {/* Expandable Search Button / Input */}
-          {isSearchOpen ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(0,0,0,0.4)', padding: '2px 8px', borderRadius: '8px', border: '1px solid rgba(139,92,246,0.4)' }}>
-              <Search size={14} color="var(--text-muted)" />
-              <input
-                type="text"
-                placeholder="Search curricula..."
-                value={localSearch}
-                onChange={(e) => setLocalSearch(e.target.value)}
-                style={{ background: 'none', border: 'none', color: '#fff', fontSize: '0.78rem', outline: 'none', width: '130px' }}
-                autoFocus
-              />
-              <button onClick={() => { setIsSearchOpen(false); setLocalSearch(''); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}>
-                <X size={14} />
-              </button>
-            </div>
-          ) : (
+      {/* Top Search Bar for Curricula & Playlists */}
+      <div className="glass-panel" style={{ padding: '16px 20px', borderRadius: '14px', marginBottom: '16px' }}>
+        <div style={{ position: 'relative', width: '100%' }}>
+          <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+          <input
+            type="text"
+            className="form-input"
+            placeholder="Search degree curricula, courses, or playlists..."
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
+            style={{ width: '100%', paddingLeft: '42px', paddingRight: '36px', height: '44px', fontSize: '0.9rem', borderRadius: '10px', boxSizing: 'border-box' }}
+          />
+          {localSearch && (
             <button
-              onClick={() => setIsSearchOpen(true)}
-              className="btn btn-secondary btn-sm"
-              style={{ padding: '6px 10px', fontSize: '0.78rem', gap: '4px' }}
-              title="Search Curricula"
+              onClick={() => setLocalSearch('')}
+              style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
             >
-              <Search size={14} /> Search
+              <X size={16} />
             </button>
           )}
+        </div>
+      </div>
 
-          {/* Sorting Dropdown */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.04)', padding: '4px 8px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <Filter size={13} color="var(--primary)" />
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              style={{ background: 'transparent', border: 'none', color: '#ffffff', fontSize: '0.78rem', fontWeight: 600, outline: 'none', cursor: 'pointer' }}
-            >
-              <option value="recent" style={{ background: '#11121c' }}>Recently Added</option>
-              <option value="liked" style={{ background: '#11121c' }}>Most Liked</option>
-              <option value="alphabetical" style={{ background: '#11121c' }}>Alphabetical (A - Z)</option>
-            </select>
-          </div>
+      {/* Header Control Bar: Course Count & Sorting Filter */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '10px', flexWrap: 'wrap' }} className="glass-panel-sm">
+        <h2 style={{ fontSize: '1.1rem', color: '#ffffff', margin: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <BookOpen size={18} color="var(--primary)" /> Curricula, Degree Programs & Playlists ({processedCourses.length})
+        </h2>
 
+        {/* Sorting Dropdown */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.04)', padding: '4px 8px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <Filter size={13} color="var(--primary)" />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            style={{ background: 'transparent', border: 'none', color: '#ffffff', fontSize: '0.78rem', fontWeight: 600, outline: 'none', cursor: 'pointer' }}
+          >
+            <option value="recent" style={{ background: '#11121c' }}>Recently Added</option>
+            <option value="liked" style={{ background: '#11121c' }}>Most Liked</option>
+            <option value="alphabetical" style={{ background: '#11121c' }}>Alphabetical (A - Z)</option>
+          </select>
         </div>
       </div>
 

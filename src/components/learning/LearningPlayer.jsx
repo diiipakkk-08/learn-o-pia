@@ -233,15 +233,11 @@ export default function LearningPlayer({
 
   const activeSubject = currentSubjects.find((s) => s.id === activeSubjectId) || currentSubjects[0];
 
-  // Auto-select first playlist if none selected
+  // Reset playlist selection when active subject changes
   useEffect(() => {
-    if (activeSubject && activeSubject.playlists && activeSubject.playlists.length > 0) {
-      if (!activePlaylistId || !activeSubject.playlists.some((p) => p.id === activePlaylistId)) {
-        setActivePlaylistId(activeSubject.playlists[0].id);
-        setActiveVideoIndex(0);
-      }
-    }
-  }, [activeSubject, activePlaylistId]);
+    setActivePlaylistId(null);
+    setActiveVideoIndex(0);
+  }, [activeSubjectId]);
 
   const activePlaylist = activeSubject?.playlists?.find((p) => p.id === activePlaylistId) || activeSubject?.playlists?.[0];
   const playlistVideos = activePlaylist?.videos || [];
@@ -455,6 +451,17 @@ export default function LearningPlayer({
           {isDegree && (
             <CustomSemesterDropdown value={activeSemester} onChange={(s) => setActiveSemester(s)} />
           )}
+
+          {activePlaylistId && (
+            <button
+              onClick={() => setActivePlaylistId(null)}
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: '0.75rem', gap: '4px', marginLeft: '6px' }}
+              title="Switch Playlist Series"
+            >
+              <ChevronLeft size={13} /> Switch Playlist
+            </button>
+          )}
         </div>
 
         {/* Rightmost Flex Group: Subject Selector Chips */}
@@ -494,7 +501,7 @@ export default function LearningPlayer({
       </div>
 
       {/* ── Mobile Navigation Tabs Bar (< 1024px) ── */}
-      {isMobile && (
+      {isMobile && activePlaylistId && (
         <div className="mobile-nav-tabs-bar">
           <button
             className={`mobile-tab-pill ${mobileTab === 'playlist' ? 'active' : ''}`}
@@ -517,7 +524,74 @@ export default function LearningPlayer({
         </div>
       )}
 
-      {/* ── MAIN WORKSPACE GRID ── */}
+      {/* ── PLAYLIST SELECTION GRID (Shown before learner starts video playback) ── */}
+      {!activePlaylistId ? (
+        <div className="glass-panel" style={{ padding: '24px', borderRadius: '16px', textAlign: 'left', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '12px' }}>
+            <div>
+              <h2 style={{ fontSize: '1.2rem', color: '#ffffff', margin: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Sparkles size={20} color="var(--primary)" /> Select Playlist Series — {activeSubject?.title || 'Subject'}
+              </h2>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>
+                Select a lecture series to watch for {activeSubject?.title || 'this subject'}:
+              </p>
+            </div>
+          </div>
+
+          {activeSubject?.playlists && activeSubject.playlists.length > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+              {activeSubject.playlists.map((pl) => {
+                const firstVid = pl.videos && pl.videos[0];
+                const yId = pl.youtubePlaylistId || (firstVid?.youtubeId || (firstVid?.url ? (firstVid.url.match(/[?&]v=([^#&]+)/) || [])[1] : ''));
+                const thumb = pl.bannerUrl || (yId ? `https://i.ytimg.com/vi/${yId}/hqdefault.jpg` : null);
+
+                return (
+                  <div key={pl.id} className="glass-panel" style={{ borderRadius: '14px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid rgba(139,92,246,0.3)' }}>
+                    <div style={{ height: '140px', background: '#000', position: 'relative', overflow: 'hidden' }}>
+                      {thumb ? (
+                        <img src={thumb} alt={pl.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1e1b4b 0%, #311b92 100%)' }}>
+                          <Play size={36} color="#a78bfa" />
+                        </div>
+                      )}
+                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.85) 100%)' }} />
+                      <span style={{ position: 'absolute', top: '10px', left: '10px', fontSize: '0.68rem', fontWeight: 700, color: '#fff', background: 'rgba(139,92,246,0.85)', padding: '2px 8px', borderRadius: '6px' }}>
+                        {pl.videos?.length || 0} Videos
+                      </span>
+                    </div>
+
+                    <div style={{ padding: '14px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
+                      <div>
+                        <h3 style={{ fontSize: '0.98rem', fontWeight: 700, color: '#ffffff', margin: '0 0 4px 0', lineHeight: '1.3' }}>{pl.title}</h3>
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0 0 6px 0', lineHeight: '1.4' }}>{pl.description || 'Subject lecture series.'}</p>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Instructor: <strong>{pl.author || 'Educator'}</strong></span>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setActivePlaylistId(pl.id);
+                          setActiveVideoIndex(0);
+                        }}
+                        className="btn btn-primary btn-sm"
+                        style={{ width: '100%', fontSize: '0.8rem', gap: '6px' }}
+                      >
+                        <Play size={13} /> Follow Playlist Series
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              <BookOpen size={36} color="var(--primary)" style={{ opacity: 0.5, marginBottom: '8px' }} />
+              <p style={{ margin: 0, fontSize: '0.9rem', color: '#ffffff' }}>No Playlists Uploaded for this Subject</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* ── MAIN WORKSPACE GRID ── */
       <div className="oracle-learning-grid">
         {/* ========================================================= */}
         {/* LEFT COLUMN: 16:9 Video Player directly at the top        */}
@@ -973,6 +1047,7 @@ export default function LearningPlayer({
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

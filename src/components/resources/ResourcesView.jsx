@@ -172,28 +172,8 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId })
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px', textAlign: 'left' }} className="animate-fade-in">
       
-      {/* Search Header Banner */}
-      <div className="glass-panel" style={{ padding: '20px 24px', borderRadius: '16px', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-          <div>
-            <h1 style={{ fontSize: '1.4rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '10px' }} className="primary-gradient-text">
-              <FolderKanban size={24} color="var(--primary)" /> Open Resources & Video Explorer
-            </h1>
-            <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>
-              Search topics, lecture videos, formula sheets, PDFs, and Google Drive resources across all courses.
-            </p>
-          </div>
-
-          <button
-            onClick={() => setCurrentView('my-learning')}
-            className="btn btn-secondary btn-sm"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-          >
-            <BookmarkCheck size={16} color="#10b981" /> My Saved Resources ({savedResourceIds.length})
-          </button>
-        </div>
-
-        {/* Global Search Bar */}
+      {/* Standalone Clean Search Bar */}
+      <div className="glass-panel" style={{ padding: '16px 20px', borderRadius: '14px', marginBottom: '20px' }}>
         <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '10px' }}>
           <div style={{ position: 'relative', flex: 1 }}>
             <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />

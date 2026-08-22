@@ -101,12 +101,6 @@ export default function Header({
               <GraduationCap size={20} color="#ffffff" />
             </div>
             <span style={{ ...styles.logoText, whiteSpace: 'nowrap' }}>Learn-o-pia</span>
-            {activeTitle && (
-              <span style={{ fontSize: isMobile ? '0.85rem' : '1.02rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
-                <span style={{ color: 'var(--primary)', margin: '0 4px', fontWeight: 700 }}>/</span>
-                {activeTitle}
-              </span>
-            )}
           </div>
 
           {/* Desktop Nav Links */}

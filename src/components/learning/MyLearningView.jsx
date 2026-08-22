@@ -77,16 +77,21 @@ export default function MyLearningView({ setCurrentView, setSelectedPlaylistId }
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px', textAlign: 'left' }} className="animate-fade-in">
 
+      {/* Main Heading: Learn Space */}
+      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+        <h1 style={{ fontSize: '1.4rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '10px' }} className="primary-gradient-text">
+          <Compass size={24} color="var(--primary)" /> Learn Space
+        </h1>
+        <button onClick={() => setCurrentView('learning')} className="btn btn-secondary btn-sm" style={{ fontSize: '0.78rem' }}>
+          + Explore Curricula & Courses
+        </button>
+      </div>
+
       {/* SECTION 1: MY ENROLLED COURSES & PLAYLISTS */}
       <div style={{ marginBottom: '32px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
-          <h2 style={{ fontSize: '1.15rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <BookOpen size={20} color="var(--primary)" /> Enrolled Courses & Playlists ({enrolledCourseList.length})
-          </h2>
-          <button onClick={() => setCurrentView('learning')} className="btn btn-secondary btn-sm" style={{ fontSize: '0.78rem' }}>
-            + Explore All Courses
-          </button>
-        </div>
+        <h2 style={{ fontSize: '1.05rem', margin: '0 0 14px 0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <BookOpen size={18} color="var(--primary)" /> My Enrolled Courses ({enrolledCourseList.length})
+        </h2>
 
         {enrolledCourseList.length === 0 ? (
           <div className="glass-panel" style={{ padding: '32px', textAlign: 'center', borderRadius: '14px' }}>
