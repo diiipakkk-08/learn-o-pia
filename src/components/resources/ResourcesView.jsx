@@ -170,71 +170,73 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId })
   };
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px', textAlign: 'left' }} className="animate-fade-in">
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '4px 12px 16px 12px', textAlign: 'left' }} className="animate-fade-in">
       
-      {/* Standalone Clean Search Bar */}
-      <div className="glass-panel" style={{ padding: '16px 20px', borderRadius: '14px', marginBottom: '20px' }}>
-        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '10px' }}>
-          <div style={{ position: 'relative', flex: 1 }}>
-            <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
-            <input
-              type="text"
-              className="form-input"
-              value={localSearch}
-              onChange={(e) => {
-                setLocalSearch(e.target.value);
-                if (setGlobalSearchQuery) setGlobalSearchQuery(e.target.value);
-              }}
-              placeholder="Search by topic, keyword, subject name, or Resource ID (e.g. res-1, vid-123)..."
-              style={{ width: '100%', paddingLeft: '42px', paddingRight: '12px', height: '44px', fontSize: '0.9rem', borderRadius: '10px', boxSizing: 'border-box' }}
-            />
-          </div>
+      {/* Sleek Standalone Search Bar directly on page */}
+      <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '10px', marginBottom: '14px', marginTop: '2px' }}>
+        <div style={{ position: 'relative', flex: 1 }}>
+          <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+          <input
+            type="text"
+            className="form-input"
+            value={localSearch}
+            onChange={(e) => {
+              setLocalSearch(e.target.value);
+              if (setGlobalSearchQuery) setGlobalSearchQuery(e.target.value);
+            }}
+            placeholder="Search by topic, keyword, subject name, or Resource ID (e.g. res-1, vid-123)..."
+            style={{ width: '100%', paddingLeft: '40px', paddingRight: '12px', height: '40px', fontSize: '0.85rem', borderRadius: '10px', boxSizing: 'border-box' }}
+          />
+        </div>
 
-          {localSearch && (
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => { setLocalSearch(''); if (setGlobalSearchQuery) setGlobalSearchQuery(''); }}
-              style={{ padding: '0 16px', height: '44px', fontSize: '0.85rem' }}
-            >
-              Clear
-            </button>
-          )}
-        </form>
-      </div>
+        {localSearch && (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => { setLocalSearch(''); if (setGlobalSearchQuery) setGlobalSearchQuery(''); }}
+            style={{ padding: '0 14px', height: '40px', fontSize: '0.8rem' }}
+          >
+            Clear
+          </button>
+        )}
+      </form>
 
-      {/* Filter Tabs */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '4px' }}>
+      {/* Filter Tabs — Clean Horizontal Pills without Overlapping Icons */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px', WebkitOverflowScrolling: 'touch' }}>
         <button
+          type="button"
           className={`btn ${activeTab === 'all' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setActiveTab('all')}
-          style={{ padding: '6px 14px', fontSize: '0.82rem', borderRadius: '8px' }}
+          style={{ padding: '6px 14px', fontSize: '0.78rem', whiteSpace: 'nowrap', borderRadius: '20px', flexShrink: 0, gap: '6px' }}
         >
-          <Layers size={14} /> All Results ({filteredDocs.length + filteredVideos.length})
+          <Layers size={13} /> All Results ({filteredDocs.length + filteredVideos.length})
         </button>
 
         <button
+          type="button"
           className={`btn ${activeTab === 'videos' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setActiveTab('videos')}
-          style={{ padding: '6px 14px', fontSize: '0.82rem', borderRadius: '8px' }}
+          style={{ padding: '6px 14px', fontSize: '0.78rem', whiteSpace: 'nowrap', borderRadius: '20px', flexShrink: 0, gap: '6px' }}
         >
-          <Video size={14} /> Video Lectures ({filteredVideos.length})
+          <Video size={13} /> Video Lectures ({filteredVideos.length})
         </button>
 
         <button
+          type="button"
           className={`btn ${activeTab === 'documents' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setActiveTab('documents')}
-          style={{ padding: '6px 14px', fontSize: '0.82rem', borderRadius: '8px' }}
+          style={{ padding: '6px 14px', fontSize: '0.78rem', whiteSpace: 'nowrap', borderRadius: '20px', flexShrink: 0, gap: '6px' }}
         >
-          <FileText size={14} /> PDFs & Drive Links ({filteredDocs.length})
+          <FileText size={13} /> PDFs & Drive Links ({filteredDocs.length})
         </button>
 
         <button
+          type="button"
           className={`btn ${activeTab === 'saved' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setActiveTab('saved')}
-          style={{ padding: '6px 14px', fontSize: '0.82rem', borderRadius: '8px' }}
+          style={{ padding: '6px 14px', fontSize: '0.78rem', whiteSpace: 'nowrap', borderRadius: '20px', flexShrink: 0, gap: '6px' }}
         >
-          <Bookmark size={14} /> Saved Resources ({savedDocs.length})
+          <Bookmark size={13} /> Saved Resources ({savedDocs.length})
         </button>
       </div>
 

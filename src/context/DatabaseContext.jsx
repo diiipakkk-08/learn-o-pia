@@ -1596,40 +1596,50 @@ export function DatabaseProvider({ children }) {
   };
 
   const editCourse = async (courseId, fields) => {
-    if (isSupabaseLive) {
-      const updates = {};
-      if (fields.title !== undefined) updates.title = fields.title;
-      if (fields.description !== undefined) updates.description = fields.description;
-      if (fields.price !== undefined) updates.price = parseFloat(fields.price) || 0;
-      if (fields.author !== undefined) updates.author = fields.author;
-      if (fields.department !== undefined) updates.department = fields.department;
-      if (fields.bannerUrl !== undefined) updates.banner_url = fields.bannerUrl;
+    setCourses(prev => prev.map(c => c.id === courseId ? { ...c, ...fields } : c));
+    addLog(`Course updated.`);
 
-      await supabase
-        .from('courses')
-        .update(updates)
-        .eq('id', courseId);
-      addLog(`Course updated.`);
-      syncSupabase();
-    } else {
-      setCourses(prev => prev.map(c => c.id === courseId ? { ...c, ...fields } : c));
-      addLog(`Course updated.`);
+    if (isSupabaseLive) {
+      try {
+        const updates = {};
+        if (fields.title !== undefined) updates.title = fields.title;
+        if (fields.description !== undefined) updates.description = fields.description;
+        if (fields.price !== undefined) updates.price = parseFloat(fields.price) || 0;
+        if (fields.author !== undefined) updates.author = fields.author;
+        if (fields.department !== undefined) updates.department = fields.department;
+        if (fields.bannerUrl !== undefined) updates.banner_url = fields.bannerUrl;
+        if (fields.likes !== undefined) updates.likes = fields.likes;
+
+        await supabase.from('courses').update(updates).eq('id', courseId);
+        syncSupabase();
+      } catch (e) {
+        console.warn("Supabase course update error:", e);
+      }
     }
   };
 
-  const toggleCourseLike = (courseId) => {
+  const toggleCourseLike = async (courseId) => {
     if (!currentUser) return;
+    let targetLikes = [];
     setCourses(prev => prev.map(c => {
       if (c.id === courseId) {
         const likes = c.likes || [];
         const isLiked = likes.includes(currentUser.id);
-        const updatedLikes = isLiked
+        targetLikes = isLiked
           ? likes.filter(id => id !== currentUser.id)
           : [...likes, currentUser.id];
-        return { ...c, likes: updatedLikes };
+        return { ...c, likes: targetLikes };
       }
       return c;
     }));
+
+    if (isSupabaseLive) {
+      try {
+        await supabase.from('courses').update({ likes: targetLikes }).eq('id', courseId);
+      } catch (e) {
+        console.warn("Supabase course like error:", e);
+      }
+    }
   };
 
   const deleteCourse = async (courseId) => {

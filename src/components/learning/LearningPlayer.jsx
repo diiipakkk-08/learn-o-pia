@@ -427,23 +427,24 @@ export default function LearningPlayer({
   return (
     <div className="animate-fade-in oracle-workspace-container" style={{ width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
       {/* ── TOP BAR: STRICT 1 SINGLE HORIZONTAL LINE (< Back + Semester Dropdown on Leftmost, Subjects on Rightmost) ── */}
+      {/* ── TOP BAR: Responsive Controls (< Back + Semester Dropdown + Subject Selector) ── */}
       <div
         className="glass-panel"
         style={{
           display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
-          padding: '10px 16px',
+          flexDirection: isMobile ? 'column' : 'row',
+          alignItems: isMobile ? 'stretch' : 'center',
+          justify: 'space-between',
+          gap: '10px',
+          padding: isMobile ? '8px 12px' : '10px 16px',
           borderRadius: '12px',
           width: '100%',
           boxSizing: 'border-box',
-          marginBottom: '16px'
+          marginBottom: '12px'
         }}
       >
-        {/* Leftmost Flex Group: Back button + Purple Semester Dropdown */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+        {/* Top Row / Left Group: Back button + Semester Dropdown + Switch Playlist */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <button onClick={() => setCurrentView('learning')} style={styles.backBtn}>
             <ChevronLeft size={15} /> Back
           </button>
@@ -456,7 +457,7 @@ export default function LearningPlayer({
             <button
               onClick={() => setActivePlaylistId(null)}
               className="btn btn-secondary btn-sm"
-              style={{ fontSize: '0.75rem', gap: '4px', marginLeft: '6px' }}
+              style={{ fontSize: '0.75rem', gap: '4px' }}
               title="Switch Playlist Series"
             >
               <ChevronLeft size={13} /> Switch Playlist
@@ -464,21 +465,21 @@ export default function LearningPlayer({
           )}
         </div>
 
-        {/* Rightmost Flex Group: Subject Selector Chips */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', justifyContent: 'flex-end', flex: 1 }}>
+        {/* Right / Second Row Group: Subject Selector */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', flex: 1, width: isMobile ? '100%' : 'auto' }}>
           {isMobile ? (
             <select
               value={activeSubjectId || ''}
               onChange={(e) => setActiveSubjectId(e.target.value || null)}
-              className="yt-select-dropdown"
-              style={{ padding: '4px 10px', fontSize: '0.78rem', height: '30px' }}
+              className="form-input"
+              style={{ width: '100%', padding: '6px 12px', fontSize: '0.85rem', height: '38px', borderRadius: '8px', background: 'rgba(0,0,0,0.5)', color: '#ffffff', border: '1px solid rgba(139,92,246,0.3)', outline: 'none' }}
             >
               {currentSubjects.length === 0 ? (
-                <option value="">No subjects</option>
+                <option value="">No subjects available</option>
               ) : (
                 currentSubjects.map((sub) => (
-                  <option key={sub.id} value={sub.id}>
-                    {sub.title}
+                  <option key={sub.id} value={sub.id} style={{ background: '#11121c', color: '#fff' }}>
+                    Subject: {sub.title}
                   </option>
                 ))
               )}

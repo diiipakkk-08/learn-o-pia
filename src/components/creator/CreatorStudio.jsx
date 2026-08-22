@@ -232,6 +232,62 @@ export default function CreatorStudio() {
   const [playlistAuthor, setPlaylistAuthor] = useState('');
   const [resourceAuthor, setResourceAuthor] = useState('');
 
+  // Standalone Playlist Form State
+  const [showStandalonePlaylistForm, setShowStandalonePlaylistForm] = useState(false);
+  const [stTitle, setStTitle] = useState('');
+  const [stDesc, setStDesc] = useState('');
+  const [stAuthor, setStAuthor] = useState('');
+  const [stYtUrl, setStYtUrl] = useState('');
+  const [stBannerUrl, setStBannerUrl] = useState('');
+  const [stError, setStError] = useState('');
+
+  const handleCreateStandalonePlaylist = async (e) => {
+    e.preventDefault();
+    setStError('');
+    if (!stTitle.trim() || !stYtUrl.trim()) return;
+
+    const ytId = extractYoutubePlaylistId(stYtUrl);
+    if (!ytId) {
+      setStError('Please provide a valid YouTube Playlist URL (e.g. https://www.youtube.com/playlist?list=PLr6-S4ER...)');
+      return;
+    }
+
+    // Check duplicate playlist
+    let existingPlaylist = null;
+    (subjects || []).forEach(sub => {
+      (sub.playlists || []).forEach(pl => {
+        if (pl.youtubePlaylistId && (pl.youtubePlaylistId === ytId || pl.id === `pl-${ytId}`)) {
+          existingPlaylist = { id: pl.id, title: pl.title, subjectTitle: sub.title };
+        }
+      });
+    });
+
+    if (existingPlaylist) {
+      setStError(`Notice: This YouTube playlist already exists in our database under Subject "${existingPlaylist.subjectTitle}" (ID: ${existingPlaylist.id}) as "${existingPlaylist.title}".`);
+      return;
+    }
+
+    let fetchedVideos = [];
+    try {
+      fetchedVideos = await fetchYoutubePlaylistVideos(ytId);
+    } catch (err) {
+      console.warn("Auto-fetch error:", err);
+    }
+
+    const defaultSubId = (subjects && subjects[0]?.id) || 'sub-1';
+    await addSubjectPlaylist(
+      defaultSubId,
+      stTitle.trim(),
+      stDesc.trim() || 'Standalone YouTube Playlist Series',
+      stAuthor.trim() || currentUser?.name || 'Educator',
+      ytId,
+      fetchedVideos
+    );
+
+    setStTitle(''); setStDesc(''); setStAuthor(''); setStYtUrl(''); setStBannerUrl('');
+    setShowStandalonePlaylistForm(false);
+  };
+
   const isAdmin = currentUser.role === 'admin' || currentUser.role === 'owner';
 
   const myCourses = courses.filter(c => isAdmin ? true : (c.creatorId === currentUser.id && !c.isDegree));
@@ -370,16 +426,64 @@ export default function CreatorStudio() {
             Build degree programs, design subjects, attach playlists, and upload reference materials.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={() => setShowStandaloneForm(!showStandaloneForm)} className="btn btn-secondary">
-            <Plus size={16} /> Publish Open Public Resource
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button onClick={() => setShowStandalonePlaylistForm(!showStandalonePlaylistForm)} className="btn btn-primary" style={{ gap: '6px' }}>
+            <Plus size={16} /> Create Standalone Playlist
           </button>
-          <button onClick={() => { setShowCourseForm(!showCourseForm); setActiveCourseId(null); }} className="btn btn-primary">
+          <button onClick={() => setShowStandaloneForm(!showStandaloneForm)} className="btn btn-secondary" style={{ gap: '6px' }}>
+            <Plus size={16} /> Publish Open Resource
+          </button>
+          <button onClick={() => { setShowCourseForm(!showCourseForm); setActiveCourseId(null); }} className="btn btn-secondary" style={{ gap: '6px' }}>
             <FolderPlus size={16} />
             {isAdmin ? 'Create Program / Course' : 'Create Course'}
           </button>
         </div>
       </section>
+
+      {/* STANDALONE PLAYLIST FORM */}
+      {showStandalonePlaylistForm && (
+        <form onSubmit={handleCreateStandalonePlaylist} className="glass-panel animate-fade-in" style={{ padding: '20px', marginBottom: '20px', textAlign: 'left', borderRadius: '14px', border: '1px solid rgba(139,92,246,0.3)' }}>
+          <h3 style={{ fontSize: '1.1rem', marginBottom: '4px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Video size={18} color="var(--primary)" /> Create Standalone YouTube Playlist Series
+          </h3>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '14px' }}>
+            Paste any YouTube Playlist link to create a standalone playlist. It will be indexed with a unique ID and accessible across the platform!
+          </p>
+
+          {stError && (
+            <div style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', color: '#f87171', fontSize: '0.8rem', marginBottom: '12px' }}>
+              ⚠️ {stError}
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px', marginBottom: '14px' }}>
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>Playlist Title</label>
+              <input type="text" className="form-input" placeholder="e.g. Physics-I Complete Lecture Series" value={stTitle} onChange={(e) => setStTitle(e.target.value)} required />
+            </div>
+
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>YouTube Playlist Link or ID</label>
+              <input type="text" className="form-input" placeholder="https://www.youtube.com/playlist?list=PLr6-S4ER..." value={stYtUrl} onChange={(e) => setStYtUrl(e.target.value)} required />
+            </div>
+
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>Author / Credits</label>
+              <input type="text" className="form-input" placeholder="e.g. TAKE IT EASY (MAKAUT)" value={stAuthor} onChange={(e) => setStAuthor(e.target.value)} />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '14px' }}>
+            <label className="form-label" style={{ fontSize: '0.78rem' }}>Playlist Description (optional)</label>
+            <textarea className="form-input" rows={2} placeholder="Brief details about what this playlist series covers..." value={stDesc} onChange={(e) => setStDesc(e.target.value)} />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowStandalonePlaylistForm(false)}>Cancel</button>
+            <button type="submit" className="btn btn-primary">Publish Standalone Playlist</button>
+          </div>
+        </form>
+      )}
 
       {/* STANDALONE RESOURCE FORM */}
       {showStandaloneForm && (
