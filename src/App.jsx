@@ -258,7 +258,7 @@ function AppContent() {
             )}
 
             {/* Standard 404 Fallback for unrecognized views */}
-            {!['landing', 'about', 'attendance', 'discussions', 'results-404', 'learning', 'learning-player', 'profile', 'studio', 'admin', 'auth'].includes(currentView) && (
+            {!['landing', 'about', 'attendance', 'resources', 'my-learning', 'discussions', 'results-404', 'learning', 'learning-player', 'profile', 'studio', 'admin', 'auth'].includes(currentView) && (
               <NotFound404 setCurrentView={setCurrentView} />
             )}
           </>
