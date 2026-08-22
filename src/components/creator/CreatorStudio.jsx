@@ -299,7 +299,7 @@ export default function CreatorStudio() {
         .filter(s => s.courseId === activeCourse.id)
         .sort((a, b) => (a.position || 0) - (b.position || 0))
     : [];
-  const semesterSubjects = courseSubjects.filter(s => s.semester === selectedSemester);
+  const semesterSubjects = courseSubjects.filter(s => Number(s.semester) === Number(selectedSemester));
   const activeSubjectsList = isDegree ? semesterSubjects : courseSubjects;
   const activeSubject = subjects.find(s => s.id === activeSubjectId);
 
@@ -399,6 +399,30 @@ export default function CreatorStudio() {
       addVideoToPlaylist(activeSubject.id, activePlaylistId, videoTitle, videoDesc, videoUrl);
       setVideoTitle(''); setVideoDesc(''); setVideoUrl('');
     } catch (err) { setVideoError(err.message); }
+  };
+
+  const handleAddMaterial = (e) => {
+    e.preventDefault();
+    if (!resourceUrl.trim() || !activeSubject || !resourceSection) return;
+    addSubjectMaterial(
+      activeSubject.id,
+      resourceTitle.trim() || 'Reference Material',
+      resourceUrl.trim(),
+      resourceSection,
+      resourceAuthor.trim() || getUserDesignation(currentUser)
+    );
+    setResourceTitle('');
+    setResourceUrl('');
+    setResourceAuthor('');
+    setResourceSection('');
+  };
+
+  const handleAddSection = (e) => {
+    e.preventDefault();
+    if (!newSectionName.trim() || !activeSubject) return;
+    addSubjectMaterialSection(activeSubject.id, newSectionName.trim());
+    setNewSectionName('');
+    setShowAddSectionForm(false);
   };
   const [linkResId, setLinkResId] = useState('');
   const [linkResSection, setLinkResSection] = useState('');

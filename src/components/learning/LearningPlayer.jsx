@@ -211,7 +211,7 @@ export default function LearningPlayer({
   const currentSubjects = useMemo(() => {
     return (
       isDegree
-        ? subjects.filter((s) => s.courseId === playlistId && s.semester === activeSemester)
+        ? subjects.filter((s) => s.courseId === playlistId && Number(s.semester) === Number(activeSemester))
         : subjects.filter((s) => s.courseId === playlistId)
     ).sort((a, b) => (a.position || 0) - (b.position || 0));
   }, [subjects, playlistId, activeSemester, isDegree]);
