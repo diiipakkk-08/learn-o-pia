@@ -214,6 +214,7 @@ export default function CreatorStudio() {
   const [playlistDesc, setPlaylistDesc] = useState('');
   const [playlistType, setPlaylistType] = useState('embed'); // 'embed' | 'custom'
   const [youtubePlaylistUrl, setYoutubePlaylistUrl] = useState('');
+  const [playlistBannerUrl, setPlaylistBannerUrl] = useState('');
   const [playlistError, setPlaylistError] = useState('');
 
   const [videoTitle, setVideoTitle] = useState('');
@@ -815,6 +816,11 @@ export default function CreatorStudio() {
                                   </span>
                                 </div>
                               )}
+
+                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Playlist Banner Image URL (optional)</label>
+                                  <input type="url" value={playlistBannerUrl} onChange={e => setPlaylistBannerUrl(e.target.value)} placeholder="https://images.unsplash.com/photo-..." className="form-input" style={{ padding: '8px 12px', fontSize: '0.85rem' }} />
+                                </div>
 
                               <div className="form-group" style={{ marginBottom: 0 }}>
                                 <label className="form-label" style={{ fontSize: '0.75rem' }}>Description (optional)</label>

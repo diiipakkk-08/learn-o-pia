@@ -1617,6 +1617,21 @@ export function DatabaseProvider({ children }) {
     }
   };
 
+  const toggleCourseLike = (courseId) => {
+    if (!currentUser) return;
+    setCourses(prev => prev.map(c => {
+      if (c.id === courseId) {
+        const likes = c.likes || [];
+        const isLiked = likes.includes(currentUser.id);
+        const updatedLikes = isLiked
+          ? likes.filter(id => id !== currentUser.id)
+          : [...likes, currentUser.id];
+        return { ...c, likes: updatedLikes };
+      }
+      return c;
+    }));
+  };
+
   const deleteCourse = async (courseId) => {
     if (isSupabaseLive) {
       await supabase.from('courses').delete().eq('id', courseId);
@@ -2937,6 +2952,7 @@ export function DatabaseProvider({ children }) {
       savedResourceIds,
       toggleSaveResource,
       isResourceSaved,
+      toggleCourseLike,
       togglePlaylistLike,
       toggleVideoLike,
       approveCreator,

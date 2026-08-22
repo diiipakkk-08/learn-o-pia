@@ -100,9 +100,9 @@ export default function Header({
             <div style={styles.logoIcon}>
               <GraduationCap size={20} color="#ffffff" />
             </div>
-            <span style={styles.logoText}>Learn-o-pia</span>
+            <span style={{ ...styles.logoText, whiteSpace: 'nowrap' }}>Learn-o-pia</span>
             {activeTitle && (
-              <span style={{ fontSize: isMobile ? '0.82rem' : '1.02rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
+              <span style={{ fontSize: isMobile ? '0.85rem' : '1.02rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
                 <span style={{ color: 'var(--primary)', margin: '0 4px', fontWeight: 700 }}>/</span>
                 {activeTitle}
               </span>
@@ -181,7 +181,7 @@ export default function Header({
               )}
 
               <button
-                onClick={() => setCurrentView('landing')}
+                onClick={() => setCurrentView('about')}
                 style={{
                   ...styles.navBtn,
                   background: (currentView === 'landing' || currentView === 'about') ? 'rgba(255,255,255,0.05)' : 'transparent',
@@ -194,40 +194,10 @@ export default function Header({
           )}
         </div>
 
-        {/* Right Section: Mobile Search & Profile Icon or Desktop Search & User Profile Card */}
+        {/* Right Section: Mobile & Desktop Profile Icon or User Profile Card */}
         <div>
           {isMobile ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {/* Mobile Navbar Search Input */}
-              {currentUser && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: '8px',
-                  padding: '4px 8px',
-                  width: '130px'
-                }}>
-                  <Search size={13} color="var(--text-muted)" style={{ flexShrink: 0 }} />
-                  <input
-                    type="text"
-                    placeholder="Search..."
-                    value={globalSearchQuery || ''}
-                    onChange={handleSearchChange}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#ffffff',
-                      fontSize: '0.75rem',
-                      outline: 'none',
-                      width: '100%'
-                    }}
-                  />
-                </div>
-              )}
-
               {currentUser ? (
                 <button
                   onClick={() => setCurrentView('profile')}
@@ -250,37 +220,6 @@ export default function Header({
             </div>
           ) : (
             <div style={styles.right}>
-              {/* Desktop Navbar Search Input */}
-              {currentUser && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '10px',
-                  padding: '6px 12px',
-                  width: '190px'
-                }}>
-                  <Search size={14} color="var(--text-muted)" style={{ flexShrink: 0 }} />
-                  <input
-                    type="text"
-                    placeholder="Search courses, PDFs..."
-                    value={globalSearchQuery || ''}
-                    onChange={handleSearchChange}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#ffffff',
-                      fontSize: '0.82rem',
-                      outline: 'none',
-                      width: '100%',
-                      fontFamily: 'var(--font-body)'
-                    }}
-                  />
-                </div>
-              )}
-
               {currentUser ? (
                 <>
                   <button
@@ -310,10 +249,9 @@ export default function Header({
                   </button>
                 </>
               ) : (
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button className="btn btn-secondary btn-sm" onClick={() => setCurrentView('auth')}>Sign In</button>
-                  <button className="btn btn-primary btn-sm" onClick={() => setCurrentView('auth')}>Get Started</button>
-                </div>
+                <button className="btn btn-primary btn-sm" onClick={() => setCurrentView('auth')}>
+                  Sign In
+                </button>
               )}
             </div>
           )}

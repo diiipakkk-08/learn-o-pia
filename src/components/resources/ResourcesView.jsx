@@ -1,9 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
 import {
   Search, FileText, Download, Copy, Check, Bookmark, BookmarkCheck,
-  Video, Play, FolderKanban, Sparkles, ExternalLink, Clock, User, Filter, Layers
+  Video, Play, FolderKanban, Sparkles, ExternalLink, Clock, User, Filter, Layers,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
+
+const ITEMS_PER_PAGE = 10;
 
 export default function ResourcesView({ setCurrentView, setSelectedPlaylistId }) {
   const {
@@ -20,6 +23,16 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId })
   const [copiedId, setCopiedId] = useState(null);
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'videos' | 'documents' | 'saved'
   const [localSearch, setLocalSearch] = useState(globalSearchQuery || '');
+
+  // Pagination states
+  const [videoPage, setVideoPage] = useState(1);
+  const [docPage, setDocPage] = useState(1);
+
+  // Reset pagination on search change
+  useEffect(() => {
+    setVideoPage(1);
+    setDocPage(1);
+  }, [localSearch, activeTab]);
 
   const handleCopy = (id, e) => {
     if (e) e.preventDefault();
@@ -131,6 +144,22 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId })
     });
   }, [allVideoLectures, query]);
 
+  // Paginated Video Items (10 per page)
+  const totalVideoPages = Math.max(1, Math.ceil(filteredVideos.length / ITEMS_PER_PAGE));
+  const currentVideoPage = Math.min(videoPage, totalVideoPages);
+  const paginatedVideos = useMemo(() => {
+    const start = (currentVideoPage - 1) * ITEMS_PER_PAGE;
+    return filteredVideos.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredVideos, currentVideoPage]);
+
+  // Paginated Document Items (10 per page)
+  const totalDocPages = Math.max(1, Math.ceil(filteredDocs.length / ITEMS_PER_PAGE));
+  const currentDocPage = Math.min(docPage, totalDocPages);
+  const paginatedDocs = useMemo(() => {
+    const start = (currentDocPage - 1) * ITEMS_PER_PAGE;
+    return filteredDocs.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredDocs, currentDocPage]);
+
   const savedDocs = useMemo(() => {
     return allDocResources.filter(r => savedResourceIds.includes(r.id));
   }, [allDocResources, savedResourceIds]);
@@ -241,57 +270,86 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId })
               No video lectures found matching "{localSearch}".
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-              {filteredVideos.map((vid) => (
-                <div key={vid.id} className="glass-panel" style={{ borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  
-                  {/* YouTube Thumbnail Banner with Duration Badge */}
-                  <div style={{ height: '140px', background: '#000', position: 'relative', overflow: 'hidden' }}>
-                    {vid.thumbnailUrl ? (
-                      <img src={vid.thumbnailUrl} alt={vid.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1e1b4b 0%, #311b92 100%)' }}>
-                        <Play size={36} color="#a78bfa" />
-                      </div>
-                    )}
-                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.8) 100%)' }} />
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+                {paginatedVideos.map((vid) => (
+                  <div key={vid.id} className="glass-panel" style={{ borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                     
-                    {/* Duration Badge */}
-                    <span style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.85)', color: '#ffffff', fontSize: '0.7rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Clock size={11} /> {vid.durationText}
-                    </span>
+                    {/* YouTube Thumbnail Banner with Duration Badge */}
+                    <div style={{ height: '140px', background: '#000', position: 'relative', overflow: 'hidden' }}>
+                      {vid.thumbnailUrl ? (
+                        <img src={vid.thumbnailUrl} alt={vid.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1e1b4b 0%, #311b92 100%)' }}>
+                          <Play size={36} color="#a78bfa" />
+                        </div>
+                      )}
+                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.8) 100%)' }} />
+                      
+                      {/* Duration Badge */}
+                      <span style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.85)', color: '#ffffff', fontSize: '0.7rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Clock size={11} /> {vid.durationText}
+                      </span>
 
-                    {/* Copyable Video ID */}
-                    <div style={{ position: 'absolute', top: '8px', left: '8px', background: 'rgba(0,0,0,0.75)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span>ID: <code style={{ color: '#a78bfa' }}>{vid.id}</code></span>
-                      <button onClick={(e) => handleCopy(vid.id, e)} style={{ background: 'none', border: 'none', color: copiedId === vid.id ? '#10b981' : 'var(--text-muted)', cursor: 'pointer', padding: 0 }}>
-                        {copiedId === vid.id ? <Check size={10} /> : <Copy size={10} />}
+                      {/* Copyable Video ID */}
+                      <div style={{ position: 'absolute', top: '8px', left: '8px', background: 'rgba(0,0,0,0.75)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span>ID: <code style={{ color: '#a78bfa' }}>{vid.id}</code></span>
+                        <button onClick={(e) => handleCopy(vid.id, e)} style={{ background: 'none', border: 'none', color: copiedId === vid.id ? '#10b981' : 'var(--text-muted)', cursor: 'pointer', padding: 0 }}>
+                          {copiedId === vid.id ? <Check size={10} /> : <Copy size={10} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '12px 14px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '10px' }}>
+                      <div>
+                        <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#ffffff', margin: '0 0 4px 0', lineHeight: '1.3' }}>{vid.title}</h4>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>
+                          {vid.subjectTitle} • {vid.playlistTitle}
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          if (vid.courseId && setSelectedPlaylistId) setSelectedPlaylistId(vid.courseId);
+                          setCurrentView('learning-player');
+                        }}
+                        className="btn btn-primary btn-sm"
+                        style={{ width: '100%', fontSize: '0.78rem', gap: '6px' }}
+                      >
+                        <Play size={12} /> Watch Lecture
                       </button>
                     </div>
                   </div>
+                ))}
+              </div>
 
-                  <div style={{ padding: '12px 14px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '10px' }}>
-                    <div>
-                      <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#ffffff', margin: '0 0 4px 0', lineHeight: '1.3' }}>{vid.title}</h4>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>
-                        {vid.subjectTitle} • {vid.playlistTitle}
-                      </span>
-                    </div>
+              {/* Video Pagination Bar (10 results per page) */}
+              {totalVideoPages > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginTop: '20px' }}>
+                  <button
+                    disabled={currentVideoPage <= 1}
+                    onClick={() => setVideoPage(p => Math.max(1, p - 1))}
+                    className="btn btn-secondary btn-sm"
+                    style={{ opacity: currentVideoPage <= 1 ? 0.5 : 1, gap: '4px' }}
+                  >
+                    <ChevronLeft size={14} /> Previous
+                  </button>
 
-                    <button
-                      onClick={() => {
-                        if (vid.courseId && setSelectedPlaylistId) setSelectedPlaylistId(vid.courseId);
-                        setCurrentView('learning-player');
-                      }}
-                      className="btn btn-primary btn-sm"
-                      style={{ width: '100%', fontSize: '0.78rem', gap: '6px' }}
-                    >
-                      <Play size={12} /> Watch Lecture
-                    </button>
-                  </div>
+                  <span style={{ fontSize: '0.82rem', color: '#a78bfa', fontWeight: 600 }}>
+                    Page {currentVideoPage} of {totalVideoPages}
+                  </span>
+
+                  <button
+                    disabled={currentVideoPage >= totalVideoPages}
+                    onClick={() => setVideoPage(p => Math.min(totalVideoPages, p + 1))}
+                    className="btn btn-secondary btn-sm"
+                    style={{ opacity: currentVideoPage >= totalVideoPages ? 0.5 : 1, gap: '4px' }}
+                  >
+                    Next <ChevronRight size={14} />
+                  </button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -308,66 +366,95 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId })
               No PDF or Drive resources found matching "{localSearch}".
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '14px' }}>
-              {filteredDocs.map((res) => {
-                const saved = isResourceSaved(res.id);
-                return (
-                  <div key={res.id} className="glass-panel" style={{ padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', background: 'rgba(139,92,246,0.12)', padding: '2px 8px', borderRadius: '999px' }}>
-                          {res.category}
-                        </span>
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '14px' }}>
+                {paginatedDocs.map((res) => {
+                  const saved = isResourceSaved(res.id);
+                  return (
+                    <div key={res.id} className="glass-panel" style={{ padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', background: 'rgba(139,92,246,0.12)', padding: '2px 8px', borderRadius: '999px' }}>
+                            {res.category}
+                          </span>
 
-                        {/* Copyable Resource ID Badge */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)', padding: '2px 6px', borderRadius: '6px' }}>
-                          <span>ID: <code style={{ color: '#a78bfa' }}>{res.id}</code></span>
-                          <button onClick={(e) => handleCopy(res.id, e)} style={{ background: 'none', border: 'none', color: copiedId === res.id ? '#10b981' : 'var(--text-muted)', cursor: 'pointer', padding: 0 }}>
-                            {copiedId === res.id ? <Check size={10} /> : <Copy size={10} />}
-                          </button>
+                          {/* Copyable Resource ID Badge */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)', padding: '2px 6px', borderRadius: '6px' }}>
+                            <span>ID: <code style={{ color: '#a78bfa' }}>{res.id}</code></span>
+                            <button onClick={(e) => handleCopy(res.id, e)} style={{ background: 'none', border: 'none', color: copiedId === res.id ? '#10b981' : 'var(--text-muted)', cursor: 'pointer', padding: 0 }}>
+                              {copiedId === res.id ? <Check size={10} /> : <Copy size={10} />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <h4 style={{ fontSize: '0.92rem', fontWeight: 600, color: '#ffffff', margin: '0 0 4px 0', lineHeight: '1.4' }}>
+                          {res.title}
+                        </h4>
+
+                        {res.description && (
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 8px 0', lineHeight: '1.4' }}>
+                            {res.description}
+                          </p>
+                        )}
+
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          Credit: <strong>{res.author}</strong>
                         </div>
                       </div>
 
-                      <h4 style={{ fontSize: '0.92rem', fontWeight: 600, color: '#ffffff', margin: '0 0 4px 0', lineHeight: '1.4' }}>
-                        {res.title}
-                      </h4>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '10px', gap: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={() => toggleSaveResource(res.id)}
+                          className={`btn ${saved ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                          style={{ fontSize: '0.75rem', gap: '4px', borderColor: saved ? undefined : 'rgba(255,255,255,0.1)' }}
+                        >
+                          {saved ? <BookmarkCheck size={13} color="#10b981" /> : <Bookmark size={13} />}
+                          {saved ? 'Saved' : 'Save Resource'}
+                        </button>
 
-                      {res.description && (
-                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 8px 0', lineHeight: '1.4' }}>
-                          {res.description}
-                        </p>
-                      )}
-
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                        Credit: <strong>{res.author}</strong>
+                        <a
+                          href={res.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-secondary btn-sm"
+                          style={{ padding: '5px 10px', fontSize: '0.75rem', gap: 4 }}
+                        >
+                          <Download size={13} /> Open Link
+                        </a>
                       </div>
                     </div>
+                  );
+                })}
+              </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '10px', gap: '8px' }}>
-                      <button
-                        type="button"
-                        onClick={() => toggleSaveResource(res.id)}
-                        className={`btn ${saved ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                        style={{ fontSize: '0.75rem', gap: '4px', borderColor: saved ? undefined : 'rgba(255,255,255,0.1)' }}
-                      >
-                        {saved ? <BookmarkCheck size={13} color="#10b981" /> : <Bookmark size={13} />}
-                        {saved ? 'Saved' : 'Save Resource'}
-                      </button>
+              {/* Document Pagination Bar (10 results per page) */}
+              {totalDocPages > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginTop: '20px' }}>
+                  <button
+                    disabled={currentDocPage <= 1}
+                    onClick={() => setDocPage(p => Math.max(1, p - 1))}
+                    className="btn btn-secondary btn-sm"
+                    style={{ opacity: currentDocPage <= 1 ? 0.5 : 1, gap: '4px' }}
+                  >
+                    <ChevronLeft size={14} /> Previous
+                  </button>
 
-                      <a
-                        href={res.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="btn btn-secondary btn-sm"
-                        style={{ padding: '5px 10px', fontSize: '0.75rem', gap: 4 }}
-                      >
-                        <Download size={13} /> Open Link
-                      </a>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  <span style={{ fontSize: '0.82rem', color: '#a78bfa', fontWeight: 600 }}>
+                    Page {currentDocPage} of {totalDocPages}
+                  </span>
+
+                  <button
+                    disabled={currentDocPage >= totalDocPages}
+                    onClick={() => setDocPage(p => Math.min(totalDocPages, p + 1))}
+                    className="btn btn-secondary btn-sm"
+                    style={{ opacity: currentDocPage >= totalDocPages ? 0.5 : 1, gap: '4px' }}
+                  >
+                    Next <ChevronRight size={14} />
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

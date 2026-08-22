@@ -1,106 +1,127 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
-import { Search, BookOpen, CheckCircle2, ShieldCheck, FileText, Link as LinkIcon, Download, Loader, Sparkles, Folder, Copy, Check } from 'lucide-react';
+import { Search, BookOpen, CheckCircle2, FileText, Download, Sparkles, Copy, Check, Heart, Filter, UserCheck, Play, Plus, X } from 'lucide-react';
 
 export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView }) {
-  const { courses, subjects, currentUser, enrollInCourse, standaloneResources, globalSearchQuery } = useDatabase();
-  const [activeTab, setActiveTab] = useState('courses'); // 'courses' | 'materials'
+  const { courses, subjects, currentUser, enrollInCourse, toggleCourseLike, standaloneResources, globalSearchQuery } = useDatabase();
   const [copiedResId, setCopiedResId] = useState(null);
   
+  // Search & Sorting States
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [localSearch, setLocalSearch] = useState('');
+  const [sortBy, setSortBy] = useState('recent'); // 'recent' | 'liked' | 'alphabetical'
+  const [enrollNotice, setEnrollNotice] = useState(null);
+
   // Checkout Modal State
   const [checkoutCourse, setCheckoutCourse] = useState(null);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [checkoutSuccess, setCheckoutSuccess] = useState(false);
 
-  const handleCopyId = (id) => {
-    if (!id) return;
-    navigator.clipboard.writeText(id);
-    setCopiedResId(id);
-    setTimeout(() => setCopiedResId(null), 2000);
-  };
+  const query = (localSearch || globalSearchQuery || '').toLowerCase().trim();
 
-  // Deduplicate and compile list of all downloadable resources/notes across all subjects + standalone resources
-  const resourceMap = new Map();
+  // Filtered & Sorted Courses
+  const processedCourses = useMemo(() => {
+    let list = courses.filter(c => 
+      c.title.toLowerCase().includes(query) ||
+      c.department.toLowerCase().includes(query) ||
+      (c.description && c.description.toLowerCase().includes(query))
+    );
 
-  // 1. Add standalone resources published directly by Creators/Professors
-  if (standaloneResources && Array.isArray(standaloneResources)) {
-    standaloneResources.forEach(res => {
-      const key = res.id || res.url;
-      resourceMap.set(key, {
-        id: res.id,
-        title: res.title,
-        url: res.url,
-        author: res.author || 'Educator',
-        type: res.category || 'Open Public Resource',
-        sectionName: res.category || 'Open Public Resource',
-        subjects: ['Open Study Material'],
-        courseTitle: res.category || 'Public Resource',
-        description: res.description
-      });
-    });
-  }
-
-  // 2. Flatten subject materials (deduplicating linked resource IDs or URLs)
-  subjects.forEach(subject => {
-    const parentCourse = courses.find(c => c.id === subject.courseId);
-    
-    if (subject.materials && Array.isArray(subject.materials)) {
-      subject.materials.forEach(mat => {
-        const key = mat.originalResourceId || mat.id || mat.url;
-        if (resourceMap.has(key)) {
-          const existing = resourceMap.get(key);
-          if (!existing.subjects.includes(subject.title)) {
-            existing.subjects.push(subject.title);
-          }
-        } else {
-          resourceMap.set(key, {
-            id: mat.id,
-            title: mat.title,
-            url: mat.url,
-            author: mat.author || 'Instructor',
-            type: mat.sectionName || 'Study Material',
-            sectionName: mat.sectionName || 'Study Material',
-            subjects: [subject.title],
-            courseTitle: parentCourse ? parentCourse.title : 'General'
-          });
-        }
-      });
+    if (sortBy === 'liked') {
+      list = [...list].sort((a, b) => ((b.likes?.length || 0) - (a.likes?.length || 0)));
+    } else if (sortBy === 'alphabetical') {
+      list = [...list].sort((a, b) => a.title.localeCompare(b.title));
     }
-  });
+    // Default 'recent' uses database order
+    return list;
+  }, [courses, query, sortBy]);
 
-  const allResources = Array.from(resourceMap.values());
-  const query = (globalSearchQuery || '').toLowerCase().trim();
-
-  const filteredCourses = courses.filter(c => 
-    c.title.toLowerCase().includes(query) ||
-    c.department.toLowerCase().includes(query)
-  );
-
-  const filteredResources = allResources.filter(r =>
-    r.title.toLowerCase().includes(query) ||
-    (r.id && r.id.toLowerCase().includes(query)) ||
-    (r.courseTitle && r.courseTitle.toLowerCase().includes(query)) ||
-    (r.subjects && r.subjects.some(s => s.toLowerCase().includes(query))) ||
-    (r.author && r.author.toLowerCase().includes(query))
-  );
-
-  const handleEnrollClick = (course) => {
-    if (course.price === 0) {
+  const handleEnrollAction = (course, e) => {
+    if (e) e.stopPropagation();
+    if (!currentUser) {
+      setCurrentView('auth');
+      return;
+    }
+    const isEnrolled = currentUser?.enrolledCourses?.includes(course.id);
+    if (!isEnrolled) {
       enrollInCourse(course.id);
-      setSelectedPlaylistId(course.id);
-      setCurrentView('learning-player');
+      setEnrollNotice(`Enrolled in "${course.title}"! Added to My Learning.`);
+      setTimeout(() => setEnrollNotice(null), 3000);
     } else {
-      setCheckoutCourse(course);
-      setCheckoutSuccess(false);
+      if (setSelectedPlaylistId) setSelectedPlaylistId(course.id);
+      setCurrentView('learning-player');
     }
   };
 
   return (
     <div style={styles.container} className="animate-fade-in">
-      {/* Degree Curricula Grid with Rich Banner Images */}
+      
+      {/* Top Header Control Bar: Search & Sorting */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '10px', flexWrap: 'wrap' }} className="glass-panel-sm">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h2 style={{ fontSize: '1.15rem', color: '#ffffff', margin: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <BookOpen size={18} color="var(--primary)" /> Degree Curricula & Courses ({processedCourses.length})
+          </h2>
+        </div>
+
+        {/* Right Action Controls: Expandable Search + Sorting Filter */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          
+          {/* Expandable Search Button / Input */}
+          {isSearchOpen ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(0,0,0,0.4)', padding: '2px 8px', borderRadius: '8px', border: '1px solid rgba(139,92,246,0.4)' }}>
+              <Search size={14} color="var(--text-muted)" />
+              <input
+                type="text"
+                placeholder="Search curricula..."
+                value={localSearch}
+                onChange={(e) => setLocalSearch(e.target.value)}
+                style={{ background: 'none', border: 'none', color: '#fff', fontSize: '0.78rem', outline: 'none', width: '130px' }}
+                autoFocus
+              />
+              <button onClick={() => { setIsSearchOpen(false); setLocalSearch(''); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}>
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className="btn btn-secondary btn-sm"
+              style={{ padding: '6px 10px', fontSize: '0.78rem', gap: '4px' }}
+              title="Search Curricula"
+            >
+              <Search size={14} /> Search
+            </button>
+          )}
+
+          {/* Sorting Dropdown */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.04)', padding: '4px 8px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <Filter size={13} color="var(--primary)" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              style={{ background: 'transparent', border: 'none', color: '#ffffff', fontSize: '0.78rem', fontWeight: 600, outline: 'none', cursor: 'pointer' }}
+            >
+              <option value="recent" style={{ background: '#11121c' }}>Recently Added</option>
+              <option value="liked" style={{ background: '#11121c' }}>Most Liked</option>
+              <option value="alphabetical" style={{ background: '#11121c' }}>Alphabetical (A - Z)</option>
+            </select>
+          </div>
+
+        </div>
+      </div>
+
+      {enrollNotice && (
+        <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', color: '#34d399', marginBottom: '16px', textAlign: 'center', fontSize: '0.85rem' }}>
+          ✔ {enrollNotice}
+        </div>
+      )}
+
+      {/* Degree Curricula Grid with Rich Banner Images & Explicit Enroll Button */}
       <div style={styles.coursesGrid}>
-        {filteredCourses.map((course) => {
+        {processedCourses.map((course) => {
           const isEnrolled = currentUser?.enrolledCourses?.includes(course.id);
+          const likesCount = (course.likes || []).length;
+          const isLiked = currentUser && (course.likes || []).includes(currentUser.id);
+
           return (
             <div key={course.id} className="glass-panel" style={{ ...styles.courseCard, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               {/* Course Banner Image */}
@@ -111,9 +132,11 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(13,14,24,0.85) 100%)' }} />
+                
                 <span style={{ position: 'absolute', top: '10px', left: '10px', fontSize: '0.68rem', fontWeight: 700, color: '#fff', background: 'rgba(139,92,246,0.85)', padding: '3px 8px', borderRadius: '6px', backdropFilter: 'blur(4px)' }}>
                   {course.department}
                 </span>
+
                 <span style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '0.68rem', fontWeight: 600, color: course.isDegree ? '#10b981' : '#f59e0b', background: 'rgba(0,0,0,0.7)', padding: '3px 8px', borderRadius: '6px' }}>
                   {course.isDegree ? 'Degree Program' : 'Standard Course'}
                 </span>
@@ -121,23 +144,51 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
 
               <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, justifyContent: 'space-between', textAlign: 'left' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#ffffff', margin: '0 0 6px 0', lineHeight: '1.3' }}>{course.title}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#ffffff', margin: 0, lineHeight: '1.3' }}>{course.title}</h3>
+                    
+                    {/* Course Like Button */}
+                    <button
+                      type="button"
+                      onClick={() => toggleCourseLike && toggleCourseLike(course.id)}
+                      style={{ background: 'none', border: 'none', color: isLiked ? '#ef4444' : 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.75rem', fontWeight: 600 }}
+                      title={isLiked ? 'Unlike Course' : 'Like Course'}
+                    >
+                      <Heart size={14} fill={isLiked ? '#ef4444' : 'none'} color={isLiked ? '#ef4444' : 'var(--text-muted)'} />
+                      {likesCount > 0 && <span>{likesCount}</span>}
+                    </button>
+                  </div>
+
                   <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4' }}>{course.description}</p>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', gap: '8px' }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: course.price === 0 ? '#10b981' : '#ffffff' }}>
                     {course.price === 0 ? 'FREE ACCESS' : `₹${course.price}`}
                   </span>
-                  <button
-                    onClick={() => {
-                      setSelectedPlaylistId(course.id);
-                      setCurrentView('learning-player');
-                    }}
-                    className="btn btn-primary btn-sm"
-                  >
-                    {isEnrolled ? 'Open Course' : 'View Course'}
-                  </button>
+
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    {!isEnrolled ? (
+                      <button
+                        onClick={(e) => handleEnrollAction(course, e)}
+                        className="btn btn-primary btn-sm"
+                        style={{ fontSize: '0.78rem', gap: '4px' }}
+                      >
+                        <Plus size={13} /> Enroll Course
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          if (setSelectedPlaylistId) setSelectedPlaylistId(course.id);
+                          setCurrentView('learning-player');
+                        }}
+                        className="btn btn-secondary btn-sm"
+                        style={{ fontSize: '0.78rem', gap: '4px', borderColor: 'rgba(16,185,129,0.4)', color: '#34d399' }}
+                      >
+                        <CheckCircle2 size={13} color="#10b981" /> Enrolled · Open
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

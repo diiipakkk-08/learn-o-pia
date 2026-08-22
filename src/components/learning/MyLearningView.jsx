@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
 import {
   BookOpen, BookmarkCheck, Play, Download, Copy, Check, Trash2,
-  Sparkles, Compass, ArrowRight, FolderKanban, Plus
+  Sparkles, Compass, ArrowRight, FolderKanban, Plus, LogOut
 } from 'lucide-react';
 
 export default function MyLearningView({ setCurrentView, setSelectedPlaylistId }) {
@@ -13,7 +13,8 @@ export default function MyLearningView({ setCurrentView, setSelectedPlaylistId }
     standaloneResources,
     savedResourceIds,
     toggleSaveResource,
-    isResourceSaved
+    isResourceSaved,
+    removeUserEnrollment
   } = useDatabase();
 
   const [copiedId, setCopiedId] = useState(null);
@@ -75,45 +76,14 @@ export default function MyLearningView({ setCurrentView, setSelectedPlaylistId }
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px', textAlign: 'left' }} className="animate-fade-in">
-      
-      {/* Header Panel */}
-      <div className="glass-panel" style={{ padding: '20px 24px', borderRadius: '16px', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-          <div>
-            <h1 style={{ fontSize: '1.4rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '10px' }} className="primary-gradient-text">
-              <Compass size={24} color="var(--primary)" /> My Learning Workspace
-            </h1>
-            <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>
-              Welcome back, <strong>{currentUser?.name || 'Learner'}</strong>! Access your enrolled degree programs, lecture playlists, and saved resources.
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={() => setCurrentView('learning')}
-              className="btn btn-secondary btn-sm"
-              style={{ fontSize: '0.8rem' }}
-            >
-              <BookOpen size={14} /> Browse Curricula
-            </button>
-            <button
-              onClick={() => setCurrentView('resources')}
-              className="btn btn-primary btn-sm"
-              style={{ fontSize: '0.8rem' }}
-            >
-              <FolderKanban size={14} /> Search Resources
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* SECTION 1: MY ENROLLED COURSES & PLAYLISTS */}
       <div style={{ marginBottom: '32px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-          <h2 style={{ fontSize: '1.1rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <BookOpen size={20} color="var(--primary)" /> Enrolled Courses & Degree Programs ({enrolledCourseList.length})
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+          <h2 style={{ fontSize: '1.15rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <BookOpen size={20} color="var(--primary)" /> Enrolled Courses & Playlists ({enrolledCourseList.length})
           </h2>
-          <button onClick={() => setCurrentView('learning')} className="btn btn-secondary btn-sm" style={{ fontSize: '0.75rem' }}>
+          <button onClick={() => setCurrentView('learning')} className="btn btn-secondary btn-sm" style={{ fontSize: '0.78rem' }}>
             + Explore All Courses
           </button>
         </div>
@@ -123,7 +93,7 @@ export default function MyLearningView({ setCurrentView, setSelectedPlaylistId }
             <BookOpen size={36} color="var(--primary)" style={{ opacity: 0.5, marginBottom: '8px' }} />
             <h3 style={{ fontSize: '1rem', color: '#ffffff', margin: '0 0 6px 0' }}>No Enrolled Courses Yet</h3>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', maxWidth: '400px', margin: '0 auto 16px auto' }}>
-              You haven't enrolled in any degree curricula or courses yet. Browse available programs and click "Enroll" to get started!
+              You haven't enrolled in any degree curricula or courses yet. Browse available programs and click "Enroll Course" to get started!
             </p>
             <button onClick={() => setCurrentView('learning')} className="btn btn-primary" style={{ fontSize: '0.85rem' }}>
               Browse Degree Curricula
@@ -153,16 +123,32 @@ export default function MyLearningView({ setCurrentView, setSelectedPlaylistId }
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4' }}>{course.description}</p>
                   </div>
 
-                  <button
-                    onClick={() => {
-                      if (setSelectedPlaylistId) setSelectedPlaylistId(course.id);
-                      setCurrentView('learning-player');
-                    }}
-                    className="btn btn-primary"
-                    style={{ width: '100%', fontSize: '0.82rem', gap: '6px' }}
-                  >
-                    <Play size={14} /> Continue Learning
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => {
+                        if (setSelectedPlaylistId) setSelectedPlaylistId(course.id);
+                        setCurrentView('learning-player');
+                      }}
+                      className="btn btn-primary"
+                      style={{ flex: 1, fontSize: '0.82rem', gap: '6px' }}
+                    >
+                      <Play size={14} /> Open Course
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (typeof removeUserEnrollment === 'function' && currentUser) {
+                          removeUserEnrollment(currentUser.id, course.id);
+                        }
+                      }}
+                      className="btn btn-secondary"
+                      style={{ fontSize: '0.78rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                      title="Exit Course / Remove from My Learning"
+                    >
+                      <LogOut size={13} /> Exit
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
