@@ -30,7 +30,8 @@ import {
   Code,
   Check,
   Upload,
-  X
+  X,
+  Zap
 } from 'lucide-react';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -482,6 +483,25 @@ export default function AttendanceTracker({ setCurrentView }) {
   const [newRoom, setNewRoom] = useState('Room 101');
   const [targetPercent, setTargetPercent] = useState(75);
 
+  // Extra Class Logger Form State
+  const [showExtraClassForm, setShowExtraClassForm] = useState(false);
+  const [extraSubName, setExtraSubName] = useState('');
+  const [extraCustomSubName, setExtraCustomSubName] = useState('');
+  const [extraStartTime24, setExtraStartTime24] = useState('10:00');
+  const [extraDurationHours, setExtraDurationHours] = useState('1');
+  const [extraDurationMins, setExtraDurationMins] = useState('0');
+  const [extraRoom, setExtraRoom] = useState('Google Meet / Online');
+
+  const allRoutineSubjects = useMemo(() => {
+    const subs = new Set();
+    Object.values(routine || {}).forEach((dayList) => {
+      (dayList || []).forEach((cls) => {
+        if (cls.subject) subs.add(cls.subject);
+      });
+    });
+    return Array.from(subs);
+  }, [routine]);
+
   const todayStr = formatLocalDate(new Date());
   const isSelectedPastDay = selectedDate < todayStr;
 
@@ -491,7 +511,7 @@ export default function AttendanceTracker({ setCurrentView }) {
   const dayName = useMemo(() => DAYS_OF_WEEK[dateObj.getDay()], [dateObj]);
 
   const scheduledToday = useMemo(() => sortClassesByTime(activeRoutine[dayName] || []), [activeRoutine, dayName]);
-  const dayLog = useMemo(() => logs[selectedDate] || { isHoliday: false, classes: {} }, [logs, selectedDate]);
+  const dayLog = useMemo(() => logs[selectedDate] || { isHoliday: false, classes: {}, extraClasses: [] }, [logs, selectedDate]);
 
   const isAtSemesterStart = selectedDate <= semesterStartDate;
 
@@ -514,7 +534,7 @@ export default function AttendanceTracker({ setCurrentView }) {
   // Mark class attendance status ('attended' | 'absent' | 'massbunk' | 'cancelled')
   const markClassStatus = (routineId, status) => {
     setLogs((prev) => {
-      const currentDay = prev[selectedDate] || { isHoliday: false, classes: {} };
+      const currentDay = prev[selectedDate] || { isHoliday: false, classes: {}, extraClasses: [] };
       const nextClasses = { ...currentDay.classes };
 
       if (nextClasses[routineId] === status) {
@@ -542,12 +562,114 @@ export default function AttendanceTracker({ setCurrentView }) {
   // Toggle Day Holiday Status
   const toggleHoliday = () => {
     setLogs((prev) => {
-      const currentDay = prev[selectedDate] || { isHoliday: false, classes: {} };
+      const currentDay = prev[selectedDate] || { isHoliday: false, classes: {}, extraClasses: [] };
       const updatedLogs = {
         ...prev,
         [selectedDate]: {
           ...currentDay,
           isHoliday: !currentDay.isHoliday
+        }
+      };
+
+      if (userId && saveUserLogsToDb) {
+        saveUserLogsToDb(userId, updatedLogs);
+      }
+
+      return updatedLogs;
+    });
+  };
+
+  // Add One-Time Extra Class for selectedDate
+  const handleAddExtraClass = (e) => {
+    e.preventDefault();
+    const finalSubject = (extraSubName === '__custom__' ? extraCustomSubName : extraSubName).trim();
+    if (!finalSubject) return;
+
+    const startTimeFormatted = format12HourTime(extraStartTime24);
+    const endTimeFormatted = calculateEndTimeFromHM(extraStartTime24, extraDurationHours, extraDurationMins);
+    const totalMins = (parseInt(extraDurationHours, 10) || 0) * 60 + (parseInt(extraDurationMins, 10) || 0);
+
+    const newExtraClass = {
+      id: `ext-${Date.now()}`,
+      subject: finalSubject,
+      startTime24: extraStartTime24,
+      startTime: startTimeFormatted,
+      endTime: endTimeFormatted,
+      durationHours: extraDurationHours,
+      durationMins: extraDurationMins,
+      durationText: formatDurationText(extraDurationHours, extraDurationMins),
+      duration: totalMins || 60,
+      room: extraRoom.trim() || 'Google Meet / Online',
+      status: 'attended'
+    };
+
+    setLogs((prev) => {
+      const currentDay = prev[selectedDate] || { isHoliday: false, classes: {}, extraClasses: [] };
+      const currentExtra = currentDay.extraClasses || [];
+
+      const updatedLogs = {
+        ...prev,
+        [selectedDate]: {
+          ...currentDay,
+          extraClasses: [...currentExtra, newExtraClass]
+        }
+      };
+
+      if (userId && saveUserLogsToDb) {
+        saveUserLogsToDb(userId, updatedLogs);
+      }
+
+      return updatedLogs;
+    });
+
+    setExtraSubName('');
+    setExtraCustomSubName('');
+    setShowExtraClassForm(false);
+  };
+
+  // Toggle Extra Class Attendance Status
+  const markExtraClassStatus = (extraId, status) => {
+    setLogs((prev) => {
+      const currentDay = prev[selectedDate] || { isHoliday: false, classes: {}, extraClasses: [] };
+      const currentExtra = currentDay.extraClasses || [];
+
+      const updatedExtra = currentExtra.map((cls) => {
+        if (cls.id === extraId) {
+          return {
+            ...cls,
+            status: cls.status === status ? null : status
+          };
+        }
+        return cls;
+      });
+
+      const updatedLogs = {
+        ...prev,
+        [selectedDate]: {
+          ...currentDay,
+          extraClasses: updatedExtra
+        }
+      };
+
+      if (userId && saveUserLogsToDb) {
+        saveUserLogsToDb(userId, updatedLogs);
+      }
+
+      return updatedLogs;
+    });
+  };
+
+  // Delete Extra Class
+  const handleDeleteExtraClass = (extraId) => {
+    setLogs((prev) => {
+      const currentDay = prev[selectedDate] || { isHoliday: false, classes: {}, extraClasses: [] };
+      const currentExtra = currentDay.extraClasses || [];
+
+      const updatedLogs = {
+        ...prev,
+        [selectedDate]: {
+          ...currentDay,
+          extraClasses: currentExtra.filter((cls) => cls.id !== extraId)
         }
       };
 
@@ -677,6 +799,38 @@ export default function AttendanceTracker({ setCurrentView }) {
               statsMap[cls.subject].totalConducted += 1;
             }
             // Unmarked TODAY or FUTURE days remain pending and do NOT penalize attendance!
+          }
+        });
+      }
+
+      // Also process extra classes logged on this date
+      if (logData.extraClasses && Array.isArray(logData.extraClasses)) {
+        logData.extraClasses.forEach((extCls) => {
+          if (!extCls.subject) return;
+          if (!statsMap[extCls.subject]) {
+            statsMap[extCls.subject] = {
+              subject: extCls.subject,
+              attended: 0,
+              absent: 0,
+              massbunk: 0,
+              cancelled: 0,
+              totalConducted: 0,
+              target: 75
+            };
+          }
+
+          const status = extCls.status;
+          if (status === 'attended') {
+            statsMap[extCls.subject].attended += 1;
+            statsMap[extCls.subject].totalConducted += 1;
+          } else if (status === 'cancelled') {
+            statsMap[extCls.subject].cancelled += 1;
+          } else if (status === 'massbunk') {
+            statsMap[extCls.subject].massbunk += 1;
+            statsMap[extCls.subject].totalConducted += 1;
+          } else if (status === 'absent') {
+            statsMap[extCls.subject].absent += 1;
+            statsMap[extCls.subject].totalConducted += 1;
           }
         });
       }
@@ -980,6 +1134,209 @@ export default function AttendanceTracker({ setCurrentView }) {
                 })}
               </div>
             )}
+
+            {/* Extra Classes Section for selectedDate */}
+            <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px dashed rgba(255,255,255,0.1)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                <h4 style={{ fontSize: isMobile ? '0.88rem' : '0.95rem', color: '#ffffff', margin: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Zap size={isMobile ? 14 : 16} color="#f59e0b" /> One-Time Extra Classes ({dayLog.extraClasses?.length || 0})
+                </h4>
+                <button
+                  type="button"
+                  onClick={() => setShowExtraClassForm((prev) => !prev)}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', padding: '4px 10px', gap: '4px', borderColor: 'rgba(245,158,11,0.4)', color: '#fcd34d' }}
+                >
+                  {showExtraClassForm ? <X size={12} /> : <Plus size={12} />}
+                  {showExtraClassForm ? 'Cancel' : '+ Add Extra Class'}
+                </button>
+              </div>
+
+              {/* Inline Form to Add Extra Class */}
+              {showExtraClassForm && (
+                <form
+                  onSubmit={handleAddExtraClass}
+                  style={{
+                    padding: isMobile ? '12px' : '16px',
+                    borderRadius: '12px',
+                    background: 'rgba(245,158,11,0.06)',
+                    border: '1px solid rgba(245,158,11,0.25)',
+                    marginBottom: '14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px'
+                  }}
+                  className="animate-fade-in"
+                >
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#fcd34d' }}>
+                    ⚡ Log One-Time Extra Class for {selectedDate}
+                  </span>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px' }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.72rem' }}>Select Subject</label>
+                      <select
+                        value={extraSubName}
+                        onChange={(e) => setExtraSubName(e.target.value)}
+                        className="form-input"
+                        style={{ padding: '6px 10px', fontSize: '0.8rem' }}
+                        required
+                      >
+                        <option value="">Choose Subject...</option>
+                        {allRoutineSubjects.map((sub) => (
+                          <option key={sub} value={sub}>{sub}</option>
+                        ))}
+                        <option value="__custom__">+ Add Custom Subject Name</option>
+                      </select>
+                    </div>
+
+                    {extraSubName === '__custom__' && (
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label" style={{ fontSize: '0.72rem' }}>Custom Subject Name</label>
+                        <input
+                          type="text"
+                          value={extraCustomSubName}
+                          onChange={(e) => setExtraCustomSubName(e.target.value)}
+                          placeholder="e.g. Quantum Physics Seminar"
+                          className="form-input"
+                          style={{ padding: '6px 10px', fontSize: '0.8rem' }}
+                          required
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr', gap: '10px' }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.72rem' }}>Start Time</label>
+                      <input
+                        type="time"
+                        value={extraStartTime24}
+                        onChange={(e) => setExtraStartTime24(e.target.value)}
+                        className="form-input"
+                        style={{ padding: '6px 10px', fontSize: '0.8rem' }}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.72rem' }}>Duration</label>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <select value={extraDurationHours} onChange={(e) => setExtraDurationHours(e.target.value)} className="form-input" style={{ padding: '6px 4px', fontSize: '0.78rem' }}>
+                          {[0, 1, 2, 3, 4].map(h => <option key={h} value={h}>{h}h</option>)}
+                        </select>
+                        <select value={extraDurationMins} onChange={(e) => setExtraDurationMins(e.target.value)} className="form-input" style={{ padding: '6px 4px', fontSize: '0.78rem' }}>
+                          <option value="0">0m</option>
+                          <option value="15">15m</option>
+                          <option value="30">30m</option>
+                          <option value="45">45m</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: 0, gridColumn: isMobile ? 'span 2' : 'span 1' }}>
+                      <label className="form-label" style={{ fontSize: '0.72rem' }}>Platform / Room</label>
+                      <input
+                        type="text"
+                        value={extraRoom}
+                        onChange={(e) => setExtraRoom(e.target.value)}
+                        placeholder="Google Meet / Room 302"
+                        className="form-input"
+                        style={{ padding: '6px 10px', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+                    <button type="button" onClick={() => setShowExtraClassForm(false)} className="btn btn-secondary btn-sm" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn btn-primary btn-sm" style={{ padding: '6px 14px', fontSize: '0.75rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
+                      Save Extra Class
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Extra Classes Render List */}
+              {(!dayLog.extraClasses || dayLog.extraClasses.length === 0) ? (
+                <p style={{ fontSize: isMobile ? '0.72rem' : '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: 0 }}>
+                  No extra classes logged for {selectedDate}. Click "+ Add Extra Class" above if your teacher conducted an online or extra lecture.
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {dayLog.extraClasses.map((extCls) => {
+                    const status = extCls.status;
+                    return (
+                      <div
+                        key={extCls.id}
+                        style={{
+                          padding: isMobile ? '10px 12px' : '12px 16px',
+                          borderRadius: '10px',
+                          background: status === 'attended' ? 'rgba(16,185,129,0.08)' : status === 'massbunk' ? 'rgba(245,158,11,0.08)' : status === 'cancelled' ? 'rgba(255,255,255,0.03)' : status === 'absent' ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.03)',
+                          border: status === 'attended' ? '1px solid rgba(16,185,129,0.3)' : status === 'massbunk' ? '1px solid rgba(245,158,11,0.3)' : status === 'cancelled' ? '1px solid rgba(255,255,255,0.08)' : status === 'absent' ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(245,158,11,0.2)',
+                          display: 'flex',
+                          flexDirection: isMobile ? 'column' : 'row',
+                          alignItems: isMobile ? 'flex-start' : 'center',
+                          justifyContent: isMobile ? 'flex-start' : 'space-between',
+                          gap: isMobile ? '8px' : '10px'
+                        }}
+                      >
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <strong style={{ color: '#ffffff', fontSize: isMobile ? '0.85rem' : '0.9rem' }}>{extCls.subject}</strong>
+                            <span className="badge" style={{ fontSize: '0.6rem', background: 'rgba(245,158,11,0.2)', color: '#fcd34d', border: '1px solid rgba(245,158,11,0.4)' }}>
+                              ⚡ Extra Class
+                            </span>
+                          </div>
+                          <span style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
+                            {extCls.startTime} - {extCls.endTime} ({extCls.durationText || `${extCls.duration || 60}m`}) · {extCls.room}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: isMobile ? '4px' : '6px', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'flex-start' : 'flex-end', alignItems: 'center' }}>
+                          <button
+                            onClick={() => markExtraClassStatus(extCls.id, 'attended')}
+                            className={`btn ${status === 'attended' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                            style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', padding: '4px 8px', flex: isMobile ? '1 1 auto' : 'none' }}
+                          >
+                            <CheckCircle2 size={isMobile ? 11 : 13} /> {isMobile ? 'P' : 'Present'}
+                          </button>
+                          <button
+                            onClick={() => markExtraClassStatus(extCls.id, 'absent')}
+                            className={`btn ${status === 'absent' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                            style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', padding: '4px 8px', color: status === 'absent' ? '#f87171' : undefined, flex: isMobile ? '1 1 auto' : 'none' }}
+                          >
+                            <XCircle size={isMobile ? 11 : 13} /> {isMobile ? 'A' : 'Absent'}
+                          </button>
+                          <button
+                            onClick={() => markExtraClassStatus(extCls.id, 'massbunk')}
+                            className={`btn ${status === 'massbunk' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                            style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', padding: '4px 8px', color: status === 'massbunk' ? '#f59e0b' : undefined, flex: isMobile ? '1 1 auto' : 'none' }}
+                          >
+                            <Users size={isMobile ? 11 : 13} /> {isMobile ? 'MB' : 'Mass Bunk'}
+                          </button>
+                          <button
+                            onClick={() => markExtraClassStatus(extCls.id, 'cancelled')}
+                            className={`btn ${status === 'cancelled' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                            style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', padding: '4px 8px', flex: isMobile ? '1 1 auto' : 'none' }}
+                          >
+                            <MinusCircle size={isMobile ? 11 : 13} /> {isMobile ? 'X' : 'Cancelled'}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteExtraClass(extCls.id)}
+                            style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.7)', cursor: 'pointer', padding: '4px', display: 'inline-flex', alignItems: 'center' }}
+                            title="Delete Extra Class"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
