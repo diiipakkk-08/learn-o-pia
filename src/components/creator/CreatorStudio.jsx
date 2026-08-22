@@ -3,7 +3,8 @@ import ReactDOM from 'react-dom';
 import { useDatabase, extractYoutubePlaylistId, fetchYoutubePlaylistVideos, getUserDesignation } from '../../context/DatabaseContext';
 import {
   Plus, BookOpen, Trash2, Film, FolderPlus, ChevronDown,
-  Pencil, Check, X, Users, AlertCircle, ArrowUp, ArrowDown, Copy
+  Pencil, Check, X, Users, AlertCircle, ArrowUp, ArrowDown, Copy,
+  Video, Link, Bookmark, Sparkles, Download
 } from 'lucide-react';
 
 // ── Portal Dropdown ─────────────────────────────────────────────────────────
@@ -399,17 +400,71 @@ export default function CreatorStudio() {
       setVideoTitle(''); setVideoDesc(''); setVideoUrl('');
     } catch (err) { setVideoError(err.message); }
   };
-  const handleAddMaterial = (e) => {
+  const [linkResId, setLinkResId] = useState('');
+  const [linkResSection, setLinkResSection] = useState('');
+  const [showLinkResForm, setShowLinkResForm] = useState(false);
+
+  const handleLinkMaterialById = (e) => {
     e.preventDefault();
-    if (!resourceTitle.trim() || !resourceUrl.trim() || !activeSubject || !resourceSection) return;
-    addSubjectMaterial(activeSubject.id, resourceTitle, resourceUrl, resourceSection, resourceAuthor);
-    setResourceTitle(''); setResourceUrl(''); setResourceAuthor('');
+    if (!linkResId.trim() || !linkResSection || !activeSubject) return;
+
+    let foundRes = null;
+    (standaloneResources || []).forEach(r => {
+      if (r.id === linkResId.trim()) foundRes = r;
+    });
+
+    if (!foundRes) {
+      (subjects || []).forEach(sub => {
+        (sub.materials || []).forEach(mat => {
+          if (mat.id === linkResId.trim() || mat.originalResourceId === linkResId.trim()) {
+            foundRes = mat;
+          }
+        });
+      });
+    }
+
+    if (foundRes) {
+      addSubjectMaterial(
+        activeSubject.id,
+        foundRes.title,
+        foundRes.url,
+        linkResSection,
+        foundRes.author || 'Educator',
+        foundRes.id
+      );
+      setLinkResId(''); setLinkResSection(''); setShowLinkResForm(false);
+    } else {
+      alert(`Resource ID "${linkResId.trim()}" not found in database.`);
+    }
   };
-  const handleAddSection = (e) => {
+
+  const [linkPlId, setLinkPlId] = useState('');
+  const [showLinkPlaylistForm, setShowLinkPlaylistForm] = useState(false);
+
+  const handleLinkPlaylistById = async (e) => {
     e.preventDefault();
-    if (!newSectionName.trim() || !activeSubject) return;
-    addSubjectMaterialSection(activeSubject.id, newSectionName.trim());
-    setNewSectionName(''); setShowAddSectionForm(false);
+    if (!linkPlId.trim() || !activeSubject) return;
+
+    let foundPl = null;
+    (subjects || []).forEach(sub => {
+      (sub.playlists || []).forEach(pl => {
+        if (pl.id === linkPlId.trim()) foundPl = pl;
+      });
+    });
+
+    if (foundPl) {
+      await addSubjectPlaylist(
+        activeSubject.id,
+        foundPl.title,
+        foundPl.description || '',
+        foundPl.author || 'Educator',
+        foundPl.youtubePlaylistId || '',
+        foundPl.videos || []
+      );
+      setLinkPlId(''); setShowLinkPlaylistForm(false);
+    } else {
+      alert(`Playlist ID "${linkPlId.trim()}" not found in database.`);
+    }
   };
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -433,10 +488,11 @@ export default function CreatorStudio() {
           <button onClick={() => setShowStandaloneForm(!showStandaloneForm)} className="btn btn-secondary" style={{ gap: '6px' }}>
             <Plus size={16} /> Publish Open Resource
           </button>
-          <button onClick={() => { setShowCourseForm(!showCourseForm); setActiveCourseId(null); }} className="btn btn-secondary" style={{ gap: '6px' }}>
-            <FolderPlus size={16} />
-            {isAdmin ? 'Create Program / Course' : 'Create Course'}
-          </button>
+          {isAdmin && (
+            <button onClick={() => { setShowCourseForm(!showCourseForm); setActiveCourseId(null); }} className="btn btn-secondary" style={{ gap: '6px' }}>
+              <FolderPlus size={16} /> Create Program / Course
+            </button>
+          )}
         </div>
       </section>
 
@@ -834,15 +890,47 @@ export default function CreatorStudio() {
                               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Active Subject:</span>
                               <h4 style={{ fontSize: '0.95rem', color: '#fff', marginTop: '2px' }}>{activeSubject.title}</h4>
                             </div>
-                            <div style={{ display: 'flex', gap: '8px' }}>
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                               <button onClick={handleOpenEditSubject} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
                                 <Pencil size={12} /> Edit Overview & Metadata
                               </button>
-                              <button onClick={() => setShowPlaylistForm(!showPlaylistForm)} className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
+                              <button onClick={() => setShowLinkPlaylistForm(!showLinkPlaylistForm)} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.75rem', gap: '4px' }}>
+                                <Link size={12} /> Link Existing Playlist by ID
+                              </button>
+                              <button onClick={() => setShowPlaylistForm(!showPlaylistForm)} className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.75rem', gap: '4px' }}>
                                 <Plus size={12} /> Create Playlist
                               </button>
                             </div>
                           </div>
+
+                          {showLinkPlaylistForm && (
+                            <form onSubmit={handleLinkPlaylistById} className="glass-panel animate-fade-in" style={{ padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'left', border: '1px solid rgba(139,92,246,0.3)' }}>
+                              <h4 style={{ fontSize: '0.95rem', margin: 0, color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <Link size={15} color="var(--primary)" /> Link Existing Playlist by ID
+                              </h4>
+                              <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0 }}>
+                                Paste the Playlist ID from the database (e.g. <code>pl-101</code>) to instantly link it to <strong>{activeSubject.title}</strong>:
+                              </p>
+
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <input
+                                  type="text"
+                                  className="form-input"
+                                  placeholder="e.g. pl-101 or pl-f2941b02-..."
+                                  value={linkPlId}
+                                  onChange={(e) => setLinkPlId(e.target.value)}
+                                  style={{ flex: 1, padding: '8px 12px', fontSize: '0.85rem' }}
+                                  required
+                                />
+                                <button type="submit" className="btn btn-primary btn-sm">
+                                  Connect Playlist
+                                </button>
+                                <button type="button" onClick={() => setShowLinkPlaylistForm(false)} className="btn btn-secondary btn-sm">
+                                  Cancel
+                                </button>
+                              </div>
+                            </form>
+                          )}
 
                           {showSubjectEditForm && (
                             <form onSubmit={handleSaveSubjectDetails} className="glass-panel animate-fade-in" style={{ ...styles.formWorkspace, display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1167,12 +1255,40 @@ export default function CreatorStudio() {
 
                             {/* Custom material sections */}
                             <div className="glass-panel" style={{ ...styles.enrolledCard, gridColumn: 'span 2' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '6px' }}>
                                 <h4 style={{ ...styles.enrolledHeading, marginBottom: 0 }}>Material Sections & Files</h4>
-                                <button onClick={() => setShowAddSectionForm(!showAddSectionForm)} className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.72rem' }}>
-                                  <Plus size={11} /> Add Section
-                                </button>
+                                <div style={{ display: 'flex', gap: '6px' }}>
+                                  <button onClick={() => setShowLinkResForm(!showLinkResForm)} className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.72rem', gap: '4px' }}>
+                                    <Link size={11} /> Link Resource by ID
+                                  </button>
+                                  <button onClick={() => setShowAddSectionForm(!showAddSectionForm)} className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.72rem', gap: '4px' }}>
+                                    <Plus size={11} /> Add Section
+                                  </button>
+                                </div>
                               </div>
+
+                              {showLinkResForm && (
+                                <form onSubmit={handleLinkMaterialById} style={{ display: 'flex', gap: '8px', marginBottom: '14px', alignItems: 'flex-end', flexWrap: 'wrap', background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(139,92,246,0.3)' }}>
+                                  <div style={{ flex: 1, minWidth: '160px' }}>
+                                    <label className="form-label" style={{ fontSize: '0.7rem' }}>Resource ID</label>
+                                    <input type="text" value={linkResId} onChange={e => setLinkResId(e.target.value)} placeholder="e.g. res-1 or mat-101" className="form-input" style={{ padding: '6px 10px', fontSize: '0.8rem' }} required />
+                                  </div>
+
+                                  <div style={{ flex: 1, minWidth: '160px' }}>
+                                    <label className="form-label" style={{ fontSize: '0.7rem' }}>Target Section</label>
+                                    <select value={linkResSection} onChange={e => setLinkResSection(e.target.value)} className="form-input" style={{ padding: '6px 10px', fontSize: '0.8rem' }} required>
+                                      <option value="">Select Section...</option>
+                                      {(activeSubject.customMaterialSections || ['Notes', 'Organizer', 'Past Year Papers']).map(sec => (
+                                        <option key={sec} value={sec}>{sec}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+
+                                  <button type="submit" className="btn btn-primary" style={{ padding: '7px 12px', fontSize: '0.8rem' }}>Attach Resource</button>
+                                  <button type="button" onClick={() => setShowLinkResForm(false)} className="btn btn-secondary" style={{ padding: '7px 12px', fontSize: '0.8rem' }}>Cancel</button>
+                                </form>
+                              )}
+
                               {showAddSectionForm && (
                                 <form onSubmit={handleAddSection} style={{ display: 'flex', gap: '8px', marginBottom: '14px', alignItems: 'flex-end' }}>
                                   <input type="text" value={newSectionName} onChange={e => setNewSectionName(e.target.value)} placeholder="e.g. Lab Manuals, PYQs, Assignments..." className="form-input" style={{ flex: 1, padding: '6px 10px', fontSize: '0.8rem' }} required />

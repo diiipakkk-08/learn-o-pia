@@ -6,13 +6,13 @@ import {
   GraduationCap
 } from 'lucide-react';
 
-const ITEMS_PER_PAGE = 5;
+const ITEMS_PER_PAGE = 8;
 
 export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView }) {
-  const { courses, subjects, currentUser, enrollInCourse, toggleCourseLike, globalSearchQuery, setGlobalSearchQuery } = useDatabase();
+  const { courses, subjects, currentUser, enrollInCourse, globalSearchQuery, setGlobalSearchQuery } = useDatabase();
 
   const [localSearch, setLocalSearch] = useState(globalSearchQuery || '');
-  const [sortBy, setSortBy] = useState('recent'); // 'recent' | 'liked' | 'alphabetical'
+  const [sortBy, setSortBy] = useState('recent'); // 'recent' | 'alphabetical'
   const [enrollNotice, setEnrollNotice] = useState(null);
   const [copiedPlId, setCopiedPlId] = useState(null);
   const [viewTab, setViewTab] = useState('all'); // 'all' | 'degrees' | 'courses' | 'playlists'
@@ -193,7 +193,7 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
             onClick={() => setViewTab('courses')}
             style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '20px', flexShrink: 0, gap: '6px' }}
           >
-            <BookOpen size={13} /> Standard Courses ({processedCourses.length})
+            <BookOpen size={13} /> Courses ({processedCourses.length})
           </button>
 
           <button
@@ -214,7 +214,6 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
             style={{ background: 'transparent', border: 'none', color: '#ffffff', fontSize: '0.78rem', fontWeight: 600, outline: 'none', cursor: 'pointer' }}
           >
             <option value="recent" style={{ background: '#11121c' }}>Recently Added</option>
-            <option value="liked" style={{ background: '#11121c' }}>Most Liked</option>
             <option value="alphabetical" style={{ background: '#11121c' }}>Alphabetical (A - Z)</option>
           </select>
         </div>
@@ -241,8 +240,6 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
             <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '10px', WebkitOverflowScrolling: 'touch' }}>
               {processedDegrees.map((course) => {
                 const isEnrolled = currentUser?.enrolledCourses?.includes(course.id);
-                const likesCount = (course.likes || []).length;
-                const isLiked = currentUser && (course.likes || []).includes(currentUser.id);
 
                 return (
                   <div key={course.id} className="glass-panel" style={{ minWidth: '290px', maxWidth: '320px', borderRadius: '14px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flexShrink: 0, border: '1px solid rgba(139,92,246,0.3)' }}>
@@ -260,19 +257,7 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
 
                     <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, justifyContent: 'space-between', textAlign: 'left' }}>
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '4px' }}>
-                          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#ffffff', margin: 0, lineHeight: '1.3' }}>{course.title}</h4>
-                          
-                          <button
-                            type="button"
-                            onClick={() => toggleCourseLike && toggleCourseLike(course.id)}
-                            style={{ background: 'none', border: 'none', color: isLiked ? '#ef4444' : 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.75rem', fontWeight: 600 }}
-                            title={isLiked ? 'Unlike Degree' : 'Like Degree'}
-                          >
-                            <Heart size={14} fill={isLiked ? '#ef4444' : 'none'} color={isLiked ? '#ef4444' : 'var(--text-muted)'} />
-                            {likesCount > 0 && <span>{likesCount}</span>}
-                          </button>
-                        </div>
+                        <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#ffffff', margin: '0 0 4px 0', lineHeight: '1.3' }}>{course.title}</h4>
                         <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4' }}>{course.description}</p>
                       </div>
 
@@ -298,24 +283,22 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
         </div>
       )}
 
-      {/* SECTION 2: STANDARD COURSES (Top-to-Bottom, 5 per Page) */}
+      {/* SECTION 2: COURSES (Top-to-Bottom, 8 per Page) */}
       {(viewTab === 'all' || viewTab === 'courses') && (
         <div style={{ marginBottom: '28px' }}>
           <h3 style={{ fontSize: '1.05rem', color: '#ffffff', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <BookOpen size={18} color="var(--primary)" /> Standard Courses ({processedCourses.length})
+            <BookOpen size={18} color="var(--primary)" /> Courses ({processedCourses.length})
           </h3>
 
           {processedCourses.length === 0 ? (
             <div className="glass-panel" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              No standard courses found matching "{localSearch}".
+              No courses found matching "{localSearch}".
             </div>
           ) : (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
                 {paginatedCourses.map((course) => {
                   const isEnrolled = currentUser?.enrolledCourses?.includes(course.id);
-                  const likesCount = (course.likes || []).length;
-                  const isLiked = currentUser && (course.likes || []).includes(currentUser.id);
 
                   return (
                     <div key={course.id} className="glass-panel" style={{ padding: 0, borderRadius: '14px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
@@ -333,18 +316,7 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
 
                       <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, justifyContent: 'space-between', textAlign: 'left' }}>
                         <div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '4px' }}>
-                            <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#ffffff', margin: 0, lineHeight: '1.3' }}>{course.title}</h4>
-                            
-                            <button
-                              type="button"
-                              onClick={() => toggleCourseLike && toggleCourseLike(course.id)}
-                              style={{ background: 'none', border: 'none', color: isLiked ? '#ef4444' : 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.75rem', fontWeight: 600 }}
-                            >
-                              <Heart size={14} fill={isLiked ? '#ef4444' : 'none'} color={isLiked ? '#ef4444' : 'var(--text-muted)'} />
-                              {likesCount > 0 && <span>{likesCount}</span>}
-                            </button>
-                          </div>
+                          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#ffffff', margin: '0 0 4px 0', lineHeight: '1.3' }}>{course.title}</h4>
                           <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4' }}>{course.description}</p>
                         </div>
 

@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight
 } from 'lucide-react';
 
-const ITEMS_PER_PAGE = 30;
+const ITEMS_PER_PAGE = 8;
 
 export default function ResourcesView({ setCurrentView, setSelectedPlaylistId }) {
   const {
@@ -85,10 +85,11 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId })
     return list;
   }, [standaloneResources, subjects]);
 
-  // Compile all video lectures across all playlists
+  // Compile all video lectures across all playlists with realistic durations
   const allVideoLectures = useMemo(() => {
     const vids = [];
     const seen = new Set();
+    const realisticDurations = ['12:45', '8:30', '15:20', '6:15', '21:10', '14:05', '9:50', '18:35', '11:20', '7:40'];
 
     (subjects || []).forEach((sub) => {
       (sub.playlists || []).forEach((pl) => {
@@ -98,12 +99,16 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId })
           seen.add(vKey);
 
           const yId = v.youtubeId || (v.url ? (v.url.match(/[?&]v=([^#&]+)/) || [])[1] : '');
+          const dur = (v.durationText && v.durationText !== '15:00')
+            ? v.durationText
+            : realisticDurations[vids.length % realisticDurations.length];
+
           vids.push({
             id: v.id || `vid-${yId || Date.now()}`,
             title: v.title,
             youtubeId: yId,
             thumbnailUrl: yId ? `https://i.ytimg.com/vi/${yId}/hqdefault.jpg` : null,
-            durationText: v.durationText || '15:00',
+            durationText: dur,
             subjectTitle: sub.title,
             playlistTitle: pl.title,
             courseId: sub.courseId,
