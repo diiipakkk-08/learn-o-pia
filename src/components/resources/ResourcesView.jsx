@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight
 } from 'lucide-react';
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 30;
 
 export default function ResourcesView({ setCurrentView, setSelectedPlaylistId }) {
   const {
