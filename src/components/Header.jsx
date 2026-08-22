@@ -14,7 +14,6 @@ export default function Header({
   const mobileMenuRef = useRef(null);
 
   const pageTitles = {
-    learning: 'Learning',
     'learning-player': 'Course',
     attendance: 'Attendance',
     discussions: 'Discussions',

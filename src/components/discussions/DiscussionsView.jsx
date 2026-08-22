@@ -346,17 +346,6 @@ export default function DiscussionsView({ setCurrentView }) {
                   Threads & discussions you participate in ({joinedThreads.length})
                 </span>
               </div>
-
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('search')}
-                  className="btn btn-secondary"
-                  style={{ padding: '8px 14px', fontSize: '0.8rem', gap: '6px' }}
-                >
-                  <Search size={14} /> Search Threads
-                </button>
-              </div>
             </div>
 
             {joinedThreads.length === 0 ? (
@@ -364,11 +353,8 @@ export default function DiscussionsView({ setCurrentView }) {
                 <MessageSquare size={36} color="var(--primary)" style={{ opacity: 0.6, marginBottom: '10px' }} />
                 <h4 style={{ fontSize: '1rem', color: '#ffffff', margin: '0 0 6px 0' }}>No Joined Threads Yet</h4>
                 <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', maxWidth: '380px', margin: '0 auto 16px auto' }}>
-                  Tap the floating <strong>+</strong> button in the bottom right corner to search public threads or enter a 6-digit thread code!
+                  Tap the floating <strong>+</strong> button in the bottom right corner to join public threads, enter a thread code, or create your own thread!
                 </p>
-                <button onClick={() => setViewMode('search')} className="btn btn-primary" style={{ fontSize: '0.85rem', gap: '6px' }}>
-                  <Search size={16} /> Explore Public Threads
-                </button>
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))', gap: '12px' }}>

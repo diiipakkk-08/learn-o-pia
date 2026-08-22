@@ -116,6 +116,48 @@ function sanitizeAndFormatRoutineJson(rawJson) {
   return { routine: formattedRoutine, semesterStartDate, totalClassesCount };
 }
 
+// Runtime sanitizer to guarantee every single class object has a deterministic unique ID
+function ensureRoutineHasUniqueIds(routineObj) {
+  if (!routineObj || typeof routineObj !== 'object') return DEFAULT_ROUTINE;
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const sanitized = {};
+
+  for (const day of DAYS) {
+    const list = Array.isArray(routineObj[day]) ? routineObj[day] : [];
+    sanitized[day] = list.map((item, idx) => {
+      const subject = item.subject || item.name || item.course || item.title || `Class ${idx + 1}`;
+      const cleanSubject = String(subject).trim();
+      const startTime24 = item.startTime24 || item.time24 || item.start || '09:00';
+      const durationHours = parseInt(item.durationHours ?? item.hours ?? 1, 10);
+      const durationMins = parseInt(item.durationMins ?? item.mins ?? 0, 10);
+      const room = item.room || item.venue || item.location || '';
+      const minTarget = parseInt(item.minTarget ?? item.target ?? 75, 10);
+
+      const startTime = item.startTime || format12HourTime(startTime24);
+      const endTime = item.endTime || calculateEndTimeFromHM(startTime24, durationHours, durationMins);
+      const durationText = item.durationText || formatDurationText(durationHours, durationMins);
+
+      // Deterministic unique ID for every class item
+      const uniqueId = item.id || `cls-${day.toLowerCase().slice(0,3)}-${idx}-${cleanSubject.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+
+      return {
+        ...item,
+        id: uniqueId,
+        subject: cleanSubject,
+        startTime24,
+        durationHours,
+        durationMins,
+        startTime,
+        endTime,
+        durationText,
+        room: String(room).trim(),
+        minTarget
+      };
+    });
+  }
+  return sanitized;
+}
+
 // Safe Local Date Helpers (prevents UTC shifts)
 const formatLocalDate = (date) => {
   const y = date.getFullYear();
@@ -443,10 +485,12 @@ export default function AttendanceTracker({ setCurrentView }) {
   const todayStr = formatLocalDate(new Date());
   const isSelectedPastDay = selectedDate < todayStr;
 
+  const activeRoutine = useMemo(() => ensureRoutineHasUniqueIds(routine), [routine]);
+
   const dateObj = useMemo(() => parseLocalDate(selectedDate), [selectedDate]);
   const dayName = useMemo(() => DAYS_OF_WEEK[dateObj.getDay()], [dateObj]);
 
-  const scheduledToday = useMemo(() => sortClassesByTime(routine[dayName] || []), [routine, dayName]);
+  const scheduledToday = useMemo(() => sortClassesByTime(activeRoutine[dayName] || []), [activeRoutine, dayName]);
   const dayLog = useMemo(() => logs[selectedDate] || { isHoliday: false, classes: {} }, [logs, selectedDate]);
 
   const isAtSemesterStart = selectedDate <= semesterStartDate;
@@ -582,7 +626,7 @@ export default function AttendanceTracker({ setCurrentView }) {
   const subjectAnalytics = useMemo(() => {
     const statsMap = {};
 
-    Object.values(routine).forEach((dayList) => {
+    Object.values(activeRoutine).forEach((dayList) => {
       dayList.forEach((cls) => {
         if (!statsMap[cls.subject]) {
           statsMap[cls.subject] = {
@@ -608,7 +652,7 @@ export default function AttendanceTracker({ setCurrentView }) {
       const dateStr = formatLocalDate(curr);
       const isPast = dateStr < todayStr;
       const dName = DAYS_OF_WEEK[curr.getDay()];
-      const dayClasses = routine[dName] || [];
+      const dayClasses = activeRoutine[dName] || [];
       const logData = logs[dateStr] || { isHoliday: false, classes: {} };
 
       if (!logData.isHoliday && dayClasses.length > 0) {

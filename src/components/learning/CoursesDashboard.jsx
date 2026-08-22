@@ -97,18 +97,8 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
 
   return (
     <div style={styles.container} className="animate-fade-in">
-      {/* Compact Top Banner */}
-      <section style={{ ...styles.banner, padding: '14px 20px', marginBottom: '8px' }} className="glass-panel">
-        <div>
-          <h1 style={{ fontSize: '1.4rem', marginBottom: '4px' }} className="primary-gradient-text">
-            Standard Curricula & Open Public Resources
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', margin: 0 }}>
-            Explore degree programs, subject lecture series, and open study resources published by verified educators.
-          </p>
-        </div>
-
-        {/* Tab Switcher */}
+      {/* Minimal Top Tab Switcher */}
+      <section style={{ padding: '8px 12px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="glass-panel">
         <div style={{ display: 'flex', gap: '8px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '10px' }}>
           <button
             className={`btn ${activeTab === 'courses' ? 'btn-primary' : 'btn-secondary'}`}
@@ -256,7 +246,7 @@ const styles = {
   container: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '24px',
+    gap: '12px',
     maxWidth: '1200px',
     margin: '0 auto',
     width: '100%',
