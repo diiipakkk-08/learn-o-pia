@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
-import { GraduationCap, LogOut, BookOpen, User, Info, Calendar, MessageSquare, Sparkles, Shield, Compass, MoreHorizontal, ChevronDown, X } from 'lucide-react';
+import { GraduationCap, LogOut, BookOpen, User, Info, Calendar, MessageSquare, Sparkles, Shield, Compass, MoreHorizontal, ChevronDown, X, Search } from 'lucide-react';
 
 export default function Header({
   currentView,
@@ -8,10 +8,22 @@ export default function Header({
   setSelectedPlaylistId,
   onLogoClick
 }) {
-  const { currentUser, logout } = useDatabase();
+  const { currentUser, logout, globalSearchQuery, setGlobalSearchQuery } = useDatabase();
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const mobileMenuRef = useRef(null);
+
+  const pageTitles = {
+    learning: 'Learning',
+    'learning-player': 'Course',
+    attendance: 'Attendance',
+    discussions: 'Discussions',
+    studio: 'Studio',
+    admin: 'Admin Panel',
+    profile: 'Profile',
+    about: 'About'
+  };
+  const activeTitle = pageTitles[currentView];
 
   useEffect(() => {
     const handleResize = () => {
@@ -46,6 +58,14 @@ export default function Header({
     }
   };
 
+  const handleSearchChange = (e) => {
+    const val = e.target.value;
+    if (setGlobalSearchQuery) setGlobalSearchQuery(val);
+    if (currentView !== 'learning' && val.trim().length > 0) {
+      setCurrentView('learning');
+    }
+  };
+
   const mobileMenuItems = [
     { view: 'learning', icon: BookOpen, label: 'Learning', active: currentView === 'learning' || currentView === 'learning-player' },
     { view: 'discussions', icon: MessageSquare, label: 'Discussions', active: currentView === 'discussions' },
@@ -66,10 +86,11 @@ export default function Header({
         alignItems: 'center',
         justifyContent: 'space-between',
         boxSizing: 'border-box',
-        width: '100%'
+        width: '100%',
+        gap: '12px'
       }} className="glass-panel">
         <div style={styles.left}>
-          {/* Logo */}
+          {/* Logo & Breadcrumb */}
           <div
             style={{ ...styles.logo, cursor: 'pointer' }}
             onClick={handleBrandClick}
@@ -79,6 +100,12 @@ export default function Header({
               <GraduationCap size={20} color="#ffffff" />
             </div>
             <span style={styles.logoText}>Learn-o-pia</span>
+            {activeTitle && (
+              <span style={{ fontSize: isMobile ? '0.82rem' : '1.02rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
+                <span style={{ color: 'var(--primary)', margin: '0 4px', fontWeight: 700 }}>/</span>
+                {activeTitle}
+              </span>
+            )}
           </div>
 
           {/* Desktop Nav Links */}
@@ -157,10 +184,40 @@ export default function Header({
           )}
         </div>
 
-        {/* Right Section: Mobile Profile Icon or Desktop User Profile Card */}
+        {/* Right Section: Mobile Search & Profile Icon or Desktop Search & User Profile Card */}
         <div>
           {isMobile ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {/* Mobile Navbar Search Input */}
+              {currentUser && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  borderRadius: '8px',
+                  padding: '4px 8px',
+                  width: '130px'
+                }}>
+                  <Search size={13} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={globalSearchQuery || ''}
+                    onChange={handleSearchChange}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#ffffff',
+                      fontSize: '0.75rem',
+                      outline: 'none',
+                      width: '100%'
+                    }}
+                  />
+                </div>
+              )}
+
               {currentUser ? (
                 <button
                   onClick={() => setCurrentView('profile')}
@@ -168,9 +225,9 @@ export default function Header({
                   title="Profile & Settings"
                 >
                   {currentUser.picture ? (
-                    <img src={currentUser.picture} alt={currentUser.name} style={{ width: 36, height: 36, borderRadius: '50%', border: '1.5px solid var(--primary)' }} referrerPolicy="no-referrer" />
+                    <img src={currentUser.picture} alt={currentUser.name} style={{ width: 34, height: 34, borderRadius: '50%', border: '1.5px solid var(--primary)' }} referrerPolicy="no-referrer" />
                   ) : (
-                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%)', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem' }}>
+                    <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%)', color: '#fff', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem' }}>
                       {avatarInitial}
                     </div>
                   )}
@@ -183,6 +240,37 @@ export default function Header({
             </div>
           ) : (
             <div style={styles.right}>
+              {/* Desktop Navbar Search Input */}
+              {currentUser && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '10px',
+                  padding: '6px 12px',
+                  width: '190px'
+                }}>
+                  <Search size={14} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                  <input
+                    type="text"
+                    placeholder="Search courses, PDFs..."
+                    value={globalSearchQuery || ''}
+                    onChange={handleSearchChange}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#ffffff',
+                      fontSize: '0.82rem',
+                      outline: 'none',
+                      width: '100%',
+                      fontFamily: 'var(--font-body)'
+                    }}
+                  />
+                </div>
+              )}
+
               {currentUser ? (
                 <>
                   <button

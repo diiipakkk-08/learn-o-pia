@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { useDatabase, extractYoutubePlaylistId, fetchYoutubePlaylistVideos, getUserDesignation } from '../../context/DatabaseContext';
 import {
   Plus, BookOpen, Trash2, Film, FolderPlus, ChevronDown,
-  Pencil, Check, X, Users, AlertCircle, ArrowUp, ArrowDown
+  Pencil, Check, X, Users, AlertCircle, ArrowUp, ArrowDown, Copy
 } from 'lucide-react';
 
 // ── Portal Dropdown ─────────────────────────────────────────────────────────
@@ -196,6 +196,7 @@ export default function CreatorStudio() {
   const [importUrl, setImportUrl] = useState('');
   const [importStatus, setImportStatus] = useState('');
   const [isImporting, setIsImporting] = useState(false);
+  const [copiedDocId, setCopiedDocId] = useState(null);
 
   const [showCourseForm, setShowCourseForm] = useState(false);
   const [courseTitle, setCourseTitle] = useState('');
@@ -857,15 +858,15 @@ export default function CreatorStudio() {
 
                             {/* Document upload */}
                             <div className="glass-panel" style={styles.formCard}>
-                              <h4 style={styles.formCardTitle}><Plus size={14} color="var(--secondary)" /> Attach Reference Link</h4>
+                              <h4 style={styles.formCardTitle}><Plus size={14} color="var(--secondary)" /> Attach Reference Link or Existing Resource ID</h4>
                               <form onSubmit={handleAddMaterial} style={styles.formBoxContent}>
                                 <div className="form-group" style={{ marginBottom: '8px' }}>
-                                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Resource Title</label>
-                                  <input type="text" value={resourceTitle} onChange={e => setResourceTitle(e.target.value)} placeholder="Chapter Notes" className="form-input" style={{ padding: '6px 10px', fontSize: '0.8rem' }} required />
+                                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Resource Title (Optional if linking by ID)</label>
+                                  <input type="text" value={resourceTitle} onChange={e => setResourceTitle(e.target.value)} placeholder="Chapter Notes / Formula Sheet" className="form-input" style={{ padding: '6px 10px', fontSize: '0.8rem' }} />
                                 </div>
                                 <div className="form-group" style={{ marginBottom: '8px' }}>
-                                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Resource URL</label>
-                                  <input type="text" value={resourceUrl} onChange={e => setResourceUrl(e.target.value)} placeholder="Google Drive / any link..." className="form-input" style={{ padding: '6px 10px', fontSize: '0.8rem' }} required />
+                                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Resource URL or Existing Resource ID / UUID</label>
+                                  <input type="text" value={resourceUrl} onChange={e => setResourceUrl(e.target.value)} placeholder="URL or paste Resource ID (e.g. res-1724...)" className="form-input" style={{ padding: '6px 10px', fontSize: '0.8rem' }} required />
                                 </div>
                                 <div className="form-group" style={{ marginBottom: '8px' }}>
                                   <label className="form-label" style={{ fontSize: '0.75rem' }}>Resource Author / Credits</label>
@@ -1067,7 +1068,27 @@ export default function CreatorStudio() {
                                         <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', paddingLeft: '8px' }}>No files uploaded.</p>
                                       ) : sectionDocs.map(doc => (
                                         <div key={doc.id} style={styles.enrolledItem}>
-                                          <span style={{ fontSize: '0.75rem' }}>📄 {doc.title}</span>
+                                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, textAlign: 'left' }}>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#fff' }}>📄 {doc.title}</span>
+                                            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                              ID: <code style={{ color: '#a78bfa' }}>{doc.id}</code>
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  if (doc.id) {
+                                                    navigator.clipboard.writeText(doc.id);
+                                                    setCopiedDocId(doc.id);
+                                                    setTimeout(() => setCopiedDocId(null), 2000);
+                                                  }
+                                                }}
+                                                style={{ background: 'none', border: 'none', color: copiedDocId === doc.id ? '#10b981' : 'var(--text-muted)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 2, padding: 0 }}
+                                                title="Copy Resource ID to paste into other subjects"
+                                              >
+                                                {copiedDocId === doc.id ? <Check size={10} /> : <Copy size={10} />}
+                                                {copiedDocId === doc.id && <span style={{ fontSize: '0.6rem', color: '#10b981' }}>Copied</span>}
+                                              </button>
+                                            </span>
+                                          </div>
                                           <button onClick={() => deleteSubjectMaterial(activeSubject.id, doc.id)} style={styles.deleteIconBtn}><Trash2 size={11} /></button>
                                         </div>
                                       ))}

@@ -1932,43 +1932,82 @@ export function DatabaseProvider({ children }) {
     }
   };
 
-  const addSubjectMaterial = async (subjectId, title, url, sectionName, author = '') => {
+  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
+
+  const getResourceById = (targetId) => {
+    if (!targetId) return null;
+    const cleanId = String(targetId).trim().toLowerCase();
+
+    // 1. Search standalone open resources
+    if (standaloneResources && Array.isArray(standaloneResources)) {
+      const found = standaloneResources.find(r => r.id && String(r.id).toLowerCase() === cleanId);
+      if (found) return found;
+    }
+
+    // 2. Search materials across all subjects
+    for (const sub of subjects) {
+      if (sub.materials && Array.isArray(sub.materials)) {
+        const found = sub.materials.find(m => m.id && String(m.id).toLowerCase() === cleanId);
+        if (found) return { ...found, subjectTitle: sub.title };
+      }
+    }
+
+    return null;
+  };
+
+  const addSubjectMaterial = async (subjectId, title, urlOrResId, sectionName, author = '') => {
     const subject = subjects.find(s => s.id === subjectId);
     const siblings = subject ? (subject.materials || []).filter(m => m.sectionName === sectionName) : [];
     const newPosition = siblings.length;
+
+    // Check if input is an existing resource ID / UUID
+    const existingRes = getResourceById(urlOrResId);
+    const finalTitle = existingRes ? (title.trim() || existingRes.title) : title;
+    const finalUrl = existingRes ? existingRes.url : urlOrResId;
+    const finalAuthor = existingRes ? (existingRes.author || author || currentUser?.name || '') : (author || currentUser?.name || '');
+    const resourceIdRef = existingRes ? existingRes.id : null;
 
     if (isSupabaseLive) {
       try {
         const { error } = await supabase.from('materials').insert([{
           subject_id: subjectId,
-          title,
-          url,
+          title: finalTitle,
+          url: finalUrl,
           section_name: sectionName,
-          author: author || currentUser?.name || '',
-          position: newPosition
+          author: finalAuthor,
+          position: newPosition,
+          resource_id: resourceIdRef
         }]);
         if (error) throw error;
       } catch (err) {
-        console.warn("Retrying material insert without 'position' column:", err);
+        console.warn("Retrying material insert fallback:", err);
         await supabase.from('materials').insert([{
           subject_id: subjectId,
-          title,
-          url,
+          title: finalTitle,
+          url: finalUrl,
           section_name: sectionName,
-          author: author || currentUser?.name || ''
+          author: finalAuthor
         }]);
       }
-      addLog(`Document attached: "${title}"`);
+      addLog(`Document attached: "${finalTitle}"`);
       syncSupabase();
     } else {
       setSubjects(prev => prev.map(s => {
         if (s.id === subjectId) {
-          const newDoc = { id: 'doc-' + Date.now(), title, url, sectionName, author: author || currentUser?.name || '', position: newPosition };
+          const newDoc = {
+            id: existingRes ? existingRes.id : ('doc-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5)),
+            title: finalTitle,
+            url: finalUrl,
+            sectionName,
+            author: finalAuthor,
+            position: newPosition,
+            originalResourceId: resourceIdRef
+          };
           return { ...s, materials: [...(s.materials || []), newDoc] };
         }
         return s;
       }));
-      addLog(`Document attached: "${title}"`);
+      addLog(`Document attached: "${finalTitle}"`);
     }
   };
 
@@ -2861,6 +2900,9 @@ export function DatabaseProvider({ children }) {
       deleteSubjectMaterialSection,
       addSubjectMaterial,
       deleteSubjectMaterial,
+      globalSearchQuery,
+      setGlobalSearchQuery,
+      getResourceById,
       togglePlaylistLike,
       toggleVideoLike,
       approveCreator,

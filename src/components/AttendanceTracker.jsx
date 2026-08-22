@@ -93,7 +93,7 @@ function sanitizeAndFormatRoutineJson(rawJson) {
       const durationText = item.durationText || formatDurationText(durationHours, durationMins);
 
       return {
-        id: item.id || `r-${Date.now()}-${Math.random().toString(36).substr(2, 6)}-${idx}`,
+        id: `cls-${day.toLowerCase().slice(0,3)}-${idx}-${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 6)}`,
         subject: String(subject).trim(),
         startTime24,
         durationHours,
@@ -278,10 +278,12 @@ export default function AttendanceTracker({ setCurrentView }) {
         return;
       }
 
-      setRoutine(data.routine);
-      if (data.semesterStartDate) {
-        setSemesterStartDate(data.semesterStartDate);
-        setTempStartDateInput(data.semesterStartDate);
+      const sanitizedImport = sanitizeAndFormatRoutineJson(data.routine);
+      setRoutine(sanitizedImport.routine);
+      if (data.semesterStartDate || sanitizedImport.semesterStartDate) {
+        const startDt = data.semesterStartDate || sanitizedImport.semesterStartDate;
+        setSemesterStartDate(startDt);
+        setTempStartDateInput(startDt);
       }
 
       setShowImportModal(false);
@@ -737,46 +739,62 @@ export default function AttendanceTracker({ setCurrentView }) {
 
   return (
     <div style={styles.container} className="animate-fade-in">
-      {/* Top Banner & Header */}
-      <div className="glass-panel" style={{ padding: isMobile ? '16px' : '20px 24px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', textAlign: 'left' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '14px', minWidth: 0 }}>
-          <div style={{ width: isMobile ? 38 : 44, height: isMobile ? 38 : 44, borderRadius: isMobile ? 12 : 14, background: 'linear-gradient(135deg, var(--primary) 0%, #10b981 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Calendar size={isMobile ? 18 : 22} color="#ffffff" />
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <h2 style={{ fontSize: isMobile ? '1rem' : '1.25rem', margin: 0, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Semester Attendance Tracker</h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                Semester Started: <strong>{semesterStartDate}</strong>
-              </span>
-              <button
-                onClick={() => { setTempStartDateInput(semesterStartDate); setShowStartDateModal(true); }}
-                style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: isMobile ? '0.68rem' : '0.75rem', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
-              >
-                Change Date
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button className="btn btn-secondary" onClick={() => { setTempStartDateInput(formatLocalDate(new Date())); setShowEndSemModal(true); }} style={{ padding: isMobile ? '8px 12px' : undefined, fontSize: isMobile ? '0.75rem' : undefined }}>
-            <RefreshCw size={isMobile ? 13 : 15} /> {isMobile ? 'New Semester' : 'End & Start New Semester'}
+      {/* Consolidated Top Action & Navigation Bar */}
+      <div className="glass-panel" style={{
+        padding: isMobile ? '10px 14px' : '12px 18px',
+        marginBottom: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '10px'
+      }}>
+        {/* Left Side: Navigation Tabs */}
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            className={`btn ${activeTab === 'tracker' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('tracker')}
+            style={{ fontSize: isMobile ? '0.75rem' : '0.82rem', padding: '6px 12px' }}
+          >
+            <CalendarCheck size={15} /> {isMobile ? 'Logger' : 'Daily Logger'}
+          </button>
+          <button
+            className={`btn ${activeTab === 'routine' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('routine')}
+            style={{ fontSize: isMobile ? '0.75rem' : '0.82rem', padding: '6px 12px' }}
+          >
+            <Settings size={15} /> {isMobile ? 'Timetable' : 'Weekly Timetable'}
+          </button>
+          <button
+            className={`btn ${activeTab === 'analytics' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('analytics')}
+            style={{ fontSize: isMobile ? '0.75rem' : '0.82rem', padding: '6px 12px' }}
+          >
+            <TrendingUp size={15} /> {isMobile ? 'Analytics' : 'Analytics'}
           </button>
         </div>
-      </div>
 
-      {/* Tabs Row - Scrollable on mobile */}
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px', overflowX: 'auto', flexWrap: 'nowrap', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-        <button className={`btn ${activeTab === 'tracker' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('tracker')} style={{ flex: '0 0 auto', minWidth: isMobile ? '110px' : '130px', justifyContent: 'center', fontSize: isMobile ? '0.75rem' : '0.82rem', padding: isMobile ? '8px 10px' : '9px 12px', whiteSpace: 'nowrap' }}>
-          <CalendarCheck size={isMobile ? 14 : 16} /> {isMobile ? 'Logger' : 'Daily Logger'}
-        </button>
-        <button className={`btn ${activeTab === 'routine' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('routine')} style={{ flex: '0 0 auto', minWidth: isMobile ? '110px' : '130px', justifyContent: 'center', fontSize: isMobile ? '0.75rem' : '0.82rem', padding: isMobile ? '8px 10px' : '9px 12px', whiteSpace: 'nowrap' }}>
-          <Settings size={isMobile ? 14 : 16} /> {isMobile ? 'Timetable' : 'Weekly Timetable'}
-        </button>
-        <button className={`btn ${activeTab === 'analytics' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setActiveTab('analytics')} style={{ flex: '0 0 auto', minWidth: isMobile ? '110px' : '130px', justifyContent: 'center', fontSize: isMobile ? '0.75rem' : '0.82rem', padding: isMobile ? '8px 10px' : '9px 12px', whiteSpace: 'nowrap' }}>
-          <TrendingUp size={isMobile ? 14 : 16} /> {isMobile ? 'Analytics' : 'Analytics'}
-        </button>
+        {/* Right Side: Semester Date & New Semester Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', fontSize: '0.78rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+            <Calendar size={14} color="var(--primary)" />
+            <span>Started: <strong>{semesterStartDate}</strong></span>
+            <button
+              onClick={() => { setTempStartDateInput(semesterStartDate); setShowStartDateModal(true); }}
+              style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline', padding: 0, fontSize: '0.75rem' }}
+            >
+              Change
+            </button>
+          </div>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => { setTempStartDateInput(formatLocalDate(new Date())); setShowEndSemModal(true); }}
+            style={{ fontSize: '0.75rem', padding: '5px 10px' }}
+            title="Reset schedule & start fresh semester"
+          >
+            <RefreshCw size={13} /> {isMobile ? 'New Sem' : 'New Semester'}
+          </button>
+        </div>
       </div>
 
       {/* TAB 1: DAILY ATTENDANCE LOGGER */}
@@ -848,8 +866,8 @@ export default function AttendanceTracker({ setCurrentView }) {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {scheduledToday.map((cls) => {
-                  const rawStatus = dayLog.classes[cls.id];
-                  const status = rawStatus || (isSelectedPastDay ? 'absent' : null); // ONLY PAST UNMARKED DAYS DEFAULT TO ABSENT
+                  const rawStatus = dayLog.classes ? dayLog.classes[cls.id] : undefined;
+                  const status = rawStatus;
 
                   return (
                     <div
@@ -872,8 +890,8 @@ export default function AttendanceTracker({ setCurrentView }) {
                           {cls.startTime} - {cls.endTime} ({cls.durationText || `${cls.duration || 60}m`}) · {cls.room}
                         </span>
                         {!rawStatus && isSelectedPastDay && (
-                          <span style={{ fontSize: isMobile ? '0.65rem' : '0.7rem', color: '#f87171', display: 'block', fontWeight: 600, marginTop: 2 }}>
-                            (Passed Day Unmarked → Default Absent)
+                          <span style={{ fontSize: isMobile ? '0.65rem' : '0.7rem', color: 'var(--text-muted)', display: 'block', fontWeight: 500, marginTop: 2 }}>
+                            (Unmarked past class · Defaults to absent in percentage)
                           </span>
                         )}
                         {!rawStatus && !isSelectedPastDay && (
@@ -893,8 +911,8 @@ export default function AttendanceTracker({ setCurrentView }) {
                         </button>
                         <button
                           onClick={() => markClassStatus(cls.id, 'absent')}
-                          className={`btn ${rawStatus === 'absent' || (isSelectedPastDay && !rawStatus) ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                          style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', padding: isMobile ? '4px 8px' : '4px 8px', color: (rawStatus === 'absent' || (isSelectedPastDay && !rawStatus)) ? '#f87171' : undefined, flex: isMobile ? '1 1 auto' : 'none', minWidth: isMobile ? '70px' : undefined }}
+                          className={`btn ${rawStatus === 'absent' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                          style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', padding: isMobile ? '4px 8px' : '4px 8px', color: rawStatus === 'absent' ? '#f87171' : undefined, flex: isMobile ? '1 1 auto' : 'none', minWidth: isMobile ? '70px' : undefined }}
                         >
                           <XCircle size={isMobile ? 11 : 13} /> {isMobile ? 'A' : 'Absent'}
                         </button>

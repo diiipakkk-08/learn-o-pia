@@ -19,7 +19,8 @@ import {
   SkipBack,
   SkipForward,
   UserCheck,
-  Folder
+  Folder,
+  Copy
 } from 'lucide-react';
 
 const TYPE_LABEL = {
@@ -169,8 +170,17 @@ export default function LearningPlayer({
   const [mobileTab, setMobileTab] = useState('playlist'); // 'playlist' | 'materials' | 'overview'
 
   const [shareCopied, setShareCopied] = useState(false);
+  const [copiedPlayerResId, setCopiedPlayerResId] = useState(null);
   const [userNotes, setUserNotes] = useState({});
   const [currentNoteText, setCurrentNoteText] = useState('');
+
+  const handleCopyResId = (resId, e) => {
+    if (e) e.preventDefault();
+    if (!resId) return;
+    navigator.clipboard.writeText(resId);
+    setCopiedPlayerResId(resId);
+    setTimeout(() => setCopiedPlayerResId(null), 2000);
+  };
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 1023);
@@ -846,20 +856,34 @@ export default function LearningPlayer({
                         {files.length > 0 ? (
                           <div className="sidebar-mat-list" style={{ gap: '6px' }}>
                             {files.map((mat) => (
-                              <a
+                              <div
                                 key={mat.id}
-                                href={mat.url}
-                                target="_blank"
-                                rel="noreferrer"
                                 className="sidebar-mat-card"
-                                style={{ padding: '8px 12px' }}
+                                style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                               >
-                                <FileText size={16} color="var(--primary)" />
-                                <div>
-                                  <strong style={{ fontSize: '0.82rem' }}>{mat.title}</strong>
-                                  <span className="mat-type-sub" style={{ fontSize: '0.7rem' }}>{TYPE_LABEL[mat.type] || mat.type || sectionTitle}</span>
-                                </div>
-                              </a>
+                                <a
+                                  href={mat.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: 'inherit', flex: 1, minWidth: 0 }}
+                                >
+                                  <FileText size={16} color="var(--primary)" style={{ flexShrink: 0 }} />
+                                  <div style={{ minWidth: 0 }}>
+                                    <strong style={{ fontSize: '0.82rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{mat.title}</strong>
+                                    <span className="mat-type-sub" style={{ fontSize: '0.7rem' }}>{TYPE_LABEL[mat.type] || mat.type || sectionTitle}</span>
+                                  </div>
+                                </a>
+
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleCopyResId(mat.id, e)}
+                                  style={{ background: 'none', border: 'none', color: copiedPlayerResId === mat.id ? '#10b981' : 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, padding: '4px', fontSize: '0.65rem' }}
+                                  title={`Copy Resource ID (${mat.id})`}
+                                >
+                                  {copiedPlayerResId === mat.id ? <Check size={12} /> : <Copy size={12} />}
+                                  {copiedPlayerResId === mat.id && <span>Copied</span>}
+                                </button>
+                              </div>
                             ))}
                           </div>
                         ) : (
