@@ -157,6 +157,7 @@ export default function CreatorStudio() {
   const [showStandaloneForm, setShowStandaloneForm] = useState(false);
   const [resTitle, setResTitle] = useState('');
   const [resUrl, setResUrl] = useState('');
+  const [resType, setResType] = useState('pdf');
   const [resCategory, setResCategory] = useState('Formula Sheet & Quick Reference');
   const [resDesc, setResDesc] = useState('');
   const [resSuccess, setResSuccess] = useState('');
@@ -169,7 +170,7 @@ export default function CreatorStudio() {
       addStandaloneResource({
         title: resTitle.trim(),
         url: resUrl.trim(),
-        type: 'pdf',
+        type: resType,
         category: resCategory,
         description: resDesc.trim(),
         author: getUserDesignation(currentUser)
@@ -204,6 +205,7 @@ export default function CreatorStudio() {
   const [courseDesc, setCourseDesc] = useState('');
   const [courseType, setCourseType] = useState('standard');
   const [coursePrice, setCoursePrice] = useState(0);
+  const [courseBannerUrl, setCourseBannerUrl] = useState('');
 
   const [showSubjectForm, setShowSubjectForm] = useState(false);
   const [subjectTitle, setSubjectTitle] = useState('');
@@ -251,8 +253,8 @@ export default function CreatorStudio() {
   const handleCreateCourse = (e) => {
     e.preventDefault();
     if (!courseTitle.trim() || !courseDesc.trim()) return;
-    addCourse(courseTitle, courseDept, courseDesc, coursePrice, isAdmin ? (courseType === 'degree') : false, courseAuthor);
-    setCourseTitle(''); setCourseDesc(''); setCoursePrice(0); setCourseAuthor(''); setShowCourseForm(false);
+    addCourse(courseTitle, courseDept, courseDesc, coursePrice, isAdmin ? (courseType === 'degree') : false, courseAuthor, courseBannerUrl);
+    setCourseTitle(''); setCourseDesc(''); setCoursePrice(0); setCourseAuthor(''); setCourseBannerUrl(''); setShowCourseForm(false);
   };
   const handleCreateSubject = (e) => {
     e.preventDefault();
@@ -370,7 +372,7 @@ export default function CreatorStudio() {
             Share a public PDF, formula sheet, or reference guide directly without nesting it inside a degree course or playlist series.
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px', marginBottom: '14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px', marginBottom: '14px' }}>
             <div>
               <label className="form-label" style={{ fontSize: '0.78rem' }}>Resource Title</label>
               <input
@@ -384,11 +386,26 @@ export default function CreatorStudio() {
             </div>
 
             <div>
-              <label className="form-label" style={{ fontSize: '0.78rem' }}>Resource PDF / Link URL</label>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>Resource Type</label>
+              <select
+                className="form-input"
+                value={resType}
+                onChange={(e) => setResType(e.target.value)}
+              >
+                <option value="drive">Google Drive Folder / Link</option>
+                <option value="pdf">PDF Document</option>
+                <option value="link">External Web Link / Note</option>
+                <option value="formula">Formula Sheet & Quick Reference</option>
+                <option value="lab">Lab Manual & Viva Guide</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>Resource URL / Link</label>
               <input
                 type="url"
                 className="form-input"
-                placeholder="https://drive.google.com/file/d/..."
+                placeholder="https://drive.google.com/file/d/... or any PDF link"
                 value={resUrl}
                 onChange={(e) => setResUrl(e.target.value)}
                 required
@@ -507,6 +524,10 @@ export default function CreatorStudio() {
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Price (INR / 0 for Free)</label>
                   <input type="number" min="0" value={coursePrice} onChange={e => setCoursePrice(e.target.value)} placeholder="499" className="form-input" />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Course Banner Image URL (Optional)</label>
+                  <input type="url" value={courseBannerUrl} onChange={e => setCourseBannerUrl(e.target.value)} placeholder="https://images.unsplash.com/photo-..." className="form-input" />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Description</label>

@@ -97,72 +97,53 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
 
   return (
     <div style={styles.container} className="animate-fade-in">
-      {/* Minimal Top Tab Switcher */}
-      <section style={{ padding: '8px 12px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="glass-panel">
-        <div style={{ display: 'flex', gap: '8px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '10px' }}>
-          <button
-            className={`btn ${activeTab === 'courses' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setActiveTab('courses')}
-            style={{ padding: '6px 14px', fontSize: '0.82rem' }}
-          >
-            <BookOpen size={15} /> Degree Curricula ({courses.length})
-          </button>
-          <button
-            className={`btn ${activeTab === 'materials' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setActiveTab('materials')}
-            style={{ padding: '6px 14px', fontSize: '0.82rem' }}
-          >
-            <FileText size={15} /> Open Study Resources ({allResources.length})
-          </button>
-        </div>
-      </section>
+      {/* Degree Curricula Grid with Rich Banner Images */}
+      <div style={styles.coursesGrid}>
+        {filteredCourses.map((course) => {
+          const isEnrolled = currentUser?.enrolledCourses?.includes(course.id);
+          return (
+            <div key={course.id} className="glass-panel" style={{ ...styles.courseCard, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              {/* Course Banner Image */}
+              <div style={{ height: '140px', width: '100%', position: 'relative', overflow: 'hidden', background: 'rgba(0,0,0,0.3)' }}>
+                <img
+                  src={course.bannerUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800&auto=format&fit=crop'}
+                  alt={course.title}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(13,14,24,0.85) 100%)' }} />
+                <span style={{ position: 'absolute', top: '10px', left: '10px', fontSize: '0.68rem', fontWeight: 700, color: '#fff', background: 'rgba(139,92,246,0.85)', padding: '3px 8px', borderRadius: '6px', backdropFilter: 'blur(4px)' }}>
+                  {course.department}
+                </span>
+                <span style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '0.68rem', fontWeight: 600, color: course.isDegree ? '#10b981' : '#f59e0b', background: 'rgba(0,0,0,0.7)', padding: '3px 8px', borderRadius: '6px' }}>
+                  {course.isDegree ? 'Degree Program' : 'Standard Course'}
+                </span>
+              </div>
 
-      {/* TAB 1: Degree Curricula Grid */}
-      {activeTab === 'courses' && (
-        <div style={styles.coursesGrid}>
-          {filteredCourses.map((course) => {
-            const isEnrolled = currentUser?.enrolledCourses?.includes(course.id);
-            return (
-              <div key={course.id} className="glass-panel" style={styles.courseCard}>
-                <div style={styles.cardHeader}>
-                  <span className="badge badge-learner" style={{ fontSize: '0.7rem' }}>
-                    {course.department}
-                  </span>
-                  <span style={{ fontSize: '0.7rem', color: course.isDegree ? 'var(--primary)' : 'var(--secondary)', fontWeight: 600, textTransform: 'uppercase' }}>
-                    {course.isDegree ? 'Degree Program' : 'Standard Course'}
-                  </span>
+              <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, justifyContent: 'space-between', textAlign: 'left' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#ffffff', margin: '0 0 6px 0', lineHeight: '1.3' }}>{course.title}</h3>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4' }}>{course.description}</p>
                 </div>
 
-                <div style={styles.cardBody}>
-                  <h3 style={styles.courseTitle}>{course.title}</h3>
-                  <p style={styles.courseDesc}>{course.description}</p>
-                </div>
-
-                <div style={styles.cardFooter}>
-                  <div style={styles.priceTag}>
-                    {course.price === 0 ? (
-                      <span style={{ color: 'var(--success)', fontWeight: 700 }}>FREE ACCESS</span>
-                    ) : (
-                      <span style={{ color: '#ffffff', fontWeight: 700 }}>₹{course.price}</span>
-                    )}
-                  </div>
-
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: course.price === 0 ? '#10b981' : '#ffffff' }}>
+                    {course.price === 0 ? 'FREE ACCESS' : `₹${course.price}`}
+                  </span>
                   <button
                     onClick={() => {
                       setSelectedPlaylistId(course.id);
                       setCurrentView('learning-player');
                     }}
-                    className="btn btn-primary"
-                    style={{ padding: '8px 16px', fontSize: '0.82rem' }}
+                    className="btn btn-primary btn-sm"
                   >
                     {isEnrolled ? 'Open Course' : 'View Course'}
                   </button>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
+            </div>
+          );
+        })}
+      </div>
 
       {/* TAB 2: Open Study Resources Feed (Including Standalone Resources) */}
       {activeTab === 'materials' && (

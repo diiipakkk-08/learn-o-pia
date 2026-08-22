@@ -12,8 +12,9 @@ import AdDonationModal from './components/AdDonationModal';
 // Shared Learning Views
 import CoursesDashboard from './components/learning/CoursesDashboard';
 import LearningPlayer from './components/learning/LearningPlayer';
+import MyLearningView from './components/learning/MyLearningView';
 import AttendanceTracker from './components/AttendanceTracker';
-import DiscussionsView from './components/discussions/DiscussionsView';
+import ResourcesView from './components/resources/ResourcesView';
 
 // Creator Views
 import CreatorStudio from './components/creator/CreatorStudio';
@@ -209,8 +210,12 @@ function AppContent() {
               <AttendanceTracker setCurrentView={setCurrentView} />
             )}
 
-            {currentView === 'discussions' && (
-              <DiscussionsView setCurrentView={setCurrentView} />
+            {(currentView === 'resources' || currentView === 'discussions') && (
+              <ResourcesView setCurrentView={setCurrentView} setSelectedPlaylistId={setSelectedPlaylistId} />
+            )}
+
+            {currentView === 'my-learning' && (
+              <MyLearningView setCurrentView={setCurrentView} setSelectedPlaylistId={setSelectedPlaylistId} />
             )}
 
             {currentView === 'learning' && (
@@ -235,16 +240,12 @@ function AppContent() {
               />
             )}
             
-            {/* Guarded Studio Access */}
+            {/* Studio Access (Open for all users) */}
             {currentView === 'studio' && (
-              (isVerifiedCreator || isAdmin) ? (
-                <CreatorStudio 
-                  setCurrentView={setCurrentView} 
-                  setSelectedPlaylistId={setSelectedPlaylistId} 
-                />
-              ) : (
-                <AccessDenied requiredRole="Creator" setCurrentView={setCurrentView} />
-              )
+              <CreatorStudio 
+                setCurrentView={setCurrentView} 
+                setSelectedPlaylistId={setSelectedPlaylistId} 
+              />
             )}
 
             {/* Guarded Admin Panel Access */}

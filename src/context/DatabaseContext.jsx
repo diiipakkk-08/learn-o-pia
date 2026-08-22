@@ -336,7 +336,8 @@ const SEED_COURSES = [
     price: 0,
     creatorId: 'u-2',
     creatorName: 'Prof. Sarah Miller',
-    isDegree: true
+    isDegree: true,
+    bannerUrl: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: 'c-2',
@@ -346,7 +347,8 @@ const SEED_COURSES = [
     price: 0,
     creatorId: 'u-2',
     creatorName: 'Prof. Sarah Miller',
-    isDegree: true
+    isDegree: true,
+    bannerUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=800&auto=format&fit=crop'
   },
   {
     id: 'c-3',
@@ -356,7 +358,8 @@ const SEED_COURSES = [
     price: 499,
     creatorId: 'u-2',
     creatorName: 'Prof. Sarah Miller',
-    isDegree: false
+    isDegree: false,
+    bannerUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop'
   }
 ];
 
@@ -473,6 +476,29 @@ export function DatabaseProvider({ children }) {
     const saved = localStorage.getItem('learnopia_standalone_resources');
     return saved ? JSON.parse(saved) : SEED_STANDALONE_RESOURCES;
   });
+
+  const [savedResourceIds, setSavedResourceIds] = useState(() => {
+    if (typeof window === 'undefined') return ['res-1'];
+    const saved = localStorage.getItem('learnopia_saved_resource_ids');
+    return saved ? JSON.parse(saved) : ['res-1'];
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('learnopia_saved_resource_ids', JSON.stringify(savedResourceIds));
+    }
+  }, [savedResourceIds]);
+
+  const toggleSaveResource = (resId) => {
+    if (!resId) return;
+    setSavedResourceIds(prev => {
+      return prev.includes(resId) ? prev.filter(id => id !== resId) : [...prev, resId];
+    });
+  };
+
+  const isResourceSaved = (resId) => {
+    return savedResourceIds.includes(resId);
+  };
 
   const addStandaloneResource = (resource) => {
     const newRes = {
@@ -687,7 +713,8 @@ export function DatabaseProvider({ children }) {
           creatorId: c.creator_id,
           creatorName: c.creator_name,
           isDegree: c.is_degree,
-          author: c.author
+          author: c.author,
+          bannerUrl: c.banner_url || c.bannerUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800&auto=format&fit=crop'
         }));
         setCourses(mappedCourses);
         localStorage.setItem('learnopia_courses_stable', JSON.stringify(mappedCourses));
@@ -1533,8 +1560,9 @@ export function DatabaseProvider({ children }) {
     }
   };
 
-  const addCourse = async (title, department, description, price = 0, isDegree = false, author = '') => {
+  const addCourse = async (title, department, description, price = 0, isDegree = false, author = '', bannerUrl = '') => {
     if (!currentUser) return;
+    const finalBanner = bannerUrl.trim() || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800&auto=format&fit=crop';
     if (isSupabaseLive) {
       await supabase.from('courses').insert([{
         title,
@@ -1544,7 +1572,8 @@ export function DatabaseProvider({ children }) {
         creator_id: currentUser.id,
         creator_name: currentUser.name,
         is_degree: isDegree,
-        author: author || currentUser.name
+        author: author || currentUser.name,
+        banner_url: finalBanner
       }]);
       addLog(`Course created: "${title}"`);
       syncSupabase();
@@ -1558,7 +1587,8 @@ export function DatabaseProvider({ children }) {
         creatorId: currentUser.id,
         creatorName: currentUser.name,
         isDegree,
-        author: author || currentUser.name
+        author: author || currentUser.name,
+        bannerUrl: finalBanner
       };
       setCourses(prev => [...prev, newCourse]);
       addLog(`Course created: "${title}"`);
@@ -1573,6 +1603,7 @@ export function DatabaseProvider({ children }) {
       if (fields.price !== undefined) updates.price = parseFloat(fields.price) || 0;
       if (fields.author !== undefined) updates.author = fields.author;
       if (fields.department !== undefined) updates.department = fields.department;
+      if (fields.bannerUrl !== undefined) updates.banner_url = fields.bannerUrl;
 
       await supabase
         .from('courses')
@@ -2903,6 +2934,9 @@ export function DatabaseProvider({ children }) {
       globalSearchQuery,
       setGlobalSearchQuery,
       getResourceById,
+      savedResourceIds,
+      toggleSaveResource,
+      isResourceSaved,
       togglePlaylistLike,
       toggleVideoLike,
       approveCreator,

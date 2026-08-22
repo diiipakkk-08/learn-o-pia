@@ -20,7 +20,9 @@ import {
   SkipForward,
   UserCheck,
   Folder,
-  Copy
+  Copy,
+  Bookmark,
+  BookmarkCheck
 } from 'lucide-react';
 
 const TYPE_LABEL = {
@@ -156,7 +158,7 @@ export default function LearningPlayer({
   setActiveVideoIndex,
   setCurrentView
 }) {
-  const { courses, subjects, currentUser } = useDatabase();
+  const { courses, subjects, currentUser, toggleSaveResource, isResourceSaved } = useDatabase();
 
   const [activeSemester, setActiveSemester] = useState(1);
   const [activeSubjectId, setActiveSubjectId] = useState(null);
@@ -799,6 +801,24 @@ export default function LearningPlayer({
 
                               <div className="video-row-details">
                                 <span className="vid-title-text">{video.title}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                    <Clock size={11} /> {video.durationText || '15:00'}
+                                  </span>
+                                  {video.id && (
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                      ID: <code style={{ color: '#a78bfa' }}>{video.id}</code>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => handleCopyResId(video.id, e)}
+                                        style={{ background: 'none', border: 'none', color: copiedPlayerResId === video.id ? '#10b981' : 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
+                                        title="Copy Video ID"
+                                      >
+                                        {copiedPlayerResId === video.id ? <Check size={10} /> : <Copy size={10} />}
+                                      </button>
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </button>
                           </li>
@@ -855,36 +875,52 @@ export default function LearningPlayer({
 
                         {files.length > 0 ? (
                           <div className="sidebar-mat-list" style={{ gap: '6px' }}>
-                            {files.map((mat) => (
-                              <div
-                                key={mat.id}
-                                className="sidebar-mat-card"
-                                style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                              >
-                                <a
-                                  href={mat.url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: 'inherit', flex: 1, minWidth: 0 }}
+                            {files.map((mat) => {
+                              const isSaved = isResourceSaved && isResourceSaved(mat.id);
+                              return (
+                                <div
+                                  key={mat.id}
+                                  className="sidebar-mat-card"
+                                  style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                                 >
-                                  <FileText size={16} color="var(--primary)" style={{ flexShrink: 0 }} />
-                                  <div style={{ minWidth: 0 }}>
-                                    <strong style={{ fontSize: '0.82rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{mat.title}</strong>
-                                    <span className="mat-type-sub" style={{ fontSize: '0.7rem' }}>{TYPE_LABEL[mat.type] || mat.type || sectionTitle}</span>
-                                  </div>
-                                </a>
+                                  <a
+                                    href={mat.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: 'inherit', flex: 1, minWidth: 0 }}
+                                  >
+                                    <FileText size={16} color="var(--primary)" style={{ flexShrink: 0 }} />
+                                    <div style={{ minWidth: 0 }}>
+                                      <strong style={{ fontSize: '0.82rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{mat.title}</strong>
+                                      <span className="mat-type-sub" style={{ fontSize: '0.7rem' }}>{TYPE_LABEL[mat.type] || mat.type || sectionTitle}</span>
+                                    </div>
+                                  </a>
 
-                                <button
-                                  type="button"
-                                  onClick={(e) => handleCopyResId(mat.id, e)}
-                                  style={{ background: 'none', border: 'none', color: copiedPlayerResId === mat.id ? '#10b981' : 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, padding: '4px', fontSize: '0.65rem' }}
-                                  title={`Copy Resource ID (${mat.id})`}
-                                >
-                                  {copiedPlayerResId === mat.id ? <Check size={12} /> : <Copy size={12} />}
-                                  {copiedPlayerResId === mat.id && <span>Copied</span>}
-                                </button>
-                              </div>
-                            ))}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        if (typeof toggleSaveResource === 'function') toggleSaveResource(mat.id);
+                                      }}
+                                      style={{ background: 'none', border: 'none', color: isSaved ? '#10b981' : 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+                                      title={isSaved ? 'Saved in My Resources' : 'Save to My Resources'}
+                                    >
+                                      {isSaved ? <BookmarkCheck size={14} color="#10b981" /> : <Bookmark size={14} />}
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={(e) => handleCopyResId(mat.id, e)}
+                                      style={{ background: 'none', border: 'none', color: copiedPlayerResId === mat.id ? '#10b981' : 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, padding: '4px', fontSize: '0.65rem' }}
+                                      title={`Copy Resource ID (${mat.id})`}
+                                    >
+                                      {copiedPlayerResId === mat.id ? <Check size={12} /> : <Copy size={12} />}
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         ) : (
                           <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: '4px 0 0 12px' }}>

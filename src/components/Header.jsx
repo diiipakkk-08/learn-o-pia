@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
-import { GraduationCap, LogOut, BookOpen, User, Info, Calendar, MessageSquare, Sparkles, Shield, Compass, MoreHorizontal, ChevronDown, X, Search } from 'lucide-react';
+import { GraduationCap, LogOut, BookOpen, User, Info, Calendar, MessageSquare, Sparkles, Shield, Compass, MoreHorizontal, ChevronDown, X, Search, FolderKanban } from 'lucide-react';
 
 export default function Header({
   currentView,
@@ -14,9 +14,10 @@ export default function Header({
   const mobileMenuRef = useRef(null);
 
   const pageTitles = {
+    'my-learning': 'My Learning',
+    resources: 'Resources',
     'learning-player': 'Course',
     attendance: 'Attendance',
-    discussions: 'Discussions',
     studio: 'Studio',
     admin: 'Admin Panel',
     profile: 'Profile',
@@ -60,17 +61,18 @@ export default function Header({
   const handleSearchChange = (e) => {
     const val = e.target.value;
     if (setGlobalSearchQuery) setGlobalSearchQuery(val);
-    if (currentView !== 'learning' && val.trim().length > 0) {
-      setCurrentView('learning');
+    if (currentView !== 'resources' && val.trim().length > 0) {
+      setCurrentView('resources');
     }
   };
 
   const mobileMenuItems = [
     { view: 'learning', icon: BookOpen, label: 'Learning', active: currentView === 'learning' || currentView === 'learning-player' },
-    { view: 'discussions', icon: MessageSquare, label: 'Discussions', active: currentView === 'discussions' },
+    { view: 'my-learning', icon: Compass, label: 'My Learning', active: currentView === 'my-learning' },
+    { view: 'resources', icon: FolderKanban, label: 'Resources', active: currentView === 'resources' || currentView === 'discussions' },
     { view: 'attendance', icon: Calendar, label: 'Attendance', active: currentView === 'attendance' },
+    { view: 'studio', icon: Sparkles, label: 'Studio', active: currentView === 'studio', iconColor: '#a78bfa' },
     { view: 'profile', icon: User, label: 'Profile', active: currentView === 'profile' },
-    ...(isCreatorOrAdmin ? [{ view: 'studio', icon: Sparkles, label: 'Studio', active: currentView === 'studio', iconColor: '#a78bfa' }] : []),
     ...(isAdmin ? [{ view: 'admin', icon: Shield, label: 'Admin Panel', active: currentView === 'admin' }] : []),
     { view: 'about', icon: Info, label: 'About', active: currentView === 'about' },
   ];
@@ -118,7 +120,29 @@ export default function Header({
                   color: (currentView === 'learning' || currentView === 'learning-player') ? '#ffffff' : 'var(--text-secondary)'
                 }}
               >
-                <BookOpen size={15} /> Learning
+                <BookOpen size={15} /> Curricula
+              </button>
+
+              <button
+                onClick={() => setCurrentView('my-learning')}
+                style={{
+                  ...styles.navBtn,
+                  background: currentView === 'my-learning' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                  color: currentView === 'my-learning' ? '#ffffff' : 'var(--text-secondary)'
+                }}
+              >
+                <Compass size={15} /> My Learning
+              </button>
+
+              <button
+                onClick={() => setCurrentView('resources')}
+                style={{
+                  ...styles.navBtn,
+                  background: (currentView === 'resources' || currentView === 'discussions') ? 'rgba(255,255,255,0.05)' : 'transparent',
+                  color: (currentView === 'resources' || currentView === 'discussions') ? '#ffffff' : 'var(--text-secondary)'
+                }}
+              >
+                <FolderKanban size={15} /> Resources
               </button>
 
               <button
@@ -133,28 +157,15 @@ export default function Header({
               </button>
 
               <button
-                onClick={() => setCurrentView('discussions')}
+                onClick={() => setCurrentView('studio')}
                 style={{
                   ...styles.navBtn,
-                  background: currentView === 'discussions' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                  color: currentView === 'discussions' ? '#ffffff' : 'var(--text-secondary)'
+                  background: currentView === 'studio' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                  color: currentView === 'studio' ? '#ffffff' : 'var(--text-secondary)'
                 }}
               >
-                <MessageSquare size={15} /> Discussions
+                <Sparkles size={15} color="#a78bfa" /> Studio
               </button>
-
-              {isCreatorOrAdmin && (
-                <button
-                  onClick={() => setCurrentView('studio')}
-                  style={{
-                    ...styles.navBtn,
-                    background: currentView === 'studio' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                    color: currentView === 'studio' ? '#ffffff' : 'var(--text-secondary)'
-                  }}
-                >
-                  <Sparkles size={15} color="#a78bfa" /> Studio
-                </button>
-              )}
 
               {isAdmin && (
                 <button
@@ -321,24 +332,24 @@ export default function Header({
             }}
           >
             <BookOpen size={20} />
-            <span style={styles.mobileTabLabel}>Learning</span>
+            <span style={styles.mobileTabLabel}>Curricula</span>
           </button>
 
-          {/* Section 2: Discussion */}
+          {/* Section 2: Resources */}
           <button
-            onClick={() => setCurrentView('discussions')}
+            onClick={() => setCurrentView('resources')}
             style={{
               ...styles.mobileNavTab,
-              color: currentView === 'discussions' ? 'var(--primary)' : 'var(--text-muted)'
+              color: (currentView === 'resources' || currentView === 'discussions') ? 'var(--primary)' : 'var(--text-muted)'
             }}
           >
-            <MessageSquare size={20} />
-            <span style={styles.mobileTabLabel}>Discussion</span>
+            <FolderKanban size={20} />
+            <span style={styles.mobileTabLabel}>Resources</span>
           </button>
 
           {/* Section 3: Center Elevated Floating Circle Button - My Learning */}
           <button
-            onClick={() => setCurrentView('learning')}
+            onClick={() => setCurrentView('my-learning')}
             style={styles.mobileCenterBtn}
             title="My Learning Workspace"
           >
@@ -360,16 +371,16 @@ export default function Header({
             <span style={styles.mobileTabLabel}>Attendance</span>
           </button>
 
-          {/* Section 5: Profile */}
+          {/* Section 5: Studio */}
           <button
-            onClick={() => setCurrentView('profile')}
+            onClick={() => setCurrentView('studio')}
             style={{
               ...styles.mobileNavTab,
-              color: currentView === 'profile' ? 'var(--primary)' : 'var(--text-muted)'
+              color: currentView === 'studio' ? '#a78bfa' : 'var(--text-muted)'
             }}
           >
-            <User size={20} />
-            <span style={styles.mobileTabLabel}>Profile</span>
+            <Sparkles size={20} color={currentView === 'studio' ? '#a78bfa' : 'var(--text-muted)'} />
+            <span style={styles.mobileTabLabel}>Studio</span>
           </button>
         </div>
       )}
