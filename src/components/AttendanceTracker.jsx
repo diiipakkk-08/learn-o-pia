@@ -394,6 +394,7 @@ export default function AttendanceTracker({ setCurrentView }) {
 
   // Tab state: 'tracker' | 'routine' | 'analytics'
   const [activeTab, setActiveTab] = useState('tracker');
+  const [subjectFilter, setSubjectFilter] = useState('all'); // 'all' | 'theories' | 'labs'
   const [showEndSemModal, setShowEndSemModal] = useState(false);
   const [showStartDateModal, setShowStartDateModal] = useState(false);
   const [showAddClassForm, setShowAddClassForm] = useState(false);
@@ -958,6 +959,20 @@ export default function AttendanceTracker({ setCurrentView }) {
       };
     });
   }, [routine, logs, semesterStartDate, selectedDate, todayStr]);
+
+  // Analytics Category Counts & Filtered List
+  const theorySubjectsCount = useMemo(() => subjectAnalytics.filter((s) => !s.isLab).length, [subjectAnalytics]);
+  const labSubjectsCount = useMemo(() => subjectAnalytics.filter((s) => s.isLab).length, [subjectAnalytics]);
+
+  const filteredSubjectAnalytics = useMemo(() => {
+    if (subjectFilter === 'theories') {
+      return subjectAnalytics.filter((sub) => !sub.isLab);
+    }
+    if (subjectFilter === 'labs') {
+      return subjectAnalytics.filter((sub) => sub.isLab);
+    }
+    return subjectAnalytics;
+  }, [subjectAnalytics, subjectFilter]);
 
   // Overall Total Summary & Multi-Metric Breakdown
   const overallStats = useMemo(() => {
@@ -1918,127 +1933,263 @@ export default function AttendanceTracker({ setCurrentView }) {
             </div>
           </div>
 
-          <h3 style={{ fontSize: isMobile ? '1rem' : '1.1rem', margin: '0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
-             Subject-wise Breakdown
-          </h3>
+          {/* SUBJECT-WISE BREAKDOWN HEADER WITH ALL / THEORIES / LABS FILTER */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            marginTop: '4px'
+          }}>
+            <h3 style={{ fontSize: isMobile ? '1rem' : '1.15rem', margin: '0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
+              <BookOpen size={isMobile ? 18 : 20} color="var(--primary)" /> Subject-wise Breakdown
+            </h3>
 
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(270px, 1fr))', gap: isMobile ? '12px' : '16px' }}>
-            {subjectAnalytics.map((sub) => {
-              const isAlert = sub.isAlert;
-              const isWeighted = (sub.points || 1) > 1;
-              const unitLabel = sub.isLab ? 'lab' : 'class';
-              const unitLabelPlural = sub.isLab ? 'labs' : 'classes';
+            {/* Filter Toggle Pills: All | Theories | Labs */}
+            <div style={{
+              display: 'inline-flex',
+              background: 'rgba(255, 255, 255, 0.04)',
+              padding: '3px',
+              borderRadius: '10px',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              gap: '4px',
+              width: isMobile ? '100%' : 'auto'
+            }}>
+              <button
+                type="button"
+                onClick={() => setSubjectFilter('all')}
+                className={`btn ${subjectFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{
+                  flex: isMobile ? 1 : 'none',
+                  fontSize: isMobile ? '0.72rem' : '0.78rem',
+                  padding: isMobile ? '5px 8px' : '5px 12px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  fontWeight: subjectFilter === 'all' ? 700 : 500
+                }}
+              >
+                <span>All</span>
+                <span style={{
+                  fontSize: '0.65rem',
+                  background: subjectFilter === 'all' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
+                  padding: '1px 6px',
+                  borderRadius: '10px',
+                  fontWeight: 700
+                }}>
+                  {subjectAnalytics.length}
+                </span>
+              </button>
 
-              // Color Theme:
-              // Alert -> Red
-              // > 1 Pt (or Lab) -> Electric Blue
-              // Normal 1 Pt -> Emerald Green
-              const cardBorder = isAlert 
-                ? '1px solid rgba(239,68,68,0.45)' 
-                : isWeighted 
-                  ? '1px solid rgba(59,130,246,0.45)' 
-                  : '1px solid rgba(16,185,129,0.35)';
+              <button
+                type="button"
+                onClick={() => setSubjectFilter('theories')}
+                className={`btn ${subjectFilter === 'theories' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{
+                  flex: isMobile ? 1 : 'none',
+                  fontSize: isMobile ? '0.72rem' : '0.78rem',
+                  padding: isMobile ? '5px 8px' : '5px 12px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  fontWeight: subjectFilter === 'theories' ? 700 : 500
+                }}
+              >
+                <span>📖 Theories</span>
+                <span style={{
+                  fontSize: '0.65rem',
+                  background: subjectFilter === 'theories' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
+                  padding: '1px 6px',
+                  borderRadius: '10px',
+                  fontWeight: 700
+                }}>
+                  {theorySubjectsCount}
+                </span>
+              </button>
 
-              const cardBg = isAlert 
-                ? 'rgba(239,68,68,0.06)' 
-                : isWeighted 
-                  ? 'rgba(59,130,246,0.06)' 
-                  : 'rgba(16,185,129,0.05)';
+              <button
+                type="button"
+                onClick={() => setSubjectFilter('labs')}
+                className={`btn ${subjectFilter === 'labs' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{
+                  flex: isMobile ? 1 : 'none',
+                  fontSize: isMobile ? '0.72rem' : '0.78rem',
+                  padding: isMobile ? '5px 8px' : '5px 12px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  fontWeight: subjectFilter === 'labs' ? 700 : 500
+                }}
+              >
+                <span>🧪 Labs</span>
+                <span style={{
+                  fontSize: '0.65rem',
+                  background: subjectFilter === 'labs' ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
+                  padding: '1px 6px',
+                  borderRadius: '10px',
+                  fontWeight: 700
+                }}>
+                  {labSubjectsCount}
+                </span>
+              </button>
+            </div>
+          </div>
 
-              const pctColor = isAlert 
-                ? '#f87171' 
-                : isWeighted 
-                  ? '#60a5fa' 
-                  : '#34d399';
+          {filteredSubjectAnalytics.length === 0 ? (
+            <div className="glass-panel" style={{
+              padding: isMobile ? '24px 16px' : '32px 20px',
+              textAlign: 'center',
+              borderRadius: '16px',
+              border: '1px dashed rgba(255,255,255,0.15)',
+              background: 'rgba(255,255,255,0.02)'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '8px' }}>
+                {subjectFilter === 'labs' ? '🧪' : subjectFilter === 'theories' ? '📖' : '📚'}
+              </div>
+              <div style={{ fontSize: isMobile ? '0.9rem' : '1rem', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
+                {subjectFilter === 'labs' 
+                  ? 'No Lab Subjects Found' 
+                  : subjectFilter === 'theories' 
+                    ? 'No Theory Subjects Found' 
+                    : 'No Subjects Found'}
+              </div>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', maxWidth: '420px', margin: '0 auto' }}>
+                {subjectFilter === 'labs'
+                  ? 'No subjects are currently marked as Labs. You can mark any subject as a lab using the "Set as Lab" button on subject cards or when adding classes to your weekly timetable.'
+                  : subjectFilter === 'theories'
+                    ? 'All your scheduled subjects are marked as Labs.'
+                    : 'Add subjects to your timetable to track their individual attendance, safe bunks, and alert margins.'}
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(270px, 1fr))', gap: isMobile ? '12px' : '16px' }}>
+              {filteredSubjectAnalytics.map((sub) => {
+                const isAlert = sub.isAlert;
+                const isWeighted = (sub.points || 1) > 1;
+                const unitLabel = sub.isLab ? 'lab' : 'class';
+                const unitLabelPlural = sub.isLab ? 'labs' : 'classes';
 
-              return (
-                <div
-                  key={sub.subject}
-                  className="glass-panel"
-                  style={{
-                    padding: isMobile ? '16px' : '20px',
-                    borderRadius: '16px',
-                    border: cardBorder,
-                    background: cardBg
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
-                      <h4 style={{ fontSize: isMobile ? '0.9rem' : '1rem', margin: 0, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub.subject}</h4>
-                      {sub.isLab && (
-                        <span style={{ fontSize: '0.65rem', background: 'rgba(139,92,246,0.25)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.4)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                          🧪 LAB
-                        </span>
-                      )}
+                // Color Theme:
+                // Alert -> Red
+                // > 1 Pt (or Lab) -> Electric Blue
+                // Normal 1 Pt -> Emerald Green
+                const cardBorder = isAlert 
+                  ? '1px solid rgba(239,68,68,0.45)' 
+                  : isWeighted 
+                    ? '1px solid rgba(59,130,246,0.45)' 
+                    : '1px solid rgba(16,185,129,0.35)';
+
+                const cardBg = isAlert 
+                  ? 'rgba(239,68,68,0.06)' 
+                  : isWeighted 
+                    ? 'rgba(59,130,246,0.06)' 
+                    : 'rgba(16,185,129,0.05)';
+
+                const pctColor = isAlert 
+                  ? '#f87171' 
+                  : isWeighted 
+                    ? '#60a5fa' 
+                    : '#34d399';
+
+                return (
+                  <div
+                    key={sub.subject}
+                    className="glass-panel"
+                    style={{
+                      padding: isMobile ? '16px' : '20px',
+                      borderRadius: '16px',
+                      border: cardBorder,
+                      background: cardBg
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
+                        <h4 style={{ fontSize: isMobile ? '0.9rem' : '1rem', margin: 0, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub.subject}</h4>
+                        {sub.isLab && (
+                          <span style={{ fontSize: '0.65rem', background: 'rgba(139,92,246,0.25)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.4)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                            🧪 LAB
+                          </span>
+                        )}
+                        {isWeighted && (
+                          <span style={{ fontSize: '0.65rem', background: 'rgba(59,130,246,0.25)', color: '#93c5fd', border: '1px solid rgba(59,130,246,0.4)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                            ⚡ Weight: {sub.points} Pts
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: isMobile ? '1rem' : '1.15rem', fontWeight: 800, color: pctColor }}>
+                        {sub.percentage}%
+                      </span>
+                    </div>
+
+                    {/* Point Weight & Type Selector Controls */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', background: 'rgba(255,255,255,0.03)', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Calculation Weight:</span>
+                      <select
+                        value={sub.points || 1}
+                        onChange={(e) => handleUpdateSubjectConfig(sub.subject, e.target.value, sub.isLab)}
+                        style={{ background: '#11121c', color: isWeighted ? '#93c5fd' : '#fff', border: isWeighted ? '1px solid rgba(59,130,246,0.5)' : '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', fontSize: '0.72rem', padding: '2px 6px', cursor: 'pointer', outline: 'none', fontWeight: 700 }}
+                        title="Point weight used in the backend calculation for attendance percentage"
+                      >
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((p) => (
+                          <option key={p} value={p}>
+                            {p} {p === 1 ? 'Point' : 'Points'} / {sub.isLab ? 'Lab' : 'Class'}
+                          </option>
+                        ))}
+                      </select>
+
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateSubjectConfig(sub.subject, sub.points, !sub.isLab)}
+                        className="btn btn-secondary btn-sm"
+                        style={{
+                          fontSize: '0.7rem',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          background: sub.isLab ? 'rgba(139,92,246,0.2)' : 'transparent',
+                          color: sub.isLab ? '#c4b5fd' : 'var(--text-secondary)',
+                          borderColor: sub.isLab ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.15)'
+                        }}
+                      >
+                        {sub.isLab ? '🧪 Lab Active' : '📖 Set as Lab'}
+                      </button>
+                    </div>
+
+                    <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span>Attended: <strong>{sub.attendedCount}</strong> {sub.attendedCount === 1 ? unitLabel : unitLabelPlural} / Conducted: <strong>{sub.totalConductedCount}</strong> {sub.totalConductedCount === 1 ? unitLabel : unitLabelPlural}</span>
+                      <span>Absent: <strong>{sub.absentCount}</strong> {sub.absentCount === 1 ? unitLabel : unitLabelPlural} · Mass Bunked: <strong>{sub.massbunkCount}</strong> · Cancelled: <strong>{sub.cancelledCount}</strong></span>
                       {isWeighted && (
-                        <span style={{ fontSize: '0.65rem', background: 'rgba(59,130,246,0.25)', color: '#93c5fd', border: '1px solid rgba(59,130,246,0.4)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                          ⚡ Weight: {sub.points} Pts
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '2px' }}>
+                          (Backend weight: {sub.attendedPoints} / {sub.totalConductedPoints} pts)
                         </span>
                       )}
                     </div>
-                    <span style={{ fontSize: isMobile ? '1rem' : '1.15rem', fontWeight: 800, color: pctColor }}>
-                      {sub.percentage}%
-                    </span>
-                  </div>
 
-                  {/* Point Weight & Type Selector Controls */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', background: 'rgba(255,255,255,0.03)', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Calculation Weight:</span>
-                    <select
-                      value={sub.points || 1}
-                      onChange={(e) => handleUpdateSubjectConfig(sub.subject, e.target.value, sub.isLab)}
-                      style={{ background: '#11121c', color: isWeighted ? '#93c5fd' : '#fff', border: isWeighted ? '1px solid rgba(59,130,246,0.5)' : '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', fontSize: '0.72rem', padding: '2px 6px', cursor: 'pointer', outline: 'none', fontWeight: 700 }}
-                      title="Point weight used in the backend calculation for attendance percentage"
-                    >
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((p) => (
-                        <option key={p} value={p}>
-                          {p} {p === 1 ? 'Point' : 'Points'} / {sub.isLab ? 'Lab' : 'Class'}
-                        </option>
-                      ))}
-                    </select>
-
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateSubjectConfig(sub.subject, sub.points, !sub.isLab)}
-                      className="btn btn-secondary btn-sm"
-                      style={{
-                        fontSize: '0.7rem',
-                        padding: '2px 8px',
-                        borderRadius: '6px',
-                        background: sub.isLab ? 'rgba(139,92,246,0.2)' : 'transparent',
-                        color: sub.isLab ? '#c4b5fd' : 'var(--text-secondary)',
-                        borderColor: sub.isLab ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.15)'
-                      }}
-                    >
-                      {sub.isLab ? '🧪 Lab Active' : '📖 Set as Lab'}
-                    </button>
+                    <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: isMobile ? '0.7rem' : '0.78rem' }}>
+                      {sub.isAlert ? (
+                        <span style={{ color: '#f87171', fontWeight: 600 }}>
+                          ⚠️ Attendance Alert: You must attend the next <strong>{sub.neededClasses}</strong> {sub.neededClasses === 1 ? unitLabel : unitLabelPlural} to reach {sub.target}%.
+                        </span>
+                      ) : (
+                        <span style={{ color: isWeighted ? '#60a5fa' : '#34d399', fontWeight: 600 }}>
+                          ✔ Safe Margin: You can safely bunk up to <strong>{sub.safeBunks}</strong> upcoming {sub.safeBunks === 1 ? unitLabel : unitLabelPlural}.
+                        </span>
+                      )}
+                    </div>
                   </div>
-
-                  <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span>Attended: <strong>{sub.attendedCount}</strong> {sub.attendedCount === 1 ? unitLabel : unitLabelPlural} / Conducted: <strong>{sub.totalConductedCount}</strong> {sub.totalConductedCount === 1 ? unitLabel : unitLabelPlural}</span>
-                    <span>Absent: <strong>{sub.absentCount}</strong> {sub.absentCount === 1 ? unitLabel : unitLabelPlural} · Mass Bunked: <strong>{sub.massbunkCount}</strong> · Cancelled: <strong>{sub.cancelledCount}</strong></span>
-                    {isWeighted && (
-                      <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '2px' }}>
-                        (Backend weight: {sub.attendedPoints} / {sub.totalConductedPoints} pts)
-                      </span>
-                    )}
-                  </div>
-
-                  <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: isMobile ? '0.7rem' : '0.78rem' }}>
-                    {sub.isAlert ? (
-                      <span style={{ color: '#f87171', fontWeight: 600 }}>
-                        ⚠️ Attendance Alert: You must attend the next <strong>{sub.neededClasses}</strong> {sub.neededClasses === 1 ? unitLabel : unitLabelPlural} to reach {sub.target}%.
-                      </span>
-                    ) : (
-                      <span style={{ color: isWeighted ? '#60a5fa' : '#34d399', fontWeight: 600 }}>
-                        ✔ Safe Margin: You can safely bunk up to <strong>{sub.safeBunks}</strong> upcoming {sub.safeBunks === 1 ? unitLabel : unitLabelPlural}.
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Archived Semesters History */}
           {archivedSemesters.length > 0 && (
