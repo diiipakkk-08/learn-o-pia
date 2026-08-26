@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
-import { Users, BookOpen, ShieldCheck, Check, Ban, Award, FileText, Shield, X, ExternalLink, CheckCircle2, Heart, Video, Sliders, Clock, Sparkles, PowerOff, Power, Eye, Calendar, Copy, Trash2, CalendarDays, BookCheck, AlertCircle, Info, RefreshCw, XCircle } from 'lucide-react';
+import { Users, BookOpen, ShieldCheck, Check, Ban, Award, FileText, Shield, X, ExternalLink, CheckCircle2, Heart, Video, Sliders, Clock, Sparkles, PowerOff, Power, Eye, Calendar, Copy, Trash2, CalendarDays, BookCheck, AlertCircle, Info, RefreshCw, XCircle, Megaphone } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const { currentUser, users, courses, subjects, activityLogs, approveCreator, rejectCreator, makeAdmin, toggleUserStatus, changeUserRole, adminVerifyUser, adSettings, updateAdSettings, createSharedRoutine, getAllSharedRoutines, deleteSharedRoutine } = useDatabase();
+  const { currentUser, users, courses, subjects, activityLogs, approveCreator, rejectCreator, makeAdmin, toggleUserStatus, changeUserRole, adminVerifyUser, adSettings, updateAdSettings, createSharedRoutine, getAllSharedRoutines, deleteSharedRoutine, broadcastAnnouncement, announcements } = useDatabase();
   const [activeTab, setActiveTab] = useState('verification');
   const [userSearchQuery, setUserSearchQuery] = useState('');
 
@@ -30,6 +30,34 @@ export default function AdminDashboard() {
   const [adMsg, setAdMsg] = useState(adSettings?.message || "Learn-o-pia is built by students, for students. Help us keep all engineering degree curricula, attendance algorithms, and YouTube lecture sync servers fast, open, and free for everyone!");
   const [adUrl, setAdUrl] = useState(adSettings?.targetUrl || "https://github.com/diiipakkk-08/learn-o-pia");
   const [adSavedToast, setAdSavedToast] = useState('');
+
+  // Announcement Broadcaster Form State
+  const [annTitle, setAnnTitle] = useState('');
+  const [annMessage, setAnnMessage] = useState('');
+  const [annResourceTitle, setAnnResourceTitle] = useState('');
+  const [annResourceUrl, setAnnResourceUrl] = useState('');
+  const [annToast, setAnnToast] = useState('');
+
+  const handleBroadcastSubmit = async (e) => {
+    e.preventDefault();
+    if (!annTitle.trim() || !annMessage.trim()) return;
+
+    if (broadcastAnnouncement) {
+      await broadcastAnnouncement({
+        title: annTitle.trim(),
+        message: annMessage.trim(),
+        resourceTitle: annResourceTitle.trim(),
+        resourceUrl: annResourceUrl.trim()
+      });
+
+      setAnnToast('📢 Announcement broadcasted! Linked resources auto-synced to Resources section.');
+      setAnnTitle('');
+      setAnnMessage('');
+      setAnnResourceTitle('');
+      setAnnResourceUrl('');
+      setTimeout(() => setAnnToast(''), 4500);
+    }
+  };
 
   // Sync state when remote adSettings from Supabase changes
   useEffect(() => {
@@ -263,6 +291,19 @@ export default function AdminDashboard() {
             >
               <Heart size={15} color="var(--primary)" />
               Ads & Pop-up Controls
+            </button>
+
+            <button 
+              onClick={() => setActiveTab('announcements')}
+              style={{
+                ...styles.sideTab,
+                background: activeTab === 'announcements' ? 'rgba(139, 92, 246, 0.15)' : 'transparent',
+                borderLeftColor: activeTab === 'announcements' ? 'var(--primary)' : 'transparent',
+                color: activeTab === 'announcements' ? '#c4b5fd' : 'var(--text-secondary)'
+              }}
+            >
+              <Megaphone size={15} color="#a78bfa" />
+              Announcements & Broadcasts ({announcements?.length || 0})
             </button>
           </div>
         </div>
@@ -1162,6 +1203,121 @@ export default function AdminDashboard() {
                   </button>
                 </div>
               </form>
+            </div>
+          )}
+
+          {/* TAB 6: Announcements & Resource Broadcaster */}
+          {activeTab === 'announcements' && (
+            <div style={styles.pane}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '10px' }}>
+                <div>
+                  <h3 style={styles.paneTitle}>Announcements & Resource Broadcaster</h3>
+                  <p style={styles.paneSub}>
+                    Broadcast platform notifications to the Header Bell Icon. Linking a resource link automatically appends it into the Resources section.
+                  </p>
+                </div>
+              </div>
+
+              {annToast && (
+                <div style={{ padding: '12px 16px', borderRadius: '12px', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.35)', color: '#34d399', marginBottom: '16px', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 8 }} className="animate-fade-in">
+                  <CheckCircle2 size={18} /> {annToast}
+                </div>
+              )}
+
+              {/* BROADCAST FORM */}
+              <form onSubmit={handleBroadcastSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '20px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid rgba(139,92,246,0.3)', marginBottom: '24px' }}>
+                <h4 style={{ fontSize: '0.95rem', color: '#ffffff', margin: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Megaphone size={16} color="var(--primary)" /> Send Broadcast Announcement
+                </h4>
+
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Announcement Headline / Title *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. Mid-term Exam Schedule & Revision Notes Released"
+                    value={annTitle}
+                    onChange={(e) => setAnnTitle(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Announcement Message *</label>
+                  <textarea
+                    className="form-input"
+                    rows={3}
+                    placeholder="Provide details about the update, event, or release..."
+                    value={annMessage}
+                    onChange={(e) => setAnnMessage(e.target.value)}
+                    style={{ resize: 'vertical' }}
+                    required
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Attach Resource Title (Optional)</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. Physics Formula Sheet PDF"
+                      value={annResourceTitle}
+                      onChange={(e) => setAnnResourceTitle(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Attach Resource Link / URL (Optional)</label>
+                    <input
+                      type="url"
+                      className="form-input"
+                      placeholder="e.g. https://example.com/physics-notes.pdf"
+                      value={annResourceUrl}
+                      onChange={(e) => setAnnResourceUrl(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0 }}>
+                  💡 Attaching a link will automatically publish a new entry into the <strong>Resources</strong> section for all learners!
+                </p>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button type="submit" className="btn btn-primary" style={{ padding: '8px 18px', fontSize: '0.85rem', gap: '6px' }}>
+                    <Megaphone size={14} /> Send Broadcast
+                  </button>
+                </div>
+              </form>
+
+              {/* RECENT BROADCAST HISTORY */}
+              <div>
+                <h4 style={{ fontSize: '0.95rem', color: '#ffffff', marginBottom: '12px', fontWeight: 700 }}>
+                  Recent Broadcast Notifications ({announcements?.length || 0})
+                </h4>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {(!announcements || announcements.length === 0) ? (
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No announcements sent yet.</p>
+                  ) : (
+                    announcements.map((ann) => (
+                      <div key={ann.id} style={{ padding: '14px 16px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <strong style={{ color: '#ffffff', fontSize: '0.9rem' }}>{ann.title}</strong>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                            {new Date(ann.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 6px 0' }}>{ann.message}</p>
+                        {ann.resourceUrl && (
+                          <span style={{ fontSize: '0.72rem', color: '#a78bfa', fontWeight: 600 }}>
+                            🔗 Linked Resource: {ann.resourceTitle || ann.resourceUrl}
+                          </span>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
           )}
 

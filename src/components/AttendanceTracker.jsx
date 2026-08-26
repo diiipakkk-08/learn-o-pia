@@ -89,6 +89,10 @@ function sanitizeAndFormatRoutineJson(rawJson) {
       const room = item.room || item.venue || item.location || '';
       const minTarget = parseInt(item.minTarget ?? item.target ?? 75, 10);
 
+      const isLab = Boolean(item.isLab || item.lab || (subject && String(subject).toLowerCase().includes('lab')));
+      const rawPoints = item.points ? parseInt(item.points, 10) : (isLab ? 2 : 1);
+      const points = isNaN(rawPoints) ? (isLab ? 2 : 1) : Math.max(1, Math.min(10, rawPoints));
+
       const startTime = item.startTime || format12HourTime(startTime24);
       const endTime = item.endTime || calculateEndTimeFromHM(startTime24, durationHours, durationMins);
       const durationText = item.durationText || formatDurationText(durationHours, durationMins);
@@ -103,7 +107,9 @@ function sanitizeAndFormatRoutineJson(rawJson) {
         endTime,
         durationText,
         room: String(room).trim(),
-        minTarget
+        minTarget,
+        isLab,
+        points
       };
     });
   }
@@ -134,6 +140,10 @@ function ensureRoutineHasUniqueIds(routineObj) {
       const room = item.room || item.venue || item.location || '';
       const minTarget = parseInt(item.minTarget ?? item.target ?? 75, 10);
 
+      const isLab = Boolean(item.isLab || item.lab || (cleanSubject && cleanSubject.toLowerCase().includes('lab')));
+      const rawPoints = item.points ? parseInt(item.points, 10) : (isLab ? 2 : 1);
+      const points = isNaN(rawPoints) ? (isLab ? 2 : 1) : Math.max(1, Math.min(10, rawPoints));
+
       const startTime = item.startTime || format12HourTime(startTime24);
       const endTime = item.endTime || calculateEndTimeFromHM(startTime24, durationHours, durationMins);
       const durationText = item.durationText || formatDurationText(durationHours, durationMins);
@@ -152,7 +162,9 @@ function ensureRoutineHasUniqueIds(routineObj) {
         endTime,
         durationText,
         room: String(room).trim(),
-        minTarget
+        minTarget,
+        isLab,
+        points
       };
     });
   }
@@ -735,6 +747,31 @@ export default function AttendanceTracker({ setCurrentView }) {
     }
   };
 
+  // Dynamically Update Subject Weight / Lab Status across Routine (Data-safe & Backward Compatible)
+  const handleUpdateSubjectConfig = (subName, newPoints, newIsLab) => {
+    setRoutine((prevRoutine) => {
+      const updatedRoutine = {};
+      const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      for (const day of DAYS) {
+        const list = prevRoutine[day] || [];
+        updatedRoutine[day] = list.map((cls) => {
+          if (cls.subject === subName) {
+            return {
+              ...cls,
+              points: Math.max(1, Math.min(10, parseInt(newPoints, 10) || 1)),
+              isLab: newIsLab !== undefined ? Boolean(newIsLab) : Boolean(cls.isLab)
+            };
+          }
+          return cls;
+        });
+      }
+      if (userId && saveUserRoutineToDb) {
+        saveUserRoutineToDb(userId, updatedRoutine, semesterStartDate);
+      }
+      return updatedRoutine;
+    });
+  };
+
   // Delete Archived Semester Record
   const handleDeleteArchive = (archiveId) => {
     const updatedArchives = archivedSemesters.filter((a) => a.id !== archiveId);
@@ -758,8 +795,13 @@ export default function AttendanceTracker({ setCurrentView }) {
             massbunk: 0,
             cancelled: 0,
             totalConducted: 0,
-            target: cls.minTarget || 75
+            target: cls.minTarget || 75,
+            points: cls.points || 1,
+            isLab: Boolean(cls.isLab)
           };
+        } else {
+          if (cls.points) statsMap[cls.subject].points = cls.points;
+          if (cls.isLab !== undefined) statsMap[cls.subject].isLab = cls.isLab;
         }
       });
     });
@@ -781,22 +823,23 @@ export default function AttendanceTracker({ setCurrentView }) {
         dayClasses.forEach((cls) => {
           if (statsMap[cls.subject]) {
             const status = logData.classes ? logData.classes[cls.id] : undefined;
+            const pts = parseInt(cls.points || statsMap[cls.subject].points || 1, 10);
 
             if (status === 'attended') {
-              statsMap[cls.subject].attended += 1;
-              statsMap[cls.subject].totalConducted += 1;
+              statsMap[cls.subject].attended += pts;
+              statsMap[cls.subject].totalConducted += pts;
             } else if (status === 'cancelled') {
               statsMap[cls.subject].cancelled += 1;
             } else if (status === 'massbunk') {
-              statsMap[cls.subject].massbunk += 1;
-              statsMap[cls.subject].totalConducted += 1;
+              statsMap[cls.subject].massbunk += pts;
+              statsMap[cls.subject].totalConducted += pts;
             } else if (status === 'absent') {
-              statsMap[cls.subject].absent += 1;
-              statsMap[cls.subject].totalConducted += 1;
+              statsMap[cls.subject].absent += pts;
+              statsMap[cls.subject].totalConducted += pts;
             } else if (!status && isPast) {
               // UNMARKED PASSED DAYS ONLY -> DEFAULT ABSENT
-              statsMap[cls.subject].absent += 1;
-              statsMap[cls.subject].totalConducted += 1;
+              statsMap[cls.subject].absent += pts;
+              statsMap[cls.subject].totalConducted += pts;
             }
             // Unmarked TODAY or FUTURE days remain pending and do NOT penalize attendance!
           }
@@ -815,22 +858,26 @@ export default function AttendanceTracker({ setCurrentView }) {
               massbunk: 0,
               cancelled: 0,
               totalConducted: 0,
-              target: 75
+              target: 75,
+              points: extCls.points || 1,
+              isLab: Boolean(extCls.isLab)
             };
           }
 
           const status = extCls.status;
+          const pts = parseInt(extCls.points || statsMap[extCls.subject].points || 1, 10);
+
           if (status === 'attended') {
-            statsMap[extCls.subject].attended += 1;
-            statsMap[extCls.subject].totalConducted += 1;
+            statsMap[extCls.subject].attended += pts;
+            statsMap[extCls.subject].totalConducted += pts;
           } else if (status === 'cancelled') {
             statsMap[extCls.subject].cancelled += 1;
           } else if (status === 'massbunk') {
-            statsMap[extCls.subject].massbunk += 1;
-            statsMap[extCls.subject].totalConducted += 1;
+            statsMap[extCls.subject].massbunk += pts;
+            statsMap[extCls.subject].totalConducted += pts;
           } else if (status === 'absent') {
-            statsMap[extCls.subject].absent += 1;
-            statsMap[extCls.subject].totalConducted += 1;
+            statsMap[extCls.subject].absent += pts;
+            statsMap[extCls.subject].totalConducted += pts;
           }
         });
       }
@@ -1083,7 +1130,12 @@ export default function AttendanceTracker({ setCurrentView }) {
                       }}
                     >
                       <div style={{ minWidth: 0 }}>
-                        <strong style={{ color: '#ffffff', fontSize: isMobile ? '0.85rem' : '0.9rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cls.subject}</strong>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <strong style={{ color: '#ffffff', fontSize: isMobile ? '0.85rem' : '0.9rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cls.subject}</strong>
+                          <span style={{ fontSize: '0.65rem', background: cls.isLab ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.08)', color: cls.isLab ? '#c4b5fd' : 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.12)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                            {cls.isLab ? '🧪 LAB' : '📖 THEORY'} ({cls.points || 1} {cls.points === 1 ? 'pt' : 'pts'})
+                          </span>
+                        </div>
                         <span style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {cls.startTime} - {cls.endTime} ({cls.durationText || `${cls.duration || 60}m`}) · {cls.room}
                         </span>
@@ -1654,15 +1706,47 @@ export default function AttendanceTracker({ setCurrentView }) {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-                  <h4 style={{ fontSize: isMobile ? '0.9rem' : '1rem', margin: 0, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub.subject}</h4>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
+                    <h4 style={{ fontSize: isMobile ? '0.9rem' : '1rem', margin: 0, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub.subject}</h4>
+                    {sub.isLab && (
+                      <span style={{ fontSize: '0.65rem', background: 'rgba(139,92,246,0.3)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.5)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                        🧪 LAB
+                      </span>
+                    )}
+                  </div>
                   <span style={{ fontSize: isMobile ? '1rem' : '1.1rem', fontWeight: 800, color: sub.isAlert ? '#f87171' : '#34d399' }}>
                     {sub.percentage}%
                   </span>
                 </div>
 
+                {/* Point Weight & Type Selector Controls */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', background: 'rgba(255,255,255,0.03)', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Weight:</span>
+                  <select
+                    value={sub.points || 1}
+                    onChange={(e) => handleUpdateSubjectConfig(sub.subject, e.target.value, sub.isLab)}
+                    style={{ background: '#11121c', color: '#fff', border: '1px solid rgba(139,92,246,0.4)', borderRadius: '6px', fontSize: '0.72rem', padding: '2px 6px', cursor: 'pointer', outline: 'none' }}
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((p) => (
+                      <option key={p} value={p}>
+                        {p} {p === 1 ? 'Point / Hour' : 'Points / Hours'}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateSubjectConfig(sub.subject, sub.isLab ? 1 : 2, !sub.isLab)}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: sub.isLab ? 'rgba(139,92,246,0.2)' : 'transparent', color: sub.isLab ? '#c4b5fd' : 'var(--text-secondary)' }}
+                  >
+                    {sub.isLab ? '📖 Theory' : '🧪 Set as Lab (2 pts)'}
+                  </button>
+                </div>
+
                 <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <span>Attended: {sub.attended} / Conducted: {sub.totalConducted}</span>
-                  <span>Absent: {sub.absent} · Mass Bunked: {sub.massbunk} · Cancelled: {sub.cancelled}</span>
+                  <span>Attended: {sub.attended} pts / Conducted: {sub.totalConducted} pts</span>
+                  <span>Absent: {sub.absent} pts · Mass Bunked: {sub.massbunk} pts · Cancelled: {sub.cancelled}</span>
                 </div>
 
                 <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: isMobile ? '0.7rem' : '0.78rem' }}>
