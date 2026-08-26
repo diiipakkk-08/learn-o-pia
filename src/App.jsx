@@ -215,7 +215,11 @@ function AppContent() {
             )}
 
             {currentView === 'my-learning' && (
-              <MyLearningView setCurrentView={setCurrentView} setSelectedPlaylistId={setSelectedPlaylistId} />
+              <MyLearningView
+                setCurrentView={setCurrentView}
+                setSelectedPlaylistId={setSelectedPlaylistId}
+                setSelectedVideoIndex={setSelectedVideoIndex}
+              />
             )}
 
             {currentView === 'learning' && (

@@ -480,40 +480,42 @@ export default function LearningPlayer({
           )}
         </div>
 
-        {/* Right / Second Row Group: Subject Selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', flex: 1, width: isMobile ? '100%' : 'auto' }}>
-          {isMobile ? (
-            <select
-              value={activeSubjectId || ''}
-              onChange={(e) => setActiveSubjectId(e.target.value || null)}
-              className="form-input"
-              style={{ width: '100%', padding: '6px 12px', fontSize: '0.85rem', height: '38px', borderRadius: '8px', background: 'rgba(0,0,0,0.5)', color: '#ffffff', border: '1px solid rgba(139,92,246,0.3)', outline: 'none' }}
-            >
-              {currentSubjects.length === 0 ? (
-                <option value="">No subjects available</option>
-              ) : (
-                currentSubjects.map((sub) => (
-                  <option key={sub.id} value={sub.id} style={{ background: '#11121c', color: '#fff' }}>
-                    Subject: {sub.title}
-                  </option>
-                ))
-              )}
-            </select>
-          ) : (
-            <div className="yt-subject-chips-row" style={{ margin: 0, gap: '4px', flexWrap: 'nowrap' }}>
-              {currentSubjects.map((sub) => (
-                <button
-                  key={sub.id}
-                  onClick={() => setActiveSubjectId(sub.id)}
-                  className={`yt-subject-chip ${activeSubjectId === sub.id ? 'active' : ''}`}
-                  style={{ padding: '5px 14px', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
-                >
-                  {sub.title}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Right / Second Row Group: Subject Selector (Only show when inside an active playlist) */}
+        {activePlaylistId && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', flex: 1, width: isMobile ? '100%' : 'auto' }}>
+            {isMobile ? (
+              <select
+                value={activeSubjectId || ''}
+                onChange={(e) => setActiveSubjectId(e.target.value || null)}
+                className="form-input"
+                style={{ width: '100%', padding: '6px 12px', fontSize: '0.85rem', height: '38px', borderRadius: '8px', background: 'rgba(0,0,0,0.5)', color: '#ffffff', border: '1px solid rgba(139,92,246,0.3)', outline: 'none' }}
+              >
+                {currentSubjects.length === 0 ? (
+                  <option value="">No subjects available</option>
+                ) : (
+                  currentSubjects.map((sub) => (
+                    <option key={sub.id} value={sub.id} style={{ background: '#11121c', color: '#fff' }}>
+                      Subject: {sub.title}
+                    </option>
+                  ))
+                )}
+              </select>
+            ) : (
+              <div className="yt-subject-chips-row" style={{ margin: 0, gap: '4px', flexWrap: 'nowrap' }}>
+                {currentSubjects.map((sub) => (
+                  <button
+                    key={sub.id}
+                    onClick={() => setActiveSubjectId(sub.id)}
+                    className={`yt-subject-chip ${activeSubjectId === sub.id ? 'active' : ''}`}
+                    style={{ padding: '5px 14px', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
+                  >
+                    {sub.title}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Mobile Navigation Tabs Bar (< 1024px) ── */}
@@ -558,25 +560,25 @@ export default function LearningPlayer({
                   id={`subject-block-${sub.id}`}
                   className="glass-panel"
                   style={{
-                    padding: isMobile ? '16px' : '20px',
-                    borderRadius: '16px',
+                    padding: '12px 14px',
+                    borderRadius: '12px',
                     textAlign: 'left',
                     background: activeSubjectId === sub.id ? 'rgba(139,92,246,0.06)' : 'rgba(255,255,255,0.02)',
                     border: activeSubjectId === sub.id ? '1px solid rgba(139,92,246,0.4)' : '1px solid rgba(255,255,255,0.08)',
                     transition: 'all 0.2s ease'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div style={{ background: 'linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%)', padding: '6px 10px', borderRadius: '8px', color: '#fff', fontSize: '0.8rem', fontWeight: 800 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ background: 'linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%)', padding: '3px 8px', borderRadius: '6px', color: '#fff', fontSize: '0.72rem', fontWeight: 800 }}>
                         {sub.code || 'SUB'}
                       </div>
                       <div>
-                        <h2 style={{ fontSize: isMobile ? '1.05rem' : '1.2rem', color: '#ffffff', margin: 0, fontWeight: 700 }}>
+                        <h2 style={{ fontSize: '0.98rem', color: '#ffffff', margin: 0, fontWeight: 700 }}>
                           {sub.title}
                         </h2>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                          {subPlaylists.length} Lecture {subPlaylists.length === 1 ? 'Series' : 'Series'} Available
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                          {subPlaylists.length} Lecture {subPlaylists.length === 1 ? 'Series' : 'Series'}
                         </span>
                       </div>
                     </div>
@@ -584,9 +586,9 @@ export default function LearningPlayer({
                     <button
                       onClick={() => setActiveSubjectId(sub.id)}
                       className={`btn ${activeSubjectId === sub.id ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                      style={{ fontSize: '0.75rem', gap: '4px' }}
+                      style={{ fontSize: '0.72rem', padding: '4px 10px', gap: '4px' }}
                     >
-                      <Sparkles size={13} /> {activeSubjectId === sub.id ? 'Active Subject' : 'Focus'}
+                      <Sparkles size={11} /> {activeSubjectId === sub.id ? 'Active' : 'Focus'}
                     </button>
                   </div>
 
@@ -594,9 +596,9 @@ export default function LearningPlayer({
                     <div
                       style={{
                         display: 'flex',
-                        gap: '16px',
+                        gap: '12px',
                         overflowX: 'auto',
-                        paddingBottom: '10px',
+                        paddingBottom: '6px',
                         WebkitOverflowScrolling: 'touch',
                         scrollbarWidth: 'thin'
                       }}
@@ -611,10 +613,10 @@ export default function LearningPlayer({
                             key={pl.id}
                             className="glass-panel"
                             style={{
-                              minWidth: isMobile ? '260px' : '290px',
-                              maxWidth: '320px',
+                              minWidth: isMobile ? '230px' : '260px',
+                              maxWidth: '280px',
                               flexShrink: 0,
-                              borderRadius: '14px',
+                              borderRadius: '10px',
                               overflow: 'hidden',
                               display: 'flex',
                               flexDirection: 'column',
@@ -623,27 +625,27 @@ export default function LearningPlayer({
                               background: '#11121c'
                             }}
                           >
-                            <div style={{ height: '135px', background: '#000', position: 'relative', overflow: 'hidden' }}>
+                            <div style={{ height: '115px', background: '#000', position: 'relative', overflow: 'hidden' }}>
                               {thumb ? (
                                 <img src={thumb} alt={pl.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                               ) : (
                                 <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1e1b4b 0%, #311b92 100%)' }}>
-                                  <Play size={36} color="#a78bfa" />
+                                  <Play size={28} color="#a78bfa" />
                                 </div>
                               )}
                               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.85) 100%)' }} />
-                              <span style={{ position: 'absolute', top: '10px', left: '10px', fontSize: '0.68rem', fontWeight: 700, color: '#fff', background: 'rgba(139,92,246,0.85)', padding: '2px 8px', borderRadius: '6px' }}>
+                              <span style={{ position: 'absolute', top: '6px', left: '6px', fontSize: '0.62rem', fontWeight: 700, color: '#fff', background: 'rgba(139,92,246,0.85)', padding: '2px 6px', borderRadius: '4px' }}>
                                 {pl.videos?.length || 0} Videos
                               </span>
                             </div>
 
-                            <div style={{ padding: '14px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
+                            <div style={{ padding: '10px 12px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '8px' }}>
                               <div>
-                                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#ffffff', margin: '0 0 4px 0', lineHeight: '1.3' }}>{pl.title}</h3>
-                                <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0 0 6px 0', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                <h3 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#ffffff', margin: '0 0 2px 0', lineHeight: '1.25' }}>{pl.title}</h3>
+                                <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: '0 0 4px 0', lineHeight: '1.3', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                   {pl.description || 'Subject lecture series.'}
                                 </p>
-                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Instructor: <strong>{pl.author || 'Educator'}</strong></span>
+                                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>Instructor: <strong>{pl.author || 'Educator'}</strong></span>
                               </div>
 
                               <div style={{ display: 'flex', gap: '6px' }}>
@@ -654,28 +656,28 @@ export default function LearningPlayer({
                                     setActiveVideoIndex(0);
                                   }}
                                   className="btn btn-primary btn-sm"
-                                  style={{ flex: 1, fontSize: '0.78rem', gap: '4px' }}
+                                  style={{ flex: 1, fontSize: '0.72rem', padding: '4px 8px', gap: '4px' }}
                                 >
-                                  <Play size={13} /> Watch Series
+                                  <Play size={12} /> Watch Series
                                 </button>
 
                                 {currentUser?.enrolledPlaylists?.includes(pl.id) ? (
                                   <button
                                     onClick={() => removeUserPlaylistEnrollment(currentUser?.id, pl.id)}
                                     className="btn btn-secondary btn-sm"
-                                    style={{ fontSize: '0.72rem', color: '#10b981', borderColor: 'rgba(16,185,129,0.3)', padding: '4px 8px' }}
+                                    style={{ fontSize: '0.7rem', color: '#10b981', borderColor: 'rgba(16,185,129,0.3)', padding: '4px 6px' }}
                                     title="Remove from My Learnings"
                                   >
-                                    <BookmarkCheck size={12} />
+                                    <BookmarkCheck size={11} />
                                   </button>
                                 ) : (
                                   <button
                                     onClick={() => enrollInPlaylist(pl.id)}
                                     className="btn btn-secondary btn-sm"
-                                    style={{ fontSize: '0.72rem', padding: '4px 8px' }}
+                                    style={{ fontSize: '0.7rem', padding: '4px 6px' }}
                                     title="Add to My Learnings Section 2: Playlists"
                                   >
-                                    <Plus size={12} />
+                                    <Plus size={11} />
                                   </button>
                                 )}
                               </div>
@@ -685,7 +687,7 @@ export default function LearningPlayer({
                       })}
                     </div>
                   ) : (
-                    <div style={{ padding: '16px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                    <div style={{ padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
                       No video playlists linked to this subject yet.
                     </div>
                   )}
@@ -714,13 +716,56 @@ export default function LearningPlayer({
               />
             </div>
 
-            {/* 2. Compact "Now Playing" Bar */}
+            {/* 2. Compact "Now Playing" Bar with Expandable Video Heading & Arrow Icon */}
             {activeVideo && (
               <div className="oracle-now-playing-bar">
-                <div className="now-playing-left">
+                <div
+                  className="now-playing-left"
+                  style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+                  onClick={() => setShowDetailsDrawer(prev => !prev)}
+                >
                   <span className="now-playing-pill">Playing</span>
-                  <div className="now-playing-text">
-                    <h3 className="now-playing-h">{activeVideo.title}</h3>
+                  <div className="now-playing-text" style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <h3
+                        className="now-playing-h"
+                        style={{
+                          whiteSpace: showDetailsDrawer ? 'normal' : 'nowrap',
+                          overflow: showDetailsDrawer ? 'visible' : 'hidden',
+                          textOverflow: showDetailsDrawer ? 'clip' : 'ellipsis',
+                          wordBreak: 'break-word',
+                          lineHeight: '1.3'
+                        }}
+                      >
+                        {activeVideo.title}
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowDetailsDrawer(prev => !prev);
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--primary)',
+                          cursor: 'pointer',
+                          padding: '2px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          flexShrink: 0
+                        }}
+                        title={showDetailsDrawer ? 'Collapse Heading & Sections' : 'Expand Full Heading & Sections'}
+                      >
+                        <ChevronDown
+                          size={18}
+                          style={{
+                            transform: showDetailsDrawer ? 'rotate(180deg)' : 'rotate(0deg)',
+                            transition: 'transform 0.2s ease'
+                          }}
+                        />
+                      </button>
+                    </div>
                     <span className="now-playing-sub">
                       Module {activePlaylist?.title ? activePlaylist.title : '1'} · Lecture {(activeVideoIndex || 0) + 1} of {playlistVideos.length}
                     </span>
@@ -762,7 +807,7 @@ export default function LearningPlayer({
                     {shareCopied ? <Check size={16} style={{ color: 'var(--success)' }} /> : <Share2 size={16} />}
                   </button>
 
-                  {/* Expand/Collapse Details Arrow Button */}
+                  {/* Expand/Collapse Arrow Button */}
                   <button
                     type="button"
                     className="circle-action-btn"
@@ -963,62 +1008,125 @@ export default function LearningPlayer({
                   </div>
                 )}
 
-                {/* Videos List for Selected Playlist (Removed duration text and Skill Checks / AutoPlay toggles as requested) */}
-                <div className="playlist-modules-accordion" style={{ maxHeight: '460px', overflowY: 'auto' }}>
-                  <ul className="module-vids-ul" style={{ margin: 0 }}>
-                    {playlistVideos.length > 0 ? (
-                      playlistVideos.map((video, vIdx) => {
-                        const isCurrent = activeVideo?.id === video.id || activeVideoIndex === vIdx;
-                        const isWatched = watchedVideos.has(video.id || vIdx);
+                {/* Videos List for Selected Playlist (YouTube Playlist Player Style: Left Thumbnail, Right Title, 10-Video Sections) */}
+                <div className="playlist-modules-accordion" style={{ maxHeight: '480px', overflowY: 'auto' }}>
+                  {playlistVideos.length > 0 ? (
+                    (() => {
+                      const videoSections = [];
+                      for (let i = 0; i < playlistVideos.length; i += 10) {
+                        videoSections.push({
+                          sectionIndex: Math.floor(i / 10) + 1,
+                          start: i + 1,
+                          end: Math.min(i + 10, playlistVideos.length),
+                          videos: playlistVideos.slice(i, i + 10),
+                          startIndex: i
+                        });
+                      }
+
+                      return videoSections.map((sec) => {
+                        const secWatchedCount = sec.videos.filter((v, idx) => watchedVideos.has(v.id || (sec.startIndex + idx))).length;
+                        const isSecComplete = secWatchedCount === sec.videos.length;
 
                         return (
-                          <li key={video.id || vIdx}>
-                            <button
-                              type="button"
-                              className={`video-row-item ${isCurrent ? 'active-playing' : ''}`}
-                              onClick={() => handlePlayVideo(vIdx, video.id)}
-                            >
-                              <span className="video-circle-status">
-                                {isCurrent ? (
-                                  <PlayCircle size={16} className="ic-playing-glow" />
-                                ) : isWatched ? (
-                                  <CheckCircle2 size={16} className="ic-watched-green" />
-                                ) : (
-                                  <Circle size={16} className="ic-unplayed-ring" />
-                                )}
+                          <div key={sec.sectionIndex} style={{ marginBottom: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                            {/* Section Header */}
+                            <div style={{ padding: '6px 12px', background: 'rgba(139,92,246,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                Section {sec.sectionIndex} ({sec.start}–{sec.end})
                               </span>
+                              <span style={{ fontSize: '0.68rem', fontWeight: 600, color: isSecComplete ? '#10b981' : 'var(--text-muted)' }}>
+                                {secWatchedCount}/{sec.videos.length} Done
+                              </span>
+                            </div>
 
-                              <div className="video-row-details">
-                                <span className="vid-title-text">{video.title}</span>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                                    <Clock size={11} /> {video.durationText || '15:00'}
-                                  </span>
-                                  {video.id && (
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                                      ID: <code style={{ color: '#a78bfa' }}>{video.id}</code>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => handleCopyResId(video.id, e)}
-                                        style={{ background: 'none', border: 'none', color: copiedPlayerResId === video.id ? '#10b981' : 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
-                                        title="Copy Video ID"
-                                      >
-                                        {copiedPlayerResId === video.id ? <Check size={10} /> : <Copy size={10} />}
-                                      </button>
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </button>
-                          </li>
+                            {/* Section Video Items */}
+                            <ul className="module-vids-ul" style={{ margin: 0, padding: '4px' }}>
+                              {sec.videos.map((video, idxInSec) => {
+                                const vIdx = sec.startIndex + idxInSec;
+                                const isCurrent = activeVideo?.id === video.id || activeVideoIndex === vIdx;
+                                const isWatched = watchedVideos.has(video.id || vIdx);
+
+                                const vId = video.youtubeId || (video.url ? (video.url.match(/[?&]v=([^#&]+)/) || [])[1] : null);
+                                const thumb = vId ? `https://i.ytimg.com/vi/${vId}/hqdefault.jpg` : (video.thumbnailUrl || activePlaylist?.bannerUrl || course?.bannerUrl);
+
+                                return (
+                                  <li key={video.id || vIdx} style={{ listStyle: 'none', marginBottom: '4px' }}>
+                                    <button
+                                      type="button"
+                                      className={`video-row-item ${isCurrent ? 'active-playing' : ''}`}
+                                      onClick={() => handlePlayVideo(vIdx, video.id)}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '10px',
+                                        padding: '6px',
+                                        borderRadius: '8px',
+                                        width: '100%',
+                                        background: isCurrent ? 'rgba(139,92,246,0.22)' : 'transparent',
+                                        border: isCurrent ? '1px solid rgba(139,92,246,0.5)' : '1px solid transparent',
+                                        textAlign: 'left',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s ease'
+                                      }}
+                                    >
+                                      {/* Left Thumbnail (YouTube Playlist Style) */}
+                                      <div style={{ position: 'relative', width: '92px', height: '52px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, background: '#000' }}>
+                                        {thumb ? (
+                                          <img src={thumb} alt={video.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1e1b4b 0%, #311b92 100%)' }}>
+                                            <Play size={16} color="#a78bfa" />
+                                          </div>
+                                        )}
+
+                                        <span style={{ position: 'absolute', bottom: '2px', right: '2px', background: 'rgba(0,0,0,0.85)', color: '#ffffff', fontSize: '0.6rem', fontWeight: 700, padding: '1px 4px', borderRadius: '3px' }}>
+                                          {video.durationText || '15:00'}
+                                        </span>
+
+                                        {isCurrent && (
+                                          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(139,92,246,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <PlayCircle size={20} color="#ffffff" />
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Right Video Details */}
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                                          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: isCurrent ? 'var(--primary)' : 'var(--text-muted)' }}>
+                                            #{vIdx + 1}
+                                          </span>
+                                          {isWatched && <CheckCircle2 size={12} color="#10b981" />}
+                                        </div>
+                                        <span
+                                          style={{
+                                            fontSize: '0.78rem',
+                                            fontWeight: isCurrent ? 700 : 500,
+                                            color: isCurrent ? '#ffffff' : 'var(--text-secondary)',
+                                            display: '-webkit-box',
+                                            WebkitLineClamp: 2,
+                                            WebkitBoxOrient: 'vertical',
+                                            overflow: 'hidden',
+                                            lineHeight: '1.25'
+                                          }}
+                                        >
+                                          {video.title}
+                                        </span>
+                                      </div>
+                                    </button>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
                         );
-                      })
-                    ) : (
-                      <div className="empty-playlist-box">
-                        <p>No videos found in this playlist.</p>
-                      </div>
-                    )}
-                  </ul>
+                      });
+                    })()
+                  ) : (
+                    <div className="empty-playlist-box">
+                      <p>No videos found in this playlist.</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Progress Footer (Saved in LocalStorage) */}

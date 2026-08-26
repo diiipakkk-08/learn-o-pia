@@ -5,7 +5,7 @@ import {
   Compass, LogOut, Video, Sparkles, Clock, Layers
 } from 'lucide-react';
 
-export default function MyLearningView({ setCurrentView, setSelectedPlaylistId }) {
+export default function MyLearningView({ setCurrentView, setSelectedPlaylistId, setSelectedVideoIndex }) {
   const {
     currentUser,
     courses,
@@ -121,99 +121,185 @@ export default function MyLearningView({ setCurrentView, setSelectedPlaylistId }
     return list;
   }, [standaloneResources, subjects, savedResourceIds]);
 
+  const handleResumeLastPlayed = () => {
+    if (!lastPlayed) return;
+    if (setSelectedPlaylistId) {
+      setSelectedPlaylistId(lastPlayed.courseId || lastPlayed.playlistId);
+    }
+    if (setSelectedVideoIndex && lastPlayed.videoIndex !== undefined && lastPlayed.videoIndex !== null) {
+      setSelectedVideoIndex(lastPlayed.videoIndex);
+    }
+    setCurrentView('learning-player');
+  };
+
+  const lastVideoThumb = lastPlayed?.videoThumbnail || (lastPlayed?.youtubeId ? `https://i.ytimg.com/vi/${lastPlayed.youtubeId}/hqdefault.jpg` : lastPlayed?.bannerUrl);
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px', textAlign: 'left' }} className="animate-fade-in">
 
       {/* Header */}
-      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-        <h1 style={{ fontSize: '1.4rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '10px' }} className="primary-gradient-text">
-          <Compass size={24} color="var(--primary)" /> Learn Space
+      <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+        <h1 style={{ fontSize: '1.3rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }} className="primary-gradient-text">
+          <Compass size={22} color="var(--primary)" /> Learn Space
         </h1>
         <button onClick={() => setCurrentView('learning')} className="btn btn-secondary btn-sm" style={{ fontSize: '0.78rem' }}>
           + Explore Curricula & Courses
         </button>
       </div>
 
-      {/* TOP FEATURE: PICK UP WHERE YOU ARE LEARNING */}
-      <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px', marginBottom: '24px', border: '1px solid rgba(139,92,246,0.3)', background: 'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(17,18,28,0.95) 100%)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-          <h2 style={{ fontSize: '1.05rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Clock size={18} color="var(--primary)" /> Pick Up Where You Are Learning
+      {/* COMPACT PICK UP WHERE YOU LEFT SECTION */}
+      <div className="glass-panel" style={{ padding: '12px 16px', borderRadius: '14px', marginBottom: '16px', border: '1px solid rgba(139,92,246,0.3)', background: 'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(17,18,28,0.95) 100%)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+          <h2 style={{ fontSize: '0.92rem', fontWeight: 700, margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Clock size={15} color="var(--primary)" /> Pick up where you left
           </h2>
           {lastPlayed && (
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
               Last active: {new Date(lastPlayed.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
           )}
         </div>
 
         {lastPlayed ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '260px' }}>
-              <div style={{ width: 48, height: 48, borderRadius: '12px', background: 'linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Play size={24} color="#ffffff" />
+          <div
+            onClick={handleResumeLastPlayed}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justify: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              background: 'rgba(255,255,255,0.03)',
+              padding: '8px 12px',
+              borderRadius: '10px',
+              border: '1px solid rgba(255,255,255,0.08)',
+              cursor: 'pointer',
+              transition: 'background 0.2s ease'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '220px' }}>
+              {/* EXACT VIDEO THUMBNAIL BANNER */}
+              <div style={{ width: '96px', height: '58px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, position: 'relative', background: '#000' }}>
+                {lastVideoThumb ? (
+                  <img src={lastVideoThumb} alt={lastPlayed.videoTitle || 'Last Video'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%)' }}>
+                    <Play size={20} color="#ffffff" />
+                  </div>
+                )}
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Play size={18} color="#ffffff" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }} />
+                </div>
               </div>
-              <div>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>
                   {lastPlayed.playlistTitle || 'Lecture Series'}
                 </span>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#ffffff', margin: '2px 0 0 0' }}>
-                  {lastPlayed.videoTitle || lastPlayed.playlistTitle || 'Resume Learning'}
+                <h3 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#ffffff', margin: '2px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {lastPlayed.videoTitle || lastPlayed.playlistTitle || 'Resume Video'}
                 </h3>
               </div>
             </div>
 
             <button
-              onClick={() => {
-                if (lastPlayed.courseId && setSelectedPlaylistId) {
-                  setSelectedPlaylistId(lastPlayed.courseId);
-                } else if (lastPlayed.playlistId && setSelectedPlaylistId) {
-                  setSelectedPlaylistId(lastPlayed.playlistId);
-                }
-                setCurrentView('learning-player');
+              onClick={(e) => {
+                e.stopPropagation();
+                handleResumeLastPlayed();
               }}
-              className="btn btn-primary"
-              style={{ fontSize: '0.85rem', padding: '10px 20px', gap: '8px' }}
+              className="btn btn-primary btn-sm"
+              style={{ fontSize: '0.78rem', padding: '6px 14px', gap: '6px', whiteSpace: 'nowrap' }}
             >
-              <Play size={16} /> Continue Learning
+              <Play size={13} /> Resume Video
             </button>
           </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '16px 8px', color: 'var(--text-muted)' }}>
-            <p style={{ fontSize: '0.85rem', margin: '0 0 10px 0', color: 'var(--text-secondary)' }}>
+          <div style={{ textAlign: 'center', padding: '10px 8px', color: 'var(--text-muted)' }}>
+            <p style={{ fontSize: '0.8rem', margin: '0 0 8px 0', color: 'var(--text-secondary)' }}>
               No active learning session tracked yet. Click on any course or video lecture to resume seamlessly anytime!
             </p>
-            <button onClick={() => setCurrentView('learning')} className="btn btn-secondary btn-sm" style={{ fontSize: '0.78rem' }}>
+            <button onClick={() => setCurrentView('learning')} className="btn btn-secondary btn-sm" style={{ fontSize: '0.75rem', padding: '4px 12px' }}>
               Start Exploring Curricula
             </button>
           </div>
         )}
       </div>
 
-      {/* SECTION NAVIGATION TAB PILLS */}
-      <div className="glass-panel" style={{ padding: '8px 12px', borderRadius: '14px', marginBottom: '24px', display: 'flex', gap: '8px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      {/* SECTION NAVIGATION TAB PILLS (STRICT SINGLE LINE FOR ALL DEVICES) */}
+      <div
+        className="glass-panel"
+        style={{
+          padding: '6px',
+          borderRadius: '12px',
+          marginBottom: '20px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '6px',
+          width: '100%',
+          boxSizing: 'border-box'
+        }}
+      >
         <button
           className={`btn ${activeSectionTab === 'courses' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setActiveSectionTab('courses')}
-          style={{ padding: '8px 16px', fontSize: '0.82rem', borderRadius: '10px', gap: '8px', flexShrink: 0 }}
+          style={{
+            padding: '8px 4px',
+            fontSize: 'clamp(0.68rem, 2.2vw, 0.82rem)',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            width: '100%',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}
         >
-          <BookOpen size={15} /> Courses ({enrolledCourseList.length})
+          <BookOpen size={14} style={{ flexShrink: 0 }} />
+          <span>Courses ({enrolledCourseList.length})</span>
         </button>
 
         <button
           className={`btn ${activeSectionTab === 'playlists' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setActiveSectionTab('playlists')}
-          style={{ padding: '8px 16px', fontSize: '0.82rem', borderRadius: '10px', gap: '8px', flexShrink: 0 }}
+          style={{
+            padding: '8px 4px',
+            fontSize: 'clamp(0.68rem, 2.2vw, 0.82rem)',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justify: 'center',
+            gap: '6px',
+            width: '100%',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}
         >
-          <Video size={15} /> Playlists ({enrolledPlaylistList.length})
+          <Video size={14} style={{ flexShrink: 0 }} />
+          <span>Playlists ({enrolledPlaylistList.length})</span>
         </button>
 
         <button
           className={`btn ${activeSectionTab === 'resources' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setActiveSectionTab('resources')}
-          style={{ padding: '8px 16px', fontSize: '0.82rem', borderRadius: '10px', gap: '8px', flexShrink: 0 }}
+          style={{
+            padding: '8px 4px',
+            fontSize: 'clamp(0.68rem, 2.2vw, 0.82rem)',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justify: 'center',
+            gap: '6px',
+            width: '100%',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}
         >
-          <BookmarkCheck size={15} /> Resources ({savedDocList.length})
+          <BookmarkCheck size={14} style={{ flexShrink: 0 }} />
+          <span>Resources ({savedDocList.length})</span>
         </button>
       </div>
 
