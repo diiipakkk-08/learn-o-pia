@@ -810,11 +810,18 @@ export default function AttendanceTracker({ setCurrentView }) {
         if (!statsMap[cls.subject]) {
           statsMap[cls.subject] = {
             subject: cls.subject,
-            attended: 0,
-            absent: 0,
-            massbunk: 0,
-            cancelled: 0,
-            totalConducted: 0,
+            // Count of physical sessions (classes or labs)
+            attendedCount: 0,
+            absentCount: 0,
+            massbunkCount: 0,
+            cancelledCount: 0,
+            totalConductedCount: 0,
+            // Weighted points (used in backend calculation for attendance %)
+            attendedPoints: 0,
+            absentPoints: 0,
+            massbunkPoints: 0,
+            totalConductedPoints: 0,
+
             target: cls.minTarget || 75,
             points: cls.points || 1,
             isLab: Boolean(cls.isLab)
@@ -846,20 +853,23 @@ export default function AttendanceTracker({ setCurrentView }) {
             const pts = parseInt(cls.points || statsMap[cls.subject].points || 1, 10);
 
             if (status === 'attended') {
-              statsMap[cls.subject].attended += pts;
-              statsMap[cls.subject].totalConducted += pts;
+              statsMap[cls.subject].attendedCount += 1;
+              statsMap[cls.subject].totalConductedCount += 1;
+              statsMap[cls.subject].attendedPoints += pts;
+              statsMap[cls.subject].totalConductedPoints += pts;
             } else if (status === 'cancelled') {
-              statsMap[cls.subject].cancelled += 1;
+              statsMap[cls.subject].cancelledCount += 1;
             } else if (status === 'massbunk') {
-              statsMap[cls.subject].massbunk += pts;
-              statsMap[cls.subject].totalConducted += pts;
-            } else if (status === 'absent') {
-              statsMap[cls.subject].absent += pts;
-              statsMap[cls.subject].totalConducted += pts;
-            } else if (!status && isPast) {
+              statsMap[cls.subject].massbunkCount += 1;
+              statsMap[cls.subject].totalConductedCount += 1;
+              statsMap[cls.subject].massbunkPoints += pts;
+              statsMap[cls.subject].totalConductedPoints += pts;
+            } else if (status === 'absent' || (!status && isPast)) {
               // UNMARKED PASSED DAYS ONLY -> DEFAULT ABSENT
-              statsMap[cls.subject].absent += pts;
-              statsMap[cls.subject].totalConducted += pts;
+              statsMap[cls.subject].absentCount += 1;
+              statsMap[cls.subject].totalConductedCount += 1;
+              statsMap[cls.subject].absentPoints += pts;
+              statsMap[cls.subject].totalConductedPoints += pts;
             }
             // Unmarked TODAY or FUTURE days remain pending and do NOT penalize attendance!
           }
@@ -873,11 +883,15 @@ export default function AttendanceTracker({ setCurrentView }) {
           if (!statsMap[extCls.subject]) {
             statsMap[extCls.subject] = {
               subject: extCls.subject,
-              attended: 0,
-              absent: 0,
-              massbunk: 0,
-              cancelled: 0,
-              totalConducted: 0,
+              attendedCount: 0,
+              absentCount: 0,
+              massbunkCount: 0,
+              cancelledCount: 0,
+              totalConductedCount: 0,
+              attendedPoints: 0,
+              absentPoints: 0,
+              massbunkPoints: 0,
+              totalConductedPoints: 0,
               target: 75,
               points: extCls.points || 1,
               isLab: Boolean(extCls.isLab)
@@ -888,16 +902,22 @@ export default function AttendanceTracker({ setCurrentView }) {
           const pts = parseInt(extCls.points || statsMap[extCls.subject].points || 1, 10);
 
           if (status === 'attended') {
-            statsMap[extCls.subject].attended += pts;
-            statsMap[extCls.subject].totalConducted += pts;
+            statsMap[extCls.subject].attendedCount += 1;
+            statsMap[extCls.subject].totalConductedCount += 1;
+            statsMap[extCls.subject].attendedPoints += pts;
+            statsMap[extCls.subject].totalConductedPoints += pts;
           } else if (status === 'cancelled') {
-            statsMap[extCls.subject].cancelled += 1;
+            statsMap[extCls.subject].cancelledCount += 1;
           } else if (status === 'massbunk') {
-            statsMap[extCls.subject].massbunk += pts;
-            statsMap[extCls.subject].totalConducted += pts;
+            statsMap[extCls.subject].massbunkCount += 1;
+            statsMap[extCls.subject].totalConductedCount += 1;
+            statsMap[extCls.subject].massbunkPoints += pts;
+            statsMap[extCls.subject].totalConductedPoints += pts;
           } else if (status === 'absent') {
-            statsMap[extCls.subject].absent += pts;
-            statsMap[extCls.subject].totalConducted += pts;
+            statsMap[extCls.subject].absentCount += 1;
+            statsMap[extCls.subject].totalConductedCount += 1;
+            statsMap[extCls.subject].absentPoints += pts;
+            statsMap[extCls.subject].totalConductedPoints += pts;
           }
         });
       }
@@ -906,22 +926,31 @@ export default function AttendanceTracker({ setCurrentView }) {
     }
 
     return Object.values(statsMap).map((item) => {
-      const pct = item.totalConducted > 0 ? Math.round((item.attended / item.totalConducted) * 100) : 100;
+      const pct = item.totalConductedPoints > 0 ? Math.round((item.attendedPoints / item.totalConductedPoints) * 100) : 100;
       const targetDecimal = item.target / 100;
+      const pts = Math.max(1, parseInt(item.points, 10) || 1);
 
       let safeBunks = 0;
       let neededClasses = 0;
 
       if (pct >= item.target) {
-        safeBunks = Math.floor((item.attended - targetDecimal * item.totalConducted) / targetDecimal);
+        // Number of upcoming sessions of weight pts that can be bunked
+        safeBunks = Math.floor((item.attendedPoints - targetDecimal * item.totalConductedPoints) / (targetDecimal * pts));
         if (safeBunks < 0) safeBunks = 0;
       } else {
-        neededClasses = Math.ceil((targetDecimal * item.totalConducted - item.attended) / (1 - targetDecimal));
+        // Number of upcoming sessions of weight pts that must be attended
+        neededClasses = Math.ceil((targetDecimal * item.totalConductedPoints - item.attendedPoints) / (pts * (1 - targetDecimal)));
         if (neededClasses < 0) neededClasses = 0;
       }
 
       return {
         ...item,
+        // Backward-compatible fields
+        attended: item.attendedCount,
+        absent: item.absentCount,
+        massbunk: item.massbunkCount,
+        cancelled: item.cancelledCount,
+        totalConducted: item.totalConductedCount,
         percentage: pct,
         safeBunks,
         neededClasses,
@@ -932,42 +961,70 @@ export default function AttendanceTracker({ setCurrentView }) {
 
   // Overall Total Summary & Multi-Metric Breakdown
   const overallStats = useMemo(() => {
-    let totAttended = 0;
-    let totAbsent = 0;
-    let totMassBunk = 0;
-    let totCancelled = 0;
-    let totConducted = 0;
+    let totAttendedCount = 0;
+    let totAbsentCount = 0;
+    let totMassBunkCount = 0;
+    let totCancelledCount = 0;
+    let totConductedCount = 0;
 
-    let theoryAttended = 0;
-    let theoryConducted = 0;
+    let totAttendedPoints = 0;
+    let totAbsentPoints = 0;
+    let totMassBunkPoints = 0;
+    let totConductedPoints = 0;
 
-    let labAttended = 0;
-    let labConducted = 0;
+    let theoryAttendedCount = 0;
+    let theoryConductedCount = 0;
+    let theoryAbsentCount = 0;
+    let theoryMassBunkCount = 0;
+    let theoryAttendedPoints = 0;
+    let theoryConductedPoints = 0;
+
+    let labAttendedCount = 0;
+    let labConductedCount = 0;
+    let labAbsentCount = 0;
+    let labMassBunkCount = 0;
+    let labAttendedPoints = 0;
+    let labConductedPoints = 0;
 
     subjectAnalytics.forEach((s) => {
-      totAttended += s.attended;
-      totAbsent += s.absent;
-      totMassBunk += s.massbunk;
-      totCancelled += s.cancelled;
-      totConducted += s.totalConducted;
+      totAttendedCount += s.attendedCount;
+      totAbsentCount += s.absentCount;
+      totMassBunkCount += s.massbunkCount;
+      totCancelledCount += s.cancelledCount;
+      totConductedCount += s.totalConductedCount;
+
+      totAttendedPoints += s.attendedPoints;
+      totAbsentPoints += s.absentPoints;
+      totMassBunkPoints += s.massbunkPoints;
+      totConductedPoints += s.totalConductedPoints;
 
       if (s.isLab) {
-        labAttended += s.attended;
-        labConducted += s.totalConducted;
+        labAttendedCount += s.attendedCount;
+        labConductedCount += s.totalConductedCount;
+        labAbsentCount += s.absentCount;
+        labMassBunkCount += s.massbunkCount;
+
+        labAttendedPoints += s.attendedPoints;
+        labConductedPoints += s.totalConductedPoints;
       } else {
-        theoryAttended += s.attended;
-        theoryConducted += s.totalConducted;
+        theoryAttendedCount += s.attendedCount;
+        theoryConductedCount += s.totalConductedCount;
+        theoryAbsentCount += s.absentCount;
+        theoryMassBunkCount += s.massbunkCount;
+
+        theoryAttendedPoints += s.attendedPoints;
+        theoryConductedPoints += s.totalConductedPoints;
       }
     });
 
-    const pctOfficial = totConducted > 0 ? Math.round((totAttended / totConducted) * 100) : 100;
-    const conductedWithoutMassBunks = totConducted - totMassBunk;
-    const pctWithoutMassBunks = conductedWithoutMassBunks > 0 ? Math.round((totAttended / conductedWithoutMassBunks) * 100) : 100;
+    const pctOfficial = totConductedPoints > 0 ? Math.round((totAttendedPoints / totConductedPoints) * 100) : 100;
+    const conductedPointsWithoutMassBunks = totConductedPoints - totMassBunkPoints;
+    const pctWithoutMassBunks = conductedPointsWithoutMassBunks > 0 ? Math.round((totAttendedPoints / conductedPointsWithoutMassBunks) * 100) : 100;
 
-    const theoryPct = theoryConducted > 0 ? Math.round((theoryAttended / theoryConducted) * 100) : null;
-    const labPct = labConducted > 0 ? Math.round((labAttended / labConducted) * 100) : null;
+    const theoryPct = theoryConductedPoints > 0 ? Math.round((theoryAttendedPoints / theoryConductedPoints) * 100) : null;
+    const labPct = labConductedPoints > 0 ? Math.round((labAttendedPoints / labConductedPoints) * 100) : null;
 
-    const totalMinutesStudied = totAttended * classDurationMins;
+    const totalMinutesStudied = totAttendedPoints * classDurationMins;
     const hoursStudied = Math.floor(totalMinutesStudied / 60);
     const minsStudied = totalMinutesStudied % 60;
     const hoursStudiedText = hoursStudied > 0 
@@ -975,23 +1032,45 @@ export default function AttendanceTracker({ setCurrentView }) {
       : `${minsStudied} mins`;
 
     return { 
-      totAttended, 
-      totAbsent, 
-      totMassBunk, 
-      totCancelled, 
-      totConducted, 
+      totAttendedCount, 
+      totAbsentCount, 
+      totMassBunkCount, 
+      totCancelledCount, 
+      totConductedCount, 
+      totAttendedPoints,
+      totAbsentPoints,
+      totMassBunkPoints,
+      totConductedPoints,
       pct: pctOfficial, 
       pctWithoutMassBunks,
-      theoryAttended,
-      theoryConducted,
+      theoryAttendedCount,
+      theoryConductedCount,
+      theoryAbsentCount,
+      theoryMassBunkCount,
+      theoryAttendedPoints,
+      theoryConductedPoints,
       theoryPct,
-      labAttended,
-      labConducted,
+      labAttendedCount,
+      labConductedCount,
+      labAbsentCount,
+      labMassBunkCount,
+      labAttendedPoints,
+      labConductedPoints,
       labPct,
       totalMinutesStudied,
       hoursStudied,
       minsStudied,
-      hoursStudiedText
+      hoursStudiedText,
+      // Backward compatibility fields
+      totAttended: totAttendedCount,
+      totAbsent: totAbsentCount,
+      totMassBunk: totMassBunkCount,
+      totCancelled: totCancelledCount,
+      totConducted: totConductedCount,
+      theoryAttended: theoryAttendedCount,
+      theoryConducted: theoryConductedCount,
+      labAttended: labAttendedCount,
+      labConducted: labConductedCount
     };
   }, [subjectAnalytics, classDurationMins]);
 
@@ -1751,7 +1830,7 @@ export default function AttendanceTracker({ setCurrentView }) {
                   {overallStats.pct}%
                 </div>
                 <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                  {overallStats.totAttended} / {overallStats.totConducted} pts attended
+                  {overallStats.totAttendedCount} / {overallStats.totConductedCount} sessions attended
                 </div>
               </div>
 
@@ -1764,7 +1843,7 @@ export default function AttendanceTracker({ setCurrentView }) {
                   {overallStats.theoryPct !== null ? `${overallStats.theoryPct}%` : 'N/A'}
                 </div>
                 <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                  {overallStats.theoryAttended} / {overallStats.theoryConducted} theory pts
+                  {overallStats.theoryAttendedCount} / {overallStats.theoryConductedCount} classes attended
                 </div>
               </div>
 
@@ -1777,7 +1856,7 @@ export default function AttendanceTracker({ setCurrentView }) {
                   {overallStats.labPct !== null ? `${overallStats.labPct}%` : 'N/A'}
                 </div>
                 <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                  {overallStats.labAttended} / {overallStats.labConducted} lab pts
+                  {overallStats.labAttendedCount} / {overallStats.labConductedCount} labs attended
                 </div>
               </div>
 
@@ -1806,29 +1885,35 @@ export default function AttendanceTracker({ setCurrentView }) {
             }}>
               <div>
                 <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: 'var(--text-secondary)' }}>Total Conducted</div>
-                <div style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', fontWeight: 700, color: '#fff' }}>{overallStats.totConducted} pts</div>
+                <div style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', fontWeight: 700, color: '#fff' }}>{overallStats.totConductedCount} sessions</div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{overallStats.theoryConductedCount} classes, {overallStats.labConductedCount} labs</div>
               </div>
               <div>
-                <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: 'var(--text-secondary)' }}>Attended Pts</div>
-                <div style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', fontWeight: 700, color: '#34d399' }}>{overallStats.totAttended} pts</div>
+                <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: 'var(--text-secondary)' }}>Attended</div>
+                <div style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', fontWeight: 700, color: '#34d399' }}>{overallStats.totAttendedCount} sessions</div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{overallStats.theoryAttendedCount} classes, {overallStats.labAttendedCount} labs</div>
               </div>
               <div>
-                <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: 'var(--text-secondary)' }}>Absent Pts</div>
-                <div style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', fontWeight: 700, color: '#f87171' }}>{overallStats.totAbsent} pts</div>
+                <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: 'var(--text-secondary)' }}>Absent</div>
+                <div style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', fontWeight: 700, color: '#f87171' }}>{overallStats.totAbsentCount} sessions</div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{overallStats.theoryAbsentCount} classes, {overallStats.labAbsentCount} labs</div>
               </div>
               <div>
-                <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: 'var(--text-secondary)' }}>Mass Bunk Pts</div>
-                <div style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', fontWeight: 700, color: '#fbbf24' }}>{overallStats.totMassBunk} pts</div>
+                <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: 'var(--text-secondary)' }}>Mass Bunks</div>
+                <div style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', fontWeight: 700, color: '#fbbf24' }}>{overallStats.totMassBunkCount} sessions</div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{overallStats.theoryMassBunkCount} classes, {overallStats.labMassBunkCount} labs</div>
               </div>
               <div>
-                <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: 'var(--text-secondary)' }}>Cancelled Classes</div>
-                <div style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', fontWeight: 700, color: '#94a3b8' }}>{overallStats.totCancelled}</div>
+                <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: 'var(--text-secondary)' }}>Cancelled</div>
+                <div style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', fontWeight: 700, color: '#94a3b8' }}>{overallStats.totCancelledCount}</div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>classes / labs</div>
               </div>
               <div>
                 <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: 'var(--text-secondary)' }}>No Bunks Score</div>
                 <div style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', fontWeight: 700, color: overallStats.pctWithoutMassBunks < 75 ? '#f87171' : '#34d399' }}>
                   {overallStats.pctWithoutMassBunks}%
                 </div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>excl. mass bunks</div>
               </div>
             </div>
           </div>
@@ -1841,6 +1926,8 @@ export default function AttendanceTracker({ setCurrentView }) {
             {subjectAnalytics.map((sub) => {
               const isAlert = sub.isAlert;
               const isWeighted = (sub.points || 1) > 1;
+              const unitLabel = sub.isLab ? 'lab' : 'class';
+              const unitLabelPlural = sub.isLab ? 'labs' : 'classes';
 
               // Color Theme:
               // Alert -> Red
@@ -1885,7 +1972,7 @@ export default function AttendanceTracker({ setCurrentView }) {
                       )}
                       {isWeighted && (
                         <span style={{ fontSize: '0.65rem', background: 'rgba(59,130,246,0.25)', color: '#93c5fd', border: '1px solid rgba(59,130,246,0.4)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                          ⚡ {sub.points} Pts
+                          ⚡ Weight: {sub.points} Pts
                         </span>
                       )}
                     </div>
@@ -1896,15 +1983,16 @@ export default function AttendanceTracker({ setCurrentView }) {
 
                   {/* Point Weight & Type Selector Controls */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', background: 'rgba(255,255,255,0.03)', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Points:</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Calculation Weight:</span>
                     <select
                       value={sub.points || 1}
                       onChange={(e) => handleUpdateSubjectConfig(sub.subject, e.target.value, sub.isLab)}
                       style={{ background: '#11121c', color: isWeighted ? '#93c5fd' : '#fff', border: isWeighted ? '1px solid rgba(59,130,246,0.5)' : '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', fontSize: '0.72rem', padding: '2px 6px', cursor: 'pointer', outline: 'none', fontWeight: 700 }}
+                      title="Point weight used in the backend calculation for attendance percentage"
                     >
                       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((p) => (
                         <option key={p} value={p}>
-                          {p} {p === 1 ? 'Point' : 'Points'}
+                          {p} {p === 1 ? 'Point' : 'Points'} / {sub.isLab ? 'Lab' : 'Class'}
                         </option>
                       ))}
                     </select>
@@ -1927,18 +2015,23 @@ export default function AttendanceTracker({ setCurrentView }) {
                   </div>
 
                   <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span>Attended: {sub.attended} pts / Conducted: {sub.totalConducted} pts</span>
-                    <span>Absent: {sub.absent} pts · Mass Bunked: {sub.massbunk} pts · Cancelled: {sub.cancelled}</span>
+                    <span>Attended: <strong>{sub.attendedCount}</strong> {sub.attendedCount === 1 ? unitLabel : unitLabelPlural} / Conducted: <strong>{sub.totalConductedCount}</strong> {sub.totalConductedCount === 1 ? unitLabel : unitLabelPlural}</span>
+                    <span>Absent: <strong>{sub.absentCount}</strong> {sub.absentCount === 1 ? unitLabel : unitLabelPlural} · Mass Bunked: <strong>{sub.massbunkCount}</strong> · Cancelled: <strong>{sub.cancelledCount}</strong></span>
+                    {isWeighted && (
+                      <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '2px' }}>
+                        (Backend weight: {sub.attendedPoints} / {sub.totalConductedPoints} pts)
+                      </span>
+                    )}
                   </div>
 
                   <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: isMobile ? '0.7rem' : '0.78rem' }}>
                     {sub.isAlert ? (
                       <span style={{ color: '#f87171', fontWeight: 600 }}>
-                        ⚠️ Attendance Alert: You must attend the next <strong>{sub.neededClasses}</strong> classes to reach {sub.target}%.
+                        ⚠️ Attendance Alert: You must attend the next <strong>{sub.neededClasses}</strong> {sub.neededClasses === 1 ? unitLabel : unitLabelPlural} to reach {sub.target}%.
                       </span>
                     ) : (
                       <span style={{ color: isWeighted ? '#60a5fa' : '#34d399', fontWeight: 600 }}>
-                        ✔ Safe Margin: You can safely bunk up to <strong>{sub.safeBunks}</strong> upcoming classes.
+                        ✔ Safe Margin: You can safely bunk up to <strong>{sub.safeBunks}</strong> upcoming {sub.safeBunks === 1 ? unitLabel : unitLabelPlural}.
                       </span>
                     )}
                   </div>
