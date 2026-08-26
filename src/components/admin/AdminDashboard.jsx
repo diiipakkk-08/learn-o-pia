@@ -723,13 +723,36 @@ export default function AdminDashboard() {
                               </button>
                             )}
 
-                            <button 
-                              onClick={() => toggleUserStatus(user.id)}
-                              className={`btn ${user.status === 'suspended' ? 'btn-primary' : 'btn-danger'}`}
-                              style={{ padding: '4px 8px', fontSize: '0.72rem' }}
-                            >
-                              {user.status === 'suspended' ? 'Unsuspend' : 'Suspend'}
-                            </button>
+                            {user.role === 'admin' && currentUser?.role === 'owner' && (
+                              <div style={{ display: 'flex', gap: '4px' }}>
+                                <button 
+                                  onClick={() => changeUserRole(user.id, 'learner')}
+                                  className="btn btn-secondary"
+                                  style={{ padding: '4px 8px', fontSize: '0.72rem', color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                                  title="Demote Admin to Learner role"
+                                >
+                                  Demote to Learner
+                                </button>
+                                <button 
+                                  onClick={() => changeUserRole(user.id, 'creator')}
+                                  className="btn btn-secondary"
+                                  style={{ padding: '4px 8px', fontSize: '0.72rem', color: '#fbbf24', borderColor: 'rgba(251, 191, 36, 0.3)' }}
+                                  title="Demote Admin to Creator role"
+                                >
+                                  Demote to Creator
+                                </button>
+                              </div>
+                            )}
+
+                            {user.role !== 'owner' && (
+                              <button 
+                                onClick={() => toggleUserStatus(user.id)}
+                                className={`btn ${user.status === 'suspended' ? 'btn-primary' : 'btn-danger'}`}
+                                style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                              >
+                                {user.status === 'suspended' ? 'Unsuspend' : 'Suspend'}
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

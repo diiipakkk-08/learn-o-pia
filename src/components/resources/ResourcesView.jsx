@@ -3,13 +3,14 @@ import { useDatabase } from '../../context/DatabaseContext';
 import {
   Search, FileText, Download, Copy, Check, Bookmark, BookmarkCheck,
   Video, Play, FolderKanban, Sparkles, ExternalLink, Clock, User, Filter, Layers,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Trash2
 } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 8;
 
 export default function ResourcesView({ setCurrentView, setSelectedPlaylistId }) {
   const {
+    currentUser,
     standaloneResources,
     subjects,
     courses,
@@ -17,7 +18,8 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId })
     setGlobalSearchQuery,
     savedResourceIds,
     toggleSaveResource,
-    isResourceSaved
+    isResourceSaved,
+    deleteStandaloneResource
   } = useDatabase();
 
   const [copiedId, setCopiedId] = useState(null);
@@ -389,26 +391,43 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId })
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '10px', gap: '8px' }}>
-                        <button
-                          type="button"
-                          onClick={() => toggleSaveResource(res.id)}
-                          className={`btn ${saved ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                          style={{ fontSize: '0.75rem', gap: '4px', borderColor: saved ? undefined : 'rgba(255,255,255,0.1)' }}
-                        >
-                          {saved ? <BookmarkCheck size={13} color="#10b981" /> : <Bookmark size={13} />}
-                          {saved ? 'Saved' : 'Save Resource'}
-                        </button>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={() => toggleSaveResource(res.id)}
+                            className={`btn ${saved ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                            style={{ fontSize: '0.75rem', gap: '4px', borderColor: saved ? undefined : 'rgba(255,255,255,0.1)' }}
+                          >
+                            {saved ? <BookmarkCheck size={13} color="#10b981" /> : <Bookmark size={13} />}
+                            {saved ? 'Saved' : 'Save Resource'}
+                          </button>
 
-                        <a
-                          href={res.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="btn btn-secondary btn-sm"
-                          style={{ padding: '5px 10px', fontSize: '0.75rem', gap: 4 }}
-                        >
-                          <Download size={13} /> Open Link
-                        </a>
+                          <a
+                            href={res.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: '5px 10px', fontSize: '0.75rem', gap: 4 }}
+                          >
+                            <Download size={13} /> Open Link
+                          </a>
+                        </div>
+
+                        {(currentUser?.role === 'admin' || currentUser?.role === 'owner') && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`Admin Action: Are you sure you want to delete resource "${res.title}"?`)) {
+                                deleteStandaloneResource(res.id);
+                              }
+                            }}
+                            className="btn btn-danger btn-sm"
+                            style={{ width: '100%', fontSize: '0.72rem', padding: '4px', gap: 4 }}
+                          >
+                            <Trash2 size={12} /> Delete Resource (Admin)
+                          </button>
+                        )}
                       </div>
                     </div>
                   );

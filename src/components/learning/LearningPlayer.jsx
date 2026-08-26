@@ -22,7 +22,8 @@ import {
   Folder,
   Copy,
   Bookmark,
-  BookmarkCheck
+  BookmarkCheck,
+  Plus
 } from 'lucide-react';
 
 const TYPE_LABEL = {
@@ -158,7 +159,7 @@ export default function LearningPlayer({
   setActiveVideoIndex,
   setCurrentView
 }) {
-  const { courses, subjects, currentUser, toggleSaveResource, isResourceSaved } = useDatabase();
+  const { courses, subjects, currentUser, toggleSaveResource, isResourceSaved, updateLastPlayed, enrollInPlaylist, removeUserPlaylistEnrollment } = useDatabase();
 
   const [activeSemester, setActiveSemester] = useState(1);
   const [activeSubjectId, setActiveSubjectId] = useState(null);
@@ -283,6 +284,19 @@ export default function LearningPlayer({
     }
     return null;
   }, [playlistVideos, activeVideoIndex]);
+
+  useEffect(() => {
+    if ((activePlaylist || activeVideo) && typeof updateLastPlayed === 'function') {
+      updateLastPlayed({
+        playlistId: activePlaylist?.id || playlistId,
+        playlistTitle: activePlaylist?.title || course?.title || 'Lecture Series',
+        videoId: activeVideo?.id || null,
+        videoTitle: activeVideo?.title || activePlaylist?.title || 'Lecture Video',
+        courseId: course?.id || playlistId,
+        bannerUrl: course?.bannerUrl || activePlaylist?.bannerUrl
+      });
+    }
+  }, [activePlaylist, activeVideo, playlistId, course]);
 
   // Specific materials attached to active video
   const activeVideoMaterials = useMemo(() => {
@@ -631,17 +645,39 @@ export default function LearningPlayer({
                                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Instructor: <strong>{pl.author || 'Educator'}</strong></span>
                               </div>
 
-                              <button
-                                onClick={() => {
-                                  setActiveSubjectId(sub.id);
-                                  setActivePlaylistId(pl.id);
-                                  setActiveVideoIndex(0);
-                                }}
-                                className="btn btn-primary btn-sm"
-                                style={{ width: '100%', fontSize: '0.78rem', gap: '6px' }}
-                              >
-                                <Play size={13} /> Watch Series
-                              </button>
+                              <div style={{ display: 'flex', gap: '6px' }}>
+                                <button
+                                  onClick={() => {
+                                    setActiveSubjectId(sub.id);
+                                    setActivePlaylistId(pl.id);
+                                    setActiveVideoIndex(0);
+                                  }}
+                                  className="btn btn-primary btn-sm"
+                                  style={{ flex: 1, fontSize: '0.78rem', gap: '4px' }}
+                                >
+                                  <Play size={13} /> Watch Series
+                                </button>
+
+                                {currentUser?.enrolledPlaylists?.includes(pl.id) ? (
+                                  <button
+                                    onClick={() => removeUserPlaylistEnrollment(currentUser?.id, pl.id)}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ fontSize: '0.72rem', color: '#10b981', borderColor: 'rgba(16,185,129,0.3)', padding: '4px 8px' }}
+                                    title="Remove from My Learnings"
+                                  >
+                                    <BookmarkCheck size={12} />
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => enrollInPlaylist(pl.id)}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ fontSize: '0.72rem', padding: '4px 8px' }}
+                                    title="Add to My Learnings Section 2: Playlists"
+                                  >
+                                    <Plus size={12} />
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
                         );

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
 import {
   BookOpen, BookmarkCheck, Play, Download, Copy, Check, Trash2,
-  Sparkles, Compass, ArrowRight, FolderKanban, Plus, LogOut
+  Compass, LogOut, Video, Sparkles, Clock, Layers
 } from 'lucide-react';
 
 export default function MyLearningView({ setCurrentView, setSelectedPlaylistId }) {
@@ -13,8 +13,11 @@ export default function MyLearningView({ setCurrentView, setSelectedPlaylistId }
     standaloneResources,
     savedResourceIds,
     toggleSaveResource,
-    isResourceSaved,
-    removeUserEnrollment
+    removeUserEnrollment,
+    removeUserPlaylistEnrollment,
+    deletePlaylist,
+    deleteStandaloneResource,
+    lastPlayed
   } = useDatabase();
 
   const [copiedId, setCopiedId] = useState(null);
@@ -27,13 +30,54 @@ export default function MyLearningView({ setCurrentView, setSelectedPlaylistId }
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Enrolled Courses
+  const isAdminOrOwner = currentUser?.role === 'admin' || currentUser?.role === 'owner';
+
+  // SECTION 1: Enrolled Courses
   const enrolledCourseList = useMemo(() => {
     if (!currentUser || !currentUser.enrolledCourses) return [];
     return courses.filter(c => currentUser.enrolledCourses.includes(c.id));
   }, [currentUser, courses]);
 
-  // Saved Resources
+  // SECTION 2: Enrolled & User-Created Playlists
+  const enrolledPlaylistList = useMemo(() => {
+    const list = [];
+    const seen = new Set();
+    const enrolledIds = currentUser?.enrolledPlaylists || [];
+    const currentUserId = currentUser?.id;
+    const currentUserName = currentUser?.name;
+
+    (subjects || []).forEach(sub => {
+      (sub.playlists || []).forEach(pl => {
+        if (!pl.id || seen.has(pl.id)) return;
+        
+        const isEnrolled = enrolledIds.includes(pl.id);
+        const isCreated = (pl.creatorId && pl.creatorId === currentUserId) || (currentUserName && pl.author === currentUserName);
+
+        if (isEnrolled || isCreated) {
+          seen.add(pl.id);
+          const firstVid = pl.videos && pl.videos[0];
+          const yId = pl.youtubePlaylistId || (firstVid?.youtubeId || (firstVid?.url ? (firstVid.url.match(/[?&]v=([^#&]+)/) || [])[1] : ''));
+          const thumb = pl.bannerUrl || (yId ? `https://i.ytimg.com/vi/${yId}/hqdefault.jpg` : null);
+
+          list.push({
+            id: pl.id,
+            title: pl.title,
+            description: pl.description || 'Subject lecture series',
+            subjectTitle: sub.title,
+            courseId: sub.courseId,
+            author: pl.author || 'Instructor',
+            videoCount: pl.videos?.length || 0,
+            thumbnailUrl: thumb,
+            isCreated
+          });
+        }
+      });
+    });
+
+    return list;
+  }, [subjects, currentUser]);
+
+  // SECTION 3: Saved Resources
   const savedDocList = useMemo(() => {
     const list = [];
     const seen = new Set();
@@ -48,7 +92,8 @@ export default function MyLearningView({ setCurrentView, setSelectedPlaylistId }
           url: res.url,
           category: res.category || 'Study Guide',
           description: res.description || '',
-          author: res.author || 'Educator'
+          author: res.author || 'Educator',
+          isStandalone: true
         });
       }
     });
@@ -65,7 +110,8 @@ export default function MyLearningView({ setCurrentView, setSelectedPlaylistId }
             url: mat.url,
             category: mat.sectionName || 'Subject Material',
             description: `From ${sub.title}`,
-            author: mat.author || 'Faculty'
+            author: mat.author || 'Faculty',
+            isStandalone: false
           });
         }
       });
@@ -77,7 +123,7 @@ export default function MyLearningView({ setCurrentView, setSelectedPlaylistId }
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px', textAlign: 'left' }} className="animate-fade-in">
 
-      {/* Main Heading: Learn Space */}
+      {/* Header */}
       <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
         <h1 style={{ fontSize: '1.4rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '10px' }} className="primary-gradient-text">
           <Compass size={24} color="var(--primary)" /> Learn Space
@@ -87,17 +133,73 @@ export default function MyLearningView({ setCurrentView, setSelectedPlaylistId }
         </button>
       </div>
 
-      {/* SECTION 1: MY ENROLLED COURSES & PLAYLISTS */}
-      <div style={{ marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '1.05rem', margin: '0 0 14px 0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <BookOpen size={18} color="var(--primary)" /> My Enrolled Courses ({enrolledCourseList.length})
+      {/* TOP FEATURE: PICK UP WHERE YOU ARE LEARNING */}
+      <div className="glass-panel" style={{ padding: '20px', borderRadius: '16px', marginBottom: '32px', border: '1px solid rgba(139,92,246,0.3)', background: 'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(17,18,28,0.95) 100%)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+          <h2 style={{ fontSize: '1.05rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Clock size={18} color="var(--primary)" /> Pick Up Where You Are Learning
+          </h2>
+          {lastPlayed && (
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+              Last active: {new Date(lastPlayed.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
+        </div>
+
+        {lastPlayed ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '260px' }}>
+              <div style={{ width: 48, height: 48, borderRadius: '12px', background: 'linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Play size={24} color="#ffffff" />
+              </div>
+              <div>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {lastPlayed.playlistTitle || 'Lecture Series'}
+                </span>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#ffffff', margin: '2px 0 0 0' }}>
+                  {lastPlayed.videoTitle || lastPlayed.playlistTitle || 'Resume Learning'}
+                </h3>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                if (lastPlayed.courseId && setSelectedPlaylistId) {
+                  setSelectedPlaylistId(lastPlayed.courseId);
+                } else if (lastPlayed.playlistId && setSelectedPlaylistId) {
+                  setSelectedPlaylistId(lastPlayed.playlistId);
+                }
+                setCurrentView('learning-player');
+              }}
+              className="btn btn-primary"
+              style={{ fontSize: '0.85rem', padding: '10px 20px', gap: '8px' }}
+            >
+              <Play size={16} /> Continue Learning
+            </button>
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '16px 8px', color: 'var(--text-muted)' }}>
+            <p style={{ fontSize: '0.85rem', margin: '0 0 10px 0', color: 'var(--text-secondary)' }}>
+              No active learning session tracked yet. Click on any course or video lecture to resume seamlessly anytime!
+            </p>
+            <button onClick={() => setCurrentView('learning')} className="btn btn-secondary btn-sm" style={{ fontSize: '0.78rem' }}>
+              Start Exploring Curricula
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* SECTION 1: MY COURSES */}
+      <div style={{ marginBottom: '36px' }}>
+        <h2 style={{ fontSize: '1.1rem', margin: '0 0 14px 0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <BookOpen size={18} color="var(--primary)" /> 1. Courses & Degree Programs ({enrolledCourseList.length})
         </h2>
 
         {enrolledCourseList.length === 0 ? (
           <div className="glass-panel" style={{ padding: '32px', textAlign: 'center', borderRadius: '14px' }}>
             <BookOpen size={36} color="var(--primary)" style={{ opacity: 0.5, marginBottom: '8px' }} />
             <h3 style={{ fontSize: '1rem', color: '#ffffff', margin: '0 0 6px 0' }}>No Enrolled Courses Yet</h3>
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', maxWidth: '400px', margin: '0 auto 16px auto' }}>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', maxWidth: '420px', margin: '0 auto 16px auto' }}>
               You haven't enrolled in any degree curricula or courses yet. Browse available programs and click "Enroll Course" to get started!
             </p>
             <button onClick={() => setCurrentView('learning')} className="btn btn-primary" style={{ fontSize: '0.85rem' }}>
@@ -108,8 +210,6 @@ export default function MyLearningView({ setCurrentView, setSelectedPlaylistId }
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
             {enrolledCourseList.map((course) => (
               <div key={course.id} className="glass-panel" style={{ borderRadius: '14px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                
-                {/* Course Banner */}
                 <div style={{ height: '130px', position: 'relative', overflow: 'hidden', background: '#000' }}>
                   <img
                     src={course.bannerUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800&auto=format&fit=crop'}
@@ -161,11 +261,120 @@ export default function MyLearningView({ setCurrentView, setSelectedPlaylistId }
         )}
       </div>
 
-      {/* SECTION 2: MY SAVED RESOURCES */}
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+      {/* SECTION 2: MY PLAYLISTS */}
+      <div style={{ marginBottom: '36px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
           <h2 style={{ fontSize: '1.1rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <BookmarkCheck size={20} color="#10b981" /> My Saved Resources ({savedDocList.length})
+            <Video size={18} color="var(--secondary)" /> 2. Playlists ({enrolledPlaylistList.length})
+          </h2>
+          <button onClick={() => setCurrentView('learning')} className="btn btn-secondary btn-sm" style={{ fontSize: '0.75rem' }}>
+            + Add Playlists to My Learnings
+          </button>
+        </div>
+
+        {enrolledPlaylistList.length === 0 ? (
+          <div className="glass-panel" style={{ padding: '32px', textAlign: 'center', borderRadius: '14px' }}>
+            <Video size={36} color="var(--secondary)" style={{ opacity: 0.5, marginBottom: '8px' }} />
+            <h3 style={{ fontSize: '1rem', color: '#ffffff', margin: '0 0 6px 0' }}>No Enrolled Playlists Yet</h3>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', maxWidth: '440px', margin: '0 auto 16px auto' }}>
+              Enrolling in a degree course does not automatically add all standalone playlists here. Browse playlists or create your own in Studio, and click <strong>"Add to My Learnings"</strong>!
+            </p>
+            <button onClick={() => setCurrentView('learning')} className="btn btn-primary" style={{ fontSize: '0.85rem' }}>
+              Explore Available Playlists
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+            {enrolledPlaylistList.map((pl) => (
+              <div key={pl.id} className="glass-panel" style={{ borderRadius: '14px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid rgba(139,92,246,0.3)' }}>
+                <div style={{ height: '130px', background: '#000', position: 'relative', overflow: 'hidden' }}>
+                  {pl.thumbnailUrl ? (
+                    <img src={pl.thumbnailUrl} alt={pl.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1e1b4b 0%, #311b92 100%)' }}>
+                      <Play size={36} color="#a78bfa" />
+                    </div>
+                  )}
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.85) 100%)' }} />
+
+                  <span style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.85)', color: '#ffffff', fontSize: '0.68rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Video size={11} /> {pl.videoCount} Videos
+                  </span>
+
+                  <div style={{ position: 'absolute', top: '8px', left: '8px', background: 'rgba(0,0,0,0.8)', padding: '2px 8px', borderRadius: '6px', fontSize: '0.65rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span>ID: <code style={{ color: '#a78bfa' }}>{pl.id}</code></span>
+                    <button onClick={(e) => handleCopy(pl.id, e)} style={{ background: 'none', border: 'none', color: copiedId === pl.id ? '#10b981' : 'var(--text-muted)', cursor: 'pointer', padding: 0 }}>
+                      {copiedId === pl.id ? <Check size={10} /> : <Copy size={10} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ padding: '14px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#ffffff', margin: 0, lineHeight: '1.3' }}>{pl.title}</h4>
+                      {pl.isCreated && (
+                        <span style={{ fontSize: '0.62rem', background: 'rgba(56,189,248,0.2)', color: '#38bdf8', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                          Created by You
+                        </span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                      Subject: <strong>{pl.subjectTitle}</strong> • Credit: {pl.author}
+                    </span>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4' }}>{pl.description}</p>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => {
+                          if (pl.courseId && setSelectedPlaylistId) setSelectedPlaylistId(pl.courseId);
+                          else if (setSelectedPlaylistId) setSelectedPlaylistId(pl.id);
+                          setCurrentView('learning-player');
+                        }}
+                        className="btn btn-primary btn-sm"
+                        style={{ flex: 1, fontSize: '0.78rem', gap: '6px' }}
+                      >
+                        <Play size={13} /> Open Playlist
+                      </button>
+
+                      <button
+                        onClick={() => removeUserPlaylistEnrollment(currentUser?.id, pl.id)}
+                        className="btn btn-secondary btn-sm"
+                        style={{ fontSize: '0.75rem', color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}
+                        title="Remove from My Learning"
+                      >
+                        Remove
+                      </button>
+                    </div>
+
+                    {isAdminOrOwner && (
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`Admin Action: Are you sure you want to permanently delete playlist "${pl.title}"?`)) {
+                            deletePlaylist(pl.id);
+                          }
+                        }}
+                        className="btn btn-danger btn-sm"
+                        style={{ width: '100%', fontSize: '0.72rem', padding: '4px', gap: 4 }}
+                      >
+                        <Trash2 size={12} /> Delete Playlist (Admin)
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* SECTION 3: MY RESOURCES */}
+      <div style={{ marginBottom: '28px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+          <h2 style={{ fontSize: '1.1rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <BookmarkCheck size={18} color="#10b981" /> 3. Resources ({savedDocList.length})
           </h2>
           <button onClick={() => setCurrentView('resources')} className="btn btn-secondary btn-sm" style={{ fontSize: '0.75rem' }}>
             + Search & Save Resources
@@ -177,7 +386,7 @@ export default function MyLearningView({ setCurrentView, setSelectedPlaylistId }
             <BookmarkCheck size={36} color="var(--primary)" style={{ opacity: 0.5, marginBottom: '8px' }} />
             <h3 style={{ fontSize: '1rem', color: '#ffffff', margin: '0 0 6px 0' }}>No Saved Resources Yet</h3>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', maxWidth: '420px', margin: '0 auto 16px auto' }}>
-              Whenever you see a useful PDF, formula sheet, or Google Drive resource, click the <strong>"Save Resource"</strong> button so it appears here for instant offline access anytime!
+              Whenever you see a useful PDF, formula sheet, or Google Drive resource, click the <strong>"Save Resource"</strong> button so it appears here for instant access anytime!
             </p>
             <button onClick={() => setCurrentView('resources')} className="btn btn-primary" style={{ fontSize: '0.85rem' }}>
               Explore Public Resources
@@ -193,7 +402,6 @@ export default function MyLearningView({ setCurrentView, setSelectedPlaylistId }
                       {res.category}
                     </span>
 
-                    {/* Copy ID Button */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)', padding: '2px 6px', borderRadius: '6px' }}>
                       <span>ID: <code style={{ color: '#a78bfa' }}>{res.id}</code></span>
                       <button onClick={(e) => handleCopy(res.id, e)} style={{ background: 'none', border: 'none', color: copiedId === res.id ? '#10b981' : 'var(--text-muted)', cursor: 'pointer', padding: 0 }}>
@@ -207,14 +415,30 @@ export default function MyLearningView({ setCurrentView, setSelectedPlaylistId }
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Credit: {res.author}</span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '10px' }}>
-                  <button onClick={() => toggleSaveResource(res.id)} className="btn btn-secondary btn-sm" style={{ color: '#ef4444', fontSize: '0.75rem' }}>
-                    Remove
-                  </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <button onClick={() => toggleSaveResource(res.id)} className="btn btn-secondary btn-sm" style={{ color: '#ef4444', fontSize: '0.75rem' }}>
+                      Remove
+                    </button>
 
-                  <a href={res.url} target="_blank" rel="noreferrer" className="btn btn-primary btn-sm" style={{ fontSize: '0.75rem', gap: 4 }}>
-                    <Download size={13} /> Open File
-                  </a>
+                    <a href={res.url} target="_blank" rel="noreferrer" className="btn btn-primary btn-sm" style={{ fontSize: '0.75rem', gap: 4 }}>
+                      <Download size={13} /> Open File
+                    </a>
+                  </div>
+
+                  {isAdminOrOwner && (
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Admin Action: Delete resource "${res.title}"?`)) {
+                          deleteStandaloneResource(res.id);
+                        }
+                      }}
+                      className="btn btn-danger btn-sm"
+                      style={{ width: '100%', fontSize: '0.72rem', padding: '4px', gap: 4 }}
+                    >
+                      <Trash2 size={12} /> Delete Resource (Admin)
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

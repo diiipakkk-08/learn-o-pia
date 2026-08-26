@@ -3,13 +3,13 @@ import { useDatabase } from '../../context/DatabaseContext';
 import {
   Search, BookOpen, CheckCircle2, FileText, Download, Sparkles, Copy, Check,
   Heart, Filter, UserCheck, Play, Plus, X, Layers, Video, ChevronLeft, ChevronRight,
-  GraduationCap
+  GraduationCap, Trash2, BookmarkCheck
 } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 8;
 
 export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView }) {
-  const { courses, subjects, currentUser, enrollInCourse, globalSearchQuery, setGlobalSearchQuery } = useDatabase();
+  const { courses, subjects, currentUser, enrollInCourse, enrollInPlaylist, removeUserPlaylistEnrollment, deletePlaylist, globalSearchQuery, setGlobalSearchQuery } = useDatabase();
 
   const [localSearch, setLocalSearch] = useState(globalSearchQuery || '');
   const [sortBy, setSortBy] = useState('recent'); // 'recent' | 'alphabetical'
@@ -420,16 +420,63 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
                         <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4' }}>{pl.description}</p>
                       </div>
 
-                      <button
-                        onClick={() => {
-                          if (pl.courseId && setSelectedPlaylistId) setSelectedPlaylistId(pl.courseId);
-                          setCurrentView('learning-player');
-                        }}
-                        className="btn btn-primary btn-sm"
-                        style={{ width: '100%', fontSize: '0.8rem', gap: '6px' }}
-                      >
-                        <Play size={13} /> Open Playlist
-                      </button>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            onClick={() => {
+                              if (pl.courseId && setSelectedPlaylistId) setSelectedPlaylistId(pl.courseId);
+                              else if (setSelectedPlaylistId) setSelectedPlaylistId(pl.id);
+                              setCurrentView('learning-player');
+                            }}
+                            className="btn btn-primary btn-sm"
+                            style={{ flex: 1, fontSize: '0.78rem', gap: '6px' }}
+                          >
+                            <Play size={13} /> Open Playlist
+                          </button>
+
+                          {currentUser?.enrolledPlaylists?.includes(pl.id) ? (
+                            <button
+                              onClick={() => removeUserPlaylistEnrollment(currentUser?.id, pl.id)}
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '0.75rem', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.3)', gap: '4px' }}
+                              title="Remove from My Learnings"
+                            >
+                              <BookmarkCheck size={12} /> Added
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                if (!currentUser) {
+                                  setCurrentView('auth');
+                                } else {
+                                  enrollInPlaylist(pl.id);
+                                  setEnrollNotice(`Added "${pl.title}" to your Learn Space playlists!`);
+                                  setTimeout(() => setEnrollNotice(null), 3000);
+                                }
+                              }}
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '0.75rem', gap: '4px' }}
+                              title="Add to My Learnings Section 2: Playlists"
+                            >
+                              <Plus size={12} /> Add to My Learnings
+                            </button>
+                          )}
+                        </div>
+
+                        {(currentUser?.role === 'admin' || currentUser?.role === 'owner') && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Admin Action: Are you sure you want to permanently delete playlist "${pl.title}"?`)) {
+                                deletePlaylist(pl.id);
+                              }
+                            }}
+                            className="btn btn-danger btn-sm"
+                            style={{ width: '100%', fontSize: '0.72rem', padding: '4px', gap: '4px' }}
+                          >
+                            <Trash2 size={12} /> Delete Playlist (Admin)
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}

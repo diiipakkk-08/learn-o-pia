@@ -317,14 +317,15 @@ const mapProfile = (dbProfile) => {
     role: dbProfile.role || (isOwner ? 'owner' : 'learner'),
     status: dbProfile.status || 'active',
     creatorStatus: dbProfile.creator_status || dbProfile.creatorStatus || null,
-    enrolledCourses: dbProfile.enrolled_courses || dbProfile.enrolledCourses || []
+    enrolledCourses: dbProfile.enrolled_courses || dbProfile.enrolledCourses || [],
+    enrolledPlaylists: dbProfile.enrolled_playlists || dbProfile.enrolledPlaylists || ['pl-1']
   };
 };
 
 const SEED_USERS = [
-  { id: 'u-1', email: 'admin@learnopia.edu', name: 'Deepak Shaw', username: '@deepak_shaw', phone: '+91 9876543210', college: 'MAKAUT University', department: 'CSE/IT', interests: 'Computer Science, AI, Web Development', isVerified: true, verificationStatus: 'verified', verificationType: 'creator', role: 'owner', status: 'active', password: 'admin123', onboardingCompleted: true, enrolledCourses: ['c-1'] },
-  { id: 'u-2', email: 'creator@learnopia.edu', name: 'Sarah Miller', username: '@sarah_miller', phone: '+91 9876543211', college: 'MAKAUT Campus', department: 'Physics', interests: 'Quantum Mechanics, Wave Optics', isVerified: true, verificationStatus: 'verified', verificationType: 'professor', role: 'creator', status: 'active', password: 'creator123', onboardingCompleted: false, enrolledCourses: [] },
-  { id: 'u-3', email: 'learner@learnopia.edu', name: 'Alex Carter', username: '@alex_carter', phone: '+91 9876543212', college: 'Heritage Institute', department: 'CSE', interests: 'Data Structures, C Programming', isVerified: true, verificationStatus: 'verified', verificationType: 'student', role: 'learner', status: 'active', password: 'learner123', onboardingCompleted: false, enrolledCourses: [] }
+  { id: 'u-1', email: 'admin@learnopia.edu', name: 'Deepak Shaw', username: '@deepak_shaw', phone: '+91 9876543210', college: 'MAKAUT University', department: 'CSE/IT', interests: 'Computer Science, AI, Web Development', isVerified: true, verificationStatus: 'verified', verificationType: 'creator', role: 'owner', status: 'active', password: 'admin123', onboardingCompleted: true, enrolledCourses: ['c-1'], enrolledPlaylists: ['pl-1'] },
+  { id: 'u-2', email: 'creator@learnopia.edu', name: 'Sarah Miller', username: '@sarah_miller', phone: '+91 9876543211', college: 'MAKAUT Campus', department: 'Physics', interests: 'Quantum Mechanics, Wave Optics', isVerified: true, verificationStatus: 'verified', verificationType: 'professor', role: 'creator', status: 'active', password: 'creator123', onboardingCompleted: false, enrolledCourses: [], enrolledPlaylists: ['pl-1', 'pl-2'] },
+  { id: 'u-3', email: 'learner@learnopia.edu', name: 'Alex Carter', username: '@alex_carter', phone: '+91 9876543212', college: 'Heritage Institute', department: 'CSE', interests: 'Data Structures, C Programming', isVerified: true, verificationStatus: 'verified', verificationType: 'student', role: 'learner', status: 'active', password: 'learner123', onboardingCompleted: false, enrolledCourses: [], enrolledPlaylists: ['pl-1'] }
 ];
 
 const SEED_COURSES = [
@@ -495,6 +496,29 @@ export function DatabaseProvider({ children }) {
     return saved ? JSON.parse(saved) : ['res-1'];
   });
 
+  const [lastPlayed, setLastPlayed] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const saved = localStorage.getItem('learnopia_last_played');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const updateLastPlayed = (item) => {
+    if (!item) return;
+    const payload = {
+      playlistId: item.playlistId || null,
+      playlistTitle: item.playlistTitle || 'Lecture Series',
+      videoId: item.videoId || null,
+      videoTitle: item.videoTitle || 'Lecture Video',
+      courseId: item.courseId || null,
+      bannerUrl: item.bannerUrl || null,
+      timestamp: new Date().toISOString()
+    };
+    setLastPlayed(payload);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('learnopia_last_played', JSON.stringify(payload));
+    }
+  };
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('learnopia_saved_resource_ids', JSON.stringify(savedResourceIds));
@@ -524,6 +548,24 @@ export function DatabaseProvider({ children }) {
       return next;
     });
     if (typeof addLog === 'function') addLog(`Standalone resource published: ${resource.title}`);
+  };
+
+  const deleteStandaloneResource = async (resourceId) => {
+    if (!resourceId) return;
+    if (isSupabaseLive) {
+      try {
+        await supabase.from('materials').delete().eq('id', resourceId);
+      } catch (e) {}
+      syncSupabase();
+    }
+    setStandaloneResources(prev => {
+      const next = prev.filter(r => r.id !== resourceId);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('learnopia_standalone_resources', JSON.stringify(next));
+      }
+      return next;
+    });
+    setSavedResourceIds(prev => prev.filter(id => id !== resourceId));
   };
 
   const [announcements, setAnnouncements] = useState(() => {
@@ -1634,6 +1676,69 @@ export function DatabaseProvider({ children }) {
     }
   };
 
+  const enrollInPlaylist = async (playlistId) => {
+    if (!currentUser || !playlistId) return;
+    const currentEnrolled = currentUser.enrolledPlaylists || [];
+    if (currentEnrolled.includes(playlistId)) return;
+
+    const updated = [...currentEnrolled, playlistId];
+
+    if (isSupabaseLive) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ enrolled_playlists: updated })
+          .eq('id', currentUser.id);
+      } catch (e) {}
+      addLog(`Playlist added to My Learning.`);
+      syncSupabase();
+    } else {
+      setUsers(prev => prev.map(u => u.id === currentUser.id ? { ...u, enrolledPlaylists: updated } : u));
+      setCurrentUser(prev => ({ ...prev, enrolledPlaylists: updated }));
+      addLog(`Playlist added to My Learning.`);
+    }
+  };
+
+  const removeUserPlaylistEnrollment = async (userId, playlistId) => {
+    const target = users.find(u => u.id === userId) || currentUser;
+    if (!target || !playlistId) return;
+    const currentEnrolled = target.enrolledPlaylists || [];
+    const updated = currentEnrolled.filter(id => id !== playlistId);
+
+    if (isSupabaseLive) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ enrolled_playlists: updated })
+          .eq('id', target.id);
+      } catch (e) {}
+      addLog(`Playlist removed from My Learning.`);
+      syncSupabase();
+    } else {
+      setUsers(prev => prev.map(u => u.id === target.id ? { ...u, enrolledPlaylists: updated } : u));
+      if (currentUser && currentUser.id === target.id) {
+        setCurrentUser(prev => ({ ...prev, enrolledPlaylists: updated }));
+      }
+      addLog(`Playlist removed from My Learning.`);
+    }
+  };
+
+  const deletePlaylist = async (playlistId) => {
+    if (!playlistId) return;
+    if (isSupabaseLive) {
+      try {
+        await supabase.from('playlists').delete().eq('id', playlistId);
+        await supabase.from('videos').delete().eq('playlist_id', playlistId);
+      } catch (e) {}
+      addLog(`Playlist deleted.`);
+      syncSupabase();
+    }
+    setSubjects(prev => prev.map(s => ({
+      ...s,
+      playlists: (s.playlists || []).filter(p => p.id !== playlistId)
+    })));
+  };
+
   const addCourse = async (title, department, description, price = 0, isDegree = false, author = '', bannerUrl = '') => {
     if (!currentUser) return;
     const finalBanner = bannerUrl.trim() || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800&auto=format&fit=crop';
@@ -1846,6 +1951,7 @@ export function DatabaseProvider({ children }) {
       }
       addLog(`Playlist added: "${title}"`);
       syncSupabase();
+      return createdPlId || plId;
     } else {
       setSubjects(prev => prev.map(s => {
         if (s.id === subjectId) {
@@ -1865,6 +1971,7 @@ export function DatabaseProvider({ children }) {
         return s;
       }));
       addLog(`Playlist added: "${title}"`);
+      return plId;
     }
   };
 
@@ -3020,6 +3127,12 @@ export function DatabaseProvider({ children }) {
       unverifyUser,
       enrollInCourse,
       removeUserEnrollment,
+      enrollInPlaylist,
+      removeUserPlaylistEnrollment,
+      deletePlaylist,
+      deleteStandaloneResource,
+      lastPlayed,
+      updateLastPlayed,
       addCourse,
       editCourse,
       deleteCourse,

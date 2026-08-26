@@ -143,7 +143,7 @@ export default function CreatorStudio() {
     addVideoToPlaylist, deleteVideoFromPlaylist,
     addSubjectMaterialSection, deleteSubjectMaterialSection,
     addSubjectMaterial, deleteSubjectMaterial,
-    removeUserEnrollment,
+    removeUserEnrollment, enrollInPlaylist,
     reorderSubject, reorderPlaylist, reorderVideo, reorderMaterialSection,
     importVideosToExistingPlaylist, addStandaloneResource
   } = useDatabase();
@@ -276,7 +276,7 @@ export default function CreatorStudio() {
     }
 
     const defaultSubId = (subjects && subjects[0]?.id) || 'sub-1';
-    await addSubjectPlaylist(
+    const newPlId = await addSubjectPlaylist(
       defaultSubId,
       stTitle.trim(),
       stDesc.trim() || 'Standalone YouTube Playlist Series',
@@ -284,6 +284,9 @@ export default function CreatorStudio() {
       ytId,
       fetchedVideos
     );
+    if (newPlId && typeof enrollInPlaylist === 'function') {
+      enrollInPlaylist(newPlId);
+    }
 
     setStTitle(''); setStDesc(''); setStAuthor(''); setStYtUrl(''); setStBannerUrl('');
     setShowStandalonePlaylistForm(false);
@@ -361,7 +364,10 @@ export default function CreatorStudio() {
       }
     }
 
-    await addSubjectPlaylist(activeSubject.id, playlistTitle.trim(), playlistDesc.trim(), playlistAuthor.trim(), ytPlaylistId, fetchedVideos);
+    const newPlId = await addSubjectPlaylist(activeSubject.id, playlistTitle.trim(), playlistDesc.trim(), playlistAuthor.trim(), ytPlaylistId, fetchedVideos);
+    if (newPlId && typeof enrollInPlaylist === 'function') {
+      enrollInPlaylist(newPlId);
+    }
     setPlaylistTitle('');
     setPlaylistDesc('');
     setPlaylistAuthor('');
