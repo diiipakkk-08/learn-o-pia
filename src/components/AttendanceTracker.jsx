@@ -273,6 +273,26 @@ export default function AttendanceTracker({ setCurrentView }) {
   const logsKey = `learnopia_attendance_logs_${userId}`;
   const archivesKey = `learnopia_archived_semesters_${userId}`;
   const startDateKey = `learnopia_semester_start_${userId}`;
+  const classDurationKey = `learnopia_class_duration_mins_${userId}`;
+
+  // Class Duration Setting (in minutes per point/class)
+  const [classDurationMins, setClassDurationMins] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(classDurationKey) || localStorage.getItem('learnopia_class_duration_mins');
+      if (saved) {
+        const num = parseInt(saved, 10);
+        if (!isNaN(num) && num > 0) return num;
+      }
+    }
+    return 55;
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(classDurationKey, classDurationMins.toString());
+      localStorage.setItem('learnopia_class_duration_mins', classDurationMins.toString());
+    }
+  }, [classDurationMins, classDurationKey]);
 
   // Sharing & Import States
   const [showShareModal, setShowShareModal] = useState(false);
@@ -758,7 +778,7 @@ export default function AttendanceTracker({ setCurrentView }) {
           if (cls.subject === subName) {
             return {
               ...cls,
-              points: Math.max(1, Math.min(10, parseInt(newPoints, 10) || 1)),
+              points: newPoints !== undefined && newPoints !== null ? Math.max(1, Math.min(10, parseInt(newPoints, 10) || 1)) : (cls.points || 1),
               isLab: newIsLab !== undefined ? Boolean(newIsLab) : Boolean(cls.isLab)
             };
           }
@@ -910,7 +930,7 @@ export default function AttendanceTracker({ setCurrentView }) {
     });
   }, [routine, logs, semesterStartDate, selectedDate, todayStr]);
 
-  // Overall Total Summary
+  // Overall Total Summary & Multi-Metric Breakdown
   const overallStats = useMemo(() => {
     let totAttended = 0;
     let totAbsent = 0;
@@ -918,17 +938,41 @@ export default function AttendanceTracker({ setCurrentView }) {
     let totCancelled = 0;
     let totConducted = 0;
 
+    let theoryAttended = 0;
+    let theoryConducted = 0;
+
+    let labAttended = 0;
+    let labConducted = 0;
+
     subjectAnalytics.forEach((s) => {
       totAttended += s.attended;
       totAbsent += s.absent;
       totMassBunk += s.massbunk;
       totCancelled += s.cancelled;
       totConducted += s.totalConducted;
+
+      if (s.isLab) {
+        labAttended += s.attended;
+        labConducted += s.totalConducted;
+      } else {
+        theoryAttended += s.attended;
+        theoryConducted += s.totalConducted;
+      }
     });
 
     const pctOfficial = totConducted > 0 ? Math.round((totAttended / totConducted) * 100) : 100;
     const conductedWithoutMassBunks = totConducted - totMassBunk;
     const pctWithoutMassBunks = conductedWithoutMassBunks > 0 ? Math.round((totAttended / conductedWithoutMassBunks) * 100) : 100;
+
+    const theoryPct = theoryConducted > 0 ? Math.round((theoryAttended / theoryConducted) * 100) : null;
+    const labPct = labConducted > 0 ? Math.round((labAttended / labConducted) * 100) : null;
+
+    const totalMinutesStudied = totAttended * classDurationMins;
+    const hoursStudied = Math.floor(totalMinutesStudied / 60);
+    const minsStudied = totalMinutesStudied % 60;
+    const hoursStudiedText = hoursStudied > 0 
+      ? `${hoursStudied}h ${minsStudied}m` 
+      : `${minsStudied} mins`;
 
     return { 
       totAttended, 
@@ -937,9 +981,19 @@ export default function AttendanceTracker({ setCurrentView }) {
       totCancelled, 
       totConducted, 
       pct: pctOfficial, 
-      pctWithoutMassBunks 
+      pctWithoutMassBunks,
+      theoryAttended,
+      theoryConducted,
+      theoryPct,
+      labAttended,
+      labConducted,
+      labPct,
+      totalMinutesStudied,
+      hoursStudied,
+      minsStudied,
+      hoursStudiedText
     };
-  }, [subjectAnalytics]);
+  }, [subjectAnalytics, classDurationMins]);
 
   // End Semester Handler -> Clears & Resets Routine Completely
   const handleConfirmNewSemester = () => {
@@ -1113,6 +1167,30 @@ export default function AttendanceTracker({ setCurrentView }) {
                 {scheduledToday.map((cls) => {
                   const rawStatus = dayLog.classes ? dayLog.classes[cls.id] : undefined;
                   const status = rawStatus;
+                  const isWeighted = (cls.points || 1) > 1;
+
+                  // Background & Border styling
+                  let bgStyle = 'rgba(255,255,255,0.02)';
+                  let borderStyle = '1px solid rgba(255,255,255,0.06)';
+
+                  if (status === 'attended') {
+                    if (isWeighted) {
+                      bgStyle = 'rgba(59,130,246,0.12)';
+                      borderStyle = '1px solid rgba(59,130,246,0.4)';
+                    } else {
+                      bgStyle = 'rgba(16,185,129,0.08)';
+                      borderStyle = '1px solid rgba(16,185,129,0.2)';
+                    }
+                  } else if (status === 'massbunk') {
+                    bgStyle = 'rgba(245,158,11,0.08)';
+                    borderStyle = '1px solid rgba(245,158,11,0.2)';
+                  } else if (status === 'cancelled') {
+                    bgStyle = 'rgba(255,255,255,0.03)';
+                    borderStyle = '1px solid rgba(255,255,255,0.08)';
+                  } else if (status === 'absent') {
+                    bgStyle = 'rgba(239,68,68,0.08)';
+                    borderStyle = '1px solid rgba(239,68,68,0.2)';
+                  }
 
                   return (
                     <div
@@ -1120,8 +1198,8 @@ export default function AttendanceTracker({ setCurrentView }) {
                       style={{
                         padding: isMobile ? '10px 12px' : '12px 16px',
                         borderRadius: '10px',
-                        background: status === 'attended' ? 'rgba(16,185,129,0.08)' : status === 'massbunk' ? 'rgba(245,158,11,0.08)' : status === 'cancelled' ? 'rgba(255,255,255,0.03)' : status === 'absent' ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.02)',
-                        border: status === 'attended' ? '1px solid rgba(16,185,129,0.2)' : status === 'massbunk' ? '1px solid rgba(245,158,11,0.2)' : status === 'cancelled' ? '1px solid rgba(255,255,255,0.08)' : status === 'absent' ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(255,255,255,0.06)',
+                        background: bgStyle,
+                        border: borderStyle,
                         display: 'flex',
                         flexDirection: isMobile ? 'column' : 'row',
                         alignItems: isMobile ? 'flex-start' : 'center',
@@ -1132,8 +1210,21 @@ export default function AttendanceTracker({ setCurrentView }) {
                       <div style={{ minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                           <strong style={{ color: '#ffffff', fontSize: isMobile ? '0.85rem' : '0.9rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cls.subject}</strong>
-                          <span style={{ fontSize: '0.65rem', background: cls.isLab ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.08)', color: cls.isLab ? '#c4b5fd' : 'var(--text-secondary)', border: '1px solid rgba(255,255,255,0.12)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                            {cls.isLab ? '🧪 LAB' : '📖 THEORY'} ({cls.points || 1} {cls.points === 1 ? 'pt' : 'pts'})
+                          {cls.isLab && (
+                            <span style={{ fontSize: '0.65rem', background: 'rgba(139,92,246,0.25)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.4)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                              🧪 LAB
+                            </span>
+                          )}
+                          <span style={{
+                            fontSize: '0.65rem',
+                            background: isWeighted ? 'rgba(59,130,246,0.25)' : 'rgba(255,255,255,0.08)',
+                            color: isWeighted ? '#93c5fd' : 'var(--text-secondary)',
+                            border: isWeighted ? '1px solid rgba(59,130,246,0.4)' : '1px solid rgba(255,255,255,0.12)',
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            fontWeight: 700
+                          }}>
+                            {cls.points || 1} {(cls.points || 1) === 1 ? 'Pt' : 'Pts'}
                           </span>
                         </div>
                         <span style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -1624,145 +1715,236 @@ export default function AttendanceTracker({ setCurrentView }) {
               </button>
             </div>
           )}
-        </div>
-      )}
-
-      {/* TAB 3: SUBJECT ANALYTICS & ARCHIVES */}
+       {/* TAB 3: SUBJECT ANALYTICS & ARCHIVES */}
       {activeTab === 'analytics' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '20px', textAlign: 'left' }}>
-          {/* OVERALL ANALYTICS */}
-          <div className="glass-panel" style={{ padding: isMobile ? '16px' : '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <h3 style={{ fontSize: isMobile ? '1rem' : '1.1rem', margin: '0 0 16px 0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <TrendingUp size={isMobile ? 18 : 20} color="var(--primary)" /> Overall Analytics
-            </h3>
-            
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between' }}>
-              <div style={{ flex: '1 1 min-content', minWidth: '120px' }}>
-                <div style={{ fontSize: isMobile ? '0.75rem' : '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Actual Attendance</div>
-                <div style={{ fontSize: isMobile ? '1.5rem' : '1.8rem', fontWeight: 800, color: overallStats.pct < 75 ? '#f87171' : '#34d399' }}>
+          {/* OVERALL ANALYTICS DASHBOARD */}
+          <div className="glass-panel" style={{ padding: isMobile ? '16px' : '22px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+              <h3 style={{ fontSize: isMobile ? '1rem' : '1.15rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
+                <TrendingUp size={isMobile ? 18 : 20} color="var(--primary)" /> Attendance Analytics & Time Log
+              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.03)', padding: '4px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <Clock size={14} color="#a78bfa" />
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Class Length:</span>
+                <select
+                  value={classDurationMins}
+                  onChange={(e) => setClassDurationMins(parseInt(e.target.value, 10) || 55)}
+                  style={{ background: '#11121c', color: '#60a5fa', border: '1px solid rgba(59,130,246,0.4)', borderRadius: '6px', fontSize: '0.72rem', padding: '2px 6px', fontWeight: 700, outline: 'none', cursor: 'pointer' }}
+                >
+                  {[30, 45, 50, 55, 60, 75, 90, 120].map((m) => (
+                    <option key={m} value={m}>{m} Mins / Pt</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* 4 PRIMARY METRIC CARDS */}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: isMobile ? '10px' : '14px' }}>
+              {/* Card 1: Total Attendance (Weighted %) */}
+              <div style={{ padding: isMobile ? '12px' : '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Total Attendance</div>
+                <div style={{ fontSize: isMobile ? '1.4rem' : '1.7rem', fontWeight: 800, color: overallStats.pct < 75 ? '#f87171' : '#34d399', margin: '4px 0' }}>
                   {overallStats.pct}%
                 </div>
-                <div style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                  (Includes Mass Bunks)
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                  {overallStats.totAttended} / {overallStats.totConducted} pts attended
                 </div>
               </div>
 
-              <div style={{ flex: '1 1 min-content', minWidth: '120px' }}>
-                <div style={{ fontSize: isMobile ? '0.75rem' : '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Ignoring Mass Bunks</div>
-                <div style={{ fontSize: isMobile ? '1.5rem' : '1.8rem', fontWeight: 800, color: overallStats.pctWithoutMassBunks < 75 ? '#f87171' : '#34d399' }}>
-                  {overallStats.pctWithoutMassBunks}%
+              {/* Card 2: Theory Attendance % */}
+              <div style={{ padding: isMobile ? '12px' : '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  📖 Theory Attendance
                 </div>
-                <div style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                  (If Bunks Were Cancelled)
+                <div style={{ fontSize: isMobile ? '1.4rem' : '1.7rem', fontWeight: 800, color: overallStats.theoryPct === null ? 'var(--text-muted)' : overallStats.theoryPct < 75 ? '#f87171' : '#34d399', margin: '4px 0' }}>
+                  {overallStats.theoryPct !== null ? `${overallStats.theoryPct}%` : 'N/A'}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                  {overallStats.theoryAttended} / {overallStats.theoryConducted} theory pts
+                </div>
+              </div>
+
+              {/* Card 3: Class Labs Attendance % */}
+              <div style={{ padding: isMobile ? '12px' : '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  🧪 Class Labs
+                </div>
+                <div style={{ fontSize: isMobile ? '1.4rem' : '1.7rem', fontWeight: 800, color: overallStats.labPct === null ? 'var(--text-muted)' : overallStats.labPct < 75 ? '#f87171' : '#60a5fa', margin: '4px 0' }}>
+                  {overallStats.labPct !== null ? `${overallStats.labPct}%` : 'N/A'}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                  {overallStats.labAttended} / {overallStats.labConducted} lab pts
+                </div>
+              </div>
+
+              {/* Card 4: Hours & Minutes Spent in College */}
+              <div style={{ padding: isMobile ? '12px' : '16px', borderRadius: '12px', background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.25)' }}>
+                <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: '#93c5fd', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Timer size={13} color="#60a5fa" /> Hours Studied in Class
+                </div>
+                <div style={{ fontSize: isMobile ? '1.4rem' : '1.7rem', fontWeight: 800, color: '#60a5fa', margin: '4px 0' }}>
+                  {overallStats.hoursStudiedText}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                  ({overallStats.totalMinutesStudied} mins · {classDurationMins}m / class)
                 </div>
               </div>
             </div>
 
+            {/* SECONDARY ROW: DETAILED COUNTS & MASS BUNK STATS */}
             <div style={{ 
               marginTop: '16px', 
               paddingTop: '16px', 
               borderTop: '1px solid rgba(255,255,255,0.08)',
               display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', 
               gap: '12px' 
             }}>
               <div>
-                <div style={{ fontSize: isMobile ? '0.7rem' : '0.8rem', color: 'var(--text-secondary)' }}>Total Classes</div>
-                <div style={{ fontSize: isMobile ? '0.9rem' : '1.1rem', fontWeight: 700, color: '#fff' }}>{overallStats.totConducted}</div>
+                <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: 'var(--text-secondary)' }}>Total Conducted</div>
+                <div style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', fontWeight: 700, color: '#fff' }}>{overallStats.totConducted} pts</div>
               </div>
               <div>
-                <div style={{ fontSize: isMobile ? '0.7rem' : '0.8rem', color: 'var(--text-secondary)' }}>Attended</div>
-                <div style={{ fontSize: isMobile ? '0.9rem' : '1.1rem', fontWeight: 700, color: '#34d399' }}>{overallStats.totAttended}</div>
+                <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: 'var(--text-secondary)' }}>Attended Pts</div>
+                <div style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', fontWeight: 700, color: '#34d399' }}>{overallStats.totAttended} pts</div>
               </div>
               <div>
-                <div style={{ fontSize: isMobile ? '0.7rem' : '0.8rem', color: 'var(--text-secondary)' }}>Absent</div>
-                <div style={{ fontSize: isMobile ? '0.9rem' : '1.1rem', fontWeight: 700, color: '#f87171' }}>{overallStats.totAbsent}</div>
+                <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: 'var(--text-secondary)' }}>Absent Pts</div>
+                <div style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', fontWeight: 700, color: '#f87171' }}>{overallStats.totAbsent} pts</div>
               </div>
               <div>
-                <div style={{ fontSize: isMobile ? '0.7rem' : '0.8rem', color: 'var(--text-secondary)' }}>Mass Bunks</div>
-                <div style={{ fontSize: isMobile ? '0.9rem' : '1.1rem', fontWeight: 700, color: '#fbbf24' }}>{overallStats.totMassBunk}</div>
+                <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: 'var(--text-secondary)' }}>Mass Bunk Pts</div>
+                <div style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', fontWeight: 700, color: '#fbbf24' }}>{overallStats.totMassBunk} pts</div>
               </div>
               <div>
-                <div style={{ fontSize: isMobile ? '0.7rem' : '0.8rem', color: 'var(--text-secondary)' }}>Cancelled</div>
-                <div style={{ fontSize: isMobile ? '0.9rem' : '1.1rem', fontWeight: 700, color: '#94a3b8' }}>{overallStats.totCancelled}</div>
+                <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: 'var(--text-secondary)' }}>Cancelled Classes</div>
+                <div style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', fontWeight: 700, color: '#94a3b8' }}>{overallStats.totCancelled}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', color: 'var(--text-secondary)' }}>No Bunks Score</div>
+                <div style={{ fontSize: isMobile ? '0.9rem' : '1.05rem', fontWeight: 700, color: overallStats.pctWithoutMassBunks < 75 ? '#f87171' : '#34d399' }}>
+                  {overallStats.pctWithoutMassBunks}%
+                </div>
               </div>
             </div>
           </div>
 
-          <h3 style={{ fontSize: isMobile ? '1rem' : '1.1rem', margin: '0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <h3 style={{ fontSize: isMobile ? '1rem' : '1.1rem', margin: '0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
              Subject-wise Breakdown
           </h3>
 
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(260px, 1fr))', gap: isMobile ? '12px' : '16px' }}>
-            {subjectAnalytics.map((sub) => (
-              <div
-                key={sub.subject}
-                className="glass-panel"
-                style={{
-                  padding: isMobile ? '16px' : '20px',
-                  borderRadius: '16px',
-                  border: sub.isAlert ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(16,185,129,0.3)',
-                  background: sub.isAlert ? 'rgba(239,68,68,0.05)' : 'rgba(16,185,129,0.05)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
-                    <h4 style={{ fontSize: isMobile ? '0.9rem' : '1rem', margin: 0, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub.subject}</h4>
-                    {sub.isLab && (
-                      <span style={{ fontSize: '0.65rem', background: 'rgba(139,92,246,0.3)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.5)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                        🧪 LAB
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(270px, 1fr))', gap: isMobile ? '12px' : '16px' }}>
+            {subjectAnalytics.map((sub) => {
+              const isAlert = sub.isAlert;
+              const isWeighted = (sub.points || 1) > 1;
+
+              // Color Theme:
+              // Alert -> Red
+              // > 1 Pt (or Lab) -> Electric Blue
+              // Normal 1 Pt -> Emerald Green
+              const cardBorder = isAlert 
+                ? '1px solid rgba(239,68,68,0.45)' 
+                : isWeighted 
+                  ? '1px solid rgba(59,130,246,0.45)' 
+                  : '1px solid rgba(16,185,129,0.35)';
+
+              const cardBg = isAlert 
+                ? 'rgba(239,68,68,0.06)' 
+                : isWeighted 
+                  ? 'rgba(59,130,246,0.06)' 
+                  : 'rgba(16,185,129,0.05)';
+
+              const pctColor = isAlert 
+                ? '#f87171' 
+                : isWeighted 
+                  ? '#60a5fa' 
+                  : '#34d399';
+
+              return (
+                <div
+                  key={sub.subject}
+                  className="glass-panel"
+                  style={{
+                    padding: isMobile ? '16px' : '20px',
+                    borderRadius: '16px',
+                    border: cardBorder,
+                    background: cardBg
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
+                      <h4 style={{ fontSize: isMobile ? '0.9rem' : '1rem', margin: 0, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub.subject}</h4>
+                      {sub.isLab && (
+                        <span style={{ fontSize: '0.65rem', background: 'rgba(139,92,246,0.25)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.4)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                          🧪 LAB
+                        </span>
+                      )}
+                      {isWeighted && (
+                        <span style={{ fontSize: '0.65rem', background: 'rgba(59,130,246,0.25)', color: '#93c5fd', border: '1px solid rgba(59,130,246,0.4)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                          ⚡ {sub.points} Pts
+                        </span>
+                      )}
+                    </div>
+                    <span style={{ fontSize: isMobile ? '1rem' : '1.15rem', fontWeight: 800, color: pctColor }}>
+                      {sub.percentage}%
+                    </span>
+                  </div>
+
+                  {/* Point Weight & Type Selector Controls */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', background: 'rgba(255,255,255,0.03)', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Points:</span>
+                    <select
+                      value={sub.points || 1}
+                      onChange={(e) => handleUpdateSubjectConfig(sub.subject, e.target.value, sub.isLab)}
+                      style={{ background: '#11121c', color: isWeighted ? '#93c5fd' : '#fff', border: isWeighted ? '1px solid rgba(59,130,246,0.5)' : '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', fontSize: '0.72rem', padding: '2px 6px', cursor: 'pointer', outline: 'none', fontWeight: 700 }}
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((p) => (
+                        <option key={p} value={p}>
+                          {p} {p === 1 ? 'Point' : 'Points'}
+                        </option>
+                      ))}
+                    </select>
+
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateSubjectConfig(sub.subject, sub.points, !sub.isLab)}
+                      className="btn btn-secondary btn-sm"
+                      style={{
+                        fontSize: '0.7rem',
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        background: sub.isLab ? 'rgba(139,92,246,0.2)' : 'transparent',
+                        color: sub.isLab ? '#c4b5fd' : 'var(--text-secondary)',
+                        borderColor: sub.isLab ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.15)'
+                      }}
+                    >
+                      {sub.isLab ? '🧪 Lab Active' : '📖 Set as Lab'}
+                    </button>
+                  </div>
+
+                  <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span>Attended: {sub.attended} pts / Conducted: {sub.totalConducted} pts</span>
+                    <span>Absent: {sub.absent} pts · Mass Bunked: {sub.massbunk} pts · Cancelled: {sub.cancelled}</span>
+                  </div>
+
+                  <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: isMobile ? '0.7rem' : '0.78rem' }}>
+                    {sub.isAlert ? (
+                      <span style={{ color: '#f87171', fontWeight: 600 }}>
+                        ⚠️ Attendance Alert: You must attend the next <strong>{sub.neededClasses}</strong> classes to reach {sub.target}%.
+                      </span>
+                    ) : (
+                      <span style={{ color: isWeighted ? '#60a5fa' : '#34d399', fontWeight: 600 }}>
+                        ✔ Safe Margin: You can safely bunk up to <strong>{sub.safeBunks}</strong> upcoming classes.
                       </span>
                     )}
                   </div>
-                  <span style={{ fontSize: isMobile ? '1rem' : '1.1rem', fontWeight: 800, color: sub.isAlert ? '#f87171' : '#34d399' }}>
-                    {sub.percentage}%
-                  </span>
                 </div>
-
-                {/* Point Weight & Type Selector Controls */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', background: 'rgba(255,255,255,0.03)', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Weight:</span>
-                  <select
-                    value={sub.points || 1}
-                    onChange={(e) => handleUpdateSubjectConfig(sub.subject, e.target.value, sub.isLab)}
-                    style={{ background: '#11121c', color: '#fff', border: '1px solid rgba(139,92,246,0.4)', borderRadius: '6px', fontSize: '0.72rem', padding: '2px 6px', cursor: 'pointer', outline: 'none' }}
-                  >
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((p) => (
-                      <option key={p} value={p}>
-                        {p} {p === 1 ? 'Point / Hour' : 'Points / Hours'}
-                      </option>
-                    ))}
-                  </select>
-
-                  <button
-                    type="button"
-                    onClick={() => handleUpdateSubjectConfig(sub.subject, sub.isLab ? 1 : 2, !sub.isLab)}
-                    className="btn btn-secondary btn-sm"
-                    style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: sub.isLab ? 'rgba(139,92,246,0.2)' : 'transparent', color: sub.isLab ? '#c4b5fd' : 'var(--text-secondary)' }}
-                  >
-                    {sub.isLab ? '📖 Theory' : '🧪 Set as Lab (2 pts)'}
-                  </button>
-                </div>
-
-                <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <span>Attended: {sub.attended} pts / Conducted: {sub.totalConducted} pts</span>
-                  <span>Absent: {sub.absent} pts · Mass Bunked: {sub.massbunk} pts · Cancelled: {sub.cancelled}</span>
-                </div>
-
-                <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: isMobile ? '0.7rem' : '0.78rem' }}>
-                  {sub.isAlert ? (
-                    <span style={{ color: '#f87171', fontWeight: 600 }}>
-                      ⚠️ Attendance Alert: You must attend the next <strong>{sub.neededClasses}</strong> classes to reach {sub.target}%.
-                    </span>
-                  ) : (
-                    <span style={{ color: '#34d399', fontWeight: 600 }}>
-                      ✔ Safe Margin: You can safely bunk up to <strong>{sub.safeBunks}</strong> upcoming classes.
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+        </div>
+      )}
 
           {/* Archived Semesters History */}
           {archivedSemesters.length > 0 && (
