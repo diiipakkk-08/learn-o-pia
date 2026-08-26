@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
-import { GraduationCap, LogOut, BookOpen, User, Info, Calendar, MessageSquare, Sparkles, Shield, Compass, MoreHorizontal, ChevronDown, X, Search, FolderKanban } from 'lucide-react';
+import { GraduationCap, LogOut, BookOpen, User, Info, Calendar, MessageSquare, Sparkles, Shield, Compass, MoreHorizontal, ChevronDown, X, Search, FolderKanban, Bell, ExternalLink, Megaphone } from 'lucide-react';
 
 export default function Header({
   currentView,
@@ -8,9 +8,10 @@ export default function Header({
   setSelectedPlaylistId,
   onLogoClick
 }) {
-  const { currentUser, logout, globalSearchQuery, setGlobalSearchQuery } = useDatabase();
+  const { currentUser, logout, globalSearchQuery, setGlobalSearchQuery, announcements, markAnnouncementsRead, unreadAnnouncementsCount } = useDatabase();
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showAnnouncementsModal, setShowAnnouncementsModal] = useState(false);
   const mobileMenuRef = useRef(null);
 
   const pageTitles = {
@@ -192,6 +193,49 @@ export default function Header({
         <div>
           {isMobile ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                onClick={() => {
+                  if (markAnnouncementsRead) markAnnouncementsRead();
+                  setShowAnnouncementsModal((prev) => !prev);
+                }}
+                style={{
+                  position: 'relative',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '50%',
+                  width: '34px',
+                  height: '34px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  cursor: 'pointer'
+                }}
+                title="Announcements & Notifications"
+              >
+                <Bell size={16} />
+                {unreadAnnouncementsCount > 0 && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-2px',
+                    right: '-2px',
+                    background: '#ef4444',
+                    color: '#fff',
+                    fontSize: '0.6rem',
+                    fontWeight: 800,
+                    borderRadius: '50%',
+                    width: '16px',
+                    height: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 8px rgba(239,68,68,0.6)'
+                  }}>
+                    {unreadAnnouncementsCount}
+                  </span>
+                )}
+              </button>
+
               {currentUser ? (
                 <button
                   onClick={() => setCurrentView('profile')}
@@ -214,6 +258,50 @@ export default function Header({
             </div>
           ) : (
             <div style={styles.right}>
+              <button
+                onClick={() => {
+                  if (markAnnouncementsRead) markAnnouncementsRead();
+                  setShowAnnouncementsModal((prev) => !prev);
+                }}
+                style={{
+                  position: 'relative',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '50%',
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}
+                title="Announcements & Notifications"
+              >
+                <Bell size={17} />
+                {unreadAnnouncementsCount > 0 && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-2px',
+                    right: '-2px',
+                    background: '#ef4444',
+                    color: '#fff',
+                    fontSize: '0.62rem',
+                    fontWeight: 800,
+                    borderRadius: '50%',
+                    width: '18px',
+                    height: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 8px rgba(239,68,68,0.6)'
+                  }}>
+                    {unreadAnnouncementsCount}
+                  </span>
+                )}
+              </button>
+
               {currentUser ? (
                 <>
                   <button
@@ -359,6 +447,129 @@ export default function Header({
               <LogOut size={18} />
               <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>Sign Out</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ANNOUNCEMENTS & NOTIFICATIONS MODAL */}
+      {showAnnouncementsModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            padding: '16px'
+          }}
+          className="animate-fade-in"
+          onClick={() => setShowAnnouncementsModal(false)}
+        >
+          <div
+            className="glass-panel"
+            style={{
+              maxWidth: '540px',
+              width: '100%',
+              maxHeight: '80vh',
+              borderRadius: '20px',
+              border: '1px solid rgba(139, 92, 246, 0.4)',
+              background: '#11121c',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.8)',
+              overflow: 'hidden'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Megaphone size={20} color="var(--primary)" />
+                <h3 style={{ fontSize: '1.1rem', margin: 0, color: '#ffffff', fontWeight: 700 }}>
+                  Announcements & Broadcasts
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowAnnouncementsModal(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body: Announcement List */}
+            <div style={{ padding: '16px 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
+              {(!announcements || announcements.length === 0) ? (
+                <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)' }}>
+                  <Bell size={32} color="var(--primary)" style={{ opacity: 0.4, marginBottom: '8px' }} />
+                  <p style={{ margin: 0, fontSize: '0.9rem' }}>No announcements broadcasted yet.</p>
+                </div>
+              ) : (
+                announcements.map((ann) => (
+                  <div
+                    key={ann.id}
+                    style={{
+                      padding: '14px 16px',
+                      borderRadius: '14px',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                      <h4 style={{ fontSize: '0.95rem', margin: 0, color: '#ffffff', fontWeight: 700 }}>
+                        {ann.title}
+                      </h4>
+                      <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                        {new Date(ann.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                    </div>
+
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.45', whiteSpace: 'pre-wrap' }}>
+                      {ann.message}
+                    </p>
+
+                    {ann.resourceUrl && (
+                      <div style={{ marginTop: '4px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.72rem', color: '#a78bfa', fontWeight: 600 }}>
+                          📎 {ann.resourceTitle || 'Shared Resource Link'}
+                        </span>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <a
+                            href={ann.resourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-primary btn-sm"
+                            style={{ fontSize: '0.7rem', padding: '3px 8px', gap: '4px', textDecoration: 'none' }}
+                          >
+                            <ExternalLink size={11} /> Open Link
+                          </a>
+                          <button
+                            onClick={() => {
+                              setShowAnnouncementsModal(false);
+                              setCurrentView('resources');
+                            }}
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: '0.7rem', padding: '3px 8px' }}
+                          >
+                            View in Resources
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -386,6 +386,18 @@ const SEED_STANDALONE_RESOURCES = [
   }
 ];
 
+const SEED_ANNOUNCEMENTS = [
+  {
+    id: 'ann-1',
+    title: '📢 Welcome to Learn-O-Pia Announcements',
+    message: 'Stay updated with important platform notices, exam schedules, and new study resources shared directly by your admins.',
+    resourceTitle: '',
+    resourceUrl: '',
+    createdAt: new Date().toISOString(),
+    createdBy: 'Admin Team'
+  }
+];
+
 const SEED_SUBJECTS = [
   // CSE - Semester 1 (Degree)
   {
@@ -513,6 +525,68 @@ export function DatabaseProvider({ children }) {
     });
     if (typeof addLog === 'function') addLog(`Standalone resource published: ${resource.title}`);
   };
+
+  const [announcements, setAnnouncements] = useState(() => {
+    if (typeof window === 'undefined') return SEED_ANNOUNCEMENTS;
+    const saved = localStorage.getItem('learnopia_announcements');
+    return saved ? JSON.parse(saved) : SEED_ANNOUNCEMENTS;
+  });
+
+  const [lastReadAnnouncementTime, setLastReadAnnouncementTime] = useState(() => {
+    if (typeof window === 'undefined') return '1970-01-01T00:00:00.000Z';
+    return localStorage.getItem('learnopia_last_read_announcement') || '1970-01-01T00:00:00.000Z';
+  });
+
+  const unreadAnnouncementsCount = useMemo(() => {
+    return announcements.filter(a => new Date(a.createdAt) > new Date(lastReadAnnouncementTime)).length;
+  }, [announcements, lastReadAnnouncementTime]);
+
+  const markAnnouncementsRead = () => {
+    const now = new Date().toISOString();
+    setLastReadAnnouncementTime(now);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('learnopia_last_read_announcement', now);
+    }
+  };
+
+  const broadcastAnnouncement = async ({ title, message, resourceTitle, resourceUrl, category }) => {
+    const newAnn = {
+      id: `ann-${Date.now()}`,
+      title: title.trim(),
+      message: message.trim(),
+      resourceTitle: resourceTitle ? resourceTitle.trim() : '',
+      resourceUrl: resourceUrl ? resourceUrl.trim() : '',
+      createdAt: new Date().toISOString(),
+      createdBy: currentUser?.name || 'Platform Admin'
+    };
+
+    setAnnouncements(prev => {
+      const updated = [newAnn, ...prev];
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('learnopia_announcements', JSON.stringify(updated));
+      }
+      return updated;
+    });
+
+    if (resourceUrl && resourceUrl.trim()) {
+      const resName = resourceTitle && resourceTitle.trim() ? resourceTitle.trim() : title.trim();
+      addStandaloneResource({
+        title: resName,
+        url: resourceUrl.trim(),
+        type: resourceUrl.trim().endsWith('.pdf') ? 'pdf' : 'link',
+        category: category || 'Announcement Shared Resource',
+        description: `Shared via Admin Announcement: ${message.trim()}`,
+        author: currentUser?.name || 'Admin Broadcast'
+      });
+    }
+
+    if (typeof addLog === 'function') {
+      addLog(`Admin broadcasted announcement: "${title.trim()}"`);
+    }
+
+    return newAnn;
+  };
+
 
   const setPasswordForUser = async (userId, newPassword) => {
     if (isSupabaseLive) {
@@ -2923,6 +2997,10 @@ export function DatabaseProvider({ children }) {
       authLoading,
       activityLogs,
       standaloneResources,
+      announcements,
+      broadcastAnnouncement,
+      markAnnouncementsRead,
+      unreadAnnouncementsCount,
       adSettings,
       updateAdSettings,
       createSharedRoutine,
