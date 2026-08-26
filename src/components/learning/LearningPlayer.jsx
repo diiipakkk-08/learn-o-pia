@@ -159,7 +159,17 @@ export default function LearningPlayer({
   setActiveVideoIndex,
   setCurrentView
 }) {
-  const { courses, subjects, currentUser, toggleSaveResource, isResourceSaved, updateLastPlayed, enrollInPlaylist, removeUserPlaylistEnrollment } = useDatabase();
+  const {
+    courses,
+    subjects,
+    currentUser,
+    toggleSaveResource,
+    isResourceSaved,
+    updateLastPlayed,
+    enrollInPlaylist,
+    removeUserPlaylistEnrollment,
+    lastPlayed
+  } = useDatabase();
 
   const [activeSemester, setActiveSemester] = useState(1);
   const [activeSubjectId, setActiveSubjectId] = useState(null);
@@ -206,42 +216,95 @@ export default function LearningPlayer({
     return () => window.removeEventListener('learnopia-pause-media', handlePauseMedia);
   }, []);
 
-  const course = courses.find((c) => c.id === playlistId);
-  const isDegree = course?.isDegree;
+  // ── RESOLVE COURSE & PLAYLIST METADATA ──
+  const foundPlaylistInfo = useMemo(() => {
+    if (!playlistId) return null;
+    for (const sub of subjects || []) {
+      const pl = sub.playlists?.find((p) => p.id === playlistId);
+      if (pl) {
+        return { subject: sub, playlist: pl };
+      }
+    }
+    return null;
+  }, [subjects, playlistId]);
+
+  const course = useMemo(() => {
+    let c = courses.find((item) => item.id === playlistId);
+    if (!c && foundPlaylistInfo) {
+      c = courses.find((item) => item.id === foundPlaylistInfo.subject.courseId);
+      if (!c) {
+        c = {
+          id: foundPlaylistInfo.subject.courseId || playlistId,
+          title: foundPlaylistInfo.playlist.title,
+          department: 'General',
+          isDegree: false,
+          bannerUrl: foundPlaylistInfo.playlist.bannerUrl
+        };
+      }
+    }
+    return c;
+  }, [courses, playlistId, foundPlaylistInfo]);
+
+  const isDegree = Boolean(course?.isDegree);
+
+  // Initialize or synchronize activePlaylistId / activeSubjectId / activeSemester on entry
+  useEffect(() => {
+    if (!playlistId) return;
+
+    // Case 1: Direct playlist ID (e.g. from Standalone Playlists)
+    if (foundPlaylistInfo) {
+      setActiveSemester(Number(foundPlaylistInfo.subject.semester || 1));
+      setActiveSubjectId(foundPlaylistInfo.subject.id);
+      setActivePlaylistId(foundPlaylistInfo.playlist.id);
+      return;
+    }
+
+    // Case 2: Resume / Last Played matching this course or playlist
+    if (lastPlayed && (lastPlayed.courseId === playlistId || lastPlayed.playlistId === playlistId)) {
+      if (lastPlayed.semester) setActiveSemester(Number(lastPlayed.semester));
+      if (lastPlayed.subjectId) setActiveSubjectId(lastPlayed.subjectId);
+      if (lastPlayed.playlistId) setActivePlaylistId(lastPlayed.playlistId);
+      if (lastPlayed.videoIndex !== undefined && setActiveVideoIndex) {
+        setActiveVideoIndex(Number(lastPlayed.videoIndex));
+      }
+      return;
+    }
+  }, [playlistId, foundPlaylistInfo]);
 
   // Filter subjects based on program type
   const currentSubjects = useMemo(() => {
+    const targetCourseId = course?.id || playlistId;
     return (
       isDegree
-        ? subjects.filter((s) => s.courseId === playlistId && Number(s.semester) === Number(activeSemester))
-        : subjects.filter((s) => s.courseId === playlistId)
+        ? subjects.filter((s) => s.courseId === targetCourseId && Number(s.semester) === Number(activeSemester))
+        : subjects.filter((s) => s.courseId === targetCourseId)
     ).sort((a, b) => (a.position || 0) - (b.position || 0));
-  }, [subjects, playlistId, activeSemester, isDegree]);
+  }, [subjects, playlistId, course, activeSemester, isDegree]);
 
-  // Auto select subject when semester or subjects change
+  // Auto select subject when semester or subjects change (if not already set)
   useEffect(() => {
     if (currentSubjects.length > 0) {
       const exists = currentSubjects.some((s) => s.id === activeSubjectId);
       if (!exists) {
         setActiveSubjectId(currentSubjects[0].id);
-        setActivePlaylistId(null);
-        setActiveVideoIndex(0);
       }
-    } else {
-      setActiveSubjectId(null);
-      setActivePlaylistId(null);
     }
-  }, [currentSubjects, activeSubjectId, isDegree]);
+  }, [currentSubjects, activeSubjectId]);
 
   const activeSubject = currentSubjects.find((s) => s.id === activeSubjectId) || currentSubjects[0];
 
-  // Reset playlist selection when active subject changes
-  useEffect(() => {
-    setActivePlaylistId(null);
-    setActiveVideoIndex(0);
-  }, [activeSubjectId]);
+  const activePlaylist = useMemo(() => {
+    if (activePlaylistId) {
+      const inActiveSub = activeSubject?.playlists?.find((p) => p.id === activePlaylistId);
+      if (inActiveSub) return inActiveSub;
+      for (const s of currentSubjects) {
+        const pl = s.playlists?.find((p) => p.id === activePlaylistId);
+        if (pl) return pl;
+      }
+    }
+    return null;
+  }, [activePlaylistId, activeSubject, currentSubjects]);
 
-  const activePlaylist = activeSubject?.playlists?.find((p) => p.id === activePlaylistId) || activeSubject?.playlists?.[0];
   const playlistVideos = activePlaylist?.videos || [];
 
   // ── LOCAL STORAGE PROGRESS PERSISTENCE ──
@@ -288,16 +351,24 @@ export default function LearningPlayer({
 
   useEffect(() => {
     if ((activePlaylist || activeVideo) && typeof updateLastPlayed === 'function') {
+      const vId = activeVideo?.youtubeId || (activeVideo?.url ? (activeVideo.url.match(/[?&]v=([^#&]+)/) || [])[1] : null);
+      const videoThumb = vId ? `https://i.ytimg.com/vi/${vId}/hqdefault.jpg` : (activeVideo?.thumbnailUrl || activePlaylist?.bannerUrl || course?.bannerUrl);
+
       updateLastPlayed({
         playlistId: activePlaylist?.id || playlistId,
         playlistTitle: activePlaylist?.title || course?.title || 'Lecture Series',
         videoId: activeVideo?.id || null,
         videoTitle: activeVideo?.title || activePlaylist?.title || 'Lecture Video',
         courseId: course?.id || playlistId,
-        bannerUrl: course?.bannerUrl || activePlaylist?.bannerUrl
+        bannerUrl: videoThumb || activePlaylist?.bannerUrl || course?.bannerUrl,
+        videoThumbnail: videoThumb,
+        youtubeId: vId,
+        videoIndex: activeVideoIndex || 0,
+        subjectId: activeSubject?.id || null,
+        semester: activeSemester || 1
       });
     }
-  }, [activePlaylist, activeVideo, playlistId, course]);
+  }, [activePlaylist, activeVideo, activeVideoIndex, playlistId, course, activeSubject, activeSemester]);
 
   // Specific materials attached to active video
   const activeVideoMaterials = useMemo(() => {
@@ -441,25 +512,24 @@ export default function LearningPlayer({
 
   return (
     <div className="animate-fade-in oracle-workspace-container" style={{ width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
-      {/* ── TOP BAR: STRICT 1 SINGLE HORIZONTAL LINE (< Back + Semester Dropdown on Leftmost, Subjects on Rightmost) ── */}
-      {/* ── TOP BAR: Responsive Controls (< Back + Semester Dropdown + Subject Selector) ── */}
+      {/* ── TOP BAR: Single Horizontal Row (< Back + Semester Dropdown + Switch Playlist) ── */}
       <div
         className="glass-panel"
         style={{
           display: 'flex',
-          flexDirection: isMobile ? 'column' : 'row',
-          alignItems: isMobile ? 'stretch' : 'center',
-          justify: 'space-between',
-          gap: '10px',
-          padding: isMobile ? '8px 12px' : '10px 16px',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '8px',
+          padding: '8px 14px',
           borderRadius: '12px',
           width: '100%',
           boxSizing: 'border-box',
-          marginBottom: '12px'
+          marginBottom: '12px',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch'
         }}
       >
-        {/* Top Row / Left Group: Back button + Semester Dropdown + Switch Playlist */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
           <button onClick={() => setCurrentView('learning')} style={styles.backBtn}>
             <ChevronLeft size={15} /> Back
           </button>
@@ -472,50 +542,13 @@ export default function LearningPlayer({
             <button
               onClick={() => setActivePlaylistId(null)}
               className="btn btn-secondary btn-sm"
-              style={{ fontSize: '0.75rem', gap: '4px' }}
+              style={{ fontSize: '0.75rem', padding: '6px 12px', gap: '4px', whiteSpace: 'nowrap', borderRadius: '999px' }}
               title="Switch Playlist Series"
             >
               <ChevronLeft size={13} /> Switch Playlist
             </button>
           )}
         </div>
-
-        {/* Right / Second Row Group: Subject Selector (Only show when inside an active playlist) */}
-        {activePlaylistId && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', flex: 1, width: isMobile ? '100%' : 'auto' }}>
-            {isMobile ? (
-              <select
-                value={activeSubjectId || ''}
-                onChange={(e) => setActiveSubjectId(e.target.value || null)}
-                className="form-input"
-                style={{ width: '100%', padding: '6px 12px', fontSize: '0.85rem', height: '38px', borderRadius: '8px', background: 'rgba(0,0,0,0.5)', color: '#ffffff', border: '1px solid rgba(139,92,246,0.3)', outline: 'none' }}
-              >
-                {currentSubjects.length === 0 ? (
-                  <option value="">No subjects available</option>
-                ) : (
-                  currentSubjects.map((sub) => (
-                    <option key={sub.id} value={sub.id} style={{ background: '#11121c', color: '#fff' }}>
-                      Subject: {sub.title}
-                    </option>
-                  ))
-                )}
-              </select>
-            ) : (
-              <div className="yt-subject-chips-row" style={{ margin: 0, gap: '4px', flexWrap: 'nowrap' }}>
-                {currentSubjects.map((sub) => (
-                  <button
-                    key={sub.id}
-                    onClick={() => setActiveSubjectId(sub.id)}
-                    className={`yt-subject-chip ${activeSubjectId === sub.id ? 'active' : ''}`}
-                    style={{ padding: '5px 14px', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
-                  >
-                    {sub.title}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* ── Mobile Navigation Tabs Bar (< 1024px) ── */}
@@ -726,19 +759,23 @@ export default function LearningPlayer({
                 >
                   <span className="now-playing-pill">Playing</span>
                   <div className="now-playing-text" style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <h3
-                        className="now-playing-h"
-                        style={{
-                          whiteSpace: showDetailsDrawer ? 'normal' : 'nowrap',
-                          overflow: showDetailsDrawer ? 'visible' : 'hidden',
-                          textOverflow: showDetailsDrawer ? 'clip' : 'ellipsis',
-                          wordBreak: 'break-word',
-                          lineHeight: '1.3'
-                        }}
-                      >
-                        {activeVideo.title}
-                      </h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, position: 'relative' }}>
+                      <div style={{ minWidth: 0, flex: 1, position: 'relative', overflow: 'hidden' }}>
+                        <h3
+                          className="now-playing-h"
+                          style={{
+                            whiteSpace: showDetailsDrawer ? 'normal' : 'nowrap',
+                            overflow: showDetailsDrawer ? 'visible' : 'hidden',
+                            textOverflow: showDetailsDrawer ? 'clip' : 'ellipsis',
+                            wordBreak: 'break-word',
+                            lineHeight: '1.3',
+                            maskImage: showDetailsDrawer ? 'none' : 'linear-gradient(to right, black 85%, transparent 100%)',
+                            WebkitMaskImage: showDetailsDrawer ? 'none' : 'linear-gradient(to right, black 85%, transparent 100%)'
+                          }}
+                        >
+                          {activeVideo.title}
+                        </h3>
+                      </div>
                       <button
                         type="button"
                         onClick={(e) => {
@@ -746,19 +783,24 @@ export default function LearningPlayer({
                           setShowDetailsDrawer(prev => !prev);
                         }}
                         style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--primary)',
+                          background: showDetailsDrawer ? 'var(--primary)' : 'rgba(139, 92, 246, 0.15)',
+                          border: '1px solid rgba(139, 92, 246, 0.3)',
+                          color: showDetailsDrawer ? '#ffffff' : '#a78bfa',
                           cursor: 'pointer',
-                          padding: '2px',
+                          padding: '4px',
+                          borderRadius: '50%',
+                          width: '26px',
+                          height: '26px',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          flexShrink: 0
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          transition: 'all 0.2s ease'
                         }}
-                        title={showDetailsDrawer ? 'Collapse Heading & Sections' : 'Expand Full Heading & Sections'}
+                        title={showDetailsDrawer ? 'Collapse Overview & Options' : 'Expand Overview & Options'}
                       >
                         <ChevronDown
-                          size={18}
+                          size={15}
                           style={{
                             transform: showDetailsDrawer ? 'rotate(180deg)' : 'rotate(0deg)',
                             transition: 'transform 0.2s ease'
@@ -805,17 +847,6 @@ export default function LearningPlayer({
                     title="Share lecture link"
                   >
                     {shareCopied ? <Check size={16} style={{ color: 'var(--success)' }} /> : <Share2 size={16} />}
-                  </button>
-
-                  {/* Expand/Collapse Arrow Button */}
-                  <button
-                    type="button"
-                    className="circle-action-btn"
-                    onClick={() => setShowDetailsDrawer(prev => !prev)}
-                    title={showDetailsDrawer ? 'Collapse Overview & Notes' : 'Expand Overview & Notes'}
-                    style={{ background: showDetailsDrawer ? 'var(--primary)' : 'rgba(255,255,255,0.08)' }}
-                  >
-                    <ChevronDown size={16} style={{ transform: showDetailsDrawer ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
                   </button>
                 </div>
               </div>
@@ -1008,123 +1039,127 @@ export default function LearningPlayer({
                   </div>
                 )}
 
-                {/* Videos List for Selected Playlist (YouTube Playlist Player Style: Left Thumbnail, Right Title, 10-Video Sections) */}
-                <div className="playlist-modules-accordion" style={{ maxHeight: '480px', overflowY: 'auto' }}>
+                {/* Videos List for Selected Playlist (YouTube Playlist Player Style: Flat Clean List) */}
+                <div
+                  className="playlist-modules-accordion"
+                  style={{
+                    maxHeight: '500px',
+                    overflowY: 'auto',
+                    paddingRight: '2px',
+                    scrollbarWidth: 'thin'
+                  }}
+                >
                   {playlistVideos.length > 0 ? (
-                    (() => {
-                      const videoSections = [];
-                      for (let i = 0; i < playlistVideos.length; i += 10) {
-                        videoSections.push({
-                          sectionIndex: Math.floor(i / 10) + 1,
-                          start: i + 1,
-                          end: Math.min(i + 10, playlistVideos.length),
-                          videos: playlistVideos.slice(i, i + 10),
-                          startIndex: i
-                        });
-                      }
+                    <ul className="module-vids-ul" style={{ margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {playlistVideos.map((video, vIdx) => {
+                        const isCurrent = activeVideo?.id === video.id || activeVideoIndex === vIdx;
+                        const isWatched = watchedVideos.has(video.id || vIdx);
 
-                      return videoSections.map((sec) => {
-                        const secWatchedCount = sec.videos.filter((v, idx) => watchedVideos.has(v.id || (sec.startIndex + idx))).length;
-                        const isSecComplete = secWatchedCount === sec.videos.length;
+                        const vId = video.youtubeId || (video.url ? (video.url.match(/[?&]v=([^#&]+)/) || [])[1] : null);
+                        const thumb = vId ? `https://i.ytimg.com/vi/${vId}/hqdefault.jpg` : (video.thumbnailUrl || activePlaylist?.bannerUrl || course?.bannerUrl);
 
                         return (
-                          <div key={sec.sectionIndex} style={{ marginBottom: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
-                            {/* Section Header */}
-                            <div style={{ padding: '6px 12px', background: 'rgba(139,92,246,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                Section {sec.sectionIndex} ({sec.start}–{sec.end})
-                              </span>
-                              <span style={{ fontSize: '0.68rem', fontWeight: 600, color: isSecComplete ? '#10b981' : 'var(--text-muted)' }}>
-                                {secWatchedCount}/{sec.videos.length} Done
-                              </span>
-                            </div>
+                          <li key={video.id || vIdx} style={{ listStyle: 'none' }}>
+                            <button
+                              type="button"
+                              className={`video-row-item ${isCurrent ? 'active-playing' : ''}`}
+                              onClick={() => handlePlayVideo(vIdx, video.id)}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                padding: '8px',
+                                borderRadius: '10px',
+                                width: '100%',
+                                background: isCurrent
+                                  ? 'linear-gradient(135deg, rgba(139,92,246,0.25) 0%, rgba(124,58,237,0.12) 100%)'
+                                  : 'rgba(255,255,255,0.02)',
+                                border: isCurrent ? '1px solid rgba(139,92,246,0.5)' : '1px solid rgba(255,255,255,0.05)',
+                                borderLeft: isCurrent ? '3px solid var(--primary)' : '3px solid transparent',
+                                textAlign: 'left',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              {/* Left Thumbnail (YouTube Playlist Style) */}
+                              <div
+                                style={{
+                                  position: 'relative',
+                                  width: '94px',
+                                  height: '54px',
+                                  borderRadius: '6px',
+                                  overflow: 'hidden',
+                                  flexShrink: 0,
+                                  background: '#000'
+                                }}
+                              >
+                                {thumb ? (
+                                  <img
+                                    src={thumb}
+                                    alt={video.title}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                  />
+                                ) : (
+                                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1e1b4b 0%, #311b92 100%)' }}>
+                                    <Play size={16} color="#a78bfa" />
+                                  </div>
+                                )}
 
-                            {/* Section Video Items */}
-                            <ul className="module-vids-ul" style={{ margin: 0, padding: '4px' }}>
-                              {sec.videos.map((video, idxInSec) => {
-                                const vIdx = sec.startIndex + idxInSec;
-                                const isCurrent = activeVideo?.id === video.id || activeVideoIndex === vIdx;
-                                const isWatched = watchedVideos.has(video.id || vIdx);
+                                <span style={{ position: 'absolute', bottom: '2px', right: '2px', background: 'rgba(0,0,0,0.85)', color: '#ffffff', fontSize: '0.6rem', fontWeight: 700, padding: '1px 4px', borderRadius: '3px' }}>
+                                  {video.durationText || '15:00'}
+                                </span>
 
-                                const vId = video.youtubeId || (video.url ? (video.url.match(/[?&]v=([^#&]+)/) || [])[1] : null);
-                                const thumb = vId ? `https://i.ytimg.com/vi/${vId}/hqdefault.jpg` : (video.thumbnailUrl || activePlaylist?.bannerUrl || course?.bannerUrl);
+                                {isCurrent && (
+                                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(139,92,246,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <PlayCircle size={22} color="#ffffff" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }} />
+                                  </div>
+                                )}
+                              </div>
 
-                                return (
-                                  <li key={video.id || vIdx} style={{ listStyle: 'none', marginBottom: '4px' }}>
-                                    <button
-                                      type="button"
-                                      className={`video-row-item ${isCurrent ? 'active-playing' : ''}`}
-                                      onClick={() => handlePlayVideo(vIdx, video.id)}
-                                      style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '10px',
-                                        padding: '6px',
-                                        borderRadius: '8px',
-                                        width: '100%',
-                                        background: isCurrent ? 'rgba(139,92,246,0.22)' : 'transparent',
-                                        border: isCurrent ? '1px solid rgba(139,92,246,0.5)' : '1px solid transparent',
-                                        textAlign: 'left',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.15s ease'
-                                      }}
-                                    >
-                                      {/* Left Thumbnail (YouTube Playlist Style) */}
-                                      <div style={{ position: 'relative', width: '92px', height: '52px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, background: '#000' }}>
-                                        {thumb ? (
-                                          <img src={thumb} alt={video.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                        ) : (
-                                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1e1b4b 0%, #311b92 100%)' }}>
-                                            <Play size={16} color="#a78bfa" />
-                                          </div>
-                                        )}
+                              {/* Right Video Details */}
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                                  <span
+                                    style={{
+                                      fontSize: '0.68rem',
+                                      fontWeight: 700,
+                                      color: isCurrent ? 'var(--primary)' : 'var(--text-muted)'
+                                    }}
+                                  >
+                                    #{vIdx + 1}
+                                  </span>
+                                  {isWatched && <CheckCircle2 size={12} color="#10b981" />}
+                                  {isCurrent && (
+                                    <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                      Playing
+                                    </span>
+                                  )}
+                                </div>
 
-                                        <span style={{ position: 'absolute', bottom: '2px', right: '2px', background: 'rgba(0,0,0,0.85)', color: '#ffffff', fontSize: '0.6rem', fontWeight: 700, padding: '1px 4px', borderRadius: '3px' }}>
-                                          {video.durationText || '15:00'}
-                                        </span>
-
-                                        {isCurrent && (
-                                          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(139,92,246,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <PlayCircle size={20} color="#ffffff" />
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      {/* Right Video Details */}
-                                      <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-                                          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: isCurrent ? 'var(--primary)' : 'var(--text-muted)' }}>
-                                            #{vIdx + 1}
-                                          </span>
-                                          {isWatched && <CheckCircle2 size={12} color="#10b981" />}
-                                        </div>
-                                        <span
-                                          style={{
-                                            fontSize: '0.78rem',
-                                            fontWeight: isCurrent ? 700 : 500,
-                                            color: isCurrent ? '#ffffff' : 'var(--text-secondary)',
-                                            display: '-webkit-box',
-                                            WebkitLineClamp: 2,
-                                            WebkitBoxOrient: 'vertical',
-                                            overflow: 'hidden',
-                                            lineHeight: '1.25'
-                                          }}
-                                        >
-                                          {video.title}
-                                        </span>
-                                      </div>
-                                    </button>
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          </div>
+                                <h4
+                                  style={{
+                                    fontSize: '0.8rem',
+                                    fontWeight: isCurrent ? 700 : 500,
+                                    color: isCurrent ? '#ffffff' : 'var(--text-secondary)',
+                                    margin: 0,
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    overflow: 'hidden',
+                                    lineHeight: '1.3'
+                                  }}
+                                >
+                                  {video.title}
+                                </h4>
+                              </div>
+                            </button>
+                          </li>
                         );
-                      });
-                    })()
+                      })}
+                    </ul>
                   ) : (
-                    <div className="empty-playlist-box">
-                      <p>No videos found in this playlist.</p>
+                    <div className="empty-playlist-box" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                      <p style={{ margin: 0, fontSize: '0.82rem' }}>No videos found in this playlist.</p>
                     </div>
                   )}
                 </div>

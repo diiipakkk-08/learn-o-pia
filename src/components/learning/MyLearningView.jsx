@@ -124,15 +124,15 @@ export default function MyLearningView({ setCurrentView, setSelectedPlaylistId, 
   const handleResumeLastPlayed = () => {
     if (!lastPlayed) return;
     if (setSelectedPlaylistId) {
-      setSelectedPlaylistId(lastPlayed.courseId || lastPlayed.playlistId);
+      setSelectedPlaylistId(lastPlayed.playlistId || lastPlayed.courseId);
     }
     if (setSelectedVideoIndex && lastPlayed.videoIndex !== undefined && lastPlayed.videoIndex !== null) {
-      setSelectedVideoIndex(lastPlayed.videoIndex);
+      setSelectedVideoIndex(Number(lastPlayed.videoIndex));
     }
     setCurrentView('learning-player');
   };
 
-  const lastVideoThumb = lastPlayed?.videoThumbnail || (lastPlayed?.youtubeId ? `https://i.ytimg.com/vi/${lastPlayed.youtubeId}/hqdefault.jpg` : lastPlayed?.bannerUrl);
+  const lastVideoThumb = lastPlayed?.videoThumbnail || (lastPlayed?.youtubeId ? `https://i.ytimg.com/vi/${lastPlayed.youtubeId}/hqdefault.jpg` : (lastPlayed?.bannerUrl || null));
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '16px', textAlign: 'left' }} className="animate-fade-in">
@@ -439,8 +439,8 @@ export default function MyLearningView({ setCurrentView, setSelectedPlaylistId, 
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button
                           onClick={() => {
-                            if (pl.courseId && setSelectedPlaylistId) setSelectedPlaylistId(pl.courseId);
-                            else if (setSelectedPlaylistId) setSelectedPlaylistId(pl.id);
+                            if (setSelectedPlaylistId) setSelectedPlaylistId(pl.id);
+                            if (setSelectedVideoIndex) setSelectedVideoIndex(0);
                             setCurrentView('learning-player');
                           }}
                           className="btn btn-primary btn-sm"

@@ -113,6 +113,7 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId })
             durationText: dur,
             subjectTitle: sub.title,
             playlistTitle: pl.title,
+            playlistId: pl.id,
             courseId: sub.courseId,
             author: pl.author || 'Instructor'
           });
@@ -299,7 +300,7 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId })
 
                       <button
                         onClick={() => {
-                          if (vid.courseId && setSelectedPlaylistId) setSelectedPlaylistId(vid.courseId);
+                          if (setSelectedPlaylistId) setSelectedPlaylistId(vid.playlistId || vid.courseId);
                           setCurrentView('learning-player');
                         }}
                         className="btn btn-primary btn-sm"

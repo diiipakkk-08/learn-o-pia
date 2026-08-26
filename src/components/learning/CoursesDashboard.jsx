@@ -417,8 +417,8 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button
                             onClick={() => {
-                              if (pl.courseId && setSelectedPlaylistId) setSelectedPlaylistId(pl.courseId);
-                              else if (setSelectedPlaylistId) setSelectedPlaylistId(pl.id);
+                              if (setSelectedPlaylistId) setSelectedPlaylistId(pl.id);
+                              if (setSelectedVideoIndex) setSelectedVideoIndex(0);
                               setCurrentView('learning-player');
                             }}
                             className="btn btn-primary btn-sm"

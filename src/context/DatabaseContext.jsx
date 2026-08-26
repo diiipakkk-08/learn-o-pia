@@ -511,6 +511,11 @@ export function DatabaseProvider({ children }) {
       videoTitle: item.videoTitle || 'Lecture Video',
       courseId: item.courseId || null,
       bannerUrl: item.bannerUrl || null,
+      videoThumbnail: item.videoThumbnail || item.bannerUrl || null,
+      youtubeId: item.youtubeId || null,
+      videoIndex: item.videoIndex !== undefined ? item.videoIndex : 0,
+      subjectId: item.subjectId || null,
+      semester: item.semester || 1,
       timestamp: new Date().toISOString()
     };
     setLastPlayed(payload);
