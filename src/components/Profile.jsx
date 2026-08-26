@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDatabase, getUserDesignation } from '../context/DatabaseContext';
-import { User, Mail, Award, Shield, FileText, CheckCircle2, Clock, LogOut, Play, BookOpen, Lock, Edit3, Link as LinkIcon, Phone, Building, Sparkles, Check, AlertCircle, KeyRound, Scale, Trash2, AlertTriangle, GraduationCap, Calendar, ExternalLink, MessageSquare, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { User, Mail, Award, Shield, FileText, CheckCircle2, Clock, LogOut, Play, BookOpen, Lock, Edit3, Link as LinkIcon, Phone, Building, Sparkles, Check, AlertCircle, KeyRound, Scale, Trash2, AlertTriangle, GraduationCap, Calendar, ExternalLink, MessageSquare, Info, ChevronDown, ChevronUp, XCircle } from 'lucide-react';
 import TermsModal from './TermsModal';
 
 const COUNTRY_CODES = [

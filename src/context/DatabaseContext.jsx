@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { supabase, isSupabaseLive } from '../lib/supabaseClient';
 
 const DatabaseContext = createContext();
