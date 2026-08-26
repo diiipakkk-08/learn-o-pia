@@ -402,13 +402,6 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
                         <Video size={11} /> {pl.videoCount} Videos
                       </span>
 
-                      {/* Copyable Playlist ID Badge */}
-                      <div style={{ position: 'absolute', top: '8px', left: '8px', background: 'rgba(0,0,0,0.8)', padding: '2px 8px', borderRadius: '6px', fontSize: '0.65rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span>ID: <code style={{ color: '#a78bfa' }}>{pl.id}</code></span>
-                        <button onClick={(e) => handleCopyPlId(pl.id, e)} style={{ background: 'none', border: 'none', color: copiedPlId === pl.id ? '#10b981' : 'var(--text-muted)', cursor: 'pointer', padding: 0 }}>
-                          {copiedPlId === pl.id ? <Check size={10} /> : <Copy size={10} />}
-                        </button>
-                      </div>
                     </div>
 
                     <div style={{ padding: '14px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', textAlign: 'left' }}>

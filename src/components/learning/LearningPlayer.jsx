@@ -173,6 +173,7 @@ export default function LearningPlayer({
   const [mobileTab, setMobileTab] = useState('playlist'); // 'playlist' | 'materials' | 'overview'
 
   const [shareCopied, setShareCopied] = useState(false);
+  const [showDetailsDrawer, setShowDetailsDrawer] = useState(false);
   const [copiedPlayerResId, setCopiedPlayerResId] = useState(null);
   const [userNotes, setUserNotes] = useState({});
   const [currentNoteText, setCurrentNoteText] = useState('');
@@ -760,14 +761,25 @@ export default function LearningPlayer({
                   >
                     {shareCopied ? <Check size={16} style={{ color: 'var(--success)' }} /> : <Share2 size={16} />}
                   </button>
+
+                  {/* Expand/Collapse Details Arrow Button */}
+                  <button
+                    type="button"
+                    className="circle-action-btn"
+                    onClick={() => setShowDetailsDrawer(prev => !prev)}
+                    title={showDetailsDrawer ? 'Collapse Overview & Notes' : 'Expand Overview & Notes'}
+                    style={{ background: showDetailsDrawer ? 'var(--primary)' : 'rgba(255,255,255,0.08)' }}
+                  >
+                    <ChevronDown size={16} style={{ transform: showDetailsDrawer ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                  </button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* 3. Playlist Overview & Video Materials Below Player */}
-          {activePlaylist && (
-            <div className="subject-meta-hub glass-panel">
+          {/* 3. Playlist Overview & Video Materials Below Player (Only visible when arrow clicked) */}
+          {activePlaylist && showDetailsDrawer && (
+            <div className="subject-meta-hub glass-panel" style={{ marginTop: '12px' }}>
               <div className="action-tabs-bar" style={{ marginBottom: '14px', paddingBottom: '12px' }}>
                 <button
                   className={`action-tab-pill ${mainTab === 'overview' ? 'active' : ''}`}
