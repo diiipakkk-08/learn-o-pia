@@ -1715,7 +1715,10 @@ export default function AttendanceTracker({ setCurrentView }) {
               </button>
             </div>
           )}
-       {/* TAB 3: SUBJECT ANALYTICS & ARCHIVES */}
+        </div>
+      )}
+
+      {/* TAB 3: SUBJECT ANALYTICS & ARCHIVES */}
       {activeTab === 'analytics' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '20px', textAlign: 'left' }}>
           {/* OVERALL ANALYTICS DASHBOARD */}
@@ -1943,8 +1946,6 @@ export default function AttendanceTracker({ setCurrentView }) {
               );
             })}
           </div>
-        </div>
-      )}
 
           {/* Archived Semesters History */}
           {archivedSemesters.length > 0 && (
