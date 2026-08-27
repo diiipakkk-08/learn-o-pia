@@ -2500,7 +2500,10 @@ select option, select.form-input option {
   .glass-panel, .modal-card, .main-content {
     max-width: 100% !important;
     box-sizing: border-box !important;
-    word-break: break-word !important;
+  }
+
+  .btn {
+    box-sizing: border-box !important;
   }
 
   h1 {
@@ -2511,6 +2514,18 @@ select option, select.form-input option {
   }
   h3 {
     font-size: 1.05rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .glass-panel {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .btn-sm {
+    padding: 4px 8px !important;
+    font-size: 0.72rem !important;
   }
 }
 

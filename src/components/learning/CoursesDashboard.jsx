@@ -143,39 +143,47 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
   return (
     <div style={styles.container} className="animate-fade-in">
       
-      {/* Top Search Bar for Curricula & Playlists */}
-      <div className="glass-panel" style={{ padding: '14px 18px', borderRadius: '14px', marginBottom: '14px' }}>
-        <div style={{ position: 'relative', width: '100%' }}>
-          <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
-          <input
-            type="text"
-            className="form-input"
-            placeholder="Search degree programs, courses, or playlist IDs (e.g. pl-101, physics)..."
-            value={localSearch}
-            onChange={(e) => {
-              setLocalSearch(e.target.value);
-              if (setGlobalSearchQuery) setGlobalSearchQuery(e.target.value);
-            }}
-            style={{ width: '100%', paddingLeft: '42px', paddingRight: '36px', height: '42px', fontSize: '0.88rem', borderRadius: '10px', boxSizing: 'border-box' }}
-          />
-          {localSearch && (
-            <button
-              onClick={() => { setLocalSearch(''); if (setGlobalSearchQuery) setGlobalSearchQuery(''); }}
-              style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
-            >
-              <X size={16} />
-            </button>
-          )}
-        </div>
+      {/* Top Search Bar for Curricula & Playlists (Direct & Sleek) */}
+      <div style={{ position: 'relative', width: '100%', marginBottom: '12px' }}>
+        <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+        <input
+          type="text"
+          className="form-input"
+          placeholder="Search degree programs, courses, or playlist IDs (e.g. makaut, pl-101)..."
+          value={localSearch}
+          onChange={(e) => {
+            setLocalSearch(e.target.value);
+            if (setGlobalSearchQuery) setGlobalSearchQuery(e.target.value);
+          }}
+          style={{
+            width: '100%',
+            paddingLeft: '42px',
+            paddingRight: '36px',
+            height: '42px',
+            fontSize: '0.86rem',
+            borderRadius: '12px',
+            boxSizing: 'border-box',
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(255, 255, 255, 0.1)'
+          }}
+        />
+        {localSearch && (
+          <button
+            onClick={() => { setLocalSearch(''); if (setGlobalSearchQuery) setGlobalSearchQuery(''); }}
+            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
 
-      {/* Header Control Bar & Filter Tabs */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '10px', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      {/* Header Control Bar & Filter Tabs (Flexible & Responsive) */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
           <button
             className={`btn ${viewTab === 'all' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setViewTab('all')}
-            style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '20px', flexShrink: 0, gap: '6px' }}
+            style={{ padding: '5px 10px', fontSize: '0.75rem', borderRadius: '20px', flexShrink: 0, gap: '5px' }}
           >
             <Layers size={13} /> All ({processedDegrees.length + processedCourses.length + processedPlaylists.length})
           </button>
@@ -183,7 +191,7 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
           <button
             className={`btn ${viewTab === 'degrees' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setViewTab('degrees')}
-            style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '20px', flexShrink: 0, gap: '6px' }}
+            style={{ padding: '5px 10px', fontSize: '0.75rem', borderRadius: '20px', flexShrink: 0, gap: '5px' }}
           >
             <GraduationCap size={13} /> Degree Programs ({processedDegrees.length})
           </button>
@@ -191,7 +199,7 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
           <button
             className={`btn ${viewTab === 'courses' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setViewTab('courses')}
-            style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '20px', flexShrink: 0, gap: '6px' }}
+            style={{ padding: '5px 10px', fontSize: '0.75rem', borderRadius: '20px', flexShrink: 0, gap: '5px' }}
           >
             <BookOpen size={13} /> Courses ({processedCourses.length})
           </button>
@@ -199,7 +207,7 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
           <button
             className={`btn ${viewTab === 'playlists' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setViewTab('playlists')}
-            style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '20px', flexShrink: 0, gap: '6px' }}
+            style={{ padding: '5px 10px', fontSize: '0.75rem', borderRadius: '20px', flexShrink: 0, gap: '5px' }}
           >
             <Video size={13} /> Playlists ({processedPlaylists.length})
           </button>
@@ -211,7 +219,7 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            style={{ background: 'transparent', border: 'none', color: '#ffffff', fontSize: '0.78rem', fontWeight: 600, outline: 'none', cursor: 'pointer' }}
+            style={{ background: 'transparent', border: 'none', color: '#ffffff', fontSize: '0.75rem', fontWeight: 600, outline: 'none', cursor: 'pointer' }}
           >
             <option value="recent" style={{ background: '#11121c' }}>Recently Added</option>
             <option value="alphabetical" style={{ background: '#11121c' }}>Alphabetical (A - Z)</option>

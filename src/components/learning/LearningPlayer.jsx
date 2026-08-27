@@ -251,7 +251,7 @@ export default function LearningPlayer({
   useEffect(() => {
     if (!playlistId) return;
 
-    // Case 1: Direct playlist ID (e.g. from Standalone Playlists)
+    // Case 1: Direct playlist ID (e.g. from Standalone Playlists or Resume Video)
     if (foundPlaylistInfo) {
       setActiveSemester(Number(foundPlaylistInfo.subject.semester || 1));
       setActiveSubjectId(foundPlaylistInfo.subject.id);
@@ -259,16 +259,27 @@ export default function LearningPlayer({
       return;
     }
 
-    // Case 2: Resume / Last Played matching this course or playlist
-    if (lastPlayed && (lastPlayed.courseId === playlistId || lastPlayed.playlistId === playlistId)) {
+    // Case 2: Resume / Last Played specifically matching a direct playlistId
+    if (lastPlayed && lastPlayed.playlistId === playlistId) {
       if (lastPlayed.semester) setActiveSemester(Number(lastPlayed.semester));
       if (lastPlayed.subjectId) setActiveSubjectId(lastPlayed.subjectId);
-      if (lastPlayed.playlistId) setActivePlaylistId(lastPlayed.playlistId);
+      setActivePlaylistId(lastPlayed.playlistId);
       if (lastPlayed.videoIndex !== undefined && setActiveVideoIndex) {
         setActiveVideoIndex(Number(lastPlayed.videoIndex));
       }
       return;
     }
+
+    // Case 3: Course / Degree ID was opened -> Open Curriculum Overview by default (activePlaylistId = null)
+    if (lastPlayed && lastPlayed.courseId === playlistId) {
+      if (lastPlayed.semester) setActiveSemester(Number(lastPlayed.semester));
+      if (lastPlayed.subjectId) setActiveSubjectId(lastPlayed.subjectId);
+      setActivePlaylistId(null);
+      return;
+    }
+
+    // Default: Start at Course/Degree Overview
+    setActivePlaylistId(null);
   }, [playlistId, foundPlaylistInfo]);
 
   // Filter subjects based on program type
@@ -518,9 +529,9 @@ export default function LearningPlayer({
         style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justifyContent: 'flex-start',
           gap: '8px',
-          padding: '8px 14px',
+          padding: '8px 12px',
           borderRadius: '12px',
           width: '100%',
           boxSizing: 'border-box',
@@ -529,48 +540,49 @@ export default function LearningPlayer({
           WebkitOverflowScrolling: 'touch'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
-          <button onClick={() => setCurrentView('learning')} style={styles.backBtn}>
-            <ChevronLeft size={15} /> Back
+        <button onClick={() => setCurrentView('learning')} style={styles.backBtn}>
+          <ChevronLeft size={15} /> Back
+        </button>
+
+        {isDegree && (
+          <CustomSemesterDropdown value={activeSemester} onChange={(s) => setActiveSemester(s)} />
+        )}
+
+        {activePlaylistId && (
+          <button
+            onClick={() => setActivePlaylistId(null)}
+            className="btn btn-secondary btn-sm"
+            style={{ fontSize: '0.75rem', padding: '6px 12px', gap: '4px', whiteSpace: 'nowrap', borderRadius: '999px' }}
+            title="Switch Playlist Series"
+          >
+            <ChevronLeft size={13} /> Switch Playlist
           </button>
-
-          {isDegree && (
-            <CustomSemesterDropdown value={activeSemester} onChange={(s) => setActiveSemester(s)} />
-          )}
-
-          {activePlaylistId && (
-            <button
-              onClick={() => setActivePlaylistId(null)}
-              className="btn btn-secondary btn-sm"
-              style={{ fontSize: '0.75rem', padding: '6px 12px', gap: '4px', whiteSpace: 'nowrap', borderRadius: '999px' }}
-              title="Switch Playlist Series"
-            >
-              <ChevronLeft size={13} /> Switch Playlist
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
       {/* ── Mobile Navigation Tabs Bar (< 1024px) ── */}
       {isMobile && activePlaylistId && (
-        <div className="mobile-nav-tabs-bar">
+        <div className="mobile-nav-tabs-bar" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', width: '100%', boxSizing: 'border-box', marginBottom: '12px' }}>
           <button
             className={`mobile-tab-pill ${mobileTab === 'playlist' ? 'active' : ''}`}
             onClick={() => setMobileTab('playlist')}
+            style={{ padding: '6px 4px', fontSize: '0.72rem', justifyContent: 'center', minWidth: 0, whiteSpace: 'nowrap' }}
           >
-            <PlayCircle size={15} /> Playlist ({playlistVideos.length})
+            <PlayCircle size={13} style={{ flexShrink: 0 }} /> <span>Videos ({playlistVideos.length})</span>
           </button>
           <button
             className={`mobile-tab-pill ${mobileTab === 'materials' ? 'active' : ''}`}
             onClick={() => setMobileTab('materials')}
+            style={{ padding: '6px 4px', fontSize: '0.72rem', justifyContent: 'center', minWidth: 0, whiteSpace: 'nowrap' }}
           >
-            <FileText size={15} /> Materials ({activeVideoMaterials.length})
+            <FileText size={13} style={{ flexShrink: 0 }} /> <span>Guides ({activeVideoMaterials.length})</span>
           </button>
           <button
             className={`mobile-tab-pill ${mobileTab === 'overview' ? 'active' : ''}`}
             onClick={() => setMobileTab('overview')}
+            style={{ padding: '6px 4px', fontSize: '0.72rem', justifyContent: 'center', minWidth: 0, whiteSpace: 'nowrap' }}
           >
-            <BookOpen size={15} /> Overview
+            <BookOpen size={13} style={{ flexShrink: 0 }} /> <span>Overview</span>
           </button>
         </div>
       )}

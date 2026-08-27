@@ -1134,47 +1134,90 @@ export default function AttendanceTracker({ setCurrentView }) {
     <div style={styles.container} className="animate-fade-in">
       {/* Consolidated Top Action & Navigation Bar */}
       <div className="glass-panel" style={{
-        padding: isMobile ? '10px 14px' : '12px 18px',
-        marginBottom: '20px',
+        padding: isMobile ? '8px 10px' : '12px 18px',
+        marginBottom: '16px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '10px'
+        gap: isMobile ? '8px' : '10px'
       }}>
-        {/* Left Side: Navigation Tabs */}
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+        {/* Left Side: Navigation Tabs (Single Line on All Screens) */}
+        <div style={{
+          display: 'flex',
+          gap: isMobile ? '4px' : '6px',
+          alignItems: 'center',
+          flexWrap: 'nowrap',
+          width: isMobile ? '100%' : 'auto'
+        }}>
           <button
             className={`btn ${activeTab === 'tracker' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setActiveTab('tracker')}
-            style={{ fontSize: isMobile ? '0.75rem' : '0.82rem', padding: '6px 12px' }}
+            style={{
+              flex: isMobile ? '1 1 0' : 'none',
+              minWidth: 0,
+              fontSize: isMobile ? '0.72rem' : '0.82rem',
+              padding: isMobile ? '6px 4px' : '6px 12px',
+              justifyContent: 'center',
+              whiteSpace: 'nowrap',
+              gap: isMobile ? '4px' : '6px'
+            }}
           >
-            <CalendarCheck size={15} /> {isMobile ? 'Logger' : 'Daily Logger'}
+            <CalendarCheck size={isMobile ? 13 : 15} style={{ flexShrink: 0 }} />
+            <span>{isMobile ? 'Logger' : 'Daily Logger'}</span>
           </button>
           <button
             className={`btn ${activeTab === 'routine' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setActiveTab('routine')}
-            style={{ fontSize: isMobile ? '0.75rem' : '0.82rem', padding: '6px 12px' }}
+            style={{
+              flex: isMobile ? '1 1 0' : 'none',
+              minWidth: 0,
+              fontSize: isMobile ? '0.72rem' : '0.82rem',
+              padding: isMobile ? '6px 4px' : '6px 12px',
+              justifyContent: 'center',
+              whiteSpace: 'nowrap',
+              gap: isMobile ? '4px' : '6px'
+            }}
           >
-            <Settings size={15} /> {isMobile ? 'Timetable' : 'Weekly Timetable'}
+            <Settings size={isMobile ? 13 : 15} style={{ flexShrink: 0 }} />
+            <span>{isMobile ? 'Timetable' : 'Weekly Timetable'}</span>
           </button>
           <button
             className={`btn ${activeTab === 'analytics' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setActiveTab('analytics')}
-            style={{ fontSize: isMobile ? '0.75rem' : '0.82rem', padding: '6px 12px' }}
+            style={{
+              flex: isMobile ? '1 1 0' : 'none',
+              minWidth: 0,
+              fontSize: isMobile ? '0.72rem' : '0.82rem',
+              padding: isMobile ? '6px 4px' : '6px 12px',
+              justifyContent: 'center',
+              whiteSpace: 'nowrap',
+              gap: isMobile ? '4px' : '6px'
+            }}
           >
-            <TrendingUp size={15} /> {isMobile ? 'Analytics' : 'Analytics'}
+            <TrendingUp size={isMobile ? 13 : 15} style={{ flexShrink: 0 }} />
+            <span>{isMobile ? 'Analytics' : 'Analytics'}</span>
           </button>
         </div>
 
-        {/* Right Side: Semester Date & New Semester Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', fontSize: '0.78rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
-            <Calendar size={14} color="var(--primary)" />
-            <span>Started: <strong>{semesterStartDate}</strong></span>
+        {/* Right Side: Semester Date & New Semester Controls (Single Line on All Screens) */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: isMobile ? 'space-between' : 'flex-end',
+          width: isMobile ? '100%' : 'auto',
+          gap: isMobile ? '8px' : '10px',
+          flexWrap: 'nowrap',
+          fontSize: isMobile ? '0.72rem' : '0.78rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--text-secondary)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <Calendar size={13} color="var(--primary)" style={{ flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              Started: <strong>{semesterStartDate}</strong>
+            </span>
             <button
               onClick={() => { setTempStartDateInput(semesterStartDate); setShowStartDateModal(true); }}
-              style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline', padding: 0, fontSize: '0.75rem' }}
+              style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline', padding: 0, fontSize: isMobile ? '0.72rem' : '0.75rem', flexShrink: 0 }}
             >
               Change
             </button>
@@ -1182,10 +1225,10 @@ export default function AttendanceTracker({ setCurrentView }) {
           <button
             className="btn btn-secondary btn-sm"
             onClick={() => { setTempStartDateInput(formatLocalDate(new Date())); setShowEndSemModal(true); }}
-            style={{ fontSize: '0.75rem', padding: '5px 10px' }}
+            style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', padding: isMobile ? '4px 8px' : '5px 10px', flexShrink: 0, whiteSpace: 'nowrap', gap: '4px' }}
             title="Reset schedule & start fresh semester"
           >
-            <RefreshCw size={13} /> {isMobile ? 'New Sem' : 'New Semester'}
+            <RefreshCw size={12} style={{ flexShrink: 0 }} /> {isMobile ? 'New Sem' : 'New Semester'}
           </button>
         </div>
       </div>
@@ -1336,34 +1379,79 @@ export default function AttendanceTracker({ setCurrentView }) {
                         )}
                       </div>
 
-                      <div style={{ display: 'flex', gap: isMobile ? '4px' : '6px', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'flex-start' : 'flex-end' }}>
+                      <div style={{
+                        display: 'flex',
+                        gap: isMobile ? '3px' : '6px',
+                        flexWrap: isMobile ? 'nowrap' : 'wrap',
+                        width: isMobile ? '100%' : 'auto',
+                        justifyContent: isMobile ? 'stretch' : 'flex-end',
+                        boxSizing: 'border-box'
+                      }}>
                         <button
                           onClick={() => markClassStatus(cls.id, 'attended')}
                           className={`btn ${rawStatus === 'attended' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                          style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', padding: isMobile ? '4px 8px' : '4px 8px', flex: isMobile ? '1 1 auto' : 'none', minWidth: isMobile ? '70px' : undefined }}
+                          style={{
+                            fontSize: isMobile ? '0.66rem' : '0.72rem',
+                            padding: isMobile ? '5px 2px' : '4px 8px',
+                            flex: isMobile ? '1 1 0' : 'none',
+                            minWidth: 0,
+                            justifyContent: 'center',
+                            whiteSpace: 'nowrap',
+                            gap: '3px'
+                          }}
                         >
-                          <CheckCircle2 size={isMobile ? 11 : 13} /> {isMobile ? 'P' : 'Present'}
+                          <CheckCircle2 size={isMobile ? 11 : 13} style={{ flexShrink: 0 }} />
+                          <span>{isMobile ? 'P' : 'Present'}</span>
                         </button>
                         <button
                           onClick={() => markClassStatus(cls.id, 'absent')}
                           className={`btn ${rawStatus === 'absent' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                          style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', padding: isMobile ? '4px 8px' : '4px 8px', color: rawStatus === 'absent' ? '#f87171' : undefined, flex: isMobile ? '1 1 auto' : 'none', minWidth: isMobile ? '70px' : undefined }}
+                          style={{
+                            fontSize: isMobile ? '0.66rem' : '0.72rem',
+                            padding: isMobile ? '5px 2px' : '4px 8px',
+                            color: rawStatus === 'absent' ? '#f87171' : undefined,
+                            flex: isMobile ? '1 1 0' : 'none',
+                            minWidth: 0,
+                            justifyContent: 'center',
+                            whiteSpace: 'nowrap',
+                            gap: '3px'
+                          }}
                         >
-                          <XCircle size={isMobile ? 11 : 13} /> {isMobile ? 'A' : 'Absent'}
+                          <XCircle size={isMobile ? 11 : 13} style={{ flexShrink: 0 }} />
+                          <span>{isMobile ? 'A' : 'Absent'}</span>
                         </button>
                         <button
                           onClick={() => markClassStatus(cls.id, 'massbunk')}
                           className={`btn ${rawStatus === 'massbunk' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                          style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', padding: isMobile ? '4px 8px' : '4px 8px', color: rawStatus === 'massbunk' ? '#f59e0b' : undefined, flex: isMobile ? '1 1 auto' : 'none', minWidth: isMobile ? '70px' : undefined }}
+                          style={{
+                            fontSize: isMobile ? '0.66rem' : '0.72rem',
+                            padding: isMobile ? '5px 2px' : '4px 8px',
+                            color: rawStatus === 'massbunk' ? '#f59e0b' : undefined,
+                            flex: isMobile ? '1 1 0' : 'none',
+                            minWidth: 0,
+                            justifyContent: 'center',
+                            whiteSpace: 'nowrap',
+                            gap: '3px'
+                          }}
                         >
-                          <Users size={isMobile ? 11 : 13} /> {isMobile ? 'MB' : 'Mass Bunk'}
+                          <Users size={isMobile ? 11 : 13} style={{ flexShrink: 0 }} />
+                          <span>{isMobile ? 'MB' : 'Mass Bunk'}</span>
                         </button>
                         <button
                           onClick={() => markClassStatus(cls.id, 'cancelled')}
                           className={`btn ${rawStatus === 'cancelled' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                          style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', padding: isMobile ? '4px 8px' : '4px 8px', flex: isMobile ? '1 1 auto' : 'none', minWidth: isMobile ? '70px' : undefined }}
+                          style={{
+                            fontSize: isMobile ? '0.66rem' : '0.72rem',
+                            padding: isMobile ? '5px 2px' : '4px 8px',
+                            flex: isMobile ? '1 1 0' : 'none',
+                            minWidth: 0,
+                            justifyContent: 'center',
+                            whiteSpace: 'nowrap',
+                            gap: '3px'
+                          }}
                         >
-                          <MinusCircle size={isMobile ? 11 : 13} /> {isMobile ? 'X' : 'Cancelled'}
+                          <MinusCircle size={isMobile ? 11 : 13} style={{ flexShrink: 0 }} />
+                          <span>{isMobile ? 'X' : 'Cancelled'}</span>
                         </button>
                       </div>
                     </div>
@@ -1531,38 +1619,84 @@ export default function AttendanceTracker({ setCurrentView }) {
                           </span>
                         </div>
 
-                        <div style={{ display: 'flex', gap: isMobile ? '4px' : '6px', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'flex-start' : 'flex-end', alignItems: 'center' }}>
+                        <div style={{
+                          display: 'flex',
+                          gap: isMobile ? '3px' : '6px',
+                          flexWrap: isMobile ? 'nowrap' : 'wrap',
+                          width: isMobile ? '100%' : 'auto',
+                          justifyContent: isMobile ? 'stretch' : 'flex-end',
+                          alignItems: 'center',
+                          boxSizing: 'border-box'
+                        }}>
                           <button
                             onClick={() => markExtraClassStatus(extCls.id, 'attended')}
                             className={`btn ${status === 'attended' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                            style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', padding: '4px 8px', flex: isMobile ? '1 1 auto' : 'none' }}
+                            style={{
+                              fontSize: isMobile ? '0.66rem' : '0.72rem',
+                              padding: isMobile ? '5px 2px' : '4px 8px',
+                              flex: isMobile ? '1 1 0' : 'none',
+                              minWidth: 0,
+                              justifyContent: 'center',
+                              whiteSpace: 'nowrap',
+                              gap: '3px'
+                            }}
                           >
-                            <CheckCircle2 size={isMobile ? 11 : 13} /> {isMobile ? 'P' : 'Present'}
+                            <CheckCircle2 size={isMobile ? 11 : 13} style={{ flexShrink: 0 }} />
+                            <span>{isMobile ? 'P' : 'Present'}</span>
                           </button>
                           <button
                             onClick={() => markExtraClassStatus(extCls.id, 'absent')}
                             className={`btn ${status === 'absent' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                            style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', padding: '4px 8px', color: status === 'absent' ? '#f87171' : undefined, flex: isMobile ? '1 1 auto' : 'none' }}
+                            style={{
+                              fontSize: isMobile ? '0.66rem' : '0.72rem',
+                              padding: isMobile ? '5px 2px' : '4px 8px',
+                              color: status === 'absent' ? '#f87171' : undefined,
+                              flex: isMobile ? '1 1 0' : 'none',
+                              minWidth: 0,
+                              justifyContent: 'center',
+                              whiteSpace: 'nowrap',
+                              gap: '3px'
+                            }}
                           >
-                            <XCircle size={isMobile ? 11 : 13} /> {isMobile ? 'A' : 'Absent'}
+                            <XCircle size={isMobile ? 11 : 13} style={{ flexShrink: 0 }} />
+                            <span>{isMobile ? 'A' : 'Absent'}</span>
                           </button>
                           <button
                             onClick={() => markExtraClassStatus(extCls.id, 'massbunk')}
                             className={`btn ${status === 'massbunk' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                            style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', padding: '4px 8px', color: status === 'massbunk' ? '#f59e0b' : undefined, flex: isMobile ? '1 1 auto' : 'none' }}
+                            style={{
+                              fontSize: isMobile ? '0.66rem' : '0.72rem',
+                              padding: isMobile ? '5px 2px' : '4px 8px',
+                              color: status === 'massbunk' ? '#f59e0b' : undefined,
+                              flex: isMobile ? '1 1 0' : 'none',
+                              minWidth: 0,
+                              justifyContent: 'center',
+                              whiteSpace: 'nowrap',
+                              gap: '3px'
+                            }}
                           >
-                            <Users size={isMobile ? 11 : 13} /> {isMobile ? 'MB' : 'Mass Bunk'}
+                            <Users size={11} style={{ flexShrink: 0 }} />
+                            <span>{isMobile ? 'MB' : 'Mass Bunk'}</span>
                           </button>
                           <button
                             onClick={() => markExtraClassStatus(extCls.id, 'cancelled')}
                             className={`btn ${status === 'cancelled' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                            style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', padding: '4px 8px', flex: isMobile ? '1 1 auto' : 'none' }}
+                            style={{
+                              fontSize: isMobile ? '0.66rem' : '0.72rem',
+                              padding: isMobile ? '5px 2px' : '4px 8px',
+                              flex: isMobile ? '1 1 0' : 'none',
+                              minWidth: 0,
+                              justifyContent: 'center',
+                              whiteSpace: 'nowrap',
+                              gap: '3px'
+                            }}
                           >
-                            <MinusCircle size={isMobile ? 11 : 13} /> {isMobile ? 'X' : 'Cancelled'}
+                            <MinusCircle size={isMobile ? 11 : 13} style={{ flexShrink: 0 }} />
+                            <span>{isMobile ? 'X' : 'Cancelled'}</span>
                           </button>
                           <button
                             onClick={() => handleDeleteExtraClass(extCls.id)}
-                            style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.7)', cursor: 'pointer', padding: '4px', display: 'inline-flex', alignItems: 'center' }}
+                            style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.7)', cursor: 'pointer', padding: '4px', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
                             title="Delete Extra Class"
                           >
                             <Trash2 size={13} />
@@ -2072,7 +2206,7 @@ export default function AttendanceTracker({ setCurrentView }) {
               </p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(270px, 1fr))', gap: isMobile ? '12px' : '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(270px, 1fr))', gap: isMobile ? '12px' : '16px', width: '100%', boxSizing: 'border-box' }}>
               {filteredSubjectAnalytics.map((sub) => {
                 const isAlert = sub.isAlert;
                 const isWeighted = (sub.points || 1) > 1;
@@ -2106,82 +2240,94 @@ export default function AttendanceTracker({ setCurrentView }) {
                     key={sub.subject}
                     className="glass-panel"
                     style={{
-                      padding: isMobile ? '16px' : '20px',
-                      borderRadius: '16px',
+                      padding: isMobile ? '12px 14px' : '18px 20px',
+                      borderRadius: '14px',
                       border: cardBorder,
-                      background: cardBg
+                      background: cardBg,
+                      boxSizing: 'border-box',
+                      minWidth: 0,
+                      overflow: 'hidden',
+                      width: '100%'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
-                        <h4 style={{ fontSize: isMobile ? '0.9rem' : '1rem', margin: 0, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub.subject}</h4>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: '1 1 auto', flexWrap: 'wrap' }}>
+                        <h4 style={{ fontSize: isMobile ? '0.85rem' : '0.98rem', margin: 0, color: '#ffffff', wordBreak: 'break-word', minWidth: 0 }}>
+                          {sub.subject}
+                        </h4>
                         {sub.isLab && (
-                          <span style={{ fontSize: '0.65rem', background: 'rgba(139,92,246,0.25)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.4)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                          <span style={{ fontSize: '0.62rem', background: 'rgba(139,92,246,0.25)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.4)', padding: '1px 5px', borderRadius: '4px', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
                             🧪 LAB
                           </span>
                         )}
                         {isWeighted && (
-                          <span style={{ fontSize: '0.65rem', background: 'rgba(59,130,246,0.25)', color: '#93c5fd', border: '1px solid rgba(59,130,246,0.4)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                            ⚡ Weight: {sub.points} Pts
+                          <span style={{ fontSize: '0.62rem', background: 'rgba(59,130,246,0.25)', color: '#93c5fd', border: '1px solid rgba(59,130,246,0.4)', padding: '1px 5px', borderRadius: '4px', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                            ⚡ {sub.points} Pts
                           </span>
                         )}
                       </div>
-                      <span style={{ fontSize: isMobile ? '1rem' : '1.15rem', fontWeight: 800, color: pctColor }}>
+                      <span style={{ fontSize: isMobile ? '0.95rem' : '1.15rem', fontWeight: 800, color: pctColor, flexShrink: 0 }}>
                         {sub.percentage}%
                       </span>
                     </div>
 
                     {/* Point Weight & Type Selector Controls */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', background: 'rgba(255,255,255,0.03)', padding: '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Calculation Weight:</span>
-                      <select
-                        value={sub.points || 1}
-                        onChange={(e) => handleUpdateSubjectConfig(sub.subject, e.target.value, sub.isLab)}
-                        style={{ background: '#11121c', color: isWeighted ? '#93c5fd' : '#fff', border: isWeighted ? '1px solid rgba(59,130,246,0.5)' : '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', fontSize: '0.72rem', padding: '2px 6px', cursor: 'pointer', outline: 'none', fontWeight: 700 }}
-                        title="Point weight used in the backend calculation for attendance percentage"
-                      >
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((p) => (
-                          <option key={p} value={p}>
-                            {p} {p === 1 ? 'Point' : 'Points'} / {sub.isLab ? 'Lab' : 'Class'}
-                          </option>
-                        ))}
-                      </select>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '10px', background: 'rgba(255,255,255,0.03)', padding: isMobile ? '4px 8px' : '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap', width: '100%', boxSizing: 'border-box' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', minWidth: 0 }}>
+                        <span style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                          {isMobile ? 'Weight:' : 'Calculation Weight:'}
+                        </span>
+                        <select
+                          value={sub.points || 1}
+                          onChange={(e) => handleUpdateSubjectConfig(sub.subject, e.target.value, sub.isLab)}
+                          style={{ background: '#11121c', color: isWeighted ? '#93c5fd' : '#fff', border: isWeighted ? '1px solid rgba(59,130,246,0.5)' : '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', fontSize: isMobile ? '0.68rem' : '0.72rem', padding: '2px 4px', cursor: 'pointer', outline: 'none', fontWeight: 700, maxWidth: '100%' }}
+                          title="Point weight used in the backend calculation for attendance percentage"
+                        >
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((p) => (
+                            <option key={p} value={p}>
+                              {p} {p === 1 ? (isMobile ? 'Pt' : 'Point') : (isMobile ? 'Pts' : 'Points')} / {sub.isLab ? 'Lab' : (isMobile ? 'Cls' : 'Class')}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
                       <button
                         type="button"
                         onClick={() => handleUpdateSubjectConfig(sub.subject, sub.points, !sub.isLab)}
                         className="btn btn-secondary btn-sm"
                         style={{
-                          fontSize: '0.7rem',
-                          padding: '2px 8px',
+                          fontSize: isMobile ? '0.66rem' : '0.7rem',
+                          padding: isMobile ? '2px 6px' : '2px 8px',
                           borderRadius: '6px',
                           background: sub.isLab ? 'rgba(139,92,246,0.2)' : 'transparent',
                           color: sub.isLab ? '#c4b5fd' : 'var(--text-secondary)',
-                          borderColor: sub.isLab ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.15)'
+                          borderColor: sub.isLab ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.15)',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0
                         }}
                       >
-                        {sub.isLab ? '🧪 Lab Active' : '📖 Set as Lab'}
+                        {sub.isLab ? (isMobile ? '🧪 Lab' : '🧪 Lab Active') : (isMobile ? '📖 Lab' : '📖 Set as Lab')}
                       </button>
                     </div>
 
-                    <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <div style={{ fontSize: isMobile ? '0.68rem' : '0.78rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px', wordBreak: 'break-word' }}>
                       <span>Attended: <strong>{sub.attendedCount}</strong> {sub.attendedCount === 1 ? unitLabel : unitLabelPlural} / Conducted: <strong>{sub.totalConductedCount}</strong> {sub.totalConductedCount === 1 ? unitLabel : unitLabelPlural}</span>
                       <span>Absent: <strong>{sub.absentCount}</strong> {sub.absentCount === 1 ? unitLabel : unitLabelPlural} · Mass Bunked: <strong>{sub.massbunkCount}</strong> · Cancelled: <strong>{sub.cancelledCount}</strong></span>
                       {isWeighted && (
-                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '2px' }}>
+                        <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '2px' }}>
                           (Backend weight: {sub.attendedPoints} / {sub.totalConductedPoints} pts)
                         </span>
                       )}
                     </div>
 
-                    <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: isMobile ? '0.7rem' : '0.78rem' }}>
+                    <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: isMobile ? '0.68rem' : '0.78rem', wordBreak: 'break-word', lineHeight: '1.35' }}>
                       {sub.isAlert ? (
                         <span style={{ color: '#f87171', fontWeight: 600 }}>
-                          ⚠️ Attendance Alert: You must attend the next <strong>{sub.neededClasses}</strong> {sub.neededClasses === 1 ? unitLabel : unitLabelPlural} to reach {sub.target}%.
+                          ⚠️ Attendance Alert: Attend next <strong>{sub.neededClasses}</strong> {sub.neededClasses === 1 ? unitLabel : unitLabelPlural} to reach {sub.target}%.
                         </span>
                       ) : (
                         <span style={{ color: isWeighted ? '#60a5fa' : '#34d399', fontWeight: 600 }}>
-                          ✔ Safe Margin: You can safely bunk up to <strong>{sub.safeBunks}</strong> upcoming {sub.safeBunks === 1 ? unitLabel : unitLabelPlural}.
+                          ✔ Safe Margin: Bunk up to <strong>{sub.safeBunks}</strong> upcoming {sub.safeBunks === 1 ? unitLabel : unitLabelPlural}.
                         </span>
                       )}
                     </div>
