@@ -528,6 +528,8 @@ export default function LearningPlayer({
         className="glass-panel"
         style={{
           display: 'flex',
+          flexDirection: 'row',
+          flexWrap: 'nowrap',
           alignItems: 'center',
           justifyContent: 'flex-start',
           gap: '8px',
@@ -540,19 +542,21 @@ export default function LearningPlayer({
           WebkitOverflowScrolling: 'touch'
         }}
       >
-        <button onClick={() => setCurrentView('learning')} style={styles.backBtn}>
+        <button onClick={() => setCurrentView('learning')} style={{ ...styles.backBtn, flexShrink: 0 }}>
           <ChevronLeft size={15} /> Back
         </button>
 
         {isDegree && (
-          <CustomSemesterDropdown value={activeSemester} onChange={(s) => setActiveSemester(s)} />
+          <div style={{ flexShrink: 0 }}>
+            <CustomSemesterDropdown value={activeSemester} onChange={(s) => setActiveSemester(s)} />
+          </div>
         )}
 
         {activePlaylistId && (
           <button
             onClick={() => setActivePlaylistId(null)}
             className="btn btn-secondary btn-sm"
-            style={{ fontSize: '0.75rem', padding: '6px 12px', gap: '4px', whiteSpace: 'nowrap', borderRadius: '999px' }}
+            style={{ fontSize: '0.75rem', padding: '6px 12px', gap: '4px', whiteSpace: 'nowrap', borderRadius: '999px', flexShrink: 0 }}
             title="Switch Playlist Series"
           >
             <ChevronLeft size={13} /> Switch Playlist

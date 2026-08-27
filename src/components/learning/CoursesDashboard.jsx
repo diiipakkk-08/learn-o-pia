@@ -177,13 +177,13 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
         )}
       </div>
 
-      {/* Header Control Bar & Filter Tabs (Flexible & Responsive) */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '8px', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+      {/* Header Control Bar & Filter Tabs */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '10px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '4px', maxWidth: '100%' }}>
           <button
             className={`btn ${viewTab === 'all' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setViewTab('all')}
-            style={{ padding: '5px 10px', fontSize: '0.75rem', borderRadius: '20px', flexShrink: 0, gap: '5px' }}
+            style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '20px', flexShrink: 0, gap: '6px', whiteSpace: 'nowrap' }}
           >
             <Layers size={13} /> All ({processedDegrees.length + processedCourses.length + processedPlaylists.length})
           </button>
@@ -191,7 +191,7 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
           <button
             className={`btn ${viewTab === 'degrees' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setViewTab('degrees')}
-            style={{ padding: '5px 10px', fontSize: '0.75rem', borderRadius: '20px', flexShrink: 0, gap: '5px' }}
+            style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '20px', flexShrink: 0, gap: '6px', whiteSpace: 'nowrap' }}
           >
             <GraduationCap size={13} /> Degree Programs ({processedDegrees.length})
           </button>
@@ -199,7 +199,7 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
           <button
             className={`btn ${viewTab === 'courses' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setViewTab('courses')}
-            style={{ padding: '5px 10px', fontSize: '0.75rem', borderRadius: '20px', flexShrink: 0, gap: '5px' }}
+            style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '20px', flexShrink: 0, gap: '6px', whiteSpace: 'nowrap' }}
           >
             <BookOpen size={13} /> Courses ({processedCourses.length})
           </button>
@@ -207,19 +207,19 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
           <button
             className={`btn ${viewTab === 'playlists' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setViewTab('playlists')}
-            style={{ padding: '5px 10px', fontSize: '0.75rem', borderRadius: '20px', flexShrink: 0, gap: '5px' }}
+            style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '20px', flexShrink: 0, gap: '6px', whiteSpace: 'nowrap' }}
           >
             <Video size={13} /> Playlists ({processedPlaylists.length})
           </button>
         </div>
 
         {/* Sorting Dropdown */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.04)', padding: '4px 8px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.04)', padding: '5px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
           <Filter size={13} color="var(--primary)" />
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            style={{ background: 'transparent', border: 'none', color: '#ffffff', fontSize: '0.75rem', fontWeight: 600, outline: 'none', cursor: 'pointer' }}
+            style={{ background: 'transparent', border: 'none', color: '#ffffff', fontSize: '0.78rem', fontWeight: 600, outline: 'none', cursor: 'pointer' }}
           >
             <option value="recent" style={{ background: '#11121c' }}>Recently Added</option>
             <option value="alphabetical" style={{ background: '#11121c' }}>Alphabetical (A - Z)</option>

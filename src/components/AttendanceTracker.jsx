@@ -1137,6 +1137,7 @@ export default function AttendanceTracker({ setCurrentView }) {
         padding: isMobile ? '8px 10px' : '12px 18px',
         marginBottom: '16px',
         display: 'flex',
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
