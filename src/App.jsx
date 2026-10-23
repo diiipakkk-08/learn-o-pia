@@ -22,7 +22,7 @@ import Auth from './components/Auth';
 import OnboardingModal from './components/OnboardingModal';
 import AdDonationModal from './components/AdDonationModal';
 
-import { ShieldAlert, ArrowLeft } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, PanelLeftOpen } from 'lucide-react';
 
 function AccessDenied({ requiredRole, setCurrentView }) {
   return (
@@ -74,7 +74,23 @@ function AppContent() {
     return val ? parseInt(val, 10) : 0;
   });
 
-  const [cinemaMode, setCinemaMode] = useState(false);
+  const [cinemaMode, setCinemaMode] = useState(() => {
+    try {
+      return localStorage.getItem('learnopia_theme') === 'cinema';
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('learnopia_theme', cinemaMode ? 'cinema' : 'default');
+      if (typeof document !== 'undefined') {
+        document.documentElement.setAttribute('data-theme', cinemaMode ? 'cinema' : 'default');
+      }
+    } catch (e) {}
+  }, [cinemaMode]);
+
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem('learnopia_sidebar_collapsed') === 'true';
@@ -203,8 +219,20 @@ function AppContent() {
           onTriggerAdModal={() => setShowAdModal(true)}
         />
 
+        {/* Floating Quick Restore Access Bar Button (Desktop Only, Hidden on Mobile) */}
+        {isSidebarCollapsed && (
+          <button
+            onClick={() => setIsSidebarCollapsed(false)}
+            className="hidden lg:flex fixed bottom-6 left-6 z-40 items-center gap-2.5 px-4 py-2.5 rounded-xl border border-[#DFDBD2] bg-[#FFFFFF] shadow-xl text-xs font-bold text-[#141413] hover:bg-[#F7F5F0] hover:border-[#1E5631] transition-all hover:scale-105 active:scale-95 font-mono-tabular group cursor-pointer"
+            title="Expand Navigation Access Bar [Ctrl + \]"
+          >
+            <PanelLeftOpen size={16} className="text-[#1E5631] group-hover:scale-110 transition-transform" />
+            <span>SHOW NAVIGATION</span>
+          </button>
+        )}
+
         {/* Main View Container */}
-        <main className="flex-1 pb-20 lg:pb-8">
+        <main className="flex-1 w-full pb-20 lg:pb-8">
           {/* Unauthenticated Wall for Protected Views */}
           {!currentUser && !['about', 'learning'].includes(currentView) ? (
             <div className="max-w-md mx-auto my-16 p-8 rounded-xl border border-border-subtle bg-surface text-center space-y-4 shadow-modal">
@@ -223,6 +251,7 @@ function AppContent() {
             <>
               {currentView === 'my-learning' && (
                 <MyLearningView
+                  isSidebarCollapsed={isSidebarCollapsed}
                   setCurrentView={setCurrentView}
                   setSelectedPlaylistId={setSelectedPlaylistId}
                   setSelectedVideoIndex={setSelectedVideoIndex}
@@ -231,6 +260,7 @@ function AppContent() {
 
               {currentView === 'learning' && (
                 <CoursesDashboard
+                  isSidebarCollapsed={isSidebarCollapsed}
                   setSelectedPlaylistId={setSelectedPlaylistId}
                   setSelectedVideoIndex={setSelectedVideoIndex}
                   setCurrentView={setCurrentView}
@@ -239,6 +269,7 @@ function AppContent() {
 
               {currentView === 'learning-player' && (
                 <LearningPlayer
+                  isSidebarCollapsed={isSidebarCollapsed}
                   playlistId={selectedPlaylistId}
                   activeVideoIndex={selectedVideoIndex}
                   setActiveVideoIndex={setSelectedVideoIndex}
@@ -249,11 +280,15 @@ function AppContent() {
               )}
 
               {currentView === 'attendance' && (
-                <AttendanceTracker setCurrentView={setCurrentView} />
+                <AttendanceTracker
+                  isSidebarCollapsed={isSidebarCollapsed}
+                  setCurrentView={setCurrentView}
+                />
               )}
 
               {(currentView === 'resources' || currentView === 'discussions') && (
                 <ResourcesView
+                  isSidebarCollapsed={isSidebarCollapsed}
                   setCurrentView={setCurrentView}
                   setSelectedPlaylistId={setSelectedPlaylistId}
                 />
@@ -261,6 +296,7 @@ function AppContent() {
 
               {currentView === 'studio' && (
                 <CreatorStudio
+                  isSidebarCollapsed={isSidebarCollapsed}
                   setCurrentView={setCurrentView}
                   setSelectedPlaylistId={setSelectedPlaylistId}
                 />
@@ -268,7 +304,10 @@ function AppContent() {
 
               {currentView === 'admin' && (
                 isAdmin ? (
-                  <AdminDashboard setCurrentView={setCurrentView} />
+                  <AdminDashboard
+                    isSidebarCollapsed={isSidebarCollapsed}
+                    setCurrentView={setCurrentView}
+                  />
                 ) : (
                   <AccessDenied requiredRole="Administrator" setCurrentView={setCurrentView} />
                 )

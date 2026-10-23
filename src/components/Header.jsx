@@ -104,38 +104,21 @@ export default function Header({
     <header
       className="sticky top-0 z-30 px-3 sm:px-6 lg:px-8 h-14 flex items-center justify-between border-b backdrop-blur-md transition-colors gap-3"
       style={{
-        backgroundColor:
-          cinemaMode && isPlayerView
-            ? 'rgba(20, 20, 19, 0.94)'
-            : 'rgba(247, 245, 240, 0.94)',
-        borderColor: cinemaMode && isPlayerView ? '#2E2E2B' : '#E4E0D8'
+        backgroundColor: cinemaMode
+          ? 'rgba(20, 20, 19, 0.94)'
+          : 'rgba(247, 245, 240, 0.94)',
+        borderColor: cinemaMode ? '#2E2E2B' : '#E4E0D8'
       }}
     >
-      {/* Left: Sidebar Toggle + Mobile Logo */}
+      {/* Left: Brand Wordmark (Clean Logo) */}
       <div className="flex items-center gap-2.5">
-        {onToggleSidebar && (
-          <button
-            onClick={onToggleSidebar}
-            className="p-1.5 rounded-lg transition-colors hover:bg-black/5"
-            style={{ color: cinemaMode && isPlayerView ? '#F2EFE9' : '#141413' }}
-            title={isSidebarCollapsed ? 'Expand sidebar (Ctrl + \\)' : 'Collapse sidebar'}
-            aria-label="Toggle sidebar"
-          >
-            {isSidebarCollapsed ? (
-              <PanelLeftOpen size={18} strokeWidth={1.75} />
-            ) : (
-              <PanelLeftClose size={18} strokeWidth={1.75} className="lg:hidden" />
-            )}
-          </button>
-        )}
-
         <button
           onClick={() => setCurrentView(currentUser ? 'my-learning' : 'landing')}
           className="text-left focus:outline-none flex items-center gap-2 transition-opacity hover:opacity-85"
         >
           <span
             className="font-editorial text-2xl lg:text-[26px] tracking-tight block leading-none"
-            style={{ color: cinemaMode && isPlayerView ? '#F2EFE9' : '#141413' }}
+            style={{ color: cinemaMode ? '#F2EFE9' : '#141413' }}
           >
             Learn-O-Pia
           </span>
@@ -147,8 +130,8 @@ export default function Header({
         <div
           className="w-full flex items-center gap-2.5 px-3.5 py-1.5 rounded-lg border text-sm transition-all"
           style={{
-            backgroundColor: cinemaMode && isPlayerView ? '#222220' : '#EFECE6',
-            borderColor: cinemaMode && isPlayerView ? '#2E2E2B' : '#E2DDD3'
+            backgroundColor: cinemaMode ? '#222220' : '#EFECE6',
+            borderColor: cinemaMode ? '#2E2E2B' : '#E2DDD3'
           }}
         >
           <Search size={15} style={{ color: '#8A8780' }} />
@@ -159,7 +142,7 @@ export default function Header({
             value={globalSearchQuery || ''}
             onChange={handleSearchChange}
             className="w-full bg-transparent border-none text-xs sm:text-sm focus:outline-none placeholder:text-text-muted"
-            style={{ color: cinemaMode && isPlayerView ? '#F2EFE9' : '#141413' }}
+            style={{ color: cinemaMode ? '#F2EFE9' : '#141413' }}
           />
           {globalSearchQuery && (
             <button
@@ -172,8 +155,8 @@ export default function Header({
           <kbd
             className="hidden md:inline-block px-1.5 py-0.5 text-[10px] font-mono-tabular font-medium rounded border"
             style={{
-              backgroundColor: cinemaMode && isPlayerView ? '#1C1C1A' : '#E6E2DA',
-              borderColor: cinemaMode && isPlayerView ? '#2E2E2B' : '#CFCAC0',
+              backgroundColor: cinemaMode ? '#1C1C1A' : '#E6E2DA',
+              borderColor: cinemaMode ? '#2E2E2B' : '#CFCAC0',
               color: '#8A8780'
             }}
           >
@@ -182,22 +165,25 @@ export default function Header({
         </div>
       </div>
 
-      {/* Right Actions: Announcements + Profile */}
+      {/* Right Actions: Theme Toggle + Announcements + Profile */}
       <div className="flex items-center gap-2">
-        {/* Cinema Dim Lights Toggle (Only on player view) */}
-        {isPlayerView && setCinemaMode && (
+        {/* Day / Night / Cinema Focus Mode Toggle */}
+        {setCinemaMode && (
           <button
             onClick={() => setCinemaMode(!cinemaMode)}
-            className="p-2 rounded-lg border text-xs font-medium flex items-center gap-1.5 transition-colors"
+            className="px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all hover:scale-[1.02] active:scale-95"
             style={{
               borderColor: cinemaMode ? '#42403B' : '#E4E0D8',
               backgroundColor: cinemaMode ? '#222220' : '#FFFFFF',
               color: cinemaMode ? '#F2EFE9' : '#141413'
             }}
-            title={cinemaMode ? 'Turn lights on' : 'Dim lights (Cinema mode)'}
+            title={cinemaMode ? 'Switch to Warm Paper (Day Mode)' : 'Dim lights (Cinema / Night Mode)'}
+            aria-label="Toggle theme mode"
           >
-            {cinemaMode ? <Sun size={15} strokeWidth={1.75} /> : <Moon size={15} strokeWidth={1.75} />}
-            <span className="hidden md:inline text-xs">{cinemaMode ? 'Lights On' : 'Dim Lights'}</span>
+            {cinemaMode ? <Sun size={15} strokeWidth={2} className="text-[#E2A04B]" /> : <Moon size={15} strokeWidth={2} className="text-[#575550]" />}
+            <span className="hidden sm:inline text-xs font-mono-tabular">
+              {cinemaMode ? 'Warm Paper' : 'Dim Lights'}
+            </span>
           </button>
         )}
 
@@ -209,7 +195,7 @@ export default function Header({
               if (markAnnouncementsRead) markAnnouncementsRead();
             }}
             className="relative p-2 rounded-lg transition-colors hover:bg-black/5"
-            style={{ color: cinemaMode && isPlayerView ? '#F2EFE9' : '#141413' }}
+            style={{ color: cinemaMode ? '#F2EFE9' : '#141413' }}
             title="Academic Notices & Updates"
             aria-label="Announcements"
           >
@@ -227,8 +213,8 @@ export default function Header({
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="flex items-center gap-2 p-1 pl-2 rounded-lg border transition-all hover:bg-black/5"
               style={{
-                borderColor: cinemaMode && isPlayerView ? '#2E2E2B' : '#E4E0D8',
-                backgroundColor: cinemaMode && isPlayerView ? '#222220' : '#FFFFFF'
+                borderColor: cinemaMode ? '#2E2E2B' : '#E4E0D8',
+                backgroundColor: cinemaMode ? '#222220' : '#FFFFFF'
               }}
             >
               <div
@@ -243,7 +229,7 @@ export default function Header({
               </div>
               <span
                 className="hidden sm:inline text-xs font-semibold max-w-[100px] truncate"
-                style={{ color: cinemaMode && isPlayerView ? '#F2EFE9' : '#141413' }}
+                style={{ color: cinemaMode ? '#F2EFE9' : '#141413' }}
               >
                 {currentUser.name ? currentUser.name.split(' ')[0] : 'Student'}
               </span>

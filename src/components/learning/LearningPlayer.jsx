@@ -27,7 +27,8 @@ export default function LearningPlayer({
   setActiveVideoIndex,
   setCurrentView,
   cinemaMode = false,
-  setCinemaMode
+  setCinemaMode,
+  isSidebarCollapsed = false
 }) {
   const {
     subjects,
@@ -64,6 +65,7 @@ export default function LearningPlayer({
     let c = null;
 
     if (playlistId) {
+      // 1. Direct playlist ID match
       for (const sub of (subjects || [])) {
         const match = (sub.playlists || []).find((pl) => pl.id === playlistId);
         if (match) {
@@ -73,10 +75,19 @@ export default function LearningPlayer({
         }
       }
 
+      // 2. Direct subject ID match
+      if (!p) {
+        const matchSub = (subjects || []).find((sub) => sub.id === playlistId);
+        if (matchSub && matchSub.playlists && matchSub.playlists.length > 0) {
+          p = matchSub.playlists[0];
+          s = matchSub;
+        }
+      }
+
+      // 3. Course ID match
       if (!p) {
         c = (courses || []).find((cr) => cr.id === playlistId);
         if (c) {
-          // If a degree/course was passed, pick its first subject playlist
           const courseSub = (subjects || []).find((sub) => sub.courseId === c.id);
           if (courseSub && courseSub.playlists && courseSub.playlists.length > 0) {
             p = courseSub.playlists[0];
@@ -164,7 +175,7 @@ export default function LearningPlayer({
         color: cinemaMode ? '#F2EFE9' : '#141413'
       }}
     >
-      <main className="w-full max-w-7xl 2xl:max-w-[1720px] mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-12 space-y-4">
+      <main className="w-full px-3 sm:px-6 lg:px-8 xl:px-10 pt-3 pb-12 space-y-4">
         {/* Top Control Bar */}
         <div className="flex items-center justify-between gap-3 pb-3 border-b border-border-subtle">
           <div className="flex items-center gap-3 min-w-0">
@@ -192,7 +203,7 @@ export default function LearningPlayer({
                 className="p-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold flex items-center gap-1.5"
                 title={cinemaMode ? 'Turn lights on' : 'Dim lights (Cinema mode)'}
               >
-                {cinemaMode ? <Sun size={14} /> : <Moon size={14} />}
+                {cinemaMode ? <Sun size={14} className="text-[#E2A04B]" /> : <Moon size={14} />}
                 <span className="hidden md:inline">{cinemaMode ? 'Lights On' : 'Dim Lights'}</span>
               </button>
             )}
@@ -208,12 +219,12 @@ export default function LearningPlayer({
           </div>
         </div>
 
-        {/* Responsive Player Grid: Left 70% Video IDE / Right 30% Study Dock */}
+        {/* Responsive Player Grid: Left Video IDE (takes full space) / Right Study Dock */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           {/* =================================================================
-              LEFT COLUMN (8 cols): 16:9 Video Player + Lecture Info + Notes Box
+              LEFT COLUMN: 16:9 Video Player (expanded for full space)
           ================================================================= */}
-          <div className="lg:col-span-8 space-y-4">
+          <div className="lg:col-span-8 xl:col-span-8 2xl:col-span-9 space-y-4">
             {/* 16:9 Frame */}
             <div className="relative aspect-video rounded-xl overflow-hidden bg-black border border-border-subtle shadow-md">
               {currentVideo.youtubeId ? (
@@ -289,9 +300,9 @@ export default function LearningPlayer({
           </div>
 
           {/* =================================================================
-              RIGHT COLUMN (4 cols): Tabbed Study Dock (Syllabus, Notes, Materials)
+              RIGHT COLUMN: Tabbed Study Dock (Syllabus, Notes, Materials)
           ================================================================= */}
-          <div className="lg:col-span-4 rounded-xl border border-border-subtle bg-surface overflow-hidden shadow-sm">
+          <div className="lg:col-span-4 xl:col-span-4 2xl:col-span-3 rounded-xl border border-border-subtle bg-surface overflow-hidden shadow-sm">
             {/* Dock Tabs Header */}
             <div className="flex border-b border-border-subtle bg-[#FAF8F5]">
               <button

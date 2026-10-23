@@ -51,8 +51,8 @@ export default function Sidebar({
         isCollapsed ? '-translate-x-full pointer-events-none' : 'translate-x-0'
       }`}
       style={{
-        backgroundColor: cinemaMode && isPlayerView ? '#1C1C1A' : '#EFECE6',
-        borderRight: `1px solid ${cinemaMode && isPlayerView ? '#2E2E2B' : '#E2DDD3'}`
+        backgroundColor: cinemaMode ? '#1C1C1A' : '#EFECE6',
+        borderRight: `1px solid ${cinemaMode ? '#2E2E2B' : '#E2DDD3'}`
       }}
     >
       {/* Brand Wordmark & Collapse Button */}
@@ -63,7 +63,7 @@ export default function Sidebar({
         >
           <span
             className="font-editorial text-3xl tracking-tight block leading-none transition-colors"
-            style={{ color: cinemaMode && isPlayerView ? '#F2EFE9' : '#141413' }}
+            style={{ color: cinemaMode ? '#F2EFE9' : '#141413' }}
           >
             Learn-O-Pia
           </span>
@@ -79,7 +79,7 @@ export default function Sidebar({
         <button
           onClick={() => setIsCollapsed(true)}
           className="p-1.5 rounded-lg transition-colors hover:bg-black/5 active:scale-95"
-          style={{ color: cinemaMode && isPlayerView ? '#A8A59E' : '#575550' }}
+          style={{ color: cinemaMode ? '#A8A59E' : '#575550' }}
           title="Collapse sidebar (Ctrl + \)"
           aria-label="Collapse sidebar"
         >
@@ -102,15 +102,15 @@ export default function Sidebar({
                 className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm transition-all relative text-left"
                 style={{
                   backgroundColor: isActive
-                    ? cinemaMode && isPlayerView
+                    ? cinemaMode
                       ? '#2A2A27'
                       : '#E2DDD3'
                     : 'transparent',
                   color: isActive
-                    ? cinemaMode && isPlayerView
+                    ? cinemaMode
                       ? '#F2EFE9'
                       : '#141413'
-                    : cinemaMode && isPlayerView
+                    : cinemaMode
                     ? '#A8A59E'
                     : '#575550',
                   fontWeight: isActive ? 600 : 500
@@ -128,7 +128,7 @@ export default function Sidebar({
                   style={{
                     color: isActive
                       ? '#1E5631'
-                      : cinemaMode && isPlayerView
+                      : cinemaMode
                       ? '#A8A59E'
                       : '#575550'
                   }}
@@ -142,7 +142,7 @@ export default function Sidebar({
         {/* Views & Quick Modes */}
         <div
           className="pt-4 mt-4 border-t"
-          style={{ borderColor: cinemaMode && isPlayerView ? '#2E2E2B' : '#E2DDD3' }}
+          style={{ borderColor: cinemaMode ? '#2E2E2B' : '#E2DDD3' }}
         >
           <span
             className="px-3.5 text-[11px] font-semibold uppercase tracking-wider block mb-1.5 font-mono-tabular"
@@ -155,8 +155,8 @@ export default function Sidebar({
             onClick={() => setCurrentView('landing')}
             className="w-full flex items-center gap-3 px-3.5 py-2 rounded-lg text-xs font-medium transition-all text-left"
             style={{
-              backgroundColor: currentView === 'landing' ? '#E2DDD3' : 'transparent',
-              color: cinemaMode && isPlayerView ? '#F2EFE9' : '#575550'
+              backgroundColor: currentView === 'landing' ? (cinemaMode ? '#2A2A27' : '#E2DDD3') : 'transparent',
+              color: cinemaMode ? '#F2EFE9' : '#575550'
             }}
           >
             <Sparkles size={15} strokeWidth={1.75} />
@@ -167,8 +167,8 @@ export default function Sidebar({
             onClick={() => setCurrentView('about')}
             className="w-full flex items-center gap-3 px-3.5 py-2 rounded-lg text-xs font-medium transition-all text-left"
             style={{
-              backgroundColor: currentView === 'about' ? '#E2DDD3' : 'transparent',
-              color: cinemaMode && isPlayerView ? '#F2EFE9' : '#575550'
+              backgroundColor: currentView === 'about' ? (cinemaMode ? '#2A2A27' : '#E2DDD3') : 'transparent',
+              color: cinemaMode ? '#F2EFE9' : '#575550'
             }}
           >
             <Info size={15} strokeWidth={1.75} />
@@ -181,8 +181,8 @@ export default function Sidebar({
               onClick={() => setCurrentView('admin')}
               className="w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-xs font-medium transition-all text-left"
               style={{
-                backgroundColor: currentView === 'admin' ? '#E2DDD3' : 'transparent',
-                color: cinemaMode && isPlayerView ? '#F2EFE9' : '#575550'
+                backgroundColor: currentView === 'admin' ? (cinemaMode ? '#2A2A27' : '#E2DDD3') : 'transparent',
+                color: cinemaMode ? '#F2EFE9' : '#575550'
               }}
             >
               <div className="flex items-center gap-3">
@@ -203,8 +203,8 @@ export default function Sidebar({
           onClick={onOpenProfile || (() => setCurrentView('profile'))}
           className="p-3 mx-2 mb-2 rounded-lg border flex items-center justify-between cursor-pointer hover:bg-black/5 transition-colors"
           style={{
-            borderColor: cinemaMode && isPlayerView ? '#2E2E2B' : '#E2DDD3',
-            backgroundColor: cinemaMode && isPlayerView ? '#222220' : 'transparent'
+            borderColor: cinemaMode ? '#2E2E2B' : '#E2DDD3',
+            backgroundColor: cinemaMode ? '#222220' : 'transparent'
           }}
           title="View Student Profile & Settings"
         >
@@ -222,7 +222,7 @@ export default function Sidebar({
             <div className="min-w-0">
               <div
                 className="text-xs font-semibold leading-tight truncate"
-                style={{ color: cinemaMode && isPlayerView ? '#F2EFE9' : '#141413' }}
+                style={{ color: cinemaMode ? '#F2EFE9' : '#141413' }}
               >
                 {currentUser.name || 'Student'}
               </div>

@@ -232,9 +232,9 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab('verification')}
               style={{
                 ...styles.sideTab,
-                background: activeTab === 'verification' ? 'rgba(255,255,255,0.03)' : 'transparent',
+                background: activeTab === 'verification' ? '#141413' : 'transparent', fontWeight: activeTab === 'verification' ? 600 : 500,
                 borderLeftColor: activeTab === 'verification' ? 'var(--primary)' : 'transparent',
-                color: activeTab === 'verification' ? '#ffffff' : 'var(--text-secondary)'
+                color: activeTab === 'verification' ? '#F7F5F0' : 'var(--text-secondary)'
               }}
             >
               <Award size={15} />
@@ -245,9 +245,9 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab('student-verify')}
               style={{
                 ...styles.sideTab,
-                background: activeTab === 'student-verify' ? 'rgba(255,255,255,0.03)' : 'transparent',
+                background: activeTab === 'student-verify' ? '#141413' : 'transparent', fontWeight: activeTab === 'student-verify' ? 600 : 500,
                 borderLeftColor: activeTab === 'student-verify' ? 'var(--primary)' : 'transparent',
-                color: activeTab === 'student-verify' ? '#ffffff' : 'var(--text-secondary)'
+                color: activeTab === 'student-verify' ? '#F7F5F0' : 'var(--text-secondary)'
               }}
             >
               <ShieldCheck size={15} />
@@ -258,9 +258,9 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab('directory')}
               style={{
                 ...styles.sideTab,
-                background: activeTab === 'directory' ? 'rgba(255,255,255,0.03)' : 'transparent',
+                background: activeTab === 'directory' ? '#141413' : 'transparent', fontWeight: activeTab === 'directory' ? 600 : 500,
                 borderLeftColor: activeTab === 'directory' ? 'var(--primary)' : 'transparent',
-                color: activeTab === 'directory' ? '#ffffff' : 'var(--text-secondary)'
+                color: activeTab === 'directory' ? '#F7F5F0' : 'var(--text-secondary)'
               }}
             >
               <Users size={15} />
@@ -271,9 +271,9 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab('routines')}
               style={{
                 ...styles.sideTab,
-                background: activeTab === 'routines' ? 'rgba(255,255,255,0.03)' : 'transparent',
+                background: activeTab === 'routines' ? '#141413' : 'transparent', fontWeight: activeTab === 'routines' ? 600 : 500,
                 borderLeftColor: activeTab === 'routines' ? 'var(--primary)' : 'transparent',
-                color: activeTab === 'routines' ? '#ffffff' : 'var(--text-secondary)'
+                color: activeTab === 'routines' ? '#F7F5F0' : 'var(--text-secondary)'
               }}
             >
               <CalendarDays size={15} color="#38bdf8" />
@@ -284,9 +284,9 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab('ads')}
               style={{
                 ...styles.sideTab,
-                background: activeTab === 'ads' ? 'rgba(20, 20, 19, 0.06)' : 'transparent',
+                background: activeTab === 'ads' ? '#141413' : 'transparent', fontWeight: activeTab === 'ads' ? 600 : 500,
                 borderLeftColor: activeTab === 'ads' ? 'var(--primary)' : 'transparent',
-                color: activeTab === 'ads' ? '#c4b5fd' : 'var(--text-secondary)'
+                color: activeTab === 'ads' ? '#F7F5F0' : 'var(--text-secondary)'
               }}
             >
               <Heart size={15} color="var(--primary)" />
@@ -297,9 +297,9 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab('announcements')}
               style={{
                 ...styles.sideTab,
-                background: activeTab === 'announcements' ? 'rgba(20, 20, 19, 0.06)' : 'transparent',
+                background: activeTab === 'announcements' ? '#141413' : 'transparent', fontWeight: activeTab === 'announcements' ? 600 : 500,
                 borderLeftColor: activeTab === 'announcements' ? 'var(--primary)' : 'transparent',
-                color: activeTab === 'announcements' ? '#c4b5fd' : 'var(--text-secondary)'
+                color: activeTab === 'announcements' ? '#F7F5F0' : 'var(--text-secondary)'
               }}
             >
               <Megaphone size={15} color="#a78bfa" />
@@ -506,63 +506,63 @@ export default function AdminDashboard() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.82rem' }}>
                           <div>
                             <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.72rem' }}>Full Legal Name</span>
-                            <strong style={{ color: '#ffffff' }}>{selectedInspectStudent.name || 'Not provided'}</strong>
+                            <strong style={{ color: 'var(--text-primary)' }}>{selectedInspectStudent.name || 'Not provided'}</strong>
                           </div>
 
                           <div>
                             <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.72rem' }}>Account Email</span>
-                            <span style={{ color: '#ffffff' }}>{selectedInspectStudent.email}</span>
+                            <span style={{ color: 'var(--text-primary)' }}>{selectedInspectStudent.email}</span>
                           </div>
 
                           <div>
                             <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.72rem' }}>Contact Number</span>
-                            <span style={{ color: '#ffffff' }}>{selectedInspectStudent.phone || 'No phone number'}</span>
+                            <span style={{ color: 'var(--text-primary)' }}>{selectedInspectStudent.phone || 'No phone number'}</span>
                           </div>
 
                           <div>
                             <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.72rem' }}>Date of Birth</span>
-                            <span style={{ color: '#ffffff' }}>{selectedInspectStudent.dob || 'Not specified'}</span>
+                            <span style={{ color: 'var(--text-primary)' }}>{selectedInspectStudent.dob || 'Not specified'}</span>
                           </div>
 
                           <div>
                             <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.72rem' }}>Education Level</span>
-                            <span style={{ color: '#ffffff', textTransform: 'capitalize' }}>{selectedInspectStudent.educationLevel || 'College / University'}</span>
+                            <span style={{ color: 'var(--text-primary)', textTransform: 'capitalize' }}>{selectedInspectStudent.educationLevel || 'College / University'}</span>
                           </div>
 
                           <div>
                             <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.72rem' }}>Course / Stream</span>
-                            <strong style={{ color: '#ffffff' }}>{selectedInspectStudent.courseName || 'Not specified'}</strong>
+                            <strong style={{ color: 'var(--text-primary)' }}>{selectedInspectStudent.courseName || 'Not specified'}</strong>
                           </div>
 
                           <div>
                             <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.72rem' }}>College / University Name</span>
-                            <strong style={{ color: '#ffffff' }}>{selectedInspectStudent.college || 'Institution not specified'}</strong>
+                            <strong style={{ color: 'var(--text-primary)' }}>{selectedInspectStudent.college || 'Institution not specified'}</strong>
                           </div>
 
                           <div>
                             <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.72rem' }}>Department / Branch</span>
-                            <span style={{ color: '#ffffff' }}>{selectedInspectStudent.department || 'Not specified'}</span>
+                            <span style={{ color: 'var(--text-primary)' }}>{selectedInspectStudent.department || 'Not specified'}</span>
                           </div>
 
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                             <div>
                               <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.72rem' }}>Joining Year</span>
-                              <span style={{ color: '#ffffff' }}>{selectedInspectStudent.joiningYear || 'N/A'}</span>
+                              <span style={{ color: 'var(--text-primary)' }}>{selectedInspectStudent.joiningYear || 'N/A'}</span>
                             </div>
                             <div>
                               <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.72rem' }}>Passing Year</span>
-                              <span style={{ color: '#ffffff' }}>{selectedInspectStudent.passingYear || 'N/A'}</span>
+                              <span style={{ color: 'var(--text-primary)' }}>{selectedInspectStudent.passingYear || 'N/A'}</span>
                             </div>
                           </div>
 
                           <div>
                             <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.72rem' }}>Total Curriculum Semesters</span>
-                            <span style={{ color: '#ffffff' }}>{selectedInspectStudent.totalSemesters || 8} Semesters</span>
+                            <span style={{ color: 'var(--text-primary)' }}>{selectedInspectStudent.totalSemesters || 8} Semesters</span>
                           </div>
 
                           <div>
                             <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.72rem' }}>Target Exam / Interests</span>
-                            <span style={{ color: '#ffffff' }}>{selectedInspectStudent.interests || 'None specified'}</span>
+                            <span style={{ color: 'var(--text-primary)' }}>{selectedInspectStudent.interests || 'None specified'}</span>
                           </div>
                         </div>
                       </div>
@@ -1356,8 +1356,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '24px',
-    maxWidth: '1350px',
-    margin: '0 auto'
+    width: '100%'
   },
   statCard: {
     padding: '20px',
@@ -1426,7 +1425,7 @@ const styles = {
   paneTitle: {
     fontSize: '1.2rem',
     margin: 0,
-    color: '#ffffff'
+    color: 'var(--text-primary)'
   },
   paneSub: {
     fontSize: '0.85rem',

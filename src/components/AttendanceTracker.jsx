@@ -2752,8 +2752,7 @@ export default function AttendanceTracker({ setCurrentView }) {
 
 const styles = {
   container: {
-    maxWidth: '1200px',
-    margin: '0 auto',
+    width: '100%',
     width: '100%',
     boxSizing: 'border-box'
   }

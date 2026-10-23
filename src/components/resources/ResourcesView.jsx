@@ -24,7 +24,7 @@ import {
 
 const ITEMS_PER_PAGE = 10;
 
-export default function ResourcesView({ setCurrentView, setSelectedPlaylistId }) {
+export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, isSidebarCollapsed = false }) {
   const {
     currentUser,
     standaloneResources,
@@ -133,7 +133,7 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId })
   ];
 
   return (
-    <div className="w-full max-w-7xl 2xl:max-w-[1720px] mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 space-y-6">
+    <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-10 pt-4 sm:pt-6 pb-12 space-y-6">
       {/* Header & Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border-subtle pb-4">
         <div>
