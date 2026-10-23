@@ -217,7 +217,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
                   <Clock size={13} /> Verification Pending
                 </span>
               ) : (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)', padding: '3px 8px', borderRadius: '999px', fontSize: '0.72rem' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'var(--bg-surface)', color: 'var(--text-muted)', padding: '3px 8px', borderRadius: '999px', fontSize: '0.72rem' }}>
                   Unverified Account
                 </span>
               )}
@@ -502,7 +502,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
           </div>
 
           {/* Verification Option Selection */}
-          <div style={{ padding: '18px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)', marginBottom: '20px' }}>
+          <div style={{ padding: '18px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border-subtle)', marginBottom: '20px' }}>
             <h4 style={{ fontSize: '0.9rem', marginBottom: '6px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
               <Shield size={16} color="var(--primary)" /> Account Verification Type & ID Document Link
             </h4>
@@ -511,17 +511,17 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', marginBottom: '14px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: verificationType === 'student' ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.02)', border: verificationType === 'student' ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)', cursor: currentUser.isVerified ? 'not-allowed' : 'pointer', fontSize: '0.82rem', opacity: currentUser.isVerified ? 0.6 : 1 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: verificationType === 'student' ? 'rgba(20, 20, 19, 0.06)' : 'rgba(255,255,255,0.02)', border: verificationType === 'student' ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)', cursor: currentUser.isVerified ? 'not-allowed' : 'pointer', fontSize: '0.82rem', opacity: currentUser.isVerified ? 0.6 : 1 }}>
                 <input type="radio" name="verifType" value="student" checked={verificationType === 'student'} onChange={() => !currentUser.isVerified && setVerificationType('student')} disabled={currentUser.isVerified} />
                 <span>🎓 Student Verification (St.)</span>
               </label>
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: verificationType === 'professor' ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.02)', border: verificationType === 'professor' ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)', cursor: currentUser.isVerified ? 'not-allowed' : 'pointer', fontSize: '0.82rem', opacity: currentUser.isVerified ? 0.6 : 1 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: verificationType === 'professor' ? 'rgba(20, 20, 19, 0.06)' : 'rgba(255,255,255,0.02)', border: verificationType === 'professor' ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)', cursor: currentUser.isVerified ? 'not-allowed' : 'pointer', fontSize: '0.82rem', opacity: currentUser.isVerified ? 0.6 : 1 }}>
                 <input type="radio" name="verifType" value="professor" checked={verificationType === 'professor'} onChange={() => !currentUser.isVerified && setVerificationType('professor')} disabled={currentUser.isVerified} />
                 <span>👨‍🏫 Professor Verification (Prof.)</span>
               </label>
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: verificationType === 'creator' ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.02)', border: verificationType === 'creator' ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)', cursor: currentUser.isVerified ? 'not-allowed' : 'pointer', fontSize: '0.82rem', opacity: currentUser.isVerified ? 0.6 : 1 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', background: verificationType === 'creator' ? 'rgba(20, 20, 19, 0.06)' : 'rgba(255,255,255,0.02)', border: verificationType === 'creator' ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.06)', cursor: currentUser.isVerified ? 'not-allowed' : 'pointer', fontSize: '0.82rem', opacity: currentUser.isVerified ? 0.6 : 1 }}>
                 <input type="radio" name="verifType" value="creator" checked={verificationType === 'creator'} onChange={() => !currentUser.isVerified && setVerificationType('creator')} disabled={currentUser.isVerified} />
                 <span>✨ Creator Verification (Creator.)</span>
               </label>
@@ -637,7 +637,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
           </div>
 
           {/* Verification Badge Box */}
-          <div style={{ marginTop: '20px', padding: '14px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.06)', textAlign: 'left' }}>
+          <div style={{ marginTop: '20px', padding: '14px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border-subtle)', textAlign: 'left' }}>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Verification Clearance</span>
             <div style={{ marginTop: '6px' }}>
               {currentUser.isVerified || currentUser.verificationStatus === 'verified' ? (
@@ -938,7 +938,7 @@ const styles = {
     width: '60px',
     height: '60px',
     borderRadius: '50%',
-    background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
+    background: '#141413',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center'
@@ -985,8 +985,8 @@ const styles = {
   enrolledCourseCard: {
     padding: '16px',
     borderRadius: '12px',
-    background: 'rgba(255, 255, 255, 0.02)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
+    background: 'var(--bg-surface)',
+    border: '1px solid var(--border-subtle)',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
@@ -996,8 +996,8 @@ const styles = {
   mobileNavSection: {
     padding: '16px',
     borderRadius: '16px',
-    border: '1px solid rgba(139, 92, 246, 0.2)',
-    background: 'rgba(139, 92, 246, 0.05)'
+    border: '1px solid rgba(20, 20, 19, 0.06)',
+    background: 'rgba(20, 20, 19, 0.06)'
   },
   mobileNavToggle: {
     display: 'flex',
@@ -1026,8 +1026,8 @@ const styles = {
     width: '100%',
     padding: '12px 16px',
     borderRadius: '12px',
-    background: 'rgba(255,255,255,0.03)',
-    border: '1px solid rgba(255,255,255,0.06)',
+    background: 'var(--bg-surface)',
+    border: '1px solid var(--border-subtle)',
     color: '#ffffff',
     fontSize: '0.88rem',
     fontWeight: 500,

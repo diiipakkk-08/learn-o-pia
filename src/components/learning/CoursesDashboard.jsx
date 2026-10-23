@@ -1,27 +1,54 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
 import {
-  Search, BookOpen, CheckCircle2, FileText, Download, Sparkles, Copy, Check,
-  Heart, Filter, UserCheck, Play, Plus, X, Layers, Video, ChevronLeft, ChevronRight,
-  GraduationCap, Trash2, BookmarkCheck
+  Search,
+  BookOpen,
+  CheckCircle2,
+  FileText,
+  Download,
+  Sparkles,
+  Copy,
+  Check,
+  Heart,
+  Filter,
+  UserCheck,
+  Play,
+  Plus,
+  X,
+  Layers,
+  Video,
+  ChevronLeft,
+  ChevronRight,
+  GraduationCap
 } from 'lucide-react';
 
-const ITEMS_PER_PAGE = 8;
+const ITEMS_PER_PAGE = 9;
 
-export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView }) {
-  const { courses, subjects, currentUser, enrollInCourse, enrollInPlaylist, removeUserPlaylistEnrollment, deletePlaylist, globalSearchQuery, setGlobalSearchQuery } = useDatabase();
+export default function CoursesDashboard({ setSelectedPlaylistId, setSelectedVideoIndex, setCurrentView }) {
+  const {
+    courses,
+    subjects,
+    currentUser,
+    enrollInCourse,
+    enrollInPlaylist,
+    removeUserPlaylistEnrollment,
+    globalSearchQuery,
+    setGlobalSearchQuery
+  } = useDatabase();
 
   const [localSearch, setLocalSearch] = useState(globalSearchQuery || '');
-  const [sortBy, setSortBy] = useState('recent'); // 'recent' | 'alphabetical'
-  const [enrollNotice, setEnrollNotice] = useState(null);
-  const [copiedPlId, setCopiedPlId] = useState(null);
   const [viewTab, setViewTab] = useState('all'); // 'all' | 'degrees' | 'courses' | 'playlists'
-
-  // Pagination states
   const [coursePage, setCoursePage] = useState(1);
   const [playlistPage, setPlaylistPage] = useState(1);
+  const [copiedPlId, setCopiedPlId] = useState(null);
+  const [enrollNotice, setEnrollNotice] = useState(null);
 
-  // Reset pagination on search
+  useEffect(() => {
+    if (globalSearchQuery !== undefined) {
+      setLocalSearch(globalSearchQuery);
+    }
+  }, [globalSearchQuery]);
+
   useEffect(() => {
     setCoursePage(1);
     setPlaylistPage(1);
@@ -37,49 +64,29 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
 
   const query = (localSearch || '').trim().toLowerCase();
 
-  // 1. Degree Programs (isDegree === true)
+  // 1. Degree Programs
   const processedDegrees = useMemo(() => {
-    let list = courses.filter(c => c.isDegree && (
+    return (courses || []).filter(c => c.isDegree && (
       !query ||
       c.title.toLowerCase().includes(query) ||
       c.id.toLowerCase().includes(query) ||
-      c.department.toLowerCase().includes(query) ||
+      (c.department && c.department.toLowerCase().includes(query)) ||
       (c.description && c.description.toLowerCase().includes(query))
     ));
-    if (sortBy === 'liked') {
-      list = [...list].sort((a, b) => ((b.likes?.length || 0) - (a.likes?.length || 0)));
-    } else if (sortBy === 'alphabetical') {
-      list = [...list].sort((a, b) => a.title.localeCompare(b.title));
-    }
-    return list;
-  }, [courses, query, sortBy]);
+  }, [courses, query]);
 
-  // 2. Standard Courses (isDegree === false)
+  // 2. Standard Courses
   const processedCourses = useMemo(() => {
-    let list = courses.filter(c => !c.isDegree && (
+    return (courses || []).filter(c => !c.isDegree && (
       !query ||
       c.title.toLowerCase().includes(query) ||
       c.id.toLowerCase().includes(query) ||
-      c.department.toLowerCase().includes(query) ||
+      (c.department && c.department.toLowerCase().includes(query)) ||
       (c.description && c.description.toLowerCase().includes(query))
     ));
-    if (sortBy === 'liked') {
-      list = [...list].sort((a, b) => ((b.likes?.length || 0) - (a.likes?.length || 0)));
-    } else if (sortBy === 'alphabetical') {
-      list = [...list].sort((a, b) => a.title.localeCompare(b.title));
-    }
-    return list;
-  }, [courses, query, sortBy]);
+  }, [courses, query]);
 
-  // Paginated Standard Courses (5 per page)
-  const totalCoursePages = Math.max(1, Math.ceil(processedCourses.length / ITEMS_PER_PAGE));
-  const currentCoursePage = Math.min(coursePage, totalCoursePages);
-  const paginatedCourses = useMemo(() => {
-    const start = (currentCoursePage - 1) * ITEMS_PER_PAGE;
-    return processedCourses.slice(start, start + ITEMS_PER_PAGE);
-  }, [processedCourses, currentCoursePage]);
-
-  // 3. Standalone & Subject Playlists
+  // 3. Playlists from subjects
   const processedPlaylists = useMemo(() => {
     const list = [];
     const seen = new Set();
@@ -88,18 +95,22 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
         if (!pl.id || seen.has(pl.id)) return;
         seen.add(pl.id);
         const firstVid = pl.videos && pl.videos[0];
-        const yId = pl.youtubePlaylistId || (firstVid?.youtubeId || (firstVid?.url ? (firstVid.url.match(/[?&]v=([^#&]+)/) || [])[1] : ''));
+        const yId =
+          pl.youtubePlaylistId ||
+          firstVid?.youtubeId ||
+          (firstVid?.url ? (firstVid.url.match(/[?&]v=([^#&]+)/) || [])[1] : '');
         const thumb = pl.bannerUrl || (yId ? `https://i.ytimg.com/vi/${yId}/hqdefault.jpg` : null);
 
         list.push({
           id: pl.id,
           title: pl.title,
-          description: pl.description || 'Subject lecture series',
+          description: pl.description || 'Curated university lecture series',
           subjectTitle: sub.title,
           courseId: sub.courseId,
           author: pl.author || 'Instructor',
           videoCount: pl.videos?.length || 0,
-          thumbnailUrl: thumb
+          thumbnailUrl: thumb,
+          likesCount: pl.likes?.length || 0
         });
       });
     });
@@ -115,15 +126,13 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
     });
   }, [subjects, query]);
 
-  // Paginated Playlists (5 per page)
-  const totalPlaylistPages = Math.max(1, Math.ceil(processedPlaylists.length / ITEMS_PER_PAGE));
-  const currentPlaylistPage = Math.min(playlistPage, totalPlaylistPages);
-  const paginatedPlaylists = useMemo(() => {
-    const start = (currentPlaylistPage - 1) * ITEMS_PER_PAGE;
-    return processedPlaylists.slice(start, start + ITEMS_PER_PAGE);
-  }, [processedPlaylists, currentPlaylistPage]);
+  const handleOpenPlaylist = (playlistId) => {
+    if (setSelectedPlaylistId) setSelectedPlaylistId(playlistId);
+    if (setSelectedVideoIndex) setSelectedVideoIndex(0);
+    setCurrentView('learning-player');
+  };
 
-  const handleEnrollAction = (course, e) => {
+  const handleEnrollCourse = (course, e) => {
     if (e) e.stopPropagation();
     if (!currentUser) {
       setCurrentView('auth');
@@ -131,8 +140,8 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
     }
     const isEnrolled = currentUser?.enrolledCourses?.includes(course.id);
     if (!isEnrolled) {
-      enrollInCourse(course.id);
-      setEnrollNotice(`Enrolled in "${course.title}"! Added to My Learning.`);
+      if (enrollInCourse) enrollInCourse(course.id);
+      setEnrollNotice(`Enrolled in "${course.title}"! Added to your dashboard.`);
       setTimeout(() => setEnrollNotice(null), 3000);
     } else {
       if (setSelectedPlaylistId) setSelectedPlaylistId(course.id);
@@ -140,396 +149,274 @@ export default function CoursesDashboard({ setSelectedPlaylistId, setCurrentView
     }
   };
 
+  const TABS = [
+    { id: 'all', label: 'All Catalog' },
+    { id: 'degrees', label: `Degrees (${processedDegrees.length})` },
+    { id: 'courses', label: `Courses (${processedCourses.length})` },
+    { id: 'playlists', label: `Playlists (${processedPlaylists.length})` }
+  ];
+
   return (
-    <div style={styles.container} className="animate-fade-in">
-      
-      {/* Top Search Bar for Curricula & Playlists (Direct & Sleek) */}
-      <div style={{ position: 'relative', width: '100%', marginBottom: '12px' }}>
-        <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
-        <input
-          type="text"
-          className="form-input"
-          placeholder="Search degree programs, courses, or playlist IDs (e.g. makaut, pl-101)..."
-          value={localSearch}
-          onChange={(e) => {
-            setLocalSearch(e.target.value);
-            if (setGlobalSearchQuery) setGlobalSearchQuery(e.target.value);
-          }}
-          style={{
-            width: '100%',
-            paddingLeft: '42px',
-            paddingRight: '36px',
-            height: '42px',
-            fontSize: '0.86rem',
-            borderRadius: '12px',
-            boxSizing: 'border-box',
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.1)'
-          }}
-        />
-        {localSearch && (
-          <button
-            onClick={() => { setLocalSearch(''); if (setGlobalSearchQuery) setGlobalSearchQuery(''); }}
-            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
-          >
-            <X size={16} />
-          </button>
-        )}
-      </div>
-
-      {/* Header Control Bar & Filter Tabs */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', gap: '10px', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: '4px', maxWidth: '100%' }}>
-          <button
-            className={`btn ${viewTab === 'all' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setViewTab('all')}
-            style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '20px', flexShrink: 0, gap: '6px', whiteSpace: 'nowrap' }}
-          >
-            <Layers size={13} /> All ({processedDegrees.length + processedCourses.length + processedPlaylists.length})
-          </button>
-
-          <button
-            className={`btn ${viewTab === 'degrees' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setViewTab('degrees')}
-            style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '20px', flexShrink: 0, gap: '6px', whiteSpace: 'nowrap' }}
-          >
-            <GraduationCap size={13} /> Degree Programs ({processedDegrees.length})
-          </button>
-
-          <button
-            className={`btn ${viewTab === 'courses' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setViewTab('courses')}
-            style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '20px', flexShrink: 0, gap: '6px', whiteSpace: 'nowrap' }}
-          >
-            <BookOpen size={13} /> Courses ({processedCourses.length})
-          </button>
-
-          <button
-            className={`btn ${viewTab === 'playlists' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setViewTab('playlists')}
-            style={{ padding: '6px 14px', fontSize: '0.78rem', borderRadius: '20px', flexShrink: 0, gap: '6px', whiteSpace: 'nowrap' }}
-          >
-            <Video size={13} /> Playlists ({processedPlaylists.length})
-          </button>
-        </div>
-
-        {/* Sorting Dropdown */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.04)', padding: '5px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-          <Filter size={13} color="var(--primary)" />
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            style={{ background: 'transparent', border: 'none', color: '#ffffff', fontSize: '0.78rem', fontWeight: 600, outline: 'none', cursor: 'pointer' }}
-          >
-            <option value="recent" style={{ background: '#11121c' }}>Recently Added</option>
-            <option value="alphabetical" style={{ background: '#11121c' }}>Alphabetical (A - Z)</option>
-          </select>
-        </div>
-      </div>
-
+    <div className="w-full max-w-7xl 2xl:max-w-[1720px] mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 space-y-6">
+      {/* Toast Notice */}
       {enrollNotice && (
-        <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', color: '#34d399', marginBottom: '16px', textAlign: 'center', fontSize: '0.85rem' }}>
-          ✔ {enrollNotice}
+        <div className="fixed top-20 right-6 z-50 px-4 py-2.5 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark shadow-modal animate-bounce-short">
+          {enrollNotice}
         </div>
       )}
 
-      {/* SECTION 1: DEGREE PROGRAMS (Horizontal Scroll Carousel) */}
-      {(viewTab === 'all' || viewTab === 'degrees') && (
-        <div style={{ marginBottom: '28px' }}>
-          <h3 style={{ fontSize: '1.05rem', color: '#ffffff', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <GraduationCap size={18} color="var(--primary)" /> Degree Programs ({processedDegrees.length})
-          </h3>
+      {/* Header & Filter Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border-subtle pb-4">
+        <div>
+          <h1 className="text-2xl lg:text-[28px] font-bold tracking-tight font-editorial">
+            Academic Course Catalog
+          </h1>
+          <p className="text-xs sm:text-sm text-text-secondary mt-0.5">
+            Structured degree curricula, semester subjects, and curated YouTube lecture series.
+          </p>
+        </div>
 
-          {processedDegrees.length === 0 ? (
-            <div className="glass-panel" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              No degree programs found matching "{localSearch}".
-            </div>
-          ) : (
-            <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '10px', WebkitOverflowScrolling: 'touch' }}>
-              {processedDegrees.map((course) => {
-                const isEnrolled = currentUser?.enrolledCourses?.includes(course.id);
+        {/* View Tabs */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
+          {TABS.map((tab) => {
+            const isSelected = viewTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setViewTab(tab.id)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all"
+                style={{
+                  backgroundColor: isSelected ? '#141413' : '#FFFFFF',
+                  color: isSelected ? '#F7F5F0' : '#575550',
+                  borderColor: isSelected ? '#141413' : '#E4E0D8'
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-                return (
-                  <div key={course.id} className="glass-panel" style={{ minWidth: '290px', maxWidth: '320px', borderRadius: '14px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flexShrink: 0, border: '1px solid rgba(139,92,246,0.3)' }}>
-                    <div style={{ height: '130px', width: '100%', position: 'relative', overflow: 'hidden', background: '#000' }}>
+      {/* Filter / Search Status */}
+      <div className="flex items-center justify-between text-xs text-text-muted font-mono-tabular">
+        <span>
+          {query ? `SEARCH RESULTS FOR "${query}"` : 'ACADEMIC TRACKS & MODULES'}
+        </span>
+        <span>100% FREE & CURATED</span>
+      </div>
+
+      {/* 1. DEGREE PROGRAMS SECTION */}
+      {(viewTab === 'all' || viewTab === 'degrees') && processedDegrees.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <GraduationCap size={18} className="text-accent-forest" />
+            <h2 className="text-base font-bold text-text-primary">Degree Curricula</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {processedDegrees.map((degree) => {
+              const isEnrolled = currentUser?.enrolledCourses?.includes(degree.id);
+              return (
+                <div
+                  key={degree.id}
+                  onClick={() => handleOpenPlaylist(degree.id)}
+                  className="rounded-xl p-4 border border-border-subtle bg-surface cursor-pointer transition-all hover:border-border-strong flex flex-col justify-between group shadow-sm"
+                >
+                  <div>
+                    <div className="relative aspect-video rounded-lg overflow-hidden border border-border-subtle mb-3.5 bg-[#141413]">
                       <img
-                        src={course.bannerUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800&auto=format&fit=crop'}
-                        alt={course.title}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        src={degree.bannerUrl || 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=900&q=80'}
+                        alt={degree.title}
+                        className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300 opacity-90"
                       />
-                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(13,14,24,0.85) 100%)' }} />
-                      <span style={{ position: 'absolute', top: '8px', left: '8px', fontSize: '0.65rem', fontWeight: 700, color: '#fff', background: 'rgba(139,92,246,0.85)', padding: '2px 8px', borderRadius: '6px' }}>
-                        {course.department}
+                      <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded text-[10px] font-mono-tabular font-bold bg-[#141413]/85 text-[#F7F5F0]">
+                        DEGREE CURRICULUM
                       </span>
                     </div>
 
-                    <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, justifyContent: 'space-between', textAlign: 'left' }}>
-                      <div>
-                        <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#ffffff', margin: '0 0 4px 0', lineHeight: '1.3' }}>{course.title}</h4>
-                        <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4' }}>{course.description}</p>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#10b981' }}>DEGREE PROGRAM</span>
-
-                        {!isEnrolled ? (
-                          <button onClick={(e) => handleEnrollAction(course, e)} className="btn btn-primary btn-sm" style={{ fontSize: '0.75rem', gap: '4px' }}>
-                            <Plus size={12} /> Enroll
-                          </button>
-                        ) : (
-                          <button onClick={() => { if (setSelectedPlaylistId) setSelectedPlaylistId(course.id); setCurrentView('learning-player'); }} className="btn btn-secondary btn-sm" style={{ fontSize: '0.75rem', gap: '4px', borderColor: 'rgba(16,185,129,0.4)', color: '#34d399' }}>
-                            <CheckCircle2 size={12} color="#10b981" /> Open
-                          </button>
-                        )}
-                      </div>
-                    </div>
+                    <h3 className="text-base font-bold text-text-primary truncate">
+                      {degree.title}
+                    </h3>
+                    <p className="text-xs text-text-secondary mt-1 line-clamp-2 leading-relaxed">
+                      {degree.description || 'Comprehensive multi-semester degree syllabus and lecture modules.'}
+                    </p>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
 
-      {/* SECTION 2: COURSES (Top-to-Bottom, 8 per Page) */}
-      {(viewTab === 'all' || viewTab === 'courses') && (
-        <div style={{ marginBottom: '28px' }}>
-          <h3 style={{ fontSize: '1.05rem', color: '#ffffff', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <BookOpen size={18} color="var(--primary)" /> Courses ({processedCourses.length})
-          </h3>
-
-          {processedCourses.length === 0 ? (
-            <div className="glass-panel" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              No courses found matching "{localSearch}".
-            </div>
-          ) : (
-            <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
-                {paginatedCourses.map((course) => {
-                  const isEnrolled = currentUser?.enrolledCourses?.includes(course.id);
-
-                  return (
-                    <div key={course.id} className="glass-panel" style={{ padding: 0, borderRadius: '14px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                      <div style={{ height: '130px', width: '100%', position: 'relative', overflow: 'hidden', background: '#000' }}>
-                        <img
-                          src={course.bannerUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800&auto=format&fit=crop'}
-                          alt={course.title}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(13,14,24,0.85) 100%)' }} />
-                        <span style={{ position: 'absolute', top: '8px', left: '8px', fontSize: '0.65rem', fontWeight: 700, color: '#fff', background: 'rgba(139,92,246,0.85)', padding: '2px 8px', borderRadius: '6px' }}>
-                          {course.department}
-                        </span>
-                      </div>
-
-                      <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, justifyContent: 'space-between', textAlign: 'left' }}>
-                        <div>
-                          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#ffffff', margin: '0 0 4px 0', lineHeight: '1.3' }}>{course.title}</h4>
-                          <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4' }}>{course.description}</p>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: course.price === 0 ? '#10b981' : '#ffffff' }}>
-                            {course.price === 0 ? 'FREE' : `₹${course.price}`}
-                          </span>
-
-                          {!isEnrolled ? (
-                            <button onClick={(e) => handleEnrollAction(course, e)} className="btn btn-primary btn-sm" style={{ fontSize: '0.75rem', gap: '4px' }}>
-                              <Plus size={12} /> Enroll
-                            </button>
-                          ) : (
-                            <button onClick={() => { if (setSelectedPlaylistId) setSelectedPlaylistId(course.id); setCurrentView('learning-player'); }} className="btn btn-secondary btn-sm" style={{ fontSize: '0.75rem', gap: '4px', borderColor: 'rgba(16,185,129,0.4)', color: '#34d399' }}>
-                              <CheckCircle2 size={12} color="#10b981" /> Open
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Course Pagination Bar (5 results per page) */}
-              {totalCoursePages > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginTop: '16px' }}>
-                  <button
-                    disabled={currentCoursePage <= 1}
-                    onClick={() => setCoursePage(p => Math.max(1, p - 1))}
-                    className="btn btn-secondary btn-sm"
-                    style={{ opacity: currentCoursePage <= 1 ? 0.5 : 1, gap: '4px' }}
-                  >
-                    <ChevronLeft size={14} /> Previous
-                  </button>
-
-                  <span style={{ fontSize: '0.8rem', color: '#a78bfa', fontWeight: 600 }}>
-                    Page {currentCoursePage} of {totalCoursePages}
-                  </span>
-
-                  <button
-                    disabled={currentCoursePage >= totalCoursePages}
-                    onClick={() => setCoursePage(p => Math.min(totalCoursePages, p + 1))}
-                    className="btn btn-secondary btn-sm"
-                    style={{ opacity: currentCoursePage >= totalCoursePages ? 0.5 : 1, gap: '4px' }}
-                  >
-                    Next <ChevronRight size={14} />
-                  </button>
+                  <div className="mt-4 pt-3 border-t border-border-subtle flex items-center justify-between">
+                    <span className="text-xs font-mono-tabular text-text-muted">
+                      {degree.department || 'B.Tech / University'}
+                    </span>
+                    <button
+                      onClick={(e) => handleEnrollCourse(degree, e)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                        isEnrolled
+                          ? 'bg-[#E6F0E9] text-accent-forest border border-[#C2DEC9]'
+                          : 'bg-accent-ink text-text-on-dark hover:opacity-95'
+                      }`}
+                    >
+                      {isEnrolled ? 'Enrolled Track' : 'Enroll Free'}
+                    </button>
+                  </div>
                 </div>
-              )}
-            </>
-          )}
-        </div>
+              );
+            })}
+          </div>
+        </section>
       )}
 
-      {/* SECTION 3: STANDALONE & SUBJECT PLAYLISTS (Top-to-Bottom, 5 per Page) */}
-      {(viewTab === 'all' || viewTab === 'playlists') && (
-        <div style={{ marginBottom: '28px' }}>
-          <h3 style={{ fontSize: '1.05rem', color: '#ffffff', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Video size={18} color="var(--secondary)" /> Standalone & Subject Playlists ({processedPlaylists.length})
-          </h3>
+      {/* 2. STANDARD COURSES SECTION */}
+      {(viewTab === 'all' || viewTab === 'courses') && processedCourses.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <BookOpen size={18} className="text-text-primary" />
+            <h2 className="text-base font-bold text-text-primary">Standard Courses</h2>
+          </div>
 
-          {processedPlaylists.length === 0 ? (
-            <div className="glass-panel" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              No playlists found matching "{localSearch}".
-            </div>
-          ) : (
-            <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '14px' }}>
-                {paginatedPlaylists.map((pl) => (
-                  <div key={pl.id} className="glass-panel" style={{ borderRadius: '14px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid rgba(139,92,246,0.3)' }}>
-                    <div style={{ height: '130px', background: '#000', position: 'relative', overflow: 'hidden' }}>
-                      {pl.thumbnailUrl ? (
-                        <img src={pl.thumbnailUrl} alt={pl.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1e1b4b 0%, #311b92 100%)' }}>
-                          <Play size={36} color="#a78bfa" />
-                        </div>
-                      )}
-                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.85) 100%)' }} />
-                      
-                      <span style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.85)', color: '#ffffff', fontSize: '0.68rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Video size={11} /> {pl.videoCount} Videos
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {processedCourses.map((course) => {
+              const isEnrolled = currentUser?.enrolledCourses?.includes(course.id);
+              return (
+                <div
+                  key={course.id}
+                  onClick={() => handleOpenPlaylist(course.id)}
+                  className="rounded-xl p-4 border border-border-subtle bg-surface cursor-pointer transition-all hover:border-border-strong flex flex-col justify-between group shadow-sm"
+                >
+                  <div>
+                    <div className="relative aspect-video rounded-lg overflow-hidden border border-border-subtle mb-3.5 bg-[#141413]">
+                      <img
+                        src={course.bannerUrl || 'https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&w=900&q=80'}
+                        alt={course.title}
+                        className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300 opacity-90"
+                      />
+                      <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded text-[10px] font-mono-tabular font-bold bg-[#141413]/85 text-[#F7F5F0]">
+                        COURSE TRACK
                       </span>
-
                     </div>
 
-                    <div style={{ padding: '14px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px', textAlign: 'left' }}>
-                      <div>
-                        <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#ffffff', margin: '0 0 4px 0', lineHeight: '1.3' }}>{pl.title}</h4>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                          Subject: <strong>{pl.subjectTitle}</strong> • Credit: {pl.author}
-                        </span>
-                        <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4' }}>{pl.description}</p>
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button
-                            onClick={() => {
-                              if (setSelectedPlaylistId) setSelectedPlaylistId(pl.id);
-                              if (setSelectedVideoIndex) setSelectedVideoIndex(0);
-                              setCurrentView('learning-player');
-                            }}
-                            className="btn btn-primary btn-sm"
-                            style={{ flex: 1, fontSize: '0.78rem', gap: '6px' }}
-                          >
-                            <Play size={13} /> Open Playlist
-                          </button>
-
-                          {currentUser?.enrolledPlaylists?.includes(pl.id) ? (
-                            <button
-                              onClick={() => removeUserPlaylistEnrollment(currentUser?.id, pl.id)}
-                              className="btn btn-secondary btn-sm"
-                              style={{ fontSize: '0.75rem', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.3)', gap: '4px' }}
-                              title="Remove from My Learnings"
-                            >
-                              <BookmarkCheck size={12} /> Added
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                if (!currentUser) {
-                                  setCurrentView('auth');
-                                } else {
-                                  enrollInPlaylist(pl.id);
-                                  setEnrollNotice(`Added "${pl.title}" to your Learn Space playlists!`);
-                                  setTimeout(() => setEnrollNotice(null), 3000);
-                                }
-                              }}
-                              className="btn btn-secondary btn-sm"
-                              style={{ fontSize: '0.75rem', gap: '4px' }}
-                              title="Add to My Learnings Section 2: Playlists"
-                            >
-                              <Plus size={12} /> Add to My Learnings
-                            </button>
-                          )}
-                        </div>
-
-                        {(currentUser?.role === 'admin' || currentUser?.role === 'owner') && (
-                          <button
-                            onClick={() => {
-                              if (window.confirm(`Admin Action: Are you sure you want to permanently delete playlist "${pl.title}"?`)) {
-                                deletePlaylist(pl.id);
-                              }
-                            }}
-                            className="btn btn-danger btn-sm"
-                            style={{ width: '100%', fontSize: '0.72rem', padding: '4px', gap: '4px' }}
-                          >
-                            <Trash2 size={12} /> Delete Playlist (Admin)
-                          </button>
-                        )}
-                      </div>
-                    </div>
+                    <h3 className="text-base font-bold text-text-primary truncate">
+                      {course.title}
+                    </h3>
+                    <p className="text-xs text-text-secondary mt-1 line-clamp-2 leading-relaxed">
+                      {course.description || 'Curated academic lectures and study resources.'}
+                    </p>
                   </div>
-                ))}
-              </div>
 
-              {/* Playlist Pagination Bar (5 results per page) */}
-              {totalPlaylistPages > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginTop: '16px' }}>
+                  <div className="mt-4 pt-3 border-t border-border-subtle flex items-center justify-between">
+                    <span className="text-xs font-mono-tabular text-text-muted">
+                      {course.department || 'Subject'}
+                    </span>
+                    <button
+                      onClick={(e) => handleEnrollCourse(course, e)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                        isEnrolled
+                          ? 'bg-[#E6F0E9] text-accent-forest border border-[#C2DEC9]'
+                          : 'bg-accent-ink text-text-on-dark hover:opacity-95'
+                      }`}
+                    >
+                      {isEnrolled ? 'Enrolled' : 'Enroll Free'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* 3. LECTURE PLAYLISTS SECTION */}
+      {(viewTab === 'all' || viewTab === 'playlists') && processedPlaylists.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Video size={18} className="text-text-primary" />
+            <h2 className="text-base font-bold text-text-primary">Curated Video Playlists</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {processedPlaylists.map((pl) => (
+              <div
+                key={pl.id}
+                onClick={() => handleOpenPlaylist(pl.id)}
+                className="rounded-xl p-4 border border-border-subtle bg-surface cursor-pointer transition-all hover:border-border-strong flex flex-col justify-between group shadow-sm"
+              >
+                <div>
+                  <div className="relative aspect-video rounded-lg overflow-hidden border border-border-subtle mb-3.5 bg-[#141413]">
+                    {pl.thumbnailUrl ? (
+                      <img
+                        src={pl.thumbnailUrl}
+                        alt={pl.title}
+                        className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300 opacity-90"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-[#EFECE6]">
+                        <Video size={32} className="text-text-muted" />
+                      </div>
+                    )}
+                    <span className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded text-[11px] font-mono-tabular font-medium bg-[#141413]/85 text-[#F7F5F0]">
+                      {pl.videoCount} lectures
+                    </span>
+                  </div>
+
+                  <h3 className="text-base font-bold text-text-primary truncate">
+                    {pl.title}
+                  </h3>
+                  <p className="text-xs text-text-muted mt-1 truncate">
+                    {pl.subjectTitle} • {pl.author}
+                  </p>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-border-subtle flex items-center justify-between">
                   <button
-                    disabled={currentPlaylistPage <= 1}
-                    onClick={() => setPlaylistPage(p => Math.max(1, p - 1))}
-                    className="btn btn-secondary btn-sm"
-                    style={{ opacity: currentPlaylistPage <= 1 ? 0.5 : 1, gap: '4px' }}
+                    onClick={(e) => handleCopyPlId(pl.id, e)}
+                    className="text-[11px] font-mono-tabular text-text-muted hover:text-text-primary flex items-center gap-1"
+                    title="Copy Playlist Share Code"
                   >
-                    <ChevronLeft size={14} /> Previous
+                    {copiedPlId === pl.id ? (
+                      <>
+                        <Check size={12} className="text-accent-forest" />
+                        <span className="text-accent-forest">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={12} />
+                        <span>ID: {pl.id.slice(0, 8)}...</span>
+                      </>
+                    )}
                   </button>
-
-                  <span style={{ fontSize: '0.8rem', color: '#a78bfa', fontWeight: 600 }}>
-                    Page {currentPlaylistPage} of {totalPlaylistPages}
-                  </span>
-
                   <button
-                    disabled={currentPlaylistPage >= totalPlaylistPages}
-                    onClick={() => setPlaylistPage(p => Math.min(totalPlaylistPages, p + 1))}
-                    className="btn btn-secondary btn-sm"
-                    style={{ opacity: currentPlaylistPage >= totalPlaylistPages ? 0.5 : 1, gap: '4px' }}
+                    onClick={() => handleOpenPlaylist(pl.id)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark flex items-center gap-1 hover:opacity-95"
                   >
-                    Next <ChevronRight size={14} />
+                    <Play size={12} fill="#F7F5F0" />
+                    <span>Watch Series</span>
                   </button>
                 </div>
-              )}
-            </>
-          )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Empty State */}
+      {processedDegrees.length === 0 && processedCourses.length === 0 && processedPlaylists.length === 0 && (
+        <div className="text-center py-16 p-8 rounded-xl border border-border-subtle bg-surface space-y-3">
+          <BookOpen size={36} className="text-text-muted mx-auto" />
+          <h3 className="text-base font-bold text-text-primary">No academic tracks found</h3>
+          <p className="text-xs text-text-secondary max-w-sm mx-auto">
+            Try adjusting your search query or reset the filter pills to browse all university offerings.
+          </p>
+          <button
+            onClick={() => {
+              setLocalSearch('');
+              if (setGlobalSearchQuery) setGlobalSearchQuery('');
+              setViewTab('all');
+            }}
+            className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95"
+          >
+            Reset Filters
+          </button>
         </div>
       )}
     </div>
   );
 }
-
-const styles = {
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
-    maxWidth: '1200px',
-    margin: '0 auto',
-    width: '100%',
-    boxSizing: 'border-box'
-  },
-  coursesGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-    gap: '14px'
-  }
-};

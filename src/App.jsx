@@ -1,72 +1,68 @@
 import React, { useState, useEffect } from 'react';
 import { DatabaseProvider, useDatabase } from './context/DatabaseContext';
-import Auth from './components/Auth';
-import Header from './components/Header';
-import Profile from './components/Profile';
-import LandingPage from './components/LandingPage';
-import About from './components/About';
-import OnboardingModal from './components/OnboardingModal';
-import AdProgressBar from './components/AdProgressBar';
-import AdDonationModal from './components/AdDonationModal';
 
-// Shared Learning Views
+// Navigation & Shell Components
+import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+import MobileBottomNav from './components/MobileBottomNav';
+import AdProgressBar from './components/AdProgressBar';
+
+// Core Workspace Views
+import LandingPage from './components/LandingPage';
+import MyLearningView from './components/learning/MyLearningView';
 import CoursesDashboard from './components/learning/CoursesDashboard';
 import LearningPlayer from './components/learning/LearningPlayer';
-import MyLearningView from './components/learning/MyLearningView';
 import AttendanceTracker from './components/AttendanceTracker';
 import ResourcesView from './components/resources/ResourcesView';
-
-// Creator Views
 import CreatorStudio from './components/creator/CreatorStudio';
-
-// Admin Views
 import AdminDashboard from './components/admin/AdminDashboard';
+import Profile from './components/Profile';
+import About from './components/About';
+import Auth from './components/Auth';
+import OnboardingModal from './components/OnboardingModal';
+import AdDonationModal from './components/AdDonationModal';
 
-// Lucide Shield Icon for access denied page
 import { ShieldAlert, ArrowLeft } from 'lucide-react';
 
 function AccessDenied({ requiredRole, setCurrentView }) {
   return (
-    <div style={styles.deniedContainer} className="glass-panel animate-fade-in">
-      <ShieldAlert size={48} color="#ef4444" style={{ marginBottom: '16px' }} />
-      <h2 style={{ fontSize: '1.4rem', color: '#ffffff' }}>Access Denied</h2>
-      <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '6px', maxWidth: '340px' }}>
-        You do not have the required credentials to view this page. This workspace is restricted to active **{requiredRole}s** only.
+    <div className="max-w-md mx-auto my-16 p-8 rounded-xl border border-border-subtle bg-surface text-center space-y-4 shadow-modal">
+      <ShieldAlert size={48} className="text-accent-danger mx-auto" />
+      <h2 className="text-xl font-bold font-editorial">Access Restricted</h2>
+      <p className="text-sm text-text-secondary">
+        You do not have the required credentials to view this area. This section is restricted to active <strong>{requiredRole}s</strong> only.
       </p>
-      <button 
-        onClick={() => setCurrentView('learning')} 
-        className="btn btn-secondary" 
-        style={{ marginTop: '20px', fontSize: '0.85rem', borderColor: 'rgba(255,255,255,0.1)' }}
+      <button
+        onClick={() => setCurrentView('my-learning')}
+        className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark inline-flex items-center gap-2 hover:opacity-95"
       >
         <ArrowLeft size={14} />
-        Back to Learning
+        Return to Dashboard
       </button>
     </div>
   );
 }
 
-function NotFound404({ setCurrentView }) {
-  useEffect(() => {
-    // Auto-redirect to learning workspace smoothly
-    const timer = setTimeout(() => {
-      if (setCurrentView) setCurrentView('learning');
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [setCurrentView]);
-
+function NotFoundView({ setCurrentView }) {
   return (
-    <div style={{ textAlign: 'center', padding: '60px 20px', maxWidth: '500px', margin: '40px auto' }} className="glass-panel animate-fade-in">
-      <h2 style={{ fontSize: '1.2rem', color: '#ffffff', marginBottom: '8px' }}>Loading Workspace…</h2>
-      <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-        Redirecting you to your learning workspace…
+    <div className="max-w-md mx-auto my-16 p-8 rounded-xl border border-border-subtle bg-surface text-center space-y-4">
+      <h2 className="text-xl font-bold font-editorial">Page Not Found</h2>
+      <p className="text-sm text-text-secondary">
+        The workspace section you requested could not be located.
       </p>
+      <button
+        onClick={() => setCurrentView('my-learning')}
+        className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark"
+      >
+        Return to Dashboard
+      </button>
     </div>
   );
 }
 
 function AppContent() {
   const { currentUser, authLoading } = useDatabase();
-  
+
   const [currentView, setCurrentView] = useState(() => {
     return localStorage.getItem('learnopia_view') || 'landing';
   });
@@ -77,27 +73,42 @@ function AppContent() {
     const val = localStorage.getItem('learnopia_selected_video');
     return val ? parseInt(val, 10) : 0;
   });
-  const [isNavLoading, setIsNavLoading] = useState(false);
 
-  // Community Ad Modal State
+  const [cinemaMode, setCinemaMode] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('learnopia_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Modals state
   const [showAdModal, setShowAdModal] = useState(false);
-
-  // Local flag to instantly dismiss the onboarding modal after submission (before Supabase re-syncs)
   const [onboardingDone, setOnboardingDone] = useState(false);
 
   useEffect(() => {
+    try {
+      localStorage.setItem('learnopia_sidebar_collapsed', isSidebarCollapsed ? 'true' : 'false');
+    } catch (e) {}
+  }, [isSidebarCollapsed]);
+
+  useEffect(() => {
     if (currentUser?.id) {
-      const isDone = Boolean(currentUser.onboardingCompleted);
-      setOnboardingDone(isDone);
+      setOnboardingDone(Boolean(currentUser.onboardingCompleted));
     } else {
       setOnboardingDone(false);
     }
   }, [currentUser?.id, currentUser?.onboardingCompleted]);
 
-  // Handle URL hash from Supabase Email Verification / OAuth redirects
+  // Handle Supabase OAuth / recovery hash
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.hash) {
-      if (window.location.hash.includes('access_token=') || window.location.hash.includes('type=signup') || window.location.hash.includes('type=recovery')) {
+      if (
+        window.location.hash.includes('access_token=') ||
+        window.location.hash.includes('type=signup') ||
+        window.location.hash.includes('type=recovery')
+      ) {
         const timer = setTimeout(() => {
           try {
             window.history.replaceState(null, '', window.location.pathname);
@@ -108,7 +119,7 @@ function AppContent() {
     }
   }, []);
 
-  // Keep localStorage in sync
+  // Sync view states to localStorage
   useEffect(() => {
     localStorage.setItem('learnopia_view', currentView);
   }, [currentView]);
@@ -125,244 +136,189 @@ function AppContent() {
     localStorage.setItem('learnopia_selected_video', selectedVideoIndex.toString());
   }, [selectedVideoIndex]);
 
-  // Auto redirect to learning workspace when user logs in while on auth page
+  // Auto redirect to workspace if logged in while on auth page
   useEffect(() => {
     if (authLoading) return;
     if (currentUser && currentView === 'auth') {
-      setCurrentView('learning');
+      setCurrentView('my-learning');
     }
   }, [currentUser, authLoading, currentView]);
 
-  // Handle Logo Click with smooth 1.2s loading buffer
-  const handleLogoClick = () => {
-    setIsNavLoading(true);
-    if (setSelectedPlaylistId) setSelectedPlaylistId(null);
-    setTimeout(() => {
-      setCurrentView('landing');
-      setIsNavLoading(false);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 1200);
-  };
-
-  if (isNavLoading) {
+  // Standalone Public Landing Page
+  if (currentView === 'landing') {
     return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
-        <p style={{ marginTop: '16px', color: '#8b5cf6', fontSize: '0.82rem', letterSpacing: '0.08em', fontWeight: 700 }}>
-          LOADING LEARN-O-PIA HOMEPAGE...
-        </p>
-      </div>
+      <LandingPage
+        setCurrentView={setCurrentView}
+        onEnterApp={() => setCurrentView(currentUser ? 'my-learning' : 'auth')}
+        onOpenAuth={() => setCurrentView('auth')}
+        onBrowseCourses={() => setCurrentView('learning')}
+      />
     );
   }
 
-  // Route security check helpers
-  const isCreatorOrAdmin = currentUser && (currentUser.role === 'creator' || currentUser.role === 'admin' || currentUser.role === 'owner');
-  const isVerifiedCreator = currentUser && currentUser.role === 'creator' && currentUser.status === 'active';
+  // Standalone Auth Page
+  if (currentView === 'auth') {
+    return <Auth setCurrentView={setCurrentView} />;
+  }
+
+  const isPlayerView = currentView === 'learning-player';
+  const showOnboardingModal = !!currentUser && !currentUser.onboardingCompleted && !onboardingDone;
   const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner');
 
-  const showOnboardingModal = !!currentUser && !currentUser.onboardingCompleted && !onboardingDone;
-
-  const handleOnboardingComplete = () => {
-    setOnboardingDone(true);
-  };
-
   return (
-    <div className="app-container">
-
-      {/* Global Header Nav */}
-      <Header 
-        currentView={currentView} 
-        setCurrentView={setCurrentView} 
-        setSelectedPlaylistId={setSelectedPlaylistId}
-        setSelectedVideoIndex={setSelectedVideoIndex}
-        onLogoClick={handleLogoClick}
+    <div
+      className="min-h-screen flex flex-col lg:flex-row transition-colors duration-200 bg-canvas text-text-primary"
+      data-theme={cinemaMode && isPlayerView ? 'cinema' : 'default'}
+      style={{
+        backgroundColor: cinemaMode && isPlayerView ? '#141413' : '#F7F5F0',
+        color: cinemaMode && isPlayerView ? '#F2EFE9' : '#141413'
+      }}
+    >
+      {/* Desktop Left Sidebar */}
+      <Sidebar
+        currentView={currentView}
+        setCurrentView={setCurrentView}
+        cinemaMode={cinemaMode}
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
+        onOpenAdModal={() => setShowAdModal(true)}
+        onOpenProfile={() => setCurrentView('profile')}
       />
 
-      {/* Visual Purple Shrinking Ad Countdown Bar (Only for logged-in users) */}
-      {currentUser && <AdProgressBar onTriggerAd={() => setShowAdModal(true)} />}
+      {/* Main Column Wrapper */}
+      <div
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
+          isSidebarCollapsed ? 'lg:pl-0' : 'lg:pl-64'
+        }`}
+      >
+        {/* Sticky Top Header Nav */}
+        <Header
+          currentView={currentView}
+          setCurrentView={setCurrentView}
+          setSelectedPlaylistId={setSelectedPlaylistId}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          cinemaMode={cinemaMode}
+          setCinemaMode={setCinemaMode}
+          onTriggerAdModal={() => setShowAdModal(true)}
+        />
 
-      {/* Main Container Viewport */}
-      <main className="main-content">
-        {currentView === 'landing' && (
-          <LandingPage 
-            setCurrentView={setCurrentView} 
-            onOpenAuth={() => setCurrentView('auth')}
-          />
-        )}
-        {currentView === 'about' && (
-          <About setCurrentView={setCurrentView} />
-        )}
-        {['results-404', 'discussions-404'].includes(currentView) && (
-          <NotFound404 setCurrentView={setCurrentView} />
-        )}
+        {/* Main View Container */}
+        <main className="flex-1 pb-20 lg:pb-8">
+          {/* Unauthenticated Wall for Protected Views */}
+          {!currentUser && !['about', 'learning'].includes(currentView) ? (
+            <div className="max-w-md mx-auto my-16 p-8 rounded-xl border border-border-subtle bg-surface text-center space-y-4 shadow-modal">
+              <h2 className="text-xl font-bold font-editorial">Student Workspace Sign In</h2>
+              <p className="text-sm text-text-secondary">
+                Please sign in to access your course progress, attendance ledger, and academic notes.
+              </p>
+              <button
+                onClick={() => setCurrentView('auth')}
+                className="w-full py-2.5 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95"
+              >
+                Sign In to Workspace
+              </button>
+            </div>
+          ) : (
+            <>
+              {currentView === 'my-learning' && (
+                <MyLearningView
+                  setCurrentView={setCurrentView}
+                  setSelectedPlaylistId={setSelectedPlaylistId}
+                  setSelectedVideoIndex={setSelectedVideoIndex}
+                />
+              )}
 
-        {/* Auth Page */}
-        {currentView === 'auth' && (
-          <Auth setCurrentView={setCurrentView} />
-        )}
+              {currentView === 'learning' && (
+                <CoursesDashboard
+                  setSelectedPlaylistId={setSelectedPlaylistId}
+                  setSelectedVideoIndex={setSelectedVideoIndex}
+                  setCurrentView={setCurrentView}
+                />
+              )}
 
-        {/* Authenticated Workspace Views */}
-        {!currentUser && !['landing', 'auth', 'about', 'results-404', 'discussions-404'].includes(currentView) ? (
-          <Auth setCurrentView={setCurrentView} />
-        ) : (
-          <>
-            {currentView === 'attendance' && (
-              <AttendanceTracker setCurrentView={setCurrentView} />
-            )}
+              {currentView === 'learning-player' && (
+                <LearningPlayer
+                  playlistId={selectedPlaylistId}
+                  activeVideoIndex={selectedVideoIndex}
+                  setActiveVideoIndex={setSelectedVideoIndex}
+                  setCurrentView={setCurrentView}
+                  cinemaMode={cinemaMode}
+                  setCinemaMode={setCinemaMode}
+                />
+              )}
 
-            {(currentView === 'resources' || currentView === 'discussions') && (
-              <ResourcesView setCurrentView={setCurrentView} setSelectedPlaylistId={setSelectedPlaylistId} />
-            )}
+              {currentView === 'attendance' && (
+                <AttendanceTracker setCurrentView={setCurrentView} />
+              )}
 
-            {currentView === 'my-learning' && (
-              <MyLearningView
-                setCurrentView={setCurrentView}
-                setSelectedPlaylistId={setSelectedPlaylistId}
-                setSelectedVideoIndex={setSelectedVideoIndex}
-              />
-            )}
+              {(currentView === 'resources' || currentView === 'discussions') && (
+                <ResourcesView
+                  setCurrentView={setCurrentView}
+                  setSelectedPlaylistId={setSelectedPlaylistId}
+                />
+              )}
 
-            {currentView === 'learning' && (
-              <CoursesDashboard 
-                setSelectedPlaylistId={setSelectedPlaylistId} 
-                setSelectedVideoIndex={setSelectedVideoIndex}
-                setCurrentView={setCurrentView} 
-              />
-            )}
-            {currentView === 'learning-player' && (
-              <LearningPlayer 
-                playlistId={selectedPlaylistId} 
-                activeVideoIndex={selectedVideoIndex}
-                setActiveVideoIndex={setSelectedVideoIndex}
-                setCurrentView={setCurrentView} 
-              />
-            )}
-            {currentView === 'profile' && (
-              <Profile 
-                setCurrentView={setCurrentView} 
-                setSelectedPlaylistId={setSelectedPlaylistId} 
-              />
-            )}
-            
-            {/* Studio Access (Open for all users) */}
-            {currentView === 'studio' && (
-              <CreatorStudio 
-                setCurrentView={setCurrentView} 
-                setSelectedPlaylistId={setSelectedPlaylistId} 
-              />
-            )}
+              {currentView === 'studio' && (
+                <CreatorStudio
+                  setCurrentView={setCurrentView}
+                  setSelectedPlaylistId={setSelectedPlaylistId}
+                />
+              )}
 
-            {/* Guarded Admin Panel Access */}
-            {currentView === 'admin' && (
-              isAdmin ? (
-                <AdminDashboard />
-              ) : (
-                <AccessDenied requiredRole="Admin" setCurrentView={setCurrentView} />
-              )
-            )}
+              {currentView === 'admin' && (
+                isAdmin ? (
+                  <AdminDashboard setCurrentView={setCurrentView} />
+                ) : (
+                  <AccessDenied requiredRole="Administrator" setCurrentView={setCurrentView} />
+                )
+              )}
 
-            {/* Standard 404 Fallback for unrecognized views */}
-            {!['landing', 'about', 'attendance', 'resources', 'my-learning', 'discussions', 'results-404', 'learning', 'learning-player', 'profile', 'studio', 'admin', 'auth'].includes(currentView) && (
-              <NotFound404 setCurrentView={setCurrentView} />
-            )}
-          </>
-        )}
-      </main>
+              {currentView === 'profile' && (
+                <Profile
+                  setCurrentView={setCurrentView}
+                  setSelectedPlaylistId={setSelectedPlaylistId}
+                />
+              )}
 
-      {/* Mandatory Onboarding Modal — keeps showing until onboardingCompleted is true */}
-      <OnboardingModal isOpen={showOnboardingModal} onComplete={handleOnboardingComplete} />
+              {currentView === 'about' && (
+                <About setCurrentView={setCurrentView} />
+              )}
 
-      {/* Community Ad & Support Pop-up Modal */}
-      <AdDonationModal isOpen={showAdModal} onClose={() => setShowAdModal(false)} />
+              {['results-404', 'discussions-404'].includes(currentView) && (
+                <NotFoundView setCurrentView={setCurrentView} />
+              )}
+            </>
+          )}
+        </main>
+      </div>
+
+      {/* Mobile Bottom Navigation Bar (< 1024px) */}
+      <MobileBottomNav currentView={currentView} setCurrentView={setCurrentView} />
+
+      {/* Onboarding Questionnaire Modal */}
+      {showOnboardingModal && (
+        <OnboardingModal
+          user={currentUser}
+          onComplete={() => setOnboardingDone(true)}
+        />
+      )}
+
+      {/* Community Ad & Server Free Pledge Modal */}
+      {showAdModal && (
+        <AdDonationModal
+          isOpen={showAdModal}
+          onClose={() => setShowAdModal(false)}
+        />
+      )}
     </div>
   );
 }
 
-import { GoogleOAuthProvider } from '@react-oauth/google';
-
-// Replace with your own Google Client ID from https://console.cloud.google.com/
-// Create a project → Credentials → OAuth 2.0 → Web Application
-// Add http://localhost:5173 to Authorized JavaScript origins
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID';
-
-class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error, errorInfo) {
-    console.error("ErrorBoundary caught an error", error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div style={{ padding: '40px', background: '#0f0e17', color: '#ff5555', minHeight: '100vh', fontFamily: 'monospace' }}>
-          <h2>System Rendering Error:</h2>
-          <pre style={{ background: '#222', padding: '20px', borderRadius: '8px', color: '#fff', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-            {this.state.error?.toString()}
-          </pre>
-          <pre style={{ color: '#aaa', marginTop: '10px', whiteSpace: 'pre-wrap' }}>
-            {this.state.error?.stack}
-          </pre>
-          <button 
-            onClick={() => {
-              localStorage.clear();
-              window.location.reload();
-            }} 
-            style={{ marginTop: '20px', padding: '10px 20px', background: '#8b5cf6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
-          >
-            Reset Cache & Reload Page
-          </button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-
 export default function App() {
   return (
-    <ErrorBoundary>
-      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-        <DatabaseProvider>
-          <AppContent />
-        </DatabaseProvider>
-      </GoogleOAuthProvider>
-    </ErrorBoundary>
+    <DatabaseProvider>
+      <AppContent />
+    </DatabaseProvider>
   );
 }
-
-const styles = {
-  deniedContainer: {
-    padding: '60px 20px',
-    maxWidth: '460px',
-    margin: '40px auto 0 auto',
-    borderRadius: '16px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    textAlign: 'center'
-  },
-  loadingContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '100vh',
-    background: '#0c0b14'
-  },
-  spinner: {
-    width: '40px',
-    height: '40px',
-    border: '3px solid rgba(139, 92, 246, 0.1)',
-    borderTopColor: 'var(--primary)',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite'
-  }
-};

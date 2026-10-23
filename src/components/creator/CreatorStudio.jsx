@@ -23,9 +23,9 @@ function PortalDropdown({ triggerRef, menuRef, isOpen, children }) {
         width: r.width,
         zIndex: 99999,
         background: '#11121c',
-        border: '1px solid rgba(139, 92, 246, 0.3)',
+        border: '1px solid rgba(20, 20, 19, 0.06)',
         borderRadius: '10px',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(139,92,246,0.15)',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(20, 20, 19, 0.06)',
         padding: '6px 0',
         display: 'flex',
         flexDirection: 'column',
@@ -69,7 +69,7 @@ function CustomStudioSelect({ label, value, options, onChange, placeholder = 'Se
         ref={triggerRef}
         className="custom-dropdown-trigger"
         onClick={() => setIsOpen(o => !o)}
-        style={{ width: '100%', height: '38px', padding: '6px 12px', fontSize: '0.8rem', background: 'rgba(255,255,255,0.03)' }}
+        style={{ width: '100%', height: '38px', padding: '6px 12px', fontSize: '0.8rem', background: 'var(--bg-surface)' }}
       >
         <span style={{ color: activeOption ? '#fff' : 'var(--text-muted)' }}>
           {activeOption ? activeOption.label : placeholder}
@@ -90,7 +90,7 @@ function CustomStudioSelect({ label, value, options, onChange, placeholder = 'Se
               border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)',
               transition: 'background 0.15s', width: '100%'
             }}
-            onMouseEnter={e => { if (String(value) !== String(opt.value)) e.target.style.background = 'rgba(139,92,246,0.15)'; e.target.style.color = '#fff'; }}
+            onMouseEnter={e => { if (String(value) !== String(opt.value)) e.target.style.background = 'rgba(20, 20, 19, 0.06)'; e.target.style.color = '#fff'; }}
             onMouseLeave={e => { if (String(value) !== String(opt.value)) e.target.style.background = 'transparent'; e.target.style.color = 'var(--text-secondary)'; }}
           >
             {opt.label}
@@ -528,7 +528,7 @@ export default function CreatorStudio() {
 
       {/* STANDALONE PLAYLIST FORM */}
       {showStandalonePlaylistForm && (
-        <form onSubmit={handleCreateStandalonePlaylist} className="glass-panel animate-fade-in" style={{ padding: '20px', marginBottom: '20px', textAlign: 'left', borderRadius: '14px', border: '1px solid rgba(139,92,246,0.3)' }}>
+        <form onSubmit={handleCreateStandalonePlaylist} className="glass-panel animate-fade-in" style={{ padding: '20px', marginBottom: '20px', textAlign: 'left', borderRadius: '14px', border: '1px solid rgba(20, 20, 19, 0.06)' }}>
           <h3 style={{ fontSize: '1.1rem', marginBottom: '4px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Video size={18} color="var(--primary)" /> Create Standalone YouTube Playlist Series
           </h3>
@@ -675,7 +675,7 @@ export default function CreatorStudio() {
               <div
                 key={c.id}
                 onClick={() => { setActiveCourseId(c.id); setShowCourseForm(false); setActiveSubjectId(null); setActivePlaylistId(null); setStudioTab('content'); }}
-                style={{ ...styles.playlistItem, background: activeCourseId === c.id ? 'rgba(139,92,246,0.1)' : 'transparent', borderColor: activeCourseId === c.id ? 'var(--primary)' : 'transparent' }}
+                style={{ ...styles.playlistItem, background: activeCourseId === c.id ? 'rgba(20, 20, 19, 0.06)' : 'transparent', borderColor: activeCourseId === c.id ? 'var(--primary)' : 'transparent' }}
               >
                 <div style={styles.playlistItemMain}>
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -807,9 +807,9 @@ export default function CreatorStudio() {
                       <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No students enrolled yet.</p>
                     </div>
                   ) : enrolledStudents.map(u => (
-                    <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', marginBottom: '6px' }}>
+                    <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '8px', marginBottom: '6px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary), var(--secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#fff' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#DFDBD2', color: '#141413', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#fff' }}>
                           {u.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
@@ -880,7 +880,7 @@ export default function CreatorStudio() {
                           <p style={styles.emptyText}>No subjects yet.</p>
                         ) : activeSubjectsList.map((sub, index) => (
                           <div key={sub.id} onClick={() => { setActiveSubjectId(sub.id); setActivePlaylistId(null); }}
-                            style={{ ...styles.subjectListItem, background: activeSubjectId === sub.id ? 'rgba(139,92,246,0.1)' : 'transparent', borderLeftColor: activeSubjectId === sub.id ? 'var(--primary)' : 'transparent' }}>
+                            style={{ ...styles.subjectListItem, background: activeSubjectId === sub.id ? 'rgba(20, 20, 19, 0.06)' : 'transparent', borderLeftColor: activeSubjectId === sub.id ? 'var(--primary)' : 'transparent' }}>
                             <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#fff' }}>{sub.title}</span>
                             
                             <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto', marginRight: '6px' }}>
@@ -934,7 +934,7 @@ export default function CreatorStudio() {
                           </div>
 
                           {showLinkPlaylistForm && (
-                            <form onSubmit={handleLinkPlaylistById} className="glass-panel animate-fade-in" style={{ padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'left', border: '1px solid rgba(139,92,246,0.3)' }}>
+                            <form onSubmit={handleLinkPlaylistById} className="glass-panel animate-fade-in" style={{ padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'left', border: '1px solid rgba(20, 20, 19, 0.06)' }}>
                               <h4 style={{ fontSize: '0.95rem', margin: 0, color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <Link size={15} color="var(--primary)" /> Link Existing Playlist by ID
                               </h4>
@@ -1165,7 +1165,7 @@ export default function CreatorStudio() {
                                   <p style={styles.emptyEnrolledText}>No playlists created yet.</p>
                                 ) : activeSubject.playlists.map((pl, plIdx) => (
                                   <div key={pl.id} style={{ borderBottom: '1px dashed rgba(255,255,255,0.06)', paddingBottom: '8px', marginBottom: '8px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '6px 12px', borderRadius: '4px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-surface)', padding: '6px 12px', borderRadius: '4px' }}>
                                       <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
                                         <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#fff' }}>
                                           📁 {pl.title} {pl.youtubePlaylistId ? '(YouTube Embed Playlist)' : `(${pl.videos?.length || 0} videos)`}
@@ -1178,7 +1178,7 @@ export default function CreatorStudio() {
                                           type="button"
                                           onClick={() => { setImportingPlId(importingPlId === pl.id ? null : pl.id); setImportUrl(''); setImportStatus(''); }}
                                           className="btn btn-secondary"
-                                          style={{ padding: '3px 8px', fontSize: '0.68rem', borderColor: 'rgba(139,92,246,0.3)', color: 'var(--primary)' }}
+                                          style={{ padding: '3px 8px', fontSize: '0.68rem', borderColor: 'rgba(20, 20, 19, 0.06)', color: 'var(--primary)' }}
                                           title="Import all videos from a YouTube Playlist link directly into database once"
                                         >
                                           + Import YT Playlist
@@ -1207,7 +1207,7 @@ export default function CreatorStudio() {
 
                                     {/* Inline YouTube Playlist Bulk Importer */}
                                     {importingPlId === pl.id && (
-                                      <div style={{ margin: '8px 0 8px 12px', padding: '10px 14px', background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.25)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
+                                      <div style={{ margin: '8px 0 8px 12px', padding: '10px 14px', background: 'rgba(20, 20, 19, 0.06)', border: '1px solid rgba(20, 20, 19, 0.06)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
                                         <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)' }}>
                                           Import & Save All Videos from YouTube Playlist into Database (Once in a Lifetime)
                                         </span>
@@ -1298,7 +1298,7 @@ export default function CreatorStudio() {
                               </div>
 
                               {showLinkResForm && (
-                                <form onSubmit={handleLinkMaterialById} style={{ display: 'flex', gap: '8px', marginBottom: '14px', alignItems: 'flex-end', flexWrap: 'wrap', background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(139,92,246,0.3)' }}>
+                                <form onSubmit={handleLinkMaterialById} style={{ display: 'flex', gap: '8px', marginBottom: '14px', alignItems: 'flex-end', flexWrap: 'wrap', background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(20, 20, 19, 0.06)' }}>
                                   <div style={{ flex: 1, minWidth: '160px' }}>
                                     <label className="form-label" style={{ fontSize: '0.7rem' }}>Resource ID</label>
                                     <input type="text" value={linkResId} onChange={e => setLinkResId(e.target.value)} placeholder="e.g. res-1 or mat-101" className="form-input" style={{ padding: '6px 10px', fontSize: '0.8rem' }} required />
@@ -1432,7 +1432,7 @@ const styles = {
   subHeading: { fontSize: '1rem', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '8px' },
   playlistList: { display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '500px', overflowY: 'auto' },
   emptyList: { padding: '40px 0', textAlign: 'center' },
-  playlistItem: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s', gap: '10px' },
+  playlistItem: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1px solid var(--border-subtle)', borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s', gap: '10px' },
   playlistItemMain: { display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', textAlign: 'left' },
   deleteBtn: { background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)', color: '#fca5a5', padding: '6px', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   rightColumn: { display: 'flex', flexDirection: 'column' },
@@ -1447,7 +1447,7 @@ const styles = {
   subjectBox: { padding: '16px', textAlign: 'left' },
   boxTitle: { fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' },
   boxList: { display: 'flex', flexDirection: 'column', gap: '6px' },
-  subjectListItem: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: '1px solid rgba(255,255,255,0.04)', borderLeftWidth: '3px', borderLeftStyle: 'solid', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.15s', gap: '10px', textAlign: 'left' },
+  subjectListItem: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: '1px solid var(--border-subtle)', borderLeftWidth: '3px', borderLeftStyle: 'solid', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.15s', gap: '10px', textAlign: 'left' },
   deleteIconBtn: { background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px', borderRadius: '4px', transition: 'color 0.2s', display: 'flex', alignItems: 'center' },
   formsRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' },
   formCard: { padding: '16px', textAlign: 'left' },
@@ -1459,7 +1459,7 @@ const styles = {
   enrolledHeading: { fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '4px' },
   enrolledListBody: { display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '260px', overflowY: 'auto' },
   emptyEnrolledText: { fontSize: '0.75rem', color: 'var(--text-muted)', padding: '12px 0' },
-  enrolledItem: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '4px', marginTop: '4px' },
+  enrolledItem: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', background: 'var(--bg-surface)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '4px', marginTop: '4px' },
   emptyText: { fontSize: '0.75rem', color: 'var(--text-muted)', padding: '12px 0' },
   iconBtnGreen: { background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', padding: '5px', borderRadius: '5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   iconBtnRed: { background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', padding: '5px', borderRadius: '5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }

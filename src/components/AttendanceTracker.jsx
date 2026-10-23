@@ -1297,7 +1297,7 @@ export default function AttendanceTracker({ setCurrentView }) {
                 <p style={{ fontSize: isMobile ? '0.75rem' : '0.8rem', color: 'var(--text-secondary)', marginTop: 4 }}>No classes count against your attendance record on holidays.</p>
               </div>
             ) : scheduledToday.length === 0 ? (
-              <div style={{ padding: isMobile ? '20px' : '30px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
+              <div style={{ padding: isMobile ? '20px' : '30px', textAlign: 'center', background: 'var(--bg-surface)', borderRadius: '12px' }}>
                 <p style={{ color: 'var(--text-muted)', fontSize: isMobile ? '0.8rem' : '0.85rem' }}>No classes scheduled in your weekly routine for {dayName}.</p>
               </div>
             ) : (
@@ -1349,7 +1349,7 @@ export default function AttendanceTracker({ setCurrentView }) {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                           <strong style={{ color: '#ffffff', fontSize: isMobile ? '0.85rem' : '0.9rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cls.subject}</strong>
                           {cls.isLab && (
-                            <span style={{ fontSize: '0.65rem', background: 'rgba(139,92,246,0.25)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.4)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                            <span style={{ fontSize: '0.65rem', background: 'rgba(20, 20, 19, 0.06)', color: '#c4b5fd', border: '1px solid rgba(20, 20, 19, 0.06)', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
                               🧪 LAB
                             </span>
                           )}
@@ -1577,7 +1577,7 @@ export default function AttendanceTracker({ setCurrentView }) {
                     <button type="button" onClick={() => setShowExtraClassForm(false)} className="btn btn-secondary btn-sm" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
                       Cancel
                     </button>
-                    <button type="submit" className="btn btn-primary btn-sm" style={{ padding: '6px 14px', fontSize: '0.75rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
+                    <button type="submit" className="btn btn-primary btn-sm" style={{ padding: '6px 14px', fontSize: '0.75rem', background: '#141413' }}>
                       Save Extra Class
                     </button>
                   </div>
@@ -1717,7 +1717,7 @@ export default function AttendanceTracker({ setCurrentView }) {
       {activeTab === 'routine' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '20px', textAlign: 'left' }}>
           {/* Header Action Bar */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', background: 'rgba(255,255,255,0.02)', padding: '12px 16px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', background: 'var(--bg-surface)', padding: '12px 16px', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
             <div>
               <h3 style={{ fontSize: isMobile ? '1rem' : '1.15rem', margin: 0, color: '#ffffff', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <CalendarCheck size={20} color="var(--primary)" /> Weekly Timetable Routine
@@ -1760,8 +1760,8 @@ export default function AttendanceTracker({ setCurrentView }) {
                     padding: isMobile ? '7px 12px' : '8px 16px',
                     fontSize: isMobile ? '0.78rem' : '0.84rem',
                     gap: '6px',
-                    borderColor: 'rgba(139,92,246,0.4)',
-                    background: 'rgba(139,92,246,0.1)',
+                    borderColor: 'rgba(20, 20, 19, 0.06)',
+                    background: 'rgba(20, 20, 19, 0.06)',
                     color: '#c4b5fd'
                   }}
                   title="Admin AI / JSON Routine Importer"
@@ -1809,7 +1809,7 @@ export default function AttendanceTracker({ setCurrentView }) {
               {DAYS_OF_WEEK.map((d) => {
                 const dayClasses = sortClassesByTime(routine[d] || []);
                 return (
-                  <div key={d} style={{ padding: isMobile ? '10px 12px' : '12px 14px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', width: '100%', boxSizing: 'border-box' }}>
+                  <div key={d} style={{ padding: isMobile ? '10px 12px' : '12px 14px', borderRadius: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', width: '100%', boxSizing: 'border-box' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                       <strong style={{ color: 'var(--primary)', fontSize: isMobile ? '0.8rem' : '0.85rem' }}>{d}</strong>
                       <span style={{ fontSize: '0.72rem', color: dayClasses.length > 0 ? '#10b981' : 'var(--text-muted)', fontWeight: 600 }}>
@@ -1822,7 +1822,7 @@ export default function AttendanceTracker({ setCurrentView }) {
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: 6 }}>
                         {dayClasses.map((c) => (
-                          <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: isMobile ? '0.78rem' : '0.82rem', color: '#ffffff', width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.03)', padding: '6px 8px', borderRadius: '8px' }}>
+                          <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: isMobile ? '0.78rem' : '0.82rem', color: '#ffffff', width: '100%', boxSizing: 'border-box', background: 'var(--bg-surface)', padding: '6px 8px', borderRadius: '8px' }}>
                             <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                               <span style={{ fontWeight: 600, color: '#ffffff', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.subject}</span>
                               <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>{c.startTime} - {c.endTime} {c.room ? `· ${c.room}` : ''}</span>
@@ -1842,7 +1842,7 @@ export default function AttendanceTracker({ setCurrentView }) {
 
           {/* SECOND SECTION: Add Class Form (Placed below routine or expanded) */}
           {showAddClassForm ? (
-            <div className="glass-panel animate-fade-in" style={{ padding: isMobile ? '16px' : '22px', border: '1px solid rgba(139,92,246,0.3)' }}>
+            <div className="glass-panel animate-fade-in" style={{ padding: isMobile ? '16px' : '22px', border: '1px solid rgba(20, 20, 19, 0.06)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
                 <h3 style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Plus size={isMobile ? 16 : 18} color="var(--primary)" /> Add Class to Weekly Routine
@@ -1913,7 +1913,7 @@ export default function AttendanceTracker({ setCurrentView }) {
                   </div>
                 </div>
 
-                <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--primary)', fontWeight: 600, background: 'rgba(139,92,246,0.1)', padding: '8px 12px', borderRadius: '10px', border: '1px solid rgba(139,92,246,0.2)', wordBreak: 'break-word' }}>
+                <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--primary)', fontWeight: 600, background: 'rgba(20, 20, 19, 0.06)', padding: '8px 12px', borderRadius: '10px', border: '1px solid rgba(20, 20, 19, 0.06)', wordBreak: 'break-word' }}>
                   ⏰ Calculated Class Time: {format12HourTime(newStartTime24)} → {calculateEndTimeFromHM(newStartTime24, durationHours, durationMins)} ({formatDurationText(durationHours, durationMins)})
                 </div>
 
@@ -1956,7 +1956,7 @@ export default function AttendanceTracker({ setCurrentView }) {
               <h3 style={{ fontSize: isMobile ? '1rem' : '1.15rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
                 <TrendingUp size={isMobile ? 18 : 20} color="var(--primary)" /> Attendance Analytics & Time Log
               </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.03)', padding: '4px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-surface)', padding: '4px 10px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
                 <Clock size={14} color="#a78bfa" />
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Class Length:</span>
                 <select
@@ -1974,7 +1974,7 @@ export default function AttendanceTracker({ setCurrentView }) {
             {/* 4 PRIMARY METRIC CARDS */}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: isMobile ? '10px' : '14px' }}>
               {/* Card 1: Total Attendance (Weighted %) */}
-              <div style={{ padding: isMobile ? '12px' : '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ padding: isMobile ? '12px' : '16px', borderRadius: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Total Attendance</div>
                 <div style={{ fontSize: isMobile ? '1.4rem' : '1.7rem', fontWeight: 800, color: overallStats.pct < 75 ? '#f87171' : '#34d399', margin: '4px 0' }}>
                   {overallStats.pct}%
@@ -1985,7 +1985,7 @@ export default function AttendanceTracker({ setCurrentView }) {
               </div>
 
               {/* Card 2: Theory Attendance % */}
-              <div style={{ padding: isMobile ? '12px' : '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ padding: isMobile ? '12px' : '16px', borderRadius: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
                   📖 Theory Attendance
                 </div>
@@ -1998,7 +1998,7 @@ export default function AttendanceTracker({ setCurrentView }) {
               </div>
 
               {/* Card 3: Class Labs Attendance % */}
-              <div style={{ padding: isMobile ? '12px' : '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ padding: isMobile ? '12px' : '16px', borderRadius: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
                   🧪 Class Labs
                 </div>
@@ -2084,10 +2084,10 @@ export default function AttendanceTracker({ setCurrentView }) {
             {/* Filter Toggle Pills: All | Theories | Labs */}
             <div style={{
               display: 'inline-flex',
-              background: 'rgba(255, 255, 255, 0.04)',
+              background: 'var(--bg-surface)',
               padding: '3px',
               borderRadius: '10px',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              border: '1px solid var(--border-subtle)',
               gap: '4px',
               width: isMobile ? '100%' : 'auto'
             }}>
@@ -2186,7 +2186,7 @@ export default function AttendanceTracker({ setCurrentView }) {
               textAlign: 'center',
               borderRadius: '16px',
               border: '1px dashed rgba(255,255,255,0.15)',
-              background: 'rgba(255,255,255,0.02)'
+              background: 'var(--bg-surface)'
             }}>
               <div style={{ fontSize: '2rem', marginBottom: '8px' }}>
                 {subjectFilter === 'labs' ? '🧪' : subjectFilter === 'theories' ? '📖' : '📚'}
@@ -2257,7 +2257,7 @@ export default function AttendanceTracker({ setCurrentView }) {
                           {sub.subject}
                         </h4>
                         {sub.isLab && (
-                          <span style={{ fontSize: '0.62rem', background: 'rgba(139,92,246,0.25)', color: '#c4b5fd', border: '1px solid rgba(139,92,246,0.4)', padding: '1px 5px', borderRadius: '4px', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                          <span style={{ fontSize: '0.62rem', background: 'rgba(20, 20, 19, 0.06)', color: '#c4b5fd', border: '1px solid rgba(20, 20, 19, 0.06)', padding: '1px 5px', borderRadius: '4px', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
                             🧪 LAB
                           </span>
                         )}
@@ -2273,7 +2273,7 @@ export default function AttendanceTracker({ setCurrentView }) {
                     </div>
 
                     {/* Point Weight & Type Selector Controls */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '10px', background: 'rgba(255,255,255,0.03)', padding: isMobile ? '4px 8px' : '6px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap', width: '100%', boxSizing: 'border-box' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '10px', background: 'var(--bg-surface)', padding: isMobile ? '4px 8px' : '6px 10px', borderRadius: '8px', border: '1px solid var(--border-subtle)', flexWrap: 'wrap', width: '100%', boxSizing: 'border-box' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', minWidth: 0 }}>
                         <span style={{ fontSize: isMobile ? '0.68rem' : '0.72rem', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap' }}>
                           {isMobile ? 'Weight:' : 'Calculation Weight:'}
@@ -2300,9 +2300,9 @@ export default function AttendanceTracker({ setCurrentView }) {
                           fontSize: isMobile ? '0.66rem' : '0.7rem',
                           padding: isMobile ? '2px 6px' : '2px 8px',
                           borderRadius: '6px',
-                          background: sub.isLab ? 'rgba(139,92,246,0.2)' : 'transparent',
+                          background: sub.isLab ? 'rgba(20, 20, 19, 0.06)' : 'transparent',
                           color: sub.isLab ? '#c4b5fd' : 'var(--text-secondary)',
-                          borderColor: sub.isLab ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.15)',
+                          borderColor: sub.isLab ? 'rgba(20, 20, 19, 0.06)' : 'rgba(255,255,255,0.15)',
                           whiteSpace: 'nowrap',
                           flexShrink: 0
                         }}
@@ -2346,7 +2346,7 @@ export default function AttendanceTracker({ setCurrentView }) {
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {archivedSemesters.map((arch) => (
-                  <div key={arch.id} style={{ padding: isMobile ? '10px 12px' : '12px 16px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', gap: isMobile ? '8px' : 10 }}>
+                  <div key={arch.id} style={{ padding: isMobile ? '10px 12px' : '12px 16px', borderRadius: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', gap: isMobile ? '8px' : 10 }}>
                     <div style={{ minWidth: 0 }}>
                       <strong style={{ color: '#ffffff', fontSize: isMobile ? '0.8rem' : '0.9rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Semester ({arch.startDate} to {arch.endDate})</strong>
                       <span style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--text-secondary)', display: 'block', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -2528,7 +2528,7 @@ export default function AttendanceTracker({ setCurrentView }) {
               Share this unique 6-character Routine ID with your classmates. Anyone can paste this code into their Attendance Tracker to instantly load your schedule!
             </p>
 
-            <div style={{ padding: '20px', background: 'rgba(139, 92, 246, 0.12)', border: '1px solid rgba(139, 92, 246, 0.35)', borderRadius: '16px', textAlign: 'center', marginBottom: '16px' }}>
+            <div style={{ padding: '20px', background: 'rgba(20, 20, 19, 0.06)', border: '1px solid rgba(20, 20, 19, 0.06)', borderRadius: '16px', textAlign: 'center', marginBottom: '16px' }}>
               <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#c4b5fd', fontWeight: 700 }}>
                 Unique Timetable ID
               </span>

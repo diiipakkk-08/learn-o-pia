@@ -1,68 +1,47 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { Heart, Sparkles } from 'lucide-react';
 import { useDatabase } from '../context/DatabaseContext';
 
-export default function AdProgressBar({ onTriggerAd }) {
-  const { adSettings, currentUser } = useDatabase();
-  
-  // Interval in seconds
-  const intervalSeconds = (adSettings?.intervalMinutes || 15) * 60;
-  const isEnabled = adSettings?.enabled !== false;
-  const userCredits = currentUser?.credits || 0;
+export default function AdProgressBar({ onTriggerAd, onOpenModal, cinemaMode = false, isPlayerView = false }) {
+  const { adSettings, serverGoal } = useDatabase();
+  const trigger = onOpenModal || onTriggerAd;
 
-  const [timeLeft, setTimeLeft] = useState(intervalSeconds);
-
-  useEffect(() => {
-    setTimeLeft(intervalSeconds);
-  }, [intervalSeconds]);
-
-  useEffect(() => {
-    if (!currentUser || !isEnabled || userCredits > 0) return;
-
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          if (onTriggerAd) onTriggerAd();
-          return intervalSeconds;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [currentUser, isEnabled, userCredits, intervalSeconds, onTriggerAd]);
-
-  // NEVER render if user is not logged in, ads are turned off by admin, or user has credits
-  if (!currentUser || !isEnabled || userCredits > 0) {
-    return null;
-  }
-
-  const progressPercent = Math.max(0, Math.min(100, (timeLeft / intervalSeconds) * 100));
+  const current = serverGoal?.currentAmount || 420;
+  const goal = serverGoal?.goalAmount || 500;
+  const pct = Math.min(100, Math.round((current / goal) * 100));
 
   return (
     <div
+      onClick={trigger}
+      className="p-3 mx-2 my-2 rounded-lg border cursor-pointer transition-all hover:opacity-90 group select-none"
       style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        width: '100%',
-        height: '3px',
-        background: 'rgba(139, 92, 246, 0.25)', // Light purple base track
-        zIndex: 999999, // Above everything including navigation bar
-        pointerEvents: 'none'
+        backgroundColor: cinemaMode && isPlayerView ? '#222220' : '#FAF8F5',
+        borderColor: cinemaMode && isPlayerView ? '#2E2E2B' : '#E4E0D8'
       }}
-      title={`Community Support reminder in ${Math.ceil(timeLeft / 60)}m`}
+      title="Click to learn about how Learn-O-Pia stays 100% free"
     >
-      {/* Deep Vibrant Purple Shrinking Progress Line */}
-      <div
-        style={{
-          height: '100%',
-          width: `${progressPercent}%`,
-          background: 'linear-gradient(90deg, #7c3aed 0%, #a855f7 50%, #c084fc 100%)',
-          boxShadow: '0 0 10px rgba(168, 85, 247, 0.9), 0 0 4px #c084fc',
-          transition: 'width 1s linear'
-        }}
-      />
+      <div className="flex items-center justify-between text-xs mb-1.5">
+        <div className="flex items-center gap-1.5 font-semibold text-[11px] text-text-primary">
+          <Heart size={13} className="text-accent-forest" />
+          <span>Server Free Pledge</span>
+        </div>
+        <span className="font-mono-tabular font-bold text-[11px] text-accent-forest">
+          {pct}% Funded
+        </span>
+      </div>
+
+      {/* Progress Track */}
+      <div className="w-full h-1.5 rounded-full overflow-hidden bg-[#E6E2DA]">
+        <div
+          className="h-full rounded-full transition-all duration-500 bg-accent-forest"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      <div className="flex items-center justify-between text-[10px] text-text-muted mt-1 font-mono-tabular">
+        <span>${current} / ${goal}</span>
+        <span className="group-hover:underline text-text-secondary">Community Backed</span>
+      </div>
     </div>
   );
 }

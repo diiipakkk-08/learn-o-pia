@@ -199,7 +199,7 @@ export default function AdminDashboard() {
         <div className="glass-panel" style={styles.statCard}>
           <div style={styles.statHeader}>
             <span style={styles.statLabel}>Degree Programs</span>
-            <BookOpen size={20} color="#8b5cf6" />
+            <BookOpen size={20} color="#141413" />
           </div>
           <div style={styles.statVal}>{totalCourses}</div>
           <div style={styles.statFooter}>
@@ -284,7 +284,7 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab('ads')}
               style={{
                 ...styles.sideTab,
-                background: activeTab === 'ads' ? 'rgba(139, 92, 246, 0.15)' : 'transparent',
+                background: activeTab === 'ads' ? 'rgba(20, 20, 19, 0.06)' : 'transparent',
                 borderLeftColor: activeTab === 'ads' ? 'var(--primary)' : 'transparent',
                 color: activeTab === 'ads' ? '#c4b5fd' : 'var(--text-secondary)'
               }}
@@ -297,7 +297,7 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab('announcements')}
               style={{
                 ...styles.sideTab,
-                background: activeTab === 'announcements' ? 'rgba(139, 92, 246, 0.15)' : 'transparent',
+                background: activeTab === 'announcements' ? 'rgba(20, 20, 19, 0.06)' : 'transparent',
                 borderLeftColor: activeTab === 'announcements' ? 'var(--primary)' : 'transparent',
                 color: activeTab === 'announcements' ? '#c4b5fd' : 'var(--text-secondary)'
               }}
@@ -478,7 +478,7 @@ export default function AdminDashboard() {
                     {/* Modal Header */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '14px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ width: 40, height: 40, borderRadius: '12px', background: 'linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: 40, height: 40, borderRadius: '12px', background: '#EFECE6', border: '1px solid #CFCAC0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <ShieldCheck size={22} color="#ffffff" />
                         </div>
                         <div>
@@ -498,7 +498,7 @@ export default function AdminDashboard() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '20px' }}>
                       
                       {/* Left Column: Academic & Personal Data */}
-                      <div style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div style={{ padding: '16px', background: 'var(--bg-surface)', borderRadius: '14px', border: '1px solid var(--border-subtle)' }}>
                         <h4 style={{ fontSize: '0.85rem', color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
                           <BookOpen size={14} /> Profile Credentials
                         </h4>
@@ -570,7 +570,7 @@ export default function AdminDashboard() {
                       {/* Right Column: ID Card Proof & Verification Guideline */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                         
-                        <div style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <div style={{ padding: '16px', background: 'var(--bg-surface)', borderRadius: '14px', border: '1px solid var(--border-subtle)' }}>
                           <h4 style={{ fontSize: '0.85rem', color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
                             <Shield size={14} /> Verification Request Details
                           </h4>
@@ -604,7 +604,7 @@ export default function AdminDashboard() {
                           </div>
                         </div>
 
-                        <div style={{ padding: '14px', background: 'rgba(139,92,246,0.1)', borderRadius: '14px', border: '1px solid rgba(139,92,246,0.25)', fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                        <div style={{ padding: '14px', background: 'rgba(20, 20, 19, 0.06)', borderRadius: '14px', border: '1px solid rgba(20, 20, 19, 0.06)', fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
                           <strong style={{ color: '#ffffff', display: 'block', marginBottom: 4 }}>💡 Verification Guide:</strong>
                           Check that the student's Full Name, College Name, and Course Match what is displayed on their institutional identity card or grade card document.
                         </div>
@@ -799,7 +799,7 @@ export default function AdminDashboard() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '20px', marginBottom: '24px' }}>
                 
                 {/* COLUMN 1: Routine Generator Form */}
-                <div style={{ padding: '20px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ padding: '20px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
                   <h4 style={{ fontSize: '0.95rem', color: '#ffffff', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <CalendarDays size={18} color="var(--primary)" /> Generate New Routine ID
                   </h4>
@@ -915,7 +915,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* COLUMN 2: Active Shared Routines Database */}
-                <div style={{ padding: '20px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ padding: '20px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
                     <h4 style={{ fontSize: '0.95rem', color: '#ffffff', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                       <BookCheck size={18} color="#38bdf8" /> Published Routines ({sharedRoutinesList.length})
@@ -935,8 +935,8 @@ export default function AdminDashboard() {
                           key={item.share_code || item.id}
                           style={{
                             padding: '14px',
-                            background: 'rgba(255,255,255,0.03)',
-                            border: '1px solid rgba(255,255,255,0.08)',
+                            background: 'var(--bg-surface)',
+                            border: '1px solid var(--border-subtle)',
                             borderRadius: '12px',
                             display: 'flex',
                             alignItems: 'center',
@@ -949,7 +949,7 @@ export default function AdminDashboard() {
                               {item.title || 'Curated Routine'}
                             </strong>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                              <span style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 800, background: 'rgba(139,92,246,0.15)', padding: '2px 8px', borderRadius: '6px' }}>
+                              <span style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 800, background: 'rgba(20, 20, 19, 0.06)', padding: '2px 8px', borderRadius: '6px' }}>
                                 {item.share_code}
                               </span>
                               {item.semester_start_date && (
@@ -1100,7 +1100,7 @@ export default function AdminDashboard() {
 
                 {/* Interval & Skip Controls */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
-                  <div style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ padding: '16px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
                     <label className="form-label" style={{ fontSize: '0.8rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
                       <Clock size={14} color="var(--primary)" /> Ad Frequency Interval (Minutes)
                     </label>
@@ -1129,7 +1129,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ padding: '16px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
                     <label className="form-label" style={{ fontSize: '0.8rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
                       <Sliders size={14} color="var(--primary)" /> Skip Button Delay (Seconds)
                     </label>
@@ -1160,7 +1160,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Video Ad YouTube Link */}
-                <div style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ padding: '16px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
                   <label className="form-label" style={{ fontSize: '0.8rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Video size={14} color="var(--primary)" /> YouTube Video Ad / Sponsor Link (Optional)
                   </label>
@@ -1177,7 +1177,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Pop-up Text & Target URL */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
                   <div>
                     <label className="form-label" style={{ fontSize: '0.78rem' }}>Ad Pop-up Headline / Title</label>
                     <input
@@ -1248,7 +1248,7 @@ export default function AdminDashboard() {
               )}
 
               {/* BROADCAST FORM */}
-              <form onSubmit={handleBroadcastSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '20px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid rgba(139,92,246,0.3)', marginBottom: '24px' }}>
+              <form onSubmit={handleBroadcastSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '20px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid rgba(20, 20, 19, 0.06)', marginBottom: '24px' }}>
                 <h4 style={{ fontSize: '0.95rem', color: '#ffffff', margin: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Megaphone size={16} color="var(--primary)" /> Send Broadcast Announcement
                 </h4>
@@ -1323,7 +1323,7 @@ export default function AdminDashboard() {
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No announcements sent yet.</p>
                   ) : (
                     announcements.map((ann) => (
-                      <div key={ann.id} style={{ padding: '14px 16px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div key={ann.id} style={{ padding: '14px 16px', borderRadius: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                           <strong style={{ color: '#ffffff', fontSize: '0.9rem' }}>{ann.title}</strong>
                           <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>

@@ -1,12 +1,28 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
 import {
-  Search, FileText, Download, Copy, Check, Bookmark, BookmarkCheck,
-  Video, Play, FolderKanban, Sparkles, ExternalLink, Clock, User, Filter, Layers,
-  ChevronLeft, ChevronRight, Trash2
+  Search,
+  FileText,
+  Download,
+  Copy,
+  Check,
+  Bookmark,
+  BookmarkCheck,
+  Video,
+  Play,
+  FolderKanban,
+  Sparkles,
+  ExternalLink,
+  Clock,
+  User,
+  Filter,
+  Layers,
+  ChevronLeft,
+  ChevronRight,
+  Trash2
 } from 'lucide-react';
 
-const ITEMS_PER_PAGE = 8;
+const ITEMS_PER_PAGE = 10;
 
 export default function ResourcesView({ setCurrentView, setSelectedPlaylistId }) {
   const {
@@ -23,17 +39,18 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId })
   } = useDatabase();
 
   const [copiedId, setCopiedId] = useState(null);
-  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'videos' | 'documents' | 'saved'
+  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'documents' | 'videos' | 'saved'
   const [localSearch, setLocalSearch] = useState(globalSearchQuery || '');
+  const [page, setPage] = useState(1);
 
-  // Pagination states
-  const [videoPage, setVideoPage] = useState(1);
-  const [docPage, setDocPage] = useState(1);
-
-  // Reset pagination on search change
   useEffect(() => {
-    setVideoPage(1);
-    setDocPage(1);
+    if (globalSearchQuery !== undefined) {
+      setLocalSearch(globalSearchQuery);
+    }
+  }, [globalSearchQuery]);
+
+  useEffect(() => {
+    setPage(1);
   }, [localSearch, activeTab]);
 
   const handleCopy = (id, e) => {
@@ -49,7 +66,6 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId })
     const list = [];
     const seen = new Set();
 
-    // 1. Standalone open resources
     (standaloneResources || []).forEach((res) => {
       if (!res.id || seen.has(res.id)) return;
       seen.add(res.id);
@@ -61,11 +77,10 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId })
         category: res.category || 'Study Guide',
         description: res.description || '',
         author: res.author || 'Educator',
-        subjects: res.subjects || ['Open Study Resource']
+        subjectTitle: (res.subjects && res.subjects[0]) || 'General Vault'
       });
     });
 
-    // 2. Subject materials
     (subjects || []).forEach((sub) => {
       (sub.materials || []).forEach((mat) => {
         const matId = mat.originalResourceId || mat.id;
@@ -77,9 +92,9 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId })
           url: mat.url,
           type: mat.type || 'pdf',
           category: mat.sectionName || 'Subject Material',
-          description: `Resource from ${sub.title}`,
-          author: mat.author || 'Faculty',
-          subjects: [sub.title]
+          description: `Academic resource from ${sub.title}`,
+          author: sub.title,
+          subjectTitle: sub.title
         });
       });
     });
@@ -87,431 +102,206 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId })
     return list;
   }, [standaloneResources, subjects]);
 
-  // Compile all video lectures across all playlists with realistic durations
-  const allVideoLectures = useMemo(() => {
-    const vids = [];
-    const seen = new Set();
-    const realisticDurations = ['12:45', '8:30', '15:20', '6:15', '21:10', '14:05', '9:50', '18:35', '11:20', '7:40'];
-
-    (subjects || []).forEach((sub) => {
-      (sub.playlists || []).forEach((pl) => {
-        (pl.videos || []).forEach((v) => {
-          const vKey = v.id || v.youtubeId;
-          if (!vKey || seen.has(vKey)) return;
-          seen.add(vKey);
-
-          const yId = v.youtubeId || (v.url ? (v.url.match(/[?&]v=([^#&]+)/) || [])[1] : '');
-          const dur = (v.durationText && v.durationText !== '15:00')
-            ? v.durationText
-            : realisticDurations[vids.length % realisticDurations.length];
-
-          vids.push({
-            id: v.id || `vid-${yId || Date.now()}`,
-            title: v.title,
-            youtubeId: yId,
-            thumbnailUrl: yId ? `https://i.ytimg.com/vi/${yId}/hqdefault.jpg` : null,
-            durationText: dur,
-            subjectTitle: sub.title,
-            playlistTitle: pl.title,
-            playlistId: pl.id,
-            courseId: sub.courseId,
-            author: pl.author || 'Instructor'
-          });
-        });
-      });
-    });
-
-    return vids;
-  }, [subjects]);
-
-  // Filter items by search query
   const query = (localSearch || '').trim().toLowerCase();
 
-  const filteredDocs = useMemo(() => {
+  const filteredResources = useMemo(() => {
     return allDocResources.filter((res) => {
+      if (activeTab === 'saved') {
+        if (!savedResourceIds?.includes(res.id)) return false;
+      }
+
       if (!query) return true;
       return (
-        res.title?.toLowerCase().includes(query) ||
-        res.id?.toLowerCase().includes(query) ||
-        res.category?.toLowerCase().includes(query) ||
-        res.description?.toLowerCase().includes(query) ||
-        res.author?.toLowerCase().includes(query)
+        res.title.toLowerCase().includes(query) ||
+        (res.category && res.category.toLowerCase().includes(query)) ||
+        (res.author && res.author.toLowerCase().includes(query)) ||
+        (res.subjectTitle && res.subjectTitle.toLowerCase().includes(query))
       );
     });
-  }, [allDocResources, query]);
+  }, [allDocResources, activeTab, savedResourceIds, query]);
 
-  const filteredVideos = useMemo(() => {
-    return allVideoLectures.filter((vid) => {
-      if (!query) return true;
-      return (
-        vid.title?.toLowerCase().includes(query) ||
-        vid.id?.toLowerCase().includes(query) ||
-        vid.subjectTitle?.toLowerCase().includes(query) ||
-        vid.playlistTitle?.toLowerCase().includes(query)
-      );
-    });
-  }, [allVideoLectures, query]);
+  const totalPages = Math.max(1, Math.ceil(filteredResources.length / ITEMS_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedResources = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredResources.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredResources, currentPage]);
 
-  // Paginated Video Items (10 per page)
-  const totalVideoPages = Math.max(1, Math.ceil(filteredVideos.length / ITEMS_PER_PAGE));
-  const currentVideoPage = Math.min(videoPage, totalVideoPages);
-  const paginatedVideos = useMemo(() => {
-    const start = (currentVideoPage - 1) * ITEMS_PER_PAGE;
-    return filteredVideos.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredVideos, currentVideoPage]);
-
-  // Paginated Document Items (10 per page)
-  const totalDocPages = Math.max(1, Math.ceil(filteredDocs.length / ITEMS_PER_PAGE));
-  const currentDocPage = Math.min(docPage, totalDocPages);
-  const paginatedDocs = useMemo(() => {
-    const start = (currentDocPage - 1) * ITEMS_PER_PAGE;
-    return filteredDocs.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredDocs, currentDocPage]);
-
-  const savedDocs = useMemo(() => {
-    return allDocResources.filter(r => savedResourceIds.includes(r.id));
-  }, [allDocResources, savedResourceIds]);
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (setGlobalSearchQuery) setGlobalSearchQuery(localSearch);
-  };
+  const TABS = [
+    { id: 'all', label: `All Vault (${allDocResources.length})` },
+    { id: 'saved', label: `Saved Bookmarks (${savedResourceIds?.length || 0})` }
+  ];
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '4px 12px 16px 12px', textAlign: 'left' }} className="animate-fade-in">
-      
-      {/* Sleek Standalone Search Bar directly on page */}
-      <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '10px', marginBottom: '14px', marginTop: '2px' }}>
-        <div style={{ position: 'relative', flex: 1 }}>
-          <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
-          <input
-            type="text"
-            className="form-input"
-            value={localSearch}
-            onChange={(e) => {
-              setLocalSearch(e.target.value);
-              if (setGlobalSearchQuery) setGlobalSearchQuery(e.target.value);
-            }}
-            placeholder="Search by topic, keyword, subject name, or Resource ID (e.g. res-1, vid-123)..."
-            style={{ width: '100%', paddingLeft: '40px', paddingRight: '12px', height: '40px', fontSize: '0.85rem', borderRadius: '10px', boxSizing: 'border-box' }}
-          />
+    <div className="w-full max-w-7xl 2xl:max-w-[1720px] mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 space-y-6">
+      {/* Header & Tabs */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border-subtle pb-4">
+        <div>
+          <h1 className="text-2xl lg:text-[28px] font-bold tracking-tight font-editorial">
+            Academic Vault & Study Materials
+          </h1>
+          <p className="text-xs sm:text-sm text-text-secondary mt-0.5">
+            Curated PDFs, syllabus guides, semester organizers, and past year question papers.
+          </p>
         </div>
 
-        {localSearch && (
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => { setLocalSearch(''); if (setGlobalSearchQuery) setGlobalSearchQuery(''); }}
-            style={{ padding: '0 14px', height: '40px', fontSize: '0.8rem' }}
-          >
-            Clear
-          </button>
-        )}
-      </form>
-
-      {/* Filter Tabs — Clean Horizontal Pills without Overlapping Icons */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px', WebkitOverflowScrolling: 'touch' }}>
-        <button
-          type="button"
-          className={`btn ${activeTab === 'all' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setActiveTab('all')}
-          style={{ padding: '6px 14px', fontSize: '0.78rem', whiteSpace: 'nowrap', borderRadius: '20px', flexShrink: 0, gap: '6px' }}
-        >
-          <Layers size={13} /> All Results ({filteredDocs.length + filteredVideos.length})
-        </button>
-
-        <button
-          type="button"
-          className={`btn ${activeTab === 'videos' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setActiveTab('videos')}
-          style={{ padding: '6px 14px', fontSize: '0.78rem', whiteSpace: 'nowrap', borderRadius: '20px', flexShrink: 0, gap: '6px' }}
-        >
-          <Video size={13} /> Video Lectures ({filteredVideos.length})
-        </button>
-
-        <button
-          type="button"
-          className={`btn ${activeTab === 'documents' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setActiveTab('documents')}
-          style={{ padding: '6px 14px', fontSize: '0.78rem', whiteSpace: 'nowrap', borderRadius: '20px', flexShrink: 0, gap: '6px' }}
-        >
-          <FileText size={13} /> PDFs & Drive Links ({filteredDocs.length})
-        </button>
-
-        <button
-          type="button"
-          className={`btn ${activeTab === 'saved' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setActiveTab('saved')}
-          style={{ padding: '6px 14px', fontSize: '0.78rem', whiteSpace: 'nowrap', borderRadius: '20px', flexShrink: 0, gap: '6px' }}
-        >
-          <Bookmark size={13} /> Saved Resources ({savedDocs.length})
-        </button>
+        {/* Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
+          {TABS.map((tab) => {
+            const isSelected = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all"
+                style={{
+                  backgroundColor: isSelected ? '#141413' : '#FFFFFF',
+                  color: isSelected ? '#F7F5F0' : '#575550',
+                  borderColor: isSelected ? '#141413' : '#E4E0D8'
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* SECTION 1: VIDEO LECTURES RESULTS */}
-      {(activeTab === 'all' || activeTab === 'videos') && (
-        <div style={{ marginBottom: '32px' }}>
-          <h3 style={{ fontSize: '1.05rem', color: '#ffffff', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Video size={18} color="var(--primary)" /> Video Lectures ({filteredVideos.length})
-          </h3>
+      {/* Search Input Box */}
+      <div className="relative max-w-md">
+        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
+        <input
+          type="text"
+          placeholder="Filter documents by title, subject, or author..."
+          value={localSearch}
+          onChange={(e) => {
+            setLocalSearch(e.target.value);
+            if (setGlobalSearchQuery) setGlobalSearchQuery(e.target.value);
+          }}
+          className="w-full pl-9 pr-4 py-2 rounded-lg border border-border-strong text-xs sm:text-sm bg-surface focus:outline-none"
+        />
+      </div>
 
-          {filteredVideos.length === 0 ? (
-            <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              No video lectures found matching "{localSearch}".
-            </div>
-          ) : (
-            <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-                {paginatedVideos.map((vid) => (
-                  <div key={vid.id} className="glass-panel" style={{ borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                    
-                    {/* YouTube Thumbnail Banner with Duration Badge */}
-                    <div style={{ height: '140px', background: '#000', position: 'relative', overflow: 'hidden' }}>
-                      {vid.thumbnailUrl ? (
-                        <img src={vid.thumbnailUrl} alt={vid.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1e1b4b 0%, #311b92 100%)' }}>
-                          <Play size={36} color="#a78bfa" />
-                        </div>
-                      )}
-                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.8) 100%)' }} />
-                      
-                      {/* Duration Badge */}
-                      <span style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.85)', color: '#ffffff', fontSize: '0.7rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Clock size={11} /> {vid.durationText}
-                      </span>
+      {/* Results Header */}
+      <div className="flex items-center justify-between text-xs text-text-muted font-mono-tabular">
+        <span>SHOWING {filteredResources.length} DOCUMENTS</span>
+        <span>INDEXED IN ACADEMIC REPOSITORY</span>
+      </div>
 
-                      {/* Copyable Video ID */}
-                      <div style={{ position: 'absolute', top: '8px', left: '8px', background: 'rgba(0,0,0,0.75)', padding: '2px 6px', borderRadius: '4px', fontSize: '0.65rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span>ID: <code style={{ color: '#a78bfa' }}>{vid.id}</code></span>
-                        <button onClick={(e) => handleCopy(vid.id, e)} style={{ background: 'none', border: 'none', color: copiedId === vid.id ? '#10b981' : 'var(--text-muted)', cursor: 'pointer', padding: 0 }}>
-                          {copiedId === vid.id ? <Check size={10} /> : <Copy size={10} />}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div style={{ padding: '12px 14px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '10px' }}>
-                      <div>
-                        <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#ffffff', margin: '0 0 4px 0', lineHeight: '1.3' }}>{vid.title}</h4>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>
-                          {vid.subjectTitle} • {vid.playlistTitle}
-                        </span>
-                      </div>
-
-                      <button
-                        onClick={() => {
-                          if (setSelectedPlaylistId) setSelectedPlaylistId(vid.playlistId || vid.courseId);
-                          setCurrentView('learning-player');
-                        }}
-                        className="btn btn-primary btn-sm"
-                        style={{ width: '100%', fontSize: '0.78rem', gap: '6px' }}
-                      >
-                        <Play size={12} /> Watch Lecture
-                      </button>
+      {/* Document Table / Card Grid */}
+      {paginatedResources.length > 0 ? (
+        <div className="rounded-xl border border-border-subtle bg-surface overflow-hidden shadow-sm divide-y divide-border-subtle">
+          {paginatedResources.map((res) => {
+            const isSaved = savedResourceIds?.includes(res.id);
+            return (
+              <div
+                key={res.id}
+                className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-surface-hover transition-colors"
+              >
+                <div className="flex items-start gap-3.5 min-w-0">
+                  <div className="w-10 h-10 rounded-lg border border-border-strong bg-[#EFECE6] flex items-center justify-center shrink-0 font-mono-tabular font-bold text-xs text-text-primary">
+                    {res.type ? res.type.toUpperCase() : 'PDF'}
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold text-text-primary truncate">
+                      {res.title}
+                    </h3>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-text-muted mt-1 font-mono-tabular">
+                      <span>{res.subjectTitle}</span>
+                      <span>•</span>
+                      <span>{res.category}</span>
+                      <span>•</span>
+                      <span>{res.author}</span>
                     </div>
                   </div>
-                ))}
-              </div>
-
-              {/* Video Pagination Bar (10 results per page) */}
-              {totalVideoPages > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginTop: '20px' }}>
-                  <button
-                    disabled={currentVideoPage <= 1}
-                    onClick={() => setVideoPage(p => Math.max(1, p - 1))}
-                    className="btn btn-secondary btn-sm"
-                    style={{ opacity: currentVideoPage <= 1 ? 0.5 : 1, gap: '4px' }}
-                  >
-                    <ChevronLeft size={14} /> Previous
-                  </button>
-
-                  <span style={{ fontSize: '0.82rem', color: '#a78bfa', fontWeight: 600 }}>
-                    Page {currentVideoPage} of {totalVideoPages}
-                  </span>
-
-                  <button
-                    disabled={currentVideoPage >= totalVideoPages}
-                    onClick={() => setVideoPage(p => Math.min(totalVideoPages, p + 1))}
-                    className="btn btn-secondary btn-sm"
-                    style={{ opacity: currentVideoPage >= totalVideoPages ? 0.5 : 1, gap: '4px' }}
-                  >
-                    Next <ChevronRight size={14} />
-                  </button>
                 </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
 
-      {/* SECTION 2: DOCUMENTS & PDF RESOURCES RESULTS */}
-      {(activeTab === 'all' || activeTab === 'documents') && (
-        <div style={{ marginBottom: '32px' }}>
-          <h3 style={{ fontSize: '1.05rem', color: '#ffffff', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FileText size={18} color="var(--secondary)" /> PDFs, Notes & Drive Resources ({filteredDocs.length})
-          </h3>
-
-          {filteredDocs.length === 0 ? (
-            <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              No PDF or Drive resources found matching "{localSearch}".
-            </div>
-          ) : (
-            <>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '14px' }}>
-                {paginatedDocs.map((res) => {
-                  const saved = isResourceSaved(res.id);
-                  return (
-                    <div key={res.id} className="glass-panel" style={{ padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', background: 'rgba(139,92,246,0.12)', padding: '2px 8px', borderRadius: '999px' }}>
-                            {res.category}
-                          </span>
-
-                          {/* Copyable Resource ID Badge */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)', padding: '2px 6px', borderRadius: '6px' }}>
-                            <span>ID: <code style={{ color: '#a78bfa' }}>{res.id}</code></span>
-                            <button onClick={(e) => handleCopy(res.id, e)} style={{ background: 'none', border: 'none', color: copiedId === res.id ? '#10b981' : 'var(--text-muted)', cursor: 'pointer', padding: 0 }}>
-                              {copiedId === res.id ? <Check size={10} /> : <Copy size={10} />}
-                            </button>
-                          </div>
-                        </div>
-
-                        <h4 style={{ fontSize: '0.92rem', fontWeight: 600, color: '#ffffff', margin: '0 0 4px 0', lineHeight: '1.4' }}>
-                          {res.title}
-                        </h4>
-
-                        {res.description && (
-                          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 8px 0', lineHeight: '1.4' }}>
-                            {res.description}
-                          </p>
-                        )}
-
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          Credit: <strong>{res.author}</strong>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '10px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                          <button
-                            type="button"
-                            onClick={() => toggleSaveResource(res.id)}
-                            className={`btn ${saved ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                            style={{ fontSize: '0.75rem', gap: '4px', borderColor: saved ? undefined : 'rgba(255,255,255,0.1)' }}
-                          >
-                            {saved ? <BookmarkCheck size={13} color="#10b981" /> : <Bookmark size={13} />}
-                            {saved ? 'Saved' : 'Save Resource'}
-                          </button>
-
-                          <a
-                            href={res.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="btn btn-secondary btn-sm"
-                            style={{ padding: '5px 10px', fontSize: '0.75rem', gap: 4 }}
-                          >
-                            <Download size={13} /> Open Link
-                          </a>
-                        </div>
-
-                        {(currentUser?.role === 'admin' || currentUser?.role === 'owner') && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (window.confirm(`Admin Action: Are you sure you want to delete resource "${res.title}"?`)) {
-                                deleteStandaloneResource(res.id);
-                              }
-                            }}
-                            className="btn btn-danger btn-sm"
-                            style={{ width: '100%', fontSize: '0.72rem', padding: '4px', gap: 4 }}
-                          >
-                            <Trash2 size={12} /> Delete Resource (Admin)
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Document Pagination Bar (10 results per page) */}
-              {totalDocPages > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginTop: '20px' }}>
+                {/* Actions */}
+                <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                   <button
-                    disabled={currentDocPage <= 1}
-                    onClick={() => setDocPage(p => Math.max(1, p - 1))}
-                    className="btn btn-secondary btn-sm"
-                    style={{ opacity: currentDocPage <= 1 ? 0.5 : 1, gap: '4px' }}
+                    onClick={() => toggleSaveResource && toggleSaveResource(res.id)}
+                    className="p-2 rounded-lg border border-border-subtle bg-surface hover:bg-[#EFECE6] text-xs font-semibold"
+                    title={isSaved ? 'Remove Bookmark' : 'Bookmark Document'}
                   >
-                    <ChevronLeft size={14} /> Previous
+                    {isSaved ? (
+                      <BookmarkCheck size={15} className="text-accent-forest" />
+                    ) : (
+                      <Bookmark size={15} className="text-text-muted" />
+                    )}
                   </button>
 
-                  <span style={{ fontSize: '0.82rem', color: '#a78bfa', fontWeight: 600 }}>
-                    Page {currentDocPage} of {totalDocPages}
-                  </span>
-
                   <button
-                    disabled={currentDocPage >= totalDocPages}
-                    onClick={() => setDocPage(p => Math.min(totalDocPages, p + 1))}
-                    className="btn btn-secondary btn-sm"
-                    style={{ opacity: currentDocPage >= totalDocPages ? 0.5 : 1, gap: '4px' }}
+                    onClick={(e) => handleCopy(res.id, e)}
+                    className="p-2 rounded-lg border border-border-subtle bg-surface hover:bg-[#EFECE6] text-xs font-semibold"
+                    title="Copy Document ID"
                   >
-                    Next <ChevronRight size={14} />
+                    {copiedId === res.id ? (
+                      <Check size={15} className="text-accent-forest" />
+                    ) : (
+                      <Copy size={15} className="text-text-muted" />
+                    )}
                   </button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
 
-      {/* SECTION 3: SAVED RESOURCES VIEW */}
-      {activeTab === 'saved' && (
-        <div style={{ marginBottom: '32px' }}>
-          <h3 style={{ fontSize: '1.05rem', color: '#ffffff', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <BookmarkCheck size={18} color="#10b981" /> My Bookmarked Resources ({savedDocs.length})
-          </h3>
-
-          {savedDocs.length === 0 ? (
-            <div className="glass-panel" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <Bookmark size={36} color="var(--primary)" style={{ opacity: 0.5, marginBottom: '8px' }} />
-              <p style={{ margin: '0 0 8px 0', fontSize: '0.9rem', color: '#ffffff' }}>No Saved Resources Yet</p>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
-                Click the <strong>"Save Resource"</strong> button on any study guide or PDF to bookmark it for instant access anytime.
-              </p>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '14px' }}>
-              {savedDocs.map((res) => (
-                <div key={res.id} className="glass-panel" style={{ padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', background: 'rgba(139,92,246,0.12)', padding: '2px 8px', borderRadius: '999px' }}>
-                        {res.category}
-                      </span>
-                      <span style={{ fontSize: '0.68rem', color: '#a78bfa' }}>ID: {res.id}</span>
-                    </div>
-
-                    <h4 style={{ fontSize: '0.92rem', fontWeight: 600, color: '#ffffff', margin: '0 0 4px 0' }}>{res.title}</h4>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>{res.description}</p>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '10px' }}>
-                    <button onClick={() => toggleSaveResource(res.id)} className="btn btn-secondary btn-sm" style={{ color: '#ef4444', fontSize: '0.75rem' }}>
-                      Remove
-                    </button>
-                    <a href={res.url} target="_blank" rel="noreferrer" className="btn btn-primary btn-sm" style={{ fontSize: '0.75rem', gap: 4 }}>
-                      <Download size={13} /> Open File
+                  {res.url && (
+                    <a
+                      href={res.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3.5 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark flex items-center gap-1.5 hover:opacity-95"
+                    >
+                      <Download size={13} />
+                      <span>Open Document</span>
                     </a>
-                  </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="p-12 rounded-xl border border-border-subtle bg-surface text-center space-y-3">
+          <FileText size={36} className="text-text-muted mx-auto" />
+          <h3 className="text-base font-bold text-text-primary">No academic documents match your filter</h3>
+          <p className="text-xs text-text-secondary max-w-sm mx-auto">
+            Try clearing the search query or browse through all subject materials.
+          </p>
+          <button
+            onClick={() => {
+              setLocalSearch('');
+              if (setGlobalSearchQuery) setGlobalSearchQuery('');
+              setActiveTab('all');
+            }}
+            className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark"
+          >
+            Clear Filters
+          </button>
         </div>
       )}
 
+      {/* Pagination Bar */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-4 border-t border-border-subtle text-xs">
+          <span className="font-mono-tabular text-text-muted">
+            PAGE {currentPage} OF {totalPages}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => setPage(currentPage - 1)}
+              className="p-2 rounded-lg border border-border-subtle bg-surface disabled:opacity-30 disabled:cursor-not-allowed hover:bg-surface-hover font-semibold"
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <button
+              disabled={currentPage === totalPages}
+              onClick={() => setPage(currentPage + 1)}
+              className="p-2 rounded-lg border border-border-subtle bg-surface disabled:opacity-30 disabled:cursor-not-allowed hover:bg-surface-hover font-semibold"
+            >
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
