@@ -171,16 +171,11 @@ export default function Header({
         {setCinemaMode && (
           <button
             onClick={() => setCinemaMode(!cinemaMode)}
-            className="px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all hover:scale-[1.02] active:scale-95"
-            style={{
-              borderColor: cinemaMode ? '#42403B' : '#E4E0D8',
-              backgroundColor: cinemaMode ? '#222220' : '#FFFFFF',
-              color: cinemaMode ? '#F2EFE9' : '#141413'
-            }}
+            className="px-2.5 py-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
             title={cinemaMode ? 'Switch to Warm Paper (Day Mode)' : 'Dim lights (Cinema / Night Mode)'}
             aria-label="Toggle theme mode"
           >
-            {cinemaMode ? <Sun size={15} strokeWidth={2} className="text-[#E2A04B]" /> : <Moon size={15} strokeWidth={2} className="text-[#575550]" />}
+            {cinemaMode ? <Sun size={15} strokeWidth={2} className="text-accent-amber" /> : <Moon size={15} strokeWidth={2} className="text-text-muted" />}
             <span className="hidden sm:inline text-xs font-mono-tabular">
               {cinemaMode ? 'Warm Paper' : 'Dim Lights'}
             </span>
@@ -211,39 +206,19 @@ export default function Header({
           <div className="relative" ref={profileMenuRef}>
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex items-center gap-2 p-1 pl-2 rounded-lg border transition-all hover:bg-black/5"
-              style={{
-                borderColor: cinemaMode ? '#2E2E2B' : '#E4E0D8',
-                backgroundColor: cinemaMode ? '#222220' : '#FFFFFF'
-              }}
+              className="flex items-center gap-2 p-1 pl-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover transition-all text-text-primary"
             >
-              <div
-                className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs border"
-                style={{
-                  backgroundColor: '#DFDBD2',
-                  borderColor: '#CFCAC0',
-                  color: '#141413'
-                }}
-              >
+              <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs border border-border-strong bg-subtle text-text-primary">
                 {userInitials}
               </div>
-              <span
-                className="hidden sm:inline text-xs font-semibold max-w-[100px] truncate"
-                style={{ color: cinemaMode ? '#F2EFE9' : '#141413' }}
-              >
+              <span className="hidden sm:inline text-xs font-semibold max-w-[100px] truncate text-text-primary">
                 {currentUser.name ? currentUser.name.split(' ')[0] : 'Student'}
               </span>
             </button>
 
             {/* Profile Dropdown Menu */}
             {showProfileMenu && (
-              <div
-                className="absolute right-0 mt-2 w-56 rounded-xl border p-1.5 shadow-modal z-50 animate-fade-in"
-                style={{
-                  backgroundColor: '#FFFFFF',
-                  borderColor: '#E4E0D8'
-                }}
-              >
+              <div className="absolute right-0 mt-2 w-56 rounded-xl border border-border-subtle bg-surface p-1.5 shadow-modal z-50 animate-fade-in text-text-primary">
                 <div className="px-3 py-2 border-b border-border-subtle mb-1">
                   <div className="font-semibold text-xs text-text-primary truncate">
                     {currentUser.name || 'Student Account'}
@@ -258,7 +233,7 @@ export default function Header({
                     setCurrentView('profile');
                     setShowProfileMenu(false);
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-[#FAF8F5] text-left"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover text-left transition-colors"
                 >
                   <User size={15} />
                   <span>Profile & Academic Settings</span>
@@ -269,7 +244,7 @@ export default function Header({
                     setCurrentView('studio');
                     setShowProfileMenu(false);
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-[#FAF8F5] text-left"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover text-left transition-colors"
                 >
                   <Sparkles size={15} />
                   <span>Creator Studio</span>
@@ -281,7 +256,7 @@ export default function Header({
                       setCurrentView('admin');
                       setShowProfileMenu(false);
                     }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-[#FAF8F5] text-left"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover text-left transition-colors"
                   >
                     <ShieldAlert size={15} />
                     <span>Admin Moderation Panel</span>
@@ -293,7 +268,7 @@ export default function Header({
                     setCurrentView('about');
                     setShowProfileMenu(false);
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-[#FAF8F5] text-left"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover text-left transition-colors"
                 >
                   <Info size={15} />
                   <span>About & Mission</span>

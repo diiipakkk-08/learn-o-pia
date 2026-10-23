@@ -71,7 +71,7 @@ function CustomStudioSelect({ label, value, options, onChange, placeholder = 'Se
         onClick={() => setIsOpen(o => !o)}
         style={{ width: '100%', height: '38px', padding: '6px 12px', fontSize: '0.8rem', background: 'var(--bg-surface)' }}
       >
-        <span style={{ color: activeOption ? '#fff' : 'var(--text-muted)' }}>
+        <span style={{ color: activeOption ? 'var(--text-primary)' : 'var(--text-muted)' }}>
           {activeOption ? activeOption.label : placeholder}
         </span>
         <ChevronDown size={14} style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', opacity: 0.6 }} />
@@ -85,12 +85,12 @@ function CustomStudioSelect({ label, value, options, onChange, placeholder = 'Se
             style={{
               padding: '10px 16px', fontSize: '0.85rem', textAlign: 'left',
               background: String(value) === String(opt.value) ? 'var(--primary)' : 'transparent',
-              color: String(value) === String(opt.value) ? '#fff' : 'var(--text-secondary)',
+              color: String(value) === String(opt.value) ? 'var(--text-primary)' : 'var(--text-secondary)',
               fontWeight: String(value) === String(opt.value) ? 600 : 400,
               border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)',
               transition: 'background 0.15s', width: '100%'
             }}
-            onMouseEnter={e => { if (String(value) !== String(opt.value)) e.target.style.background = 'rgba(20, 20, 19, 0.06)'; e.target.style.color = '#fff'; }}
+            onMouseEnter={e => { if (String(value) !== String(opt.value)) e.target.style.background = 'rgba(20, 20, 19, 0.06)'; e.target.style.color = 'var(--text-primary)'; }}
             onMouseLeave={e => { if (String(value) !== String(opt.value)) e.target.style.background = 'transparent'; e.target.style.color = 'var(--text-secondary)'; }}
           >
             {opt.label}
@@ -529,7 +529,7 @@ export default function CreatorStudio() {
       {/* STANDALONE PLAYLIST FORM */}
       {showStandalonePlaylistForm && (
         <form onSubmit={handleCreateStandalonePlaylist} className="glass-panel animate-fade-in" style={{ padding: '20px', marginBottom: '20px', textAlign: 'left', borderRadius: '14px', border: '1px solid rgba(20, 20, 19, 0.06)' }}>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '4px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ fontSize: '1.1rem', marginBottom: '4px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Video size={18} color="var(--primary)" /> Create Standalone YouTube Playlist Series
           </h3>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '14px' }}>
@@ -574,7 +574,7 @@ export default function CreatorStudio() {
       {/* STANDALONE RESOURCE FORM */}
       {showStandaloneForm && (
         <form onSubmit={handlePublishStandaloneResource} className="glass-panel animate-fade-in" style={{ padding: '20px', marginBottom: '20px', textAlign: 'left' }}>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '4px', color: '#ffffff' }}>Publish Standalone Open Study Resource</h3>
+          <h3 style={{ fontSize: '1.1rem', marginBottom: '4px', color: 'var(--text-primary)' }}>Publish Standalone Open Study Resource</h3>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '14px' }}>
             Share a public PDF, formula sheet, or reference guide directly without nesting it inside a degree course or playlist series.
           </p>
@@ -684,7 +684,7 @@ export default function CreatorStudio() {
                       {c.isDegree ? 'Degree' : 'Course'}
                     </span>
                   </div>
-                  <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#fff', marginTop: '6px' }}>{c.title}</div>
+                  <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)', marginTop: '6px' }}>{c.title}</div>
                   <div style={{ fontSize: '0.7rem', color: 'var(--success)', marginTop: '2px' }}>
                     {c.price > 0 ? `₹${c.price}` : 'Free'}
                   </div>
@@ -768,7 +768,7 @@ export default function CreatorStudio() {
                       </span>
                     </div>
                     <div style={{ marginBottom: '6px' }}>
-                      <InlineEdit value={activeCourse.title} onSave={v => editCourse(activeCourse.id, { title: v })} inputStyle={{ fontSize: '1.1rem', fontWeight: 700, color: '#ffffff' }} />
+                      <InlineEdit value={activeCourse.title} onSave={v => editCourse(activeCourse.id, { title: v })} inputStyle={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }} />
                     </div>
                     <div style={{ marginBottom: '6px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                       <span>Credits: </span>
@@ -809,11 +809,11 @@ export default function CreatorStudio() {
                   ) : enrolledStudents.map(u => (
                     <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '8px', marginBottom: '6px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#DFDBD2', color: '#141413', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#fff' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#DFDBD2', color: '#141413', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                           {u.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff' }}>{u.name}</div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{u.name}</div>
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{u.email}</div>
                         </div>
                       </div>
@@ -881,7 +881,7 @@ export default function CreatorStudio() {
                         ) : activeSubjectsList.map((sub, index) => (
                           <div key={sub.id} onClick={() => { setActiveSubjectId(sub.id); setActivePlaylistId(null); }}
                             style={{ ...styles.subjectListItem, background: activeSubjectId === sub.id ? 'rgba(20, 20, 19, 0.06)' : 'transparent', borderLeftColor: activeSubjectId === sub.id ? 'var(--primary)' : 'transparent' }}>
-                            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#fff' }}>{sub.title}</span>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>{sub.title}</span>
                             
                             <div style={{ display: 'flex', gap: '4px', marginLeft: 'auto', marginRight: '6px' }}>
                               <button 
@@ -918,7 +918,7 @@ export default function CreatorStudio() {
                           <div className="glass-panel" style={{ padding: '12px 16px', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                             <div>
                               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Active Subject:</span>
-                              <h4 style={{ fontSize: '0.95rem', color: '#fff', marginTop: '2px' }}>{activeSubject.title}</h4>
+                              <h4 style={{ fontSize: '0.95rem', color: 'var(--text-primary)', marginTop: '2px' }}>{activeSubject.title}</h4>
                             </div>
                             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                               <button onClick={handleOpenEditSubject} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
@@ -935,7 +935,7 @@ export default function CreatorStudio() {
 
                           {showLinkPlaylistForm && (
                             <form onSubmit={handleLinkPlaylistById} className="glass-panel animate-fade-in" style={{ padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'left', border: '1px solid rgba(20, 20, 19, 0.06)' }}>
-                              <h4 style={{ fontSize: '0.95rem', margin: 0, color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <h4 style={{ fontSize: '0.95rem', margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <Link size={15} color="var(--primary)" /> Link Existing Playlist by ID
                               </h4>
                               <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0 }}>
@@ -1079,7 +1079,7 @@ export default function CreatorStudio() {
                                  >
                                    {isCreatingPlaylist ? (
                                      <>
-                                       <span style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></span>
+                                       <span style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'var(--text-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></span>
                                        Saving Playlist & Videos...
                                      </>
                                    ) : (
@@ -1167,7 +1167,7 @@ export default function CreatorStudio() {
                                   <div key={pl.id} style={{ borderBottom: '1px dashed rgba(255,255,255,0.06)', paddingBottom: '8px', marginBottom: '8px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-surface)', padding: '6px 12px', borderRadius: '4px' }}>
                                       <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#fff' }}>
+                                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                                           📁 {pl.title} {pl.youtubePlaylistId ? '(YouTube Embed Playlist)' : `(${pl.videos?.length || 0} videos)`}
                                         </span>
                                         {pl.description && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>{pl.description}</span>}
@@ -1364,7 +1364,7 @@ export default function CreatorStudio() {
                                       ) : sectionDocs.map(doc => (
                                         <div key={doc.id} style={styles.enrolledItem}>
                                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, textAlign: 'left' }}>
-                                            <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#fff' }}>📄 {doc.title}</span>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-primary)' }}>📄 {doc.title}</span>
                                             <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                                               ID: <code style={{ color: '#a78bfa' }}>{doc.id}</code>
                                               <button

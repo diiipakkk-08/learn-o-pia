@@ -184,11 +184,7 @@ function AppContent() {
   return (
     <div
       className="min-h-screen flex flex-col lg:flex-row transition-colors duration-200 bg-canvas text-text-primary"
-      data-theme={cinemaMode && isPlayerView ? 'cinema' : 'default'}
-      style={{
-        backgroundColor: cinemaMode && isPlayerView ? '#141413' : '#F7F5F0',
-        color: cinemaMode && isPlayerView ? '#F2EFE9' : '#141413'
-      }}
+      data-theme={cinemaMode ? 'cinema' : 'default'}
     >
       {/* Desktop Left Sidebar */}
       <Sidebar
@@ -223,10 +219,10 @@ function AppContent() {
         {isSidebarCollapsed && (
           <button
             onClick={() => setIsSidebarCollapsed(false)}
-            className="hidden lg:flex fixed bottom-6 left-6 z-40 items-center gap-2.5 px-4 py-2.5 rounded-xl border border-[#DFDBD2] bg-[#FFFFFF] shadow-xl text-xs font-bold text-[#141413] hover:bg-[#F7F5F0] hover:border-[#1E5631] transition-all hover:scale-105 active:scale-95 font-mono-tabular group cursor-pointer"
+            className="hidden lg:flex fixed bottom-6 left-6 z-40 items-center gap-2.5 px-4 py-2.5 rounded-xl border border-border-strong bg-surface shadow-xl text-xs font-bold text-text-primary hover:bg-surface-hover hover:border-accent-forest transition-all hover:scale-105 active:scale-95 font-mono-tabular group cursor-pointer"
             title="Expand Navigation Access Bar [Ctrl + \]"
           >
-            <PanelLeftOpen size={16} className="text-[#1E5631] group-hover:scale-110 transition-transform" />
+            <PanelLeftOpen size={16} className="text-accent-forest group-hover:scale-110 transition-transform" />
             <span>SHOW NAVIGATION</span>
           </button>
         )}

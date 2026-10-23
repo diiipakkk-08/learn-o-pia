@@ -304,10 +304,10 @@ export default function LearningPlayer({
           ================================================================= */}
           <div className="lg:col-span-4 xl:col-span-4 2xl:col-span-3 rounded-xl border border-border-subtle bg-surface overflow-hidden shadow-sm">
             {/* Dock Tabs Header */}
-            <div className="flex border-b border-border-subtle bg-[#FAF8F5]">
+            <div className="flex border-b border-border-subtle bg-surface-hover/50">
               <button
                 onClick={() => setActiveRightTab('syllabus')}
-                className={`flex-1 py-3 text-xs font-semibold text-center transition-colors border-b-2 ${
+                className={`flex-1 py-3 text-xs font-semibold text-center transition-colors border-b-2 cursor-pointer ${
                   activeRightTab === 'syllabus'
                     ? 'border-accent-ink text-text-primary bg-surface'
                     : 'border-transparent text-text-muted hover:text-text-primary'
@@ -317,7 +317,7 @@ export default function LearningPlayer({
               </button>
               <button
                 onClick={() => setActiveRightTab('notes')}
-                className={`flex-1 py-3 text-xs font-semibold text-center transition-colors border-b-2 ${
+                className={`flex-1 py-3 text-xs font-semibold text-center transition-colors border-b-2 cursor-pointer ${
                   activeRightTab === 'notes'
                     ? 'border-accent-ink text-text-primary bg-surface'
                     : 'border-transparent text-text-muted hover:text-text-primary'
@@ -327,7 +327,7 @@ export default function LearningPlayer({
               </button>
               <button
                 onClick={() => setActiveRightTab('resources')}
-                className={`flex-1 py-3 text-xs font-semibold text-center transition-colors border-b-2 ${
+                className={`flex-1 py-3 text-xs font-semibold text-center transition-colors border-b-2 cursor-pointer ${
                   activeRightTab === 'resources'
                     ? 'border-accent-ink text-text-primary bg-surface'
                     : 'border-transparent text-text-muted hover:text-text-primary'
@@ -348,8 +348,8 @@ export default function LearningPlayer({
                       onClick={() => updateIndex(idx)}
                       className={`p-3.5 flex items-start gap-3 cursor-pointer transition-colors ${
                         isCurrent
-                          ? 'bg-[#FAF8F5] border-l-4 border-l-accent-forest'
-                          : 'hover:bg-surface-hover'
+                          ? 'bg-surface-hover border-l-4 border-l-accent-forest'
+                          : 'hover:bg-surface-hover/60'
                       }`}
                     >
                       <div
@@ -431,7 +431,7 @@ export default function LearningPlayer({
                           href={mat.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-2.5 py-1 rounded border border-border-subtle bg-surface hover:bg-[#EFECE6] text-xs font-semibold text-accent-forest shrink-0 flex items-center gap-1"
+                          className="px-2.5 py-1 rounded border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold text-accent-forest shrink-0 flex items-center gap-1 transition-colors"
                         >
                           <Download size={12} />
                           <span>View</span>
@@ -445,7 +445,7 @@ export default function LearningPlayer({
                     <p>No course documents attached to this playlist.</p>
                     <button
                       onClick={() => setCurrentView('resources')}
-                      className="px-3 py-1.5 rounded border border-border-subtle bg-surface hover:bg-[#EFECE6] font-semibold text-xs text-text-primary"
+                      className="px-3 py-1.5 rounded border border-border-subtle bg-surface hover:bg-surface-hover font-semibold text-xs text-text-primary cursor-pointer transition-colors"
                     >
                       Browse Academic Vault &rarr;
                     </button>

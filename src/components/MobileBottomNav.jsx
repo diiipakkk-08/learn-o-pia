@@ -11,13 +11,7 @@ export default function MobileBottomNav({ currentView, setCurrentView }) {
   ];
 
   return (
-    <nav
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-40 h-16 flex items-center justify-around border-t backdrop-blur-md px-2"
-      style={{
-        backgroundColor: 'rgba(247, 245, 240, 0.95)',
-        borderColor: '#E4E0D8'
-      }}
-    >
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 h-16 flex items-center justify-around border-t border-border-subtle bg-surface/95 backdrop-blur-md px-2 text-text-primary shadow-lg transition-colors">
       {TABS.map((tab) => {
         const Icon = tab.icon;
         const isActive =
@@ -27,25 +21,22 @@ export default function MobileBottomNav({ currentView, setCurrentView }) {
           <button
             key={tab.id}
             onClick={() => setCurrentView(tab.id)}
-            className="flex flex-col items-center justify-center flex-1 py-1 relative transition-colors"
-            style={{
-              color: isActive ? '#141413' : '#8A8780'
-            }}
+            className={`flex flex-col items-center justify-center flex-1 py-1 relative transition-colors cursor-pointer ${
+              isActive ? 'text-text-primary' : 'text-text-muted hover:text-text-secondary'
+            }`}
           >
             {isActive && (
-              <span
-                className="absolute top-0 w-8 h-0.5 rounded-full"
-                style={{ backgroundColor: '#1E5631' }}
-              />
+              <span className="absolute top-0 w-8 h-0.5 rounded-full bg-accent-forest" />
             )}
             <Icon
               size={20}
               strokeWidth={isActive ? 2 : 1.75}
-              style={{ color: isActive ? '#1E5631' : '#8A8780' }}
+              className={isActive ? 'text-accent-forest' : 'text-text-muted'}
             />
             <span
-              className="text-[10px] mt-1 font-medium font-sans"
-              style={{ fontWeight: isActive ? 600 : 500 }}
+              className={`text-[10px] mt-1 font-sans ${
+                isActive ? 'font-semibold text-text-primary' : 'font-medium text-text-muted'
+              }`}
             >
               {tab.label}
             </span>

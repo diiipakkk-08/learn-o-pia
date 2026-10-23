@@ -220,12 +220,11 @@ export default function CoursesDashboard({
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all cursor-pointer hover:border-border-strong"
-                style={{
-                  backgroundColor: isSelected ? '#141413' : '#FFFFFF',
-                  color: isSelected ? '#F7F5F0' : '#575550',
-                  borderColor: isSelected ? '#141413' : '#E4E0D8'
-                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-accent-ink text-text-on-dark border-accent-ink'
+                    : 'bg-surface text-text-secondary border-border-subtle hover:border-border-strong hover:text-text-primary'
+                }`}
               >
                 {cat.label}
               </button>
@@ -307,19 +306,19 @@ export default function CoursesDashboard({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={(e) => handleQuickEnroll(course, e)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                       course.isEnrolled
-                        ? 'bg-[#E6F0E9] text-accent-forest border border-[#C2DEC9]'
-                        : 'border border-border-subtle bg-surface hover:bg-[#FAF8F5] text-text-primary'
+                        ? 'pill-safe border'
+                        : 'border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary'
                     }`}
                   >
                     {course.isEnrolled ? 'Enrolled' : 'Enroll'}
                   </button>
                   <button
                     onClick={() => handleOpenCourse(course)}
-                    className="px-3 py-1 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark flex items-center gap-1 hover:opacity-95"
+                    className="px-3 py-1 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark flex items-center gap-1 hover:opacity-95 cursor-pointer"
                   >
-                    <Play size={11} fill="#F7F5F0" />
+                    <Play size={11} fill="currentColor" />
                     <span>Watch</span>
                   </button>
                 </div>

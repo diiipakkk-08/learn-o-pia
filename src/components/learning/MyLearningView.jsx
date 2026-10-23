@@ -9,13 +9,10 @@ import {
   Clock,
   CheckCircle2,
   BookmarkCheck,
-  Plus,
-  Sparkles,
-  ExternalLink,
-  ChevronRight,
   Download,
-  AlertCircle,
-  CalendarDays
+  CalendarDays,
+  Sparkles,
+  ChevronRight
 } from 'lucide-react';
 import { calculateAttendanceMetrics } from '../../utils/attendanceMath';
 
@@ -199,11 +196,10 @@ export default function MyLearningView({
     } catch {}
 
     if (list.length === 0) {
-      // Default contextual study notes
       return [
         {
           id: 'sample-1',
-          text: 'Remember to verify continuity at x=0 before applying L\'Hopital\'s Rule in limits problems.',
+          text: 'Verify continuity at x=0 before applying L\'Hopital\'s Rule in limits problems.',
           timestamp: '08:24',
           playlistId: 'pl-1',
           courseTitle: 'Engineering Mathematics I'
@@ -239,201 +235,122 @@ export default function MyLearningView({
   }, [routine]);
 
   return (
-    <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-10 pt-4 sm:pt-6 pb-12 space-y-6">
+    <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-10 pt-4 sm:pt-6 pb-12 space-y-5">
       {/* Editorial Workspace Header */}
-      <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-3 border-b border-border-subtle pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-border-subtle pb-3.5">
         <div>
-          <h1 className="text-2xl lg:text-[28px] font-bold tracking-tight font-editorial">
+          <h1 className="text-xl sm:text-2xl lg:text-[26px] font-bold tracking-tight font-editorial text-text-primary">
             Study Workspace
           </h1>
-          <p className="text-xs sm:text-sm text-text-secondary mt-0.5">
-            Welcome back, {currentUser?.name ? currentUser.name.split(' ')[0] : 'Scholar'}. Here is your active study desk.
+          <p className="text-xs text-text-secondary mt-0.5">
+            Welcome back, {currentUser?.name ? currentUser.name.split(' ')[0] : 'Scholar'}. Track your courses, attendance, and notes.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="text-xs font-mono-tabular text-text-muted bg-[#EFECE6] px-3 py-1.5 rounded-lg border border-border-subtle">
-            {currentUser?.semester ? `SEMESTER ${currentUser.semester}` : 'ACTIVE TERM'} • 75% MINIMUM TARGET
-          </div>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <span className="text-[11px] font-mono-tabular text-text-muted bg-subtle px-2.5 py-1 rounded-md border border-border-subtle">
+            {currentUser?.semester ? `SEM ${currentUser.semester}` : 'ACTIVE TERM'} • 75% MINIMUM TARGET
+          </span>
         </div>
       </div>
 
       {/* =================================================================
-          TOP HERO WIDGET: CONTINUE LEARNING WHERE YOU LEFT OFF
+          TOP HERO: COMPACT CONTINUE LEARNING BAR
+          Mobile: Sleek horizontal row (~84px height) so it doesn't swallow the phone screen!
+          Desktop: Compact horizontal banner (~120px)
       ================================================================= */}
-      <section className="rounded-xl p-5 border border-border-subtle bg-surface shadow-sm">
-        <div className="flex items-center justify-between mb-3.5">
-          <h2 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular flex items-center gap-2">
-            <Play size={14} className="text-accent-forest" />
-            Continue Learning
-          </h2>
-          <span className="text-xs font-medium px-2.5 py-0.5 rounded bg-[#EFECE6] text-text-secondary font-mono-tabular">
-            RESUME TRACK
-          </span>
-        </div>
-
-        {/* 16:9 Video Frame + Resume Banner */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
-          <div
-            onClick={handleResumeHero}
-            className="lg:col-span-6 xl:col-span-5 relative aspect-video rounded-lg overflow-hidden cursor-pointer group border border-border-subtle bg-[#141413]"
-          >
+      <div
+        onClick={handleResumeHero}
+        className="rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover/80 p-3 sm:p-4 transition-all cursor-pointer group shadow-sm"
+      >
+        <div className="flex items-center gap-3 sm:gap-4">
+          {/* 16:9 Thumbnail (Compact & Proportional) */}
+          <div className="relative w-24 sm:w-44 md:w-52 aspect-video rounded-lg overflow-hidden shrink-0 bg-black border border-border-subtle">
             <img
               src={activeHero.thumbnail}
               alt={activeHero.title}
-              className="w-full h-full object-cover opacity-90 group-hover:scale-[1.02] transition-transform duration-300"
+              className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-300"
             />
-            <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center transition-transform group-hover:scale-105 bg-[#141413]/85 text-white shadow-lg">
-                <Play size={20} fill="#FFFFFF" className="ml-0.5" />
+            <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+              <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center bg-black/80 text-white shadow-md">
+                <Play size={13} fill="#FFFFFF" className="ml-0.5" />
               </div>
             </div>
-            <span className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded text-[11px] font-mono-tabular font-medium bg-[#141413]/85 text-[#F7F5F0]">
+            <span className="absolute bottom-1 right-1 px-1 py-0.2 rounded text-[9px] sm:text-[10px] font-mono-tabular bg-black/85 text-white">
               {activeHero.duration}
             </span>
           </div>
 
-          <div className="lg:col-span-6 xl:col-span-7 flex flex-col justify-between space-y-4">
+          {/* Module Information & Progress */}
+          <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
             <div>
-              <span className="text-[11px] font-mono-tabular font-semibold text-accent-forest uppercase">
-                ACTIVE LECTURE MODULE
-              </span>
-              <h3 className="text-lg sm:text-xl font-bold leading-snug mt-0.5 text-text-primary">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono-tabular font-bold text-accent-forest uppercase tracking-wider">
+                  CONTINUE LEARNING
+                </span>
+                <span className="hidden sm:inline text-[11px] text-text-muted font-mono-tabular">
+                  • {activeHero.progress}% Completed
+                </span>
+              </div>
+              <h3 className="text-xs sm:text-base font-bold text-text-primary truncate mt-0.5 group-hover:text-accent-forest transition-colors">
                 {activeHero.title}
               </h3>
-              <p className="text-xs sm:text-sm text-text-secondary mt-1">
+              <p className="text-[11px] sm:text-xs text-text-muted truncate mt-0.5">
                 {activeHero.moduleTitle}
               </p>
             </div>
 
-            {/* Progress Track */}
-            <div className="space-y-1.5">
-              <div className="w-full h-2 rounded-full overflow-hidden bg-[#EFECE6]">
+            {/* Hairline Progress Track */}
+            <div className="mt-2 flex items-center gap-2">
+              <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-subtle">
                 <div
                   className="h-full rounded-full bg-accent-forest transition-all duration-300"
                   style={{ width: `${activeHero.progress}%` }}
                 />
               </div>
-              <div className="flex justify-between text-[11px] text-text-muted font-mono-tabular">
-                <span>{activeHero.progress}% COMPLETED</span>
-                <span>MODULE 3 OF 8</span>
-              </div>
-            </div>
-
-            <div className="pt-2 flex items-center gap-3">
-              <button
-                onClick={handleResumeHero}
-                className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark flex items-center gap-1.5 transition-all hover:opacity-95 active:scale-95 cursor-pointer"
-              >
-                <span>Resume Lecture</span>
-                <ArrowRight size={14} />
-              </button>
-              <button
-                onClick={() => setCurrentView('learning')}
-                className="px-3.5 py-2 rounded-lg text-xs font-semibold border border-border-subtle bg-surface hover:bg-[#FAF8F5] text-text-secondary cursor-pointer"
-              >
-                All Subjects
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* =================================================================
-          DASHBOARD WIDGETS BENTO GRID (Responsive & Bite-Sized)
-      ================================================================= */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 items-start">
-        {/* ===============================================================
-            WIDGET 1: ATTENDANCE BUFFER SNAPSHOT (4 cols)
-        =============================================================== */}
-        <div className="lg:col-span-4 rounded-xl p-5 border border-border-subtle bg-surface shadow-sm space-y-4 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-              <div className="flex items-center gap-2">
-                <Calendar size={15} className="text-accent-forest" />
-                <h3 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
-                  Attendance Snapshot
-                </h3>
-              </div>
-              <button
-                onClick={() => setCurrentView('attendance')}
-                className="text-xs font-semibold text-text-secondary hover:text-text-primary cursor-pointer"
-              >
-                Full Ledger →
-              </button>
-            </div>
-
-            {/* Attendance Percentage Metric */}
-            <div className="mt-4 flex items-baseline justify-between">
-              <div>
-                <span className="text-3xl font-extrabold font-mono-tabular text-text-primary">
-                  {attendanceMetrics.percentage}%
-                </span>
-                <span className="text-xs text-text-muted ml-2 font-mono-tabular">
-                  ({attendanceMetrics.attended}/{attendanceMetrics.total} classes)
-                </span>
-              </div>
-              <span
-                className={`px-2.5 py-0.5 rounded text-xs font-bold font-mono-tabular ${
-                  attendanceMetrics.isSafe
-                    ? 'bg-[#E6F0E9] text-accent-forest border border-[#C2DEC9]'
-                    : 'bg-[#FDECEC] text-accent-danger border border-[#F5C2C2]'
-                }`}
-              >
-                {attendanceMetrics.isSafe ? 'SAFE' : 'ALERT'}
+              <span className="sm:hidden text-[10px] font-mono-tabular text-text-muted shrink-0">
+                {activeHero.progress}%
               </span>
             </div>
-
-            {/* Target Status Bar */}
-            <div className="mt-3 space-y-1">
-              <div className="w-full h-1.5 rounded-full overflow-hidden bg-[#EFECE6]">
-                <div
-                  className={`h-full rounded-full transition-all duration-300 ${
-                    attendanceMetrics.isSafe ? 'bg-accent-forest' : 'bg-accent-danger'
-                  }`}
-                  style={{ width: `${Math.min(100, Math.max(5, parseFloat(attendanceMetrics.percentage)))}%` }}
-                />
-              </div>
-              <p className="text-xs text-text-secondary mt-2 leading-relaxed">
-                {attendanceMetrics.pillText}
-              </p>
-            </div>
           </div>
 
-          <div className="pt-3 border-t border-border-subtle">
-            <button
-              onClick={() => setCurrentView('attendance')}
-              className="w-full py-2 rounded-lg text-xs font-semibold border border-border-subtle bg-[#FAF8F5] hover:bg-[#EFECE6] text-text-primary flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-            >
-              <CalendarDays size={13} />
-              <span>Log Today's Classes</span>
-            </button>
+          {/* Desktop Right CTA Pill */}
+          <div className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark shrink-0 transition-transform group-hover:translate-x-0.5">
+            <span>Resume</span>
+            <ArrowRight size={13} />
           </div>
         </div>
+      </div>
 
+      {/* =================================================================
+          MAIN BALANCED 2-COLUMN STUDIO GRID
+          No Asymmetric Bento Holes • Clear Visual Hierarchy • No Box-in-Box
+      ================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* ===============================================================
-            WIDGET 2: MY ACTIVE COURSES WIDGET (4 cols)
+            LEFT COLUMN (7 cols): Enrolled Courses & Timestamped Notes
         =============================================================== */}
-        <div className="lg:col-span-4 rounded-xl p-5 border border-border-subtle bg-surface shadow-sm space-y-4 flex flex-col justify-between">
-          <div>
+        <div className="lg:col-span-7 xl:col-span-7 space-y-5">
+          {/* SECTION 1: ENROLLED SUBJECTS & COURSES */}
+          <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm">
             <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
               <div className="flex items-center gap-2">
-                <BookOpen size={15} className="text-text-primary" />
-                <h3 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
-                  My Active Subjects
-                </h3>
+                <BookOpen size={16} className="text-text-primary" />
+                <h2 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
+                  Enrolled Subjects & Modules
+                </h2>
               </div>
               <button
                 onClick={() => setCurrentView('learning')}
-                className="text-xs font-semibold text-text-secondary hover:text-text-primary cursor-pointer"
+                className="text-xs font-semibold text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
               >
-                Catalog ({courses.length}) →
+                All Subjects ({courses.length}) &rarr;
               </button>
             </div>
 
-            {/* Compact List of Enrolled Courses */}
-            <div className="mt-3 space-y-2.5">
+            {/* Clean List Rows (No AI box inside a box!) */}
+            <div className="divide-y divide-border-subtle">
               {enrolledSubjectCourses.length > 0 ? (
-                enrolledSubjectCourses.slice(0, 3).map((item) => (
+                enrolledSubjectCourses.slice(0, 4).map((item) => (
                   <div
                     key={item.id}
                     onClick={() => {
@@ -441,66 +358,78 @@ export default function MyLearningView({
                       if (setSelectedVideoIndex) setSelectedVideoIndex(0);
                       setCurrentView('learning-player');
                     }}
-                    className="p-2.5 rounded-lg border border-border-subtle hover:border-border-strong hover:bg-[#FAF8F5] cursor-pointer transition-all flex items-center justify-between gap-3 group"
+                    className="py-3 flex items-center justify-between gap-3 hover:bg-surface-hover/60 px-2 -mx-2 rounded-lg transition-colors cursor-pointer group"
                   >
-                    <div className="min-w-0">
-                      <h4 className="text-xs font-bold text-text-primary truncate group-hover:text-accent-forest transition-colors">
-                        {item.title}
-                      </h4>
-                      <span className="text-[11px] text-text-muted truncate block">
-                        {item.subjectTitle} • {item.author}
-                      </span>
+                    <div className="flex items-center gap-3 min-w-0">
+                      {/* Compact Icon / Thumbnail */}
+                      <div className="w-10 h-10 rounded-md overflow-hidden bg-subtle shrink-0 flex items-center justify-center border border-border-subtle">
+                        {item.thumbnailUrl ? (
+                          <img src={item.thumbnailUrl} alt={item.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <BookOpen size={16} className="text-text-muted" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-xs sm:text-sm font-bold text-text-primary truncate group-hover:text-accent-forest transition-colors">
+                          {item.title}
+                        </h4>
+                        <span className="text-[11px] text-text-muted truncate block mt-0.5 font-mono-tabular">
+                          {item.subjectTitle} • {item.videoCount} Lectures
+                        </span>
+                      </div>
                     </div>
-                    <ArrowRight size={13} className="shrink-0 text-text-muted group-hover:translate-x-0.5 transition-transform" />
+
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      <div className="hidden sm:flex flex-col items-end">
+                        <span className="text-[10px] font-mono-tabular text-text-muted">
+                          {item.progress}%
+                        </span>
+                        <div className="w-14 h-1 rounded-full bg-subtle overflow-hidden mt-1">
+                          <div
+                            className="h-full bg-accent-forest rounded-full"
+                            style={{ width: `${item.progress}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center bg-subtle group-hover:bg-accent-ink group-hover:text-text-on-dark transition-colors">
+                        <Play size={11} fill="currentColor" className="ml-0.5" />
+                      </div>
+                    </div>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-6 text-xs text-text-muted">
-                  <p>No active courses yet.</p>
+                <div className="py-8 text-center text-xs text-text-muted space-y-2">
+                  <p>You haven't enrolled in any subjects yet.</p>
                   <button
                     onClick={() => setCurrentView('learning')}
-                    className="mt-2 text-xs font-semibold text-accent-forest hover:underline cursor-pointer"
+                    className="text-xs font-semibold text-accent-forest hover:underline cursor-pointer"
                   >
                     Browse Catalog &rarr;
                   </button>
                 </div>
               )}
             </div>
-          </div>
+          </section>
 
-          <div className="pt-3 border-t border-border-subtle">
-            <button
-              onClick={() => setCurrentView('learning')}
-              className="w-full py-2 rounded-lg text-xs font-semibold border border-border-subtle bg-[#FAF8F5] hover:bg-[#EFECE6] text-text-primary flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-            >
-              <span>Explore All Subjects</span>
-              <ArrowRight size={13} />
-            </button>
-          </div>
-        </div>
-
-        {/* ===============================================================
-            WIDGET 3: MY TIMESTAMPED NOTES WIDGET (4 cols)
-        =============================================================== */}
-        <div className="lg:col-span-4 rounded-xl p-5 border border-border-subtle bg-surface shadow-sm space-y-4 flex flex-col justify-between">
-          <div>
+          {/* SECTION 2: TIMESTAMPED LECTURE NOTES */}
+          <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm">
             <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
               <div className="flex items-center gap-2">
-                <FileText size={15} className="text-accent-amber" />
-                <h3 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
-                  My Lecture Notes
-                </h3>
+                <FileText size={16} className="text-accent-amber" />
+                <h2 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
+                  Recent Lecture Notes
+                </h2>
               </div>
               <button
                 onClick={() => setCurrentView('resources')}
-                className="text-xs font-semibold text-text-secondary hover:text-text-primary cursor-pointer"
+                className="text-xs font-semibold text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
               >
-                Vault →
+                Vault &rarr;
               </button>
             </div>
 
-            {/* Note Previews */}
-            <div className="mt-3 space-y-2.5">
+            {/* Clean Timeline List Rows */}
+            <div className="divide-y divide-border-subtle">
               {userRecentNotes.slice(0, 3).map((note) => (
                 <div
                   key={note.id}
@@ -510,145 +439,184 @@ export default function MyLearningView({
                     }
                     setCurrentView('learning-player');
                   }}
-                  className="p-2.5 rounded-lg border border-border-subtle hover:border-border-strong hover:bg-[#FAF8F5] cursor-pointer transition-all space-y-1 group"
+                  className="py-3 hover:bg-surface-hover/60 px-2 -mx-2 rounded-lg transition-colors cursor-pointer group"
                 >
-                  <div className="flex items-center justify-between text-[11px] font-mono-tabular">
+                  <div className="flex items-center justify-between text-[11px] font-mono-tabular mb-1">
                     <span className="font-semibold text-accent-forest">
                       [{note.timestamp}]
                     </span>
-                    <span className="text-text-muted truncate max-w-[140px]">
+                    <span className="text-text-muted truncate max-w-[200px]">
                       {note.courseTitle || 'Lecture'}
                     </span>
                   </div>
-                  <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed group-hover:text-text-primary transition-colors">
                     {note.text}
                   </p>
                 </div>
               ))}
             </div>
-          </div>
-
-          <div className="pt-3 border-t border-border-subtle">
-            <button
-              onClick={() => {
-                if (setSelectedPlaylistId) setSelectedPlaylistId(activeHero.id);
-                setCurrentView('learning-player');
-              }}
-              className="w-full py-2 rounded-lg text-xs font-semibold border border-border-subtle bg-[#FAF8F5] hover:bg-[#EFECE6] text-text-primary flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-            >
-              <span>Take Notes in Player</span>
-              <ArrowRight size={13} />
-            </button>
-          </div>
+          </section>
         </div>
 
         {/* ===============================================================
-            WIDGET 4: ACADEMIC VAULT / SAVED RESOURCES (6 cols)
+            RIGHT COLUMN (5 cols): Attendance, Timetable, Vault
         =============================================================== */}
-        <div className="lg:col-span-6 rounded-xl p-5 border border-border-subtle bg-surface shadow-sm space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-            <div className="flex items-center gap-2">
-              <BookmarkCheck size={15} className="text-accent-forest" />
-              <h3 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
-                Academic Vault & Formulas
-              </h3>
-            </div>
-            <button
-              onClick={() => setCurrentView('resources')}
-              className="text-xs font-semibold text-text-secondary hover:text-text-primary cursor-pointer"
-            >
-              All Resources ({standaloneResources?.length || 0}) →
-            </button>
-          </div>
-
-          <div className="space-y-2.5">
-            {topVaultResources.map((res) => (
-              <div
-                key={res.id}
-                className="p-3 rounded-lg border border-border-subtle flex items-center justify-between gap-3 hover:bg-[#FAF8F5] transition-colors"
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono-tabular font-bold bg-[#EFECE6] text-text-primary uppercase">
-                      {res.type || 'PDF'}
-                    </span>
-                    <h4 className="text-xs font-bold text-text-primary truncate">
-                      {res.title}
-                    </h4>
-                  </div>
-                  <span className="text-[11px] text-text-muted mt-0.5 block truncate">
-                    {res.category} • {res.author}
-                  </span>
-                </div>
-
-                <a
-                  href={res.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="p-2 rounded-lg border border-border-subtle hover:bg-surface text-text-secondary hover:text-text-primary shrink-0"
-                  title="Download / View Resource"
-                >
-                  <Download size={14} />
-                </a>
+        <div className="lg:col-span-5 xl:col-span-5 space-y-5">
+          {/* WIDGET 1: ATTENDANCE SNAPSHOT */}
+          <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+              <div className="flex items-center gap-2">
+                <Calendar size={16} className="text-accent-forest" />
+                <h2 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
+                  Attendance Buffer
+                </h2>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ===============================================================
-            WIDGET 5: TODAY'S TIMETABLE / SCHEDULE (6 cols)
-        =============================================================== */}
-        <div className="lg:col-span-6 rounded-xl p-5 border border-border-subtle bg-surface shadow-sm space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-            <div className="flex items-center gap-2">
-              <Clock size={15} className="text-text-primary" />
-              <h3 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
-                Today's Schedule • {todayClasses.currentDay}
-              </h3>
+              <button
+                onClick={() => setCurrentView('attendance')}
+                className="text-xs font-semibold text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
+              >
+                Full Ledger &rarr;
+              </button>
             </div>
+
+            {/* Attendance Percentage & Metric */}
+            <div className="flex items-baseline justify-between">
+              <div>
+                <span className="text-3xl font-extrabold font-mono-tabular text-text-primary">
+                  {attendanceMetrics.percentage}%
+                </span>
+                <span className="text-xs text-text-muted ml-2 font-mono-tabular">
+                  ({attendanceMetrics.attended}/{attendanceMetrics.total} classes)
+                </span>
+              </div>
+              <span
+                className={`px-2.5 py-0.5 rounded text-xs font-bold font-mono-tabular border ${
+                  attendanceMetrics.isSafe ? 'pill-safe' : 'pill-alert'
+                }`}
+              >
+                {attendanceMetrics.isSafe ? 'SAFE' : 'ALERT'}
+              </span>
+            </div>
+
+            {/* Target Visual Indicator */}
+            <div className="space-y-1.5">
+              <div className="w-full h-1.5 rounded-full overflow-hidden bg-subtle">
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    attendanceMetrics.isSafe ? 'bg-accent-forest' : 'bg-accent-danger'
+                  }`}
+                  style={{ width: `${Math.min(100, Math.max(5, parseFloat(attendanceMetrics.percentage)))}%` }}
+                />
+              </div>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                {attendanceMetrics.pillText}
+              </p>
+            </div>
+
             <button
               onClick={() => setCurrentView('attendance')}
-              className="text-xs font-semibold text-text-secondary hover:text-text-primary cursor-pointer"
+              className="w-full py-2 rounded-lg text-xs font-semibold border border-border-subtle bg-surface-hover hover:bg-subtle text-text-primary flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
             >
-              View Routine →
+              <CalendarDays size={13} />
+              <span>Log Today's Classes</span>
             </button>
-          </div>
+          </section>
 
-          {todayClasses.dayClasses.length > 0 ? (
-            <div className="space-y-2.5">
-              {todayClasses.dayClasses.slice(0, 3).map((item, idx) => (
-                <div
-                  key={item.id || idx}
-                  className="p-3 rounded-lg border border-border-subtle flex items-center justify-between gap-3"
-                >
-                  <div>
-                    <h4 className="text-xs font-bold text-text-primary">
-                      {item.subjectName || item.title || 'Academic Lecture'}
-                    </h4>
-                    <span className="text-[11px] text-text-muted font-mono-tabular">
-                      {item.startTime || '10:00 AM'} - {item.endTime || '11:00 AM'} • {item.room || 'Room 101'}
+          {/* WIDGET 2: TODAY'S TIMETABLE / CLASSES */}
+          <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm space-y-3">
+            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+              <div className="flex items-center gap-2">
+                <Clock size={16} className="text-text-primary" />
+                <h2 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
+                  Today • {todayClasses.currentDay}
+                </h2>
+              </div>
+              <button
+                onClick={() => setCurrentView('attendance')}
+                className="text-xs font-semibold text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
+              >
+                Timetable &rarr;
+              </button>
+            </div>
+
+            {todayClasses.dayClasses.length > 0 ? (
+              <div className="divide-y divide-border-subtle">
+                {todayClasses.dayClasses.slice(0, 3).map((item, idx) => (
+                  <div key={item.id || idx} className="py-2.5 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold text-text-primary truncate">
+                        {item.subjectName || item.title || 'Lecture'}
+                      </h4>
+                      <span className="text-[11px] text-text-muted font-mono-tabular">
+                        {item.startTime || '10:00 AM'} - {item.endTime || '11:00 AM'} • {item.room || 'Room 101'}
+                      </span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono-tabular font-bold pill-safe shrink-0 border">
+                      SCHEDULED
                     </span>
                   </div>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono-tabular font-bold bg-[#E6F0E9] text-accent-forest">
-                    SCHEDULED
-                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="py-4 text-center text-xs text-text-muted">
+                <p>No classes scheduled for today.</p>
+                <button
+                  onClick={() => setCurrentView('attendance')}
+                  className="mt-1 text-xs font-semibold text-accent-forest hover:underline cursor-pointer"
+                >
+                  Configure Routine &rarr;
+                </button>
+              </div>
+            )}
+          </section>
+
+          {/* WIDGET 3: ACADEMIC VAULT QUICK LINKS */}
+          <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm space-y-3">
+            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+              <div className="flex items-center gap-2">
+                <BookmarkCheck size={16} className="text-accent-forest" />
+                <h2 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
+                  Academic Vault
+                </h2>
+              </div>
+              <button
+                onClick={() => setCurrentView('resources')}
+                className="text-xs font-semibold text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
+              >
+                All ({standaloneResources?.length || 0}) &rarr;
+              </button>
+            </div>
+
+            <div className="divide-y divide-border-subtle">
+              {topVaultResources.map((res) => (
+                <div key={res.id} className="py-2.5 flex items-center justify-between gap-3 group">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-mono-tabular font-bold bg-subtle text-text-primary uppercase border border-border-subtle">
+                        {res.type || 'PDF'}
+                      </span>
+                      <h4 className="text-xs font-bold text-text-primary truncate">
+                        {res.title}
+                      </h4>
+                    </div>
+                    <span className="text-[11px] text-text-muted mt-0.5 block truncate">
+                      {res.category}
+                    </span>
+                  </div>
+
+                  <a
+                    href={res.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-1.5 rounded-lg border border-border-subtle hover:bg-surface-hover text-text-secondary hover:text-text-primary shrink-0 transition-colors"
+                    title="Download / View Resource"
+                  >
+                    <Download size={13} />
+                  </a>
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="p-6 rounded-lg border border-dashed border-border-subtle text-center space-y-2">
-              <Calendar size={24} className="text-text-muted mx-auto" />
-              <p className="text-xs text-text-secondary">
-                No classes scheduled for {todayClasses.currentDay}. Enjoy your revision & study time!
-              </p>
-              <button
-                onClick={() => setCurrentView('attendance')}
-                className="text-xs font-semibold text-accent-forest hover:underline cursor-pointer"
-              >
-                Configure Timetable in Attendance Tracker &rarr;
-              </button>
-            </div>
-          )}
+          </section>
         </div>
       </div>
     </div>

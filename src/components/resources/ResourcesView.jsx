@@ -153,12 +153,11 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all"
-                style={{
-                  backgroundColor: isSelected ? '#141413' : '#FFFFFF',
-                  color: isSelected ? '#F7F5F0' : '#575550',
-                  borderColor: isSelected ? '#141413' : '#E4E0D8'
-                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-accent-ink text-text-on-dark border-accent-ink'
+                    : 'bg-surface text-text-secondary border-border-subtle hover:border-border-strong hover:text-text-primary'
+                }`}
               >
                 {tab.label}
               </button>
@@ -199,7 +198,7 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
                 className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-surface-hover transition-colors"
               >
                 <div className="flex items-start gap-3.5 min-w-0">
-                  <div className="w-10 h-10 rounded-lg border border-border-strong bg-[#EFECE6] flex items-center justify-center shrink-0 font-mono-tabular font-bold text-xs text-text-primary">
+                  <div className="w-10 h-10 rounded-lg border border-border-strong bg-subtle flex items-center justify-center shrink-0 font-mono-tabular font-bold text-xs text-text-primary">
                     {res.type ? res.type.toUpperCase() : 'PDF'}
                   </div>
                   <div className="min-w-0">
@@ -220,7 +219,7 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
                 <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                   <button
                     onClick={() => toggleSaveResource && toggleSaveResource(res.id)}
-                    className="p-2 rounded-lg border border-border-subtle bg-surface hover:bg-[#EFECE6] text-xs font-semibold"
+                    className="p-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold cursor-pointer transition-colors"
                     title={isSaved ? 'Remove Bookmark' : 'Bookmark Document'}
                   >
                     {isSaved ? (
@@ -232,7 +231,7 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
 
                   <button
                     onClick={(e) => handleCopy(res.id, e)}
-                    className="p-2 rounded-lg border border-border-subtle bg-surface hover:bg-[#EFECE6] text-xs font-semibold"
+                    className="p-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold cursor-pointer transition-colors"
                     title="Copy Document ID"
                   >
                     {copiedId === res.id ? (

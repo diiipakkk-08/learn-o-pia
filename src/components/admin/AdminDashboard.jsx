@@ -184,7 +184,7 @@ export default function AdminDashboard() {
   return (
     <div className="animate-fade-in" style={styles.container}>
       {/* Metrics Header widgets */}
-      <div className="admin-stats-grid">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
         <div className="glass-panel" style={styles.statCard}>
           <div style={styles.statHeader}>
             <span style={styles.statLabel}>Total Accounts</span>
@@ -199,7 +199,7 @@ export default function AdminDashboard() {
         <div className="glass-panel" style={styles.statCard}>
           <div style={styles.statHeader}>
             <span style={styles.statLabel}>Degree Programs</span>
-            <BookOpen size={20} color="#141413" />
+            <BookOpen size={20} color="var(--primary)" />
           </div>
           <div style={styles.statVal}>{totalCourses}</div>
           <div style={styles.statFooter}>
@@ -222,94 +222,87 @@ export default function AdminDashboard() {
       </div>
 
       {/* Main Admin Console */}
-      <div className="admin-layout-grid">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         
         {/* Navigation Sidebar */}
-        <div style={styles.sidebarPanel} className="glass-panel">
+        <div className="glass-panel p-4 lg:col-span-4 xl:col-span-3">
           <h4 style={styles.sidebarTitle}>Admin Panel Operations</h4>
-          <div style={styles.sideTabs}>
+          <div className="flex flex-col gap-1.5">
             <button 
               onClick={() => setActiveTab('verification')}
-              style={{
-                ...styles.sideTab,
-                background: activeTab === 'verification' ? '#141413' : 'transparent', fontWeight: activeTab === 'verification' ? 600 : 500,
-                borderLeftColor: activeTab === 'verification' ? 'var(--primary)' : 'transparent',
-                color: activeTab === 'verification' ? '#F7F5F0' : 'var(--text-secondary)'
-              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono-tabular transition-all text-left border-l-[3px] ${
+                activeTab === 'verification'
+                  ? 'bg-surface-hover text-text-primary font-bold border-accent-forest shadow-xs'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover/50 border-transparent font-medium'
+              }`}
             >
               <Award size={15} />
-              Creator Queue ({pendingCreators.length})
+              <span>Creator Queue ({pendingCreators.length})</span>
             </button>
 
             <button 
               onClick={() => setActiveTab('student-verify')}
-              style={{
-                ...styles.sideTab,
-                background: activeTab === 'student-verify' ? '#141413' : 'transparent', fontWeight: activeTab === 'student-verify' ? 600 : 500,
-                borderLeftColor: activeTab === 'student-verify' ? 'var(--primary)' : 'transparent',
-                color: activeTab === 'student-verify' ? '#F7F5F0' : 'var(--text-secondary)'
-              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono-tabular transition-all text-left border-l-[3px] ${
+                activeTab === 'student-verify'
+                  ? 'bg-surface-hover text-text-primary font-bold border-accent-forest shadow-xs'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover/50 border-transparent font-medium'
+              }`}
             >
               <ShieldCheck size={15} />
-              ID Verification Queue ({pendingStudentVerifications.length})
+              <span>ID Verification Queue ({pendingStudentVerifications.length})</span>
             </button>
             
             <button 
               onClick={() => setActiveTab('directory')}
-              style={{
-                ...styles.sideTab,
-                background: activeTab === 'directory' ? '#141413' : 'transparent', fontWeight: activeTab === 'directory' ? 600 : 500,
-                borderLeftColor: activeTab === 'directory' ? 'var(--primary)' : 'transparent',
-                color: activeTab === 'directory' ? '#F7F5F0' : 'var(--text-secondary)'
-              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono-tabular transition-all text-left border-l-[3px] ${
+                activeTab === 'directory'
+                  ? 'bg-surface-hover text-text-primary font-bold border-accent-forest shadow-xs'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover/50 border-transparent font-medium'
+              }`}
             >
               <Users size={15} />
-              User Directories
+              <span>User Directories</span>
             </button>
 
             <button 
               onClick={() => setActiveTab('routines')}
-              style={{
-                ...styles.sideTab,
-                background: activeTab === 'routines' ? '#141413' : 'transparent', fontWeight: activeTab === 'routines' ? 600 : 500,
-                borderLeftColor: activeTab === 'routines' ? 'var(--primary)' : 'transparent',
-                color: activeTab === 'routines' ? '#F7F5F0' : 'var(--text-secondary)'
-              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono-tabular transition-all text-left border-l-[3px] ${
+                activeTab === 'routines'
+                  ? 'bg-surface-hover text-text-primary font-bold border-accent-forest shadow-xs'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover/50 border-transparent font-medium'
+              }`}
             >
               <CalendarDays size={15} color="#38bdf8" />
-              Routine Generator ({sharedRoutinesList.length})
+              <span>Routine Generator ({sharedRoutinesList.length})</span>
             </button>
 
             <button 
               onClick={() => setActiveTab('ads')}
-              style={{
-                ...styles.sideTab,
-                background: activeTab === 'ads' ? '#141413' : 'transparent', fontWeight: activeTab === 'ads' ? 600 : 500,
-                borderLeftColor: activeTab === 'ads' ? 'var(--primary)' : 'transparent',
-                color: activeTab === 'ads' ? '#F7F5F0' : 'var(--text-secondary)'
-              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono-tabular transition-all text-left border-l-[3px] ${
+                activeTab === 'ads'
+                  ? 'bg-surface-hover text-text-primary font-bold border-accent-forest shadow-xs'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover/50 border-transparent font-medium'
+              }`}
             >
               <Heart size={15} color="var(--primary)" />
-              Ads & Pop-up Controls
+              <span>Ads & Pop-up Controls</span>
             </button>
 
             <button 
               onClick={() => setActiveTab('announcements')}
-              style={{
-                ...styles.sideTab,
-                background: activeTab === 'announcements' ? '#141413' : 'transparent', fontWeight: activeTab === 'announcements' ? 600 : 500,
-                borderLeftColor: activeTab === 'announcements' ? 'var(--primary)' : 'transparent',
-                color: activeTab === 'announcements' ? '#F7F5F0' : 'var(--text-secondary)'
-              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono-tabular transition-all text-left border-l-[3px] ${
+                activeTab === 'announcements'
+                  ? 'bg-surface-hover text-text-primary font-bold border-accent-forest shadow-xs'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover/50 border-transparent font-medium'
+              }`}
             >
               <Megaphone size={15} color="#a78bfa" />
-              Announcements & Broadcasts ({announcements?.length || 0})
+              <span>Announcements & Broadcasts ({announcements?.length || 0})</span>
             </button>
           </div>
         </div>
-
-        {/* Console panel content */}
-        <div className="glass-panel" style={styles.contentWorkspace}>
+      {/* Console panel content */}
+        <div className="glass-panel p-6 lg:col-span-8 xl:col-span-9" style={styles.contentWorkspace}>
           
           {/* TAB 1: Creator Verification Queue */}
           {activeTab === 'verification' && (
@@ -406,11 +399,11 @@ export default function AdminDashboard() {
                             <span className="badge badge-learner" style={{ fontSize: '0.65rem', marginBottom: '4px', display: 'inline-block' }}>
                               {student.verificationType === 'professor' ? '👨‍🏫 Professor' : student.verificationType === 'creator' ? '✨ Creator' : '🎓 Student'}
                             </span>
-                            <span style={{ display: 'block', fontSize: '0.8rem', color: '#ffffff' }}>{student.college || 'Institution not set'}</span>
+                            <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-primary)' }}>{student.college || 'Institution not set'}</span>
                             <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)' }}>{student.department || ''}</span>
                           </td>
                           <td style={styles.td}>
-                            <span style={{ fontSize: '0.8rem', color: '#ffffff' }}>{student.phone || 'No phone'}</span>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-primary)' }}>{student.phone || 'No phone'}</span>
                           </td>
                           <td style={styles.td}>
                             {student.idCardLink ? (
@@ -479,10 +472,10 @@ export default function AdminDashboard() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '14px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{ width: 40, height: 40, borderRadius: '12px', background: '#EFECE6', border: '1px solid #CFCAC0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <ShieldCheck size={22} color="#ffffff" />
+                          <ShieldCheck size={22} color="var(--accent-forest, #1E5631)" />
                         </div>
                         <div>
-                          <h3 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>Identity Verification Inspection</h3>
+                          <h3 style={{ fontSize: '1.2rem', margin: 0, color: 'var(--text-primary)' }}>Identity Verification Inspection</h3>
                           <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Compare applicant's submitted data against their institutional document proof</span>
                         </div>
                       </div>
@@ -605,7 +598,7 @@ export default function AdminDashboard() {
                         </div>
 
                         <div style={{ padding: '14px', background: 'rgba(20, 20, 19, 0.06)', borderRadius: '14px', border: '1px solid rgba(20, 20, 19, 0.06)', fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                          <strong style={{ color: '#ffffff', display: 'block', marginBottom: 4 }}>💡 Verification Guide:</strong>
+                          <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: 4 }}>💡 Verification Guide:</strong>
                           Check that the student's Full Name, College Name, and Course Match what is displayed on their institutional identity card or grade card document.
                         </div>
 
@@ -800,7 +793,7 @@ export default function AdminDashboard() {
                 
                 {/* COLUMN 1: Routine Generator Form */}
                 <div style={{ padding: '20px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
-                  <h4 style={{ fontSize: '0.95rem', color: '#ffffff', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <h4 style={{ fontSize: '0.95rem', color: 'var(--text-primary)', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <CalendarDays size={18} color="var(--primary)" /> Generate New Routine ID
                   </h4>
 
@@ -891,7 +884,7 @@ export default function AdminDashboard() {
                       <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#34d399', fontWeight: 700 }}>
                         Shareable Routine ID
                       </span>
-                      <div style={{ fontSize: '2.2rem', fontWeight: 800, color: '#ffffff', letterSpacing: '0.12em', margin: '6px 0', fontFamily: 'monospace' }}>
+                      <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.12em', margin: '6px 0', fontFamily: 'monospace' }}>
                         {routineGenCode}
                       </div>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: 12 }}>
@@ -917,7 +910,7 @@ export default function AdminDashboard() {
                 {/* COLUMN 2: Active Shared Routines Database */}
                 <div style={{ padding: '20px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                    <h4 style={{ fontSize: '0.95rem', color: '#ffffff', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <h4 style={{ fontSize: '0.95rem', color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                       <BookCheck size={18} color="#38bdf8" /> Published Routines ({sharedRoutinesList.length})
                     </h4>
                   </div>
@@ -945,7 +938,7 @@ export default function AdminDashboard() {
                           }}
                         >
                           <div>
-                            <strong style={{ color: '#ffffff', fontSize: '0.88rem', display: 'block' }}>
+                            <strong style={{ color: 'var(--text-primary)', fontSize: '0.88rem', display: 'block' }}>
                               {item.title || 'Curated Routine'}
                             </strong>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
@@ -1036,7 +1029,7 @@ export default function AdminDashboard() {
                       background: adEnabled ? '#10b981' : '#ef4444',
                       boxShadow: adEnabled ? '0 0 10px #10b981' : '0 0 10px #ef4444'
                     }} />
-                    <strong style={{ fontSize: '1rem', color: '#ffffff' }}>
+                    <strong style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>
                       {adEnabled ? 'Ad System is Active & Broadcasting' : 'Ad System is Completely TURNED OFF FOREVER'}
                     </strong>
                   </div>
@@ -1101,7 +1094,7 @@ export default function AdminDashboard() {
                 {/* Interval & Skip Controls */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
                   <div style={{ padding: '16px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
-                    <label className="form-label" style={{ fontSize: '0.8rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
                       <Clock size={14} color="var(--primary)" /> Ad Frequency Interval (Minutes)
                     </label>
                     <input
@@ -1130,7 +1123,7 @@ export default function AdminDashboard() {
                   </div>
 
                   <div style={{ padding: '16px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
-                    <label className="form-label" style={{ fontSize: '0.8rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <label className="form-label" style={{ fontSize: '0.8rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
                       <Sliders size={14} color="var(--primary)" /> Skip Button Delay (Seconds)
                     </label>
                     <input
@@ -1161,7 +1154,7 @@ export default function AdminDashboard() {
 
                 {/* Video Ad YouTube Link */}
                 <div style={{ padding: '16px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
-                  <label className="form-label" style={{ fontSize: '0.8rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <label className="form-label" style={{ fontSize: '0.8rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Video size={14} color="var(--primary)" /> YouTube Video Ad / Sponsor Link (Optional)
                   </label>
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '2px 0 8px 0' }}>
@@ -1249,7 +1242,7 @@ export default function AdminDashboard() {
 
               {/* BROADCAST FORM */}
               <form onSubmit={handleBroadcastSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '20px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid rgba(20, 20, 19, 0.06)', marginBottom: '24px' }}>
-                <h4 style={{ fontSize: '0.95rem', color: '#ffffff', margin: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <h4 style={{ fontSize: '0.95rem', color: 'var(--text-primary)', margin: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Megaphone size={16} color="var(--primary)" /> Send Broadcast Announcement
                 </h4>
 
@@ -1314,7 +1307,7 @@ export default function AdminDashboard() {
 
               {/* RECENT BROADCAST HISTORY */}
               <div>
-                <h4 style={{ fontSize: '0.95rem', color: '#ffffff', marginBottom: '12px', fontWeight: 700 }}>
+                <h4 style={{ fontSize: '0.95rem', color: 'var(--text-primary)', marginBottom: '12px', fontWeight: 700 }}>
                   Recent Broadcast Notifications ({announcements?.length || 0})
                 </h4>
 
@@ -1325,7 +1318,7 @@ export default function AdminDashboard() {
                     announcements.map((ann) => (
                       <div key={ann.id} style={{ padding: '14px 16px', borderRadius: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                          <strong style={{ color: '#ffffff', fontSize: '0.9rem' }}>{ann.title}</strong>
+                          <strong style={{ color: 'var(--text-primary)', fontSize: '0.9rem' }}>{ann.title}</strong>
                           <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                             {new Date(ann.createdAt).toLocaleDateString()}
                           </span>
@@ -1375,7 +1368,7 @@ const styles = {
   statVal: {
     fontSize: '2rem',
     fontWeight: 700,
-    color: '#ffffff',
+    color: 'var(--text-primary)',
     margin: '8px 0'
   },
   statFooter: {

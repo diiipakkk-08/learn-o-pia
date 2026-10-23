@@ -24,12 +24,15 @@
   --accent-ink: #141413;         /* Primary CTA buttons ("Resume", "Mark Present") */
   --accent-forest: #1E5631;      /* Progress bars, Completed checks, Safe Attendance */
   --accent-forest-bg: #E6F0E9;   /* Soft sage background for "Safe" status pills */
+  --border-pill-safe: #C2DEC9;
   
   --accent-amber: #9A5B13;       /* Attendance Warning / Pacing Alert text */
   --accent-amber-bg: #FDF3E7;    /* Soft amber background for "Attend next X" pills */
+  --border-pill-alert: #F5DCB7;
 
   --accent-danger: #A62626;      /* Critical shortage (<65%) or destructive action */
   --accent-danger-bg: #FDECEC;   /* Soft rose background for critical alerts */
+  --border-pill-danger: #F8C8C8;
 
   /* 5. Geometry & Elevation */
   --radius-sm: 6px;              /* Badges, small +/- buttons, kbd shortcuts */
@@ -53,24 +56,37 @@
   --error: #A62626;
 }
 
-/* Optional Focus Mode (Triggered inside LearningPlayer.jsx via "Dim Lights") */
-[data-theme="cinema"] {
+/* Professional Warm Editorial Obsidian Mode (Dim / Cinema / Dark) */
+[data-theme="cinema"],
+[data-theme="dark"],
+html[data-theme="cinema"],
+html[data-theme="dark"] {
   --bg-canvas: #141413;
   --bg-sidebar: #1C1C1A;
   --bg-surface: #222220;
   --bg-surface-hover: #2A2A27;
   --bg-subtle: #2E2E2B;
+
   --text-primary: #F2EFE9;
   --text-secondary: #A8A59E;
-  --text-muted: #6E6C66;
+  --text-muted: #73716B;
+  --text-on-dark: #141413;
+
   --border-subtle: #2E2E2B;
-  --border-strong: #42403B;
-  --accent-forest-bg: #1B3524;
+  --border-strong: #3D3B36;
+
+  --accent-ink: #F2EFE9;
   --accent-forest: #5CB87A;
-  --accent-amber-bg: #3E2911;
+  --accent-forest-bg: #1A3322;
+  --border-pill-safe: #2A4D35;
+
   --accent-amber: #E2A04B;
-  --accent-danger-bg: #3D1818;
+  --accent-amber-bg: #38240F;
+  --border-pill-alert: #5A3A19;
+
   --accent-danger: #F06868;
+  --accent-danger-bg: #381515;
+  --border-pill-danger: #5A2222;
 
   --bg-base: #141413;
   --bg-surface-solid: #222220;
@@ -192,19 +208,19 @@ body {
 .badge-success, .pill-safe {
   background-color: var(--accent-forest-bg);
   color: var(--accent-forest);
-  border-color: #C2DEC9;
+  border-color: var(--border-pill-safe);
 }
 
 .badge-warning, .pill-alert {
   background-color: var(--accent-amber-bg);
   color: var(--accent-amber);
-  border-color: #F5DCB7;
+  border-color: var(--border-pill-alert);
 }
 
 .badge-danger, .pill-danger {
   background-color: var(--accent-danger-bg);
   color: var(--accent-danger);
-  border-color: #F8C8C8;
+  border-color: var(--border-pill-danger);
 }
 
 @keyframes fadeIn {
