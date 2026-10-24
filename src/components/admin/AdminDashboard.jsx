@@ -63,6 +63,7 @@ export default function AdminDashboard() {
   // Announcement Broadcaster Form State
   const [annTitle, setAnnTitle] = useState('');
   const [annMessage, setAnnMessage] = useState('');
+  const [annAuthor, setAnnAuthor] = useState(currentUser?.name || 'Academic Admin');
   const [annResourceTitle, setAnnResourceTitle] = useState('');
   const [annResourceUrl, setAnnResourceUrl] = useState('');
   const [annToast, setAnnToast] = useState('');
@@ -75,8 +76,10 @@ export default function AdminDashboard() {
       await broadcastAnnouncement({
         title: annTitle.trim(),
         message: annMessage.trim(),
+        author: annAuthor.trim() || currentUser?.name || 'Academic Admin',
         resourceTitle: annResourceTitle.trim(),
-        resourceUrl: annResourceUrl.trim()
+        resourceUrl: annResourceUrl.trim(),
+        link: annResourceUrl.trim()
       });
 
       setAnnToast('📢 Announcement broadcasted! Linked resources auto-synced to Resources section.');
@@ -1277,16 +1280,30 @@ export default function AdminDashboard() {
                   <Megaphone size={16} color="var(--primary)" /> Send Broadcast Announcement
                 </h4>
 
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.8rem' }}>Announcement Headline / Title *</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. Mid-term Exam Schedule & Revision Notes Released"
-                    value={annTitle}
-                    onChange={(e) => setAnnTitle(e.target.value)}
-                    required
-                  />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Announcement Headline / Title *</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. Mid-term Exam Schedule & Revision Notes Released"
+                      value={annTitle}
+                      onChange={(e) => setAnnTitle(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }}>Author / Sender Name *</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="e.g. Admin Team, Academic Dean, or Your Name"
+                      value={annAuthor}
+                      onChange={(e) => setAnnAuthor(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -1354,11 +1371,34 @@ export default function AdminDashboard() {
                             {new Date(ann.createdAt).toLocaleDateString()}
                           </span>
                         </div>
-                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 6px 0' }}>{ann.message}</p>
-                        {ann.resourceUrl && (
-                          <span style={{ fontSize: '0.72rem', color: '#a78bfa', fontWeight: 600 }}>
-                            🔗 Linked Resource: {ann.resourceTitle || ann.resourceUrl}
-                          </span>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '6px' }}>
+                          Posted by: <strong>{ann.author || ann.createdBy || 'Campus Admin'}</strong>
+                        </div>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 8px 0', lineHeight: 1.5 }}>
+                          {ann.message}
+                        </p>
+                        {(ann.resourceUrl || ann.link) && (
+                          <div style={{ marginTop: '6px' }}>
+                            <a
+                              href={ann.resourceUrl || ann.link}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                fontSize: '0.75rem',
+                                color: '#10b981',
+                                background: 'rgba(16, 185, 129, 0.1)',
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                textDecoration: 'none',
+                                fontWeight: 600
+                              }}
+                            >
+                              🔗 Open Attached Resource ({ann.resourceTitle || 'External Link'}) &rarr;
+                            </a>
+                          </div>
                         )}
                       </div>
                     ))

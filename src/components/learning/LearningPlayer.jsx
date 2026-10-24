@@ -56,32 +56,60 @@ export default function LearningPlayer({
             s = sub;
           }
         });
-        // 2. Check if playlistId is actually a subject ID (e.g. s-1, s-2)
-        if (!p && sub.id === playlistId && sub.playlists && sub.playlists.length > 0) {
-          p = sub.playlists[0];
-          s = sub;
-        }
       });
+
+      // 2. Check if playlistId matches a subject directly (sub.id or sub.title)
+      if (!p) {
+        const sub = (subjects || []).find(
+          (sub) => sub.id === playlistId || sub.title?.toLowerCase() === playlistId?.toLowerCase()
+        );
+        if (sub) {
+          s = sub;
+          if (sub.playlists && sub.playlists.length > 0) {
+            p = sub.playlists[0];
+          } else {
+            const ytId = extractYoutubePlaylistId(
+              sub.youtubePlaylistId || sub.youtube_playlist_id || sub.playlistUrl || ''
+            );
+            p = {
+              id: `pl-${sub.id}`,
+              title: sub.title,
+              description: sub.description || `Comprehensive university lecture series for ${sub.title}.`,
+              author: sub.author || 'Faculty Instructor',
+              youtubePlaylistId: ytId,
+              videos: []
+            };
+          }
+        }
+      }
 
       // 3. Check if playlistId matches a course in courses
       if (!p) {
-        const directCourse = (courses || []).find((cr) => cr.id === playlistId || cr.title?.toLowerCase() === playlistId?.toLowerCase());
+        const directCourse = (courses || []).find(
+          (cr) => cr.id === playlistId || cr.title?.toLowerCase() === playlistId?.toLowerCase()
+        );
         if (directCourse) {
-          // Check if any subject belongs to this course
-          const courseSub = (subjects || []).find(sub => sub.courseId === directCourse.id && sub.playlists && sub.playlists.length > 0);
-          if (courseSub) {
+          const courseSub = (subjects || []).find((sub) => sub.courseId === directCourse.id);
+          if (courseSub && courseSub.playlists && courseSub.playlists.length > 0) {
             p = courseSub.playlists[0];
             s = courseSub;
           } else {
-            const ytId = extractYoutubePlaylistId(directCourse.youtubePlaylistId || directCourse.playlist_url || directCourse.playlistUrl || directCourse.youtube_playlist_id || '');
+            const ytId = extractYoutubePlaylistId(
+              directCourse.youtubePlaylistId ||
+              directCourse.youtube_playlist_id ||
+              directCourse.playlist_url ||
+              directCourse.playlistUrl ||
+              ''
+            );
             p = {
               id: directCourse.id,
               title: directCourse.title,
               description: directCourse.description || `Lecture series for ${directCourse.title}.`,
-              author: directCourse.creatorName || directCourse.author || 'Instructor',
-              youtubePlaylistId: ytId || (directCourse.title?.toLowerCase().includes('web') ? 'PLu0W_9lII9agq5TrH9XLIKQvv0iaF2X3w' : ''),
+              author: directCourse.author || directCourse.creatorName || 'Faculty Instructor',
+              youtubePlaylistId: ytId,
               videos: directCourse.videos || []
             };
+            if (courseSub) s = courseSub;
           }
         }
       }
@@ -92,8 +120,8 @@ export default function LearningPlayer({
         if (rawYtId) {
           p = {
             id: `pl-${rawYtId}`,
-            title: 'YouTube Lecture Stream',
-            description: 'Streaming live from linked YouTube playlist.',
+            title: 'YouTube Lecture Series',
+            description: 'Streaming syllabus lectures from linked YouTube playlist.',
             author: 'Faculty & Educators',
             youtubePlaylistId: rawYtId,
             videos: []
@@ -102,8 +130,8 @@ export default function LearningPlayer({
       }
     }
 
-    if (!p) {
-      // Default to first available playlist
+    // 5. Only if absolutely no match was found AND no playlistId was provided, pick first available
+    if (!p && !playlistId) {
       const firstSub = (subjects || [])[0];
       if (firstSub && firstSub.playlists && firstSub.playlists.length > 0) {
         p = firstSub.playlists[0];
@@ -125,8 +153,22 @@ export default function LearningPlayer({
   const [loadingVideos, setLoadingVideos] = useState(false);
 
   const cleanYtPlaylistId = useMemo(() => {
-    return extractYoutubePlaylistId(playlist?.youtubePlaylistId || playlist?.youtube_playlist_id || '');
-  }, [playlist]);
+    let yt = extractYoutubePlaylistId(playlist?.youtubePlaylistId || playlist?.youtube_playlist_id || '');
+    if (yt) return yt;
+    if (foundSubject?.youtubePlaylistId || foundSubject?.youtube_playlist_id) {
+      yt = extractYoutubePlaylistId(foundSubject.youtubePlaylistId || foundSubject.youtube_playlist_id);
+      if (yt) return yt;
+    }
+    if (playlist?.id) {
+      yt = extractYoutubePlaylistId(playlist.id);
+      if (yt) return yt;
+    }
+    if (playlistId) {
+      yt = extractYoutubePlaylistId(playlistId);
+      if (yt) return yt;
+    }
+    return '';
+  }, [playlist, foundSubject, playlistId]);
 
   // Dynamically load YouTube playlist lectures only if database videos are absent
   useEffect(() => {
@@ -139,7 +181,9 @@ export default function LearningPlayer({
             setDynamicVideos(fetched);
           }
         })
-        .catch(() => {})
+        .catch((err) => {
+          console.warn('Error fetching playlist videos:', err);
+        })
         .finally(() => {
           if (isMounted) setLoadingVideos(false);
         });
@@ -332,8 +376,8 @@ export default function LearningPlayer({
               {/* Expandable Details Content */}
               {showDetails && (
                 <div className="pt-2 border-t border-border-subtle space-y-2 text-xs text-text-secondary animate-fade-in">
-                  <p className="leading-relaxed">
-                    {playlist.description || `Lecture series for ${foundSubject ? foundSubject.title : playlist.title}.`}
+                  <p className="leading-relaxed whitespace-pre-line">
+                    {currentVideo.description || playlist.description || `Lecture series for ${foundSubject ? foundSubject.title : playlist.title}.`}
                   </p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono-tabular pt-1 text-text-muted">
                     <div><span className="text-text-primary font-bold">Subject:</span> {foundSubject?.title || playlist.title}</div>

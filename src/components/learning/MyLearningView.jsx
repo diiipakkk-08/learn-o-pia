@@ -67,9 +67,9 @@ export default function MyLearningView({
           seen.add(pl.id);
           const firstVid = pl.videos && pl.videos[0];
           const yId =
-            pl.youtubePlaylistId ||
-            firstVid?.youtubeId ||
-            (firstVid?.url ? (firstVid.url.match(/[?&]v=([^#&]+)/) || [])[1] : '');
+            (firstVid?.youtubeId && !firstVid.youtubeId.startsWith('PL'))
+              ? firstVid.youtubeId
+              : (firstVid?.url ? (firstVid.url.match(/[?&]v=([^#&]+)/) || [])[1] : null);
           const thumb = pl.bannerUrl || (yId ? `https://i.ytimg.com/vi/${yId}/hqdefault.jpg` : null);
 
           list.push({

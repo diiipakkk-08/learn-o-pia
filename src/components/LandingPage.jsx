@@ -71,9 +71,9 @@ export default function LandingPage({
       ================================================================= */}
       <header className="sticky top-0 z-40 px-4 sm:px-8 h-16 flex items-center justify-between border-b border-border-subtle bg-canvas/90 backdrop-blur-md">
         <div className="flex items-center gap-8">
-          <button onClick={enterApp} className="flex items-center gap-2.5 text-left group focus:outline-none cursor-pointer">
-            <img src="/logo.svg" alt="Learn-O-Pia" className="w-8 h-8 object-contain shrink-0" />
-            <span className="font-editorial text-2xl sm:text-3xl tracking-tight block leading-none font-bold">
+          <button onClick={enterApp} className="flex items-center gap-2 sm:gap-2.5 text-left group focus:outline-none cursor-pointer">
+            <img src="/logo.svg" alt="Learn-O-Pia" className="w-6 h-6 sm:w-8 sm:h-8 object-contain shrink-0" />
+            <span className="font-editorial text-xl sm:text-3xl tracking-tight block leading-none font-bold">
               Learn-O-Pia
             </span>
           </button>

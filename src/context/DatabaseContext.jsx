@@ -286,6 +286,90 @@ export const fetchYoutubePlaylistVideos = async (playlistId) => {
   return await fetchYoutubePlaylistVideosFallback(playlistId);
 };
 
+export const extractYoutubeVideoId = (url) => {
+  if (!url) return '';
+  const trimmed = url.trim();
+  const m1 = trimmed.match(/[?&]v=([^#&]+)/);
+  if (m1 && m1[1]) return m1[1];
+  const m2 = trimmed.match(/youtu\.be\/([^?#&]+)/);
+  if (m2 && m2[1]) return m2[1];
+  const m3 = trimmed.match(/embed\/([^?#&]+)/);
+  if (m3 && m3[1]) return m3[1];
+  if (/^[A-Za-z0-9_-]{11}$/.test(trimmed)) return trimmed;
+  return '';
+};
+
+export const fetchYoutubeMetadata = async (urlOrId) => {
+  if (!urlOrId) return null;
+  const trimmed = urlOrId.trim();
+  const playlistId = extractYoutubePlaylistId(trimmed);
+  const videoId = extractYoutubeVideoId(trimmed);
+
+  let result = {
+    title: '',
+    author: '',
+    description: '',
+    thumbnailUrl: '',
+    playlistId: playlistId || '',
+    videoId: videoId || '',
+    videoCount: 0
+  };
+
+  // 1. If videoId exists, use YouTube oEmbed directly (CORS friendly in modern browsers)
+  if (videoId) {
+    try {
+      const res = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+      if (res.ok) {
+        const data = await res.json();
+        result.title = data.title || '';
+        result.author = data.author_name || '';
+        result.thumbnailUrl = data.thumbnail_url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+        if (result.author) {
+          result.description = `Curated university course and lecture series by ${result.author}.`;
+        }
+      }
+    } catch {}
+  }
+
+  // 2. If it is a playlist and title/author are still missing, query playlist videos
+  if (playlistId && (!result.title || !result.author)) {
+    try {
+      const videos = await fetchYoutubePlaylistVideos(playlistId);
+      if (Array.isArray(videos) && videos.length > 0) {
+        result.videoCount = videos.length;
+        const firstVid = videos[0];
+        if (!result.videoId && firstVid.youtubeId) {
+          result.videoId = firstVid.youtubeId;
+          result.thumbnailUrl = `https://i.ytimg.com/vi/${firstVid.youtubeId}/hqdefault.jpg`;
+        }
+        if (!result.title && firstVid.title) {
+          result.title = firstVid.title
+            .replace(/\s*[-|]\s*Lecture\s*\d+.*/i, '')
+            .replace(/\s*[-|]\s*Day\s*#?\d+.*/i, '')
+            .replace(/\s*[-|]\s*Video\s*\d+.*/i, '')
+            .trim();
+        }
+        if (firstVid.youtubeId) {
+          try {
+            const oeRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${firstVid.youtubeId}&format=json`);
+            if (oeRes.ok) {
+              const oeData = await oeRes.json();
+              if (!result.author && oeData.author_name) result.author = oeData.author_name;
+              if (!result.title && oeData.title) result.title = oeData.title;
+              if (!result.thumbnailUrl && oeData.thumbnail_url) result.thumbnailUrl = oeData.thumbnail_url;
+            }
+          } catch {}
+        }
+        if (result.author && !result.description) {
+          result.description = `Comprehensive curriculum playlist (${videos.length} lectures) by ${result.author}.`;
+        }
+      }
+    } catch {}
+  }
+
+  return result;
+};
+
 export const getUserDesignation = (user) => {
   if (!user) return 'Guest User';
   return user.name || user.username || 'User';
@@ -575,16 +659,43 @@ export function DatabaseProvider({ children }) {
     }
   };
 
-  const broadcastAnnouncement = async ({ title, message, resourceTitle, resourceUrl, category }) => {
+  const broadcastAnnouncement = async ({ title, message, resourceTitle, resourceUrl, link, category, author }) => {
+    const finalAuthor = (author && author.trim()) || currentUser?.name || 'Platform Admin';
+    const finalLink = (link && link.trim()) || (resourceUrl && resourceUrl.trim()) || '';
+    const finalResourceTitle = (resourceTitle && resourceTitle.trim()) || '';
+    const annId = `ann-${Date.now()}`;
+
     const newAnn = {
-      id: `ann-${Date.now()}`,
+      id: annId,
       title: title.trim(),
       message: message.trim(),
-      resourceTitle: resourceTitle ? resourceTitle.trim() : '',
-      resourceUrl: resourceUrl ? resourceUrl.trim() : '',
+      author: finalAuthor,
+      resourceTitle: finalResourceTitle,
+      resourceUrl: finalLink,
+      link: finalLink,
+      category: category || 'Campus Notice',
       createdAt: new Date().toISOString(),
-      createdBy: currentUser?.name || 'Platform Admin'
+      createdBy: currentUser?.name || finalAuthor
     };
+
+    if (isSupabaseLive) {
+      try {
+        await supabase.from('announcements').insert([{
+          id: newAnn.id,
+          title: newAnn.title,
+          message: newAnn.message,
+          author: newAnn.author,
+          resource_title: newAnn.resourceTitle || null,
+          resource_url: newAnn.resourceUrl || null,
+          link: newAnn.link || null,
+          category: newAnn.category || 'Campus Notice',
+          created_by: currentUser?.id || currentUser?.name || 'Admin',
+          created_at: newAnn.createdAt
+        }]);
+      } catch (err) {
+        console.warn('Could not persist announcement to Supabase:', err);
+      }
+    }
 
     setAnnouncements(prev => {
       const updated = [newAnn, ...prev];
@@ -594,15 +705,15 @@ export function DatabaseProvider({ children }) {
       return updated;
     });
 
-    if (resourceUrl && resourceUrl.trim()) {
-      const resName = resourceTitle && resourceTitle.trim() ? resourceTitle.trim() : title.trim();
+    if (finalLink) {
+      const resName = finalResourceTitle || title.trim();
       addStandaloneResource({
         title: resName,
-        url: resourceUrl.trim(),
-        type: resourceUrl.trim().endsWith('.pdf') ? 'pdf' : 'link',
+        url: finalLink,
+        type: finalLink.endsWith('.pdf') ? 'pdf' : 'link',
         category: category || 'Announcement Shared Resource',
         description: `Shared via Admin Announcement: ${message.trim()}`,
-        author: currentUser?.name || 'Admin Broadcast'
+        author: finalAuthor
       });
     }
 
@@ -611,6 +722,24 @@ export function DatabaseProvider({ children }) {
     }
 
     return newAnn;
+  };
+
+  const deleteAnnouncement = async (announcementId) => {
+    if (!announcementId) return;
+    if (isSupabaseLive) {
+      try {
+        await supabase.from('announcements').delete().eq('id', announcementId);
+      } catch (err) {
+        console.warn('Could not delete announcement from Supabase:', err);
+      }
+    }
+    setAnnouncements(prev => {
+      const updated = prev.filter(a => a.id !== announcementId);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('learnopia_announcements', JSON.stringify(updated));
+      }
+      return updated;
+    });
   };
 
 
@@ -786,7 +915,8 @@ export function DatabaseProvider({ children }) {
         { data: playlists },
         { data: materials },
         { data: marketplaceData },
-        { data: logs }
+        { data: logs },
+        { data: announcementsData }
       ] = await Promise.all([
         supabase.from('profiles').select('*'),
         supabase.from('courses').select('*'),
@@ -794,7 +924,8 @@ export function DatabaseProvider({ children }) {
         supabase.from('playlists').select('*'),
         supabase.from('materials').select('*'),
         supabase.from('marketplace_items').select('*').eq('status', 'active'),
-        supabase.from('activity_logs').select('*').order('timestamp', { ascending: false })
+        supabase.from('activity_logs').select('*').order('timestamp', { ascending: false }),
+        supabase.from('announcements').select('*').order('created_at', { ascending: false })
       ]);
 
       // Gracefully check if videos table is present in Supabase for backward compatibility
@@ -812,7 +943,7 @@ export function DatabaseProvider({ children }) {
         localStorage.setItem('learnopia_users_stable', JSON.stringify(mappedUsers));
       }
 
-      if (coursesData && coursesData.length > 0) {
+      if (coursesData && Array.isArray(coursesData)) {
         const mappedCourses = coursesData.map(c => ({
           id: c.id,
           title: c.title,
@@ -822,14 +953,16 @@ export function DatabaseProvider({ children }) {
           creatorId: c.creator_id,
           creatorName: c.creator_name,
           isDegree: c.is_degree,
-          author: c.author,
+          author: c.author || c.creator_name,
+          isPublic: c.is_public !== false,
+          youtubePlaylistId: c.youtube_playlist_id || c.youtubePlaylistId || '',
           bannerUrl: c.banner_url || c.bannerUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800&auto=format&fit=crop'
         }));
         setCourses(mappedCourses);
         localStorage.setItem('learnopia_courses_stable', JSON.stringify(mappedCourses));
       }
 
-      if (subs && subs.length > 0) {
+      if (subs && Array.isArray(subs)) {
         const sortedSubs = [...subs].sort((a, b) => (a.position || 0) - (b.position || 0));
         const assembled = sortedSubs.map(s => {
           const subPlaylists = (playlists || [])
@@ -855,6 +988,7 @@ export function DatabaseProvider({ children }) {
                 likes: pl.likes || [],
                 author: pl.author,
                 position: pl.position,
+                isPublic: pl.is_public !== false,
                 youtubePlaylistId: pl.youtube_playlist_id || pl.youtubePlaylistId || '',
                 videos: dbVideos.length > 0 ? dbVideos : (pl.videos || [])
               };
@@ -869,7 +1003,8 @@ export function DatabaseProvider({ children }) {
               url: m.url,
               sectionName: m.section_name,
               author: m.author,
-              position: m.position
+              position: m.position,
+              isPublic: m.is_public !== false
             }));
 
           return {
@@ -878,6 +1013,8 @@ export function DatabaseProvider({ children }) {
             semester: s.semester,
             title: s.title,
             position: s.position,
+            isPublic: s.is_public !== false,
+            youtubePlaylistId: s.youtube_playlist_id || s.youtubePlaylistId || '',
             playlists: subPlaylists,
             customMaterialSections: s.custom_material_sections || ['Notes', 'Organizer', 'Past Year Papers'],
             materials: subMaterials
@@ -885,6 +1022,23 @@ export function DatabaseProvider({ children }) {
         });
         setSubjects(assembled);
         localStorage.setItem('learnopia_subjects_stable', JSON.stringify(assembled));
+      }
+
+      if (announcementsData && Array.isArray(announcementsData) && announcementsData.length > 0) {
+        const mappedAnn = announcementsData.map(a => ({
+          id: a.id,
+          title: a.title,
+          message: a.message,
+          author: a.author,
+          resourceTitle: a.resource_title,
+          resourceUrl: a.resource_url,
+          link: a.link || a.resource_url,
+          category: a.category,
+          createdBy: a.created_by,
+          createdAt: a.created_at
+        }));
+        setAnnouncements(mappedAnn);
+        localStorage.setItem('learnopia_announcements', JSON.stringify(mappedAnn));
       }
 
       if (marketplaceData && marketplaceData.length > 0) {
@@ -2032,15 +2186,145 @@ export function DatabaseProvider({ children }) {
     return fetchedVideos.length;
   };
 
-  const deleteSubjectPlaylist = async (subjectId, playlistId) => {
+  const deleteSubjectPlaylist = async (subjectIdOrPlaylistId, maybePlaylistId) => {
+    const playlistId = maybePlaylistId || subjectIdOrPlaylistId;
+    const subjectId = maybePlaylistId ? subjectIdOrPlaylistId : null;
+    if (!playlistId) return;
+
     if (isSupabaseLive) {
-      await supabase.from('playlists').delete().eq('id', playlistId);
+      try {
+        await supabase.from('playlists').delete().eq('id', playlistId);
+      } catch (err) {
+        console.warn('Could not delete playlist from Supabase:', err);
+      }
       addLog(`Playlist deleted.`);
       syncSupabase();
     } else {
-      setSubjects(prev => prev.map(s => s.id === subjectId ? { ...s, playlists: (s.playlists || []).filter(p => p.id !== playlistId) } : s));
+      setSubjects(prev => prev.map(s => {
+        if (subjectId && s.id !== subjectId) return s;
+        return { ...s, playlists: (s.playlists || []).filter(p => p.id !== playlistId) };
+      }));
       addLog(`Playlist deleted.`);
     }
+  };
+
+  const createCourseWithPlaylist = async ({
+    title,
+    author,
+    description,
+    category,
+    department,
+    youtubePlaylistUrl,
+    isPublic = true,
+    bannerUrl = ''
+  }) => {
+    const ytId = extractYoutubePlaylistId(youtubePlaylistUrl) || '';
+    const courseId = 'c-' + Date.now();
+    const subjectId = 'sub-' + Date.now();
+    const playlistId = 'pl-' + Date.now();
+    const finalAuthor = author || currentUser?.name || 'Faculty Educator';
+    const finalDept = department || category || 'Core Engineering';
+    const finalDesc = description || `Comprehensive academic lecture series for ${title}.`;
+    const finalBanner = bannerUrl || (ytId && !ytId.startsWith('PL') ? `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg` : '');
+
+    if (isSupabaseLive) {
+      try {
+        // 1. Insert into courses
+        await supabase.from('courses').insert([{
+          id: courseId,
+          title: title.trim(),
+          department: finalDept,
+          description: finalDesc,
+          price: 0,
+          creator_id: currentUser?.id || 'admin',
+          creator_name: finalAuthor,
+          author: finalAuthor,
+          banner_url: finalBanner,
+          is_public: isPublic,
+          youtube_playlist_id: ytId
+        }]);
+
+        // 2. Insert into subjects
+        await supabase.from('subjects').insert([{
+          id: subjectId,
+          course_id: courseId,
+          title: title.trim(),
+          semester: 1,
+          position: 0,
+          is_public: isPublic,
+          youtube_playlist_id: ytId
+        }]);
+
+        // 3. Insert into playlists
+        await supabase.from('playlists').insert([{
+          id: playlistId,
+          subject_id: subjectId,
+          title: title.trim(),
+          description: finalDesc,
+          author: finalAuthor,
+          youtube_playlist_id: ytId,
+          is_public: isPublic,
+          position: 0,
+          likes: []
+        }]);
+
+        addLog(`Published new course and playlist: "${title.trim()}"`);
+        syncSupabase();
+      } catch (err) {
+        console.error("Failed to create course in Supabase:", err);
+      }
+    }
+
+    // Local state immediate synchronization
+    const newCourse = {
+      id: courseId,
+      title: title.trim(),
+      department: finalDept,
+      description: finalDesc,
+      price: 0,
+      creatorId: currentUser?.id || 'admin',
+      creatorName: finalAuthor,
+      author: finalAuthor,
+      bannerUrl: finalBanner,
+      isPublic,
+      youtubePlaylistId: ytId
+    };
+
+    const newPlaylist = {
+      id: playlistId,
+      title: title.trim(),
+      description: finalDesc,
+      author: finalAuthor,
+      youtubePlaylistId: ytId,
+      isPublic,
+      position: 0,
+      likes: [],
+      videos: []
+    };
+
+    const newSubject = {
+      id: subjectId,
+      courseId,
+      semester: 1,
+      title: title.trim(),
+      position: 0,
+      isPublic,
+      youtubePlaylistId: ytId,
+      playlists: [newPlaylist],
+      customMaterialSections: ['Notes', 'Organizer', 'Past Year Papers'],
+      materials: []
+    };
+
+    setCourses(prev => [newCourse, ...prev]);
+    setSubjects(prev => [newSubject, ...prev]);
+
+    return { courseId, subjectId, playlistId };
+  };
+
+  const deleteCourseCatalogItem = async ({ courseId, subjectId, playlistId }) => {
+    if (playlistId) await deleteSubjectPlaylist(playlistId);
+    if (subjectId) await deleteSubject(subjectId);
+    if (courseId) await deleteCourse(courseId);
   };
 
   const addVideoToPlaylist = async (subjectId, playlistId, title, description, url) => {
@@ -3079,6 +3363,7 @@ export function DatabaseProvider({ children }) {
       standaloneResources,
       announcements,
       broadcastAnnouncement,
+      deleteAnnouncement,
       markAnnouncementsRead,
       unreadAnnouncementsCount,
       adSettings,
@@ -3109,6 +3394,8 @@ export function DatabaseProvider({ children }) {
       addCourse,
       editCourse,
       deleteCourse,
+      createCourseWithPlaylist,
+      deleteCourseCatalogItem,
       addSubject,
       updateSubjectDetails,
       deleteSubject,

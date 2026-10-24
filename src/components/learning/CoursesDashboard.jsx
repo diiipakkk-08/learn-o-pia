@@ -22,7 +22,9 @@ import {
   SlidersHorizontal,
   GraduationCap,
   Link2,
-  Lock
+  Lock,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 
 const getCuratedCourseThumbnail = (title = '', department = '') => {
@@ -86,16 +88,22 @@ function CoursesDashboardInner({
     enrollInCourse,
     enrollInPlaylist,
     globalSearchQuery,
-    setGlobalSearchQuery
+    setGlobalSearchQuery,
+    deleteCourseCatalogItem,
+    deleteSubject,
+    deleteCourse
   } = useDatabase();
 
   const userId = currentUser?.id || 'guest';
+  const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner' || currentUser.isAdmin);
 
   const [localSearch, setLocalSearch] = useState(globalSearchQuery || '');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [copiedPlId, setCopiedPlId] = useState(null);
   const [enrollNotice, setEnrollNotice] = useState(null);
+  const [deleteConfirmItem, setDeleteConfirmItem] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const sliderRef = useRef(null);
   const filterMenuRef = useRef(null);
 
@@ -350,6 +358,39 @@ function CoursesDashboardInner({
     if (setSelectedPlaylistId) setSelectedPlaylistId(course.playlistId);
     if (setSelectedVideoIndex) setSelectedVideoIndex(0);
     setCurrentView('learning-player');
+  };
+
+  const handleDeleteItem = (course, e) => {
+    if (e) e.stopPropagation();
+    setDeleteConfirmItem(course);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmItem) return;
+    setIsDeleting(true);
+    try {
+      if (deleteCourseCatalogItem) {
+        await deleteCourseCatalogItem({
+          courseId: deleteConfirmItem.id,
+          subjectId: deleteConfirmItem.subjectId,
+          playlistId: deleteConfirmItem.playlistId
+        });
+      } else {
+        if (deleteSubject && deleteConfirmItem.subjectId) {
+          await deleteSubject(deleteConfirmItem.subjectId);
+        }
+        if (deleteCourse && deleteConfirmItem.id) {
+          await deleteCourse(deleteConfirmItem.id);
+        }
+      }
+      setEnrollNotice(`Removed "${deleteConfirmItem.title}" from catalog.`);
+      setTimeout(() => setEnrollNotice(null), 3000);
+    } catch (err) {
+      console.error('Delete error:', err);
+    } finally {
+      setIsDeleting(false);
+      setDeleteConfirmItem(null);
+    }
   };
 
   // Open "Add to Folder" modal
@@ -735,6 +776,16 @@ function CoursesDashboardInner({
                         <Copy size={12} />
                       )}
                     </button>
+
+                    {isAdmin && (
+                      <button
+                        onClick={(e) => handleDeleteItem(course, e)}
+                        className="p-1 rounded-lg border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-colors flex items-center cursor-pointer shadow-xs"
+                        title="Delete course from public catalog (Admin only)"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    )}
                   </div>
 
                   {/* Right: Save to Folder & Watch */}
@@ -900,6 +951,55 @@ function CoursesDashboardInner({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* =================================================================
+          ADMIN CONFIRM DELETE MODAL
+      ================================================================= */}
+      {deleteConfirmItem && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+          onClick={() => setDeleteConfirmItem(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-red-500/30 bg-surface p-6 space-y-4 shadow-modal my-auto text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 pb-2 border-b border-border-subtle">
+              <div className="w-10 h-10 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center shrink-0">
+                <AlertTriangle size={20} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-text-primary">Delete Course from Catalog</h3>
+                <p className="text-[11px] text-text-muted font-mono-tabular">ADMIN MODERATION ACTION</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-text-secondary leading-relaxed">
+              Are you sure you want to permanently remove <strong>"{deleteConfirmItem.title}"</strong> from the public catalog?
+              This action will remove the course from the university index and delete its attached playlist records.
+            </p>
+
+            <div className="pt-2 flex items-center justify-end gap-2 border-t border-border-subtle">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setDeleteConfirmItem(null)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-secondary cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 rounded-lg text-xs font-semibold bg-red-600 hover:bg-red-700 text-white cursor-pointer shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <Trash2 size={13} />
+                <span>{isDeleting ? 'Deleting...' : 'Confirm Delete'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

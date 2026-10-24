@@ -15,7 +15,8 @@ import {
   Sparkles,
   ShieldAlert,
   Info,
-  X
+  X,
+  ExternalLink
 } from 'lucide-react';
 
 export default function Header({
@@ -128,14 +129,19 @@ export default function Header({
         borderColor: cinemaMode ? '#2E2E2B' : '#E4E0D8'
       }}
     >
-      {/* Left: Brand Wordmark (Clean Logo) */}
-      <div className="flex items-center gap-2.5">
+      {/* Left: Brand Wordmark (Clean Logo & Typography - Fully Responsive) */}
+      <div className="flex items-center gap-2 sm:gap-2.5">
         <button
           onClick={() => setCurrentView(currentUser ? 'my-learning' : 'landing')}
-          className="text-left focus:outline-none flex items-center gap-2 transition-opacity hover:opacity-85"
+          className="text-left focus:outline-none flex items-center gap-1.5 sm:gap-2.5 transition-opacity hover:opacity-85 cursor-pointer"
         >
+          <img
+            src="/logo.svg"
+            alt="Learn-O-Pia"
+            className="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0"
+          />
           <span
-            className="font-editorial text-2xl lg:text-[26px] tracking-tight block leading-none"
+            className="font-editorial text-lg sm:text-2xl lg:text-[26px] tracking-tight block leading-none font-bold"
             style={{ color: cinemaMode ? '#F2EFE9' : '#141413' }}
           >
             Learn-O-Pia
@@ -241,30 +247,45 @@ export default function Header({
 
                 <div className="max-h-72 overflow-y-auto space-y-2.5 pr-0.5">
                   {announcements && announcements.length > 0 ? (
-                    announcements.map((item, idx) => (
-                      <div
-                        key={item.id || idx}
-                        className="p-3 rounded-lg border border-border-subtle bg-canvas space-y-1"
-                      >
-                        <div className="flex items-center justify-between text-[11px] text-text-muted font-mono-tabular">
-                          <span className="font-semibold text-text-secondary">{item.author || 'Dean of Academics'}</span>
-                          <span>{item.date || 'Recent'}</span>
+                    announcements.map((item, idx) => {
+                      const linkUrl = item.link || item.resourceUrl;
+                      return (
+                        <div
+                          key={item.id || idx}
+                          className="p-3 rounded-lg border border-border-subtle bg-canvas space-y-1.5 text-left"
+                        >
+                          <div className="flex items-center justify-between text-[11px] text-text-muted font-mono-tabular">
+                            <span className="font-semibold text-text-secondary">
+                              {item.author || item.createdBy || 'Campus Admin'}
+                            </span>
+                            <span>
+                              {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : (item.date || 'Recent')}
+                            </span>
+                          </div>
+                          {item.title && (
+                            <h5 className="text-xs font-bold text-text-primary leading-snug">
+                              {item.title}
+                            </h5>
+                          )}
+                          <p className="text-xs text-text-secondary font-medium leading-relaxed">
+                            {item.message || item.text}
+                          </p>
+                          {linkUrl && (
+                            <div className="pt-1">
+                              <a
+                                href={linkUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-accent-forest/10 text-accent-forest hover:bg-accent-forest/20 transition-colors shadow-xs"
+                              >
+                                <span>{item.resourceTitle || 'Open Attached Resource'}</span>
+                                <ExternalLink size={11} />
+                              </a>
+                            </div>
+                          )}
                         </div>
-                        <p className="text-xs text-text-primary font-medium leading-relaxed">
-                          {item.title || item.message || item.text}
-                        </p>
-                        {item.link && (
-                          <a
-                            href={item.link}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[11px] font-semibold text-accent-forest hover:underline inline-block mt-0.5"
-                          >
-                            Open attached document &rarr;
-                          </a>
-                        )}
-                      </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <div className="text-center py-6 text-text-muted text-xs">
                       No active announcements. Check back later for campus notices.
