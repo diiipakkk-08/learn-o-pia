@@ -480,15 +480,15 @@ export default function CoursesDashboard({
       )}
 
       {/* =================================================================
-          2. CLEAN SEARCH BAR & COMPACT FILTER BUTTON (No Crowded Pills)
+          2. SEARCH BAR: MOBILE BELOW ENROLLED SUBJECTS, NAVBAR ON DESKTOP
       ================================================================= */}
       <div className="flex items-center justify-between gap-3 border-b border-border-subtle pb-4">
-        {/* Integrated Course Search Box */}
-        <div className="relative flex-1 max-w-lg">
+        {/* Mobile-Only Search Box (Desktop has search in top navigation bar) */}
+        <div className="relative flex-1 max-w-lg md:hidden">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
             type="text"
-            placeholder="Search all subjects, professors, or engineering topics..."
+            placeholder="Search courses, subjects..."
             value={localSearch}
             onChange={(e) => {
               setLocalSearch(e.target.value);
@@ -506,6 +506,32 @@ export default function CoursesDashboard({
             >
               <X size={14} />
             </button>
+          )}
+        </div>
+
+        {/* Desktop View: Catalog status and active search pill (Search input is in navbar) */}
+        <div className="hidden md:flex items-center gap-2 text-xs font-mono-tabular text-text-muted">
+          <span className="font-bold text-text-secondary tracking-wider uppercase text-[11px]">
+            Academic Catalog
+          </span>
+          <span>•</span>
+          <span>{filteredCourses.length} Courses Available</span>
+          {query && (
+            <>
+              <span>•</span>
+              <span className="text-accent-forest font-semibold">
+                Searching for "{query}"
+              </span>
+              <button
+                onClick={() => {
+                  setLocalSearch('');
+                  if (setGlobalSearchQuery) setGlobalSearchQuery('');
+                }}
+                className="hover:text-text-primary underline cursor-pointer ml-1"
+              >
+                Clear
+              </button>
+            </>
           )}
         </div>
 

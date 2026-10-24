@@ -301,8 +301,8 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
         </div>
       </div>
 
-      {/* Search Input Box */}
-      <div className="relative max-w-md">
+      {/* Search Input Box: Mobile Only (Desktop search is in navigation bar) */}
+      <div className="relative max-w-md md:hidden">
         <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
         <input
           type="text"
@@ -312,13 +312,38 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
             setLocalSearch(e.target.value);
             if (setGlobalSearchQuery) setGlobalSearchQuery(e.target.value);
           }}
-          className="w-full pl-9 pr-4 py-2 rounded-lg border border-border-strong text-xs sm:text-sm bg-surface focus:outline-none"
+          className="w-full pl-9 pr-8 py-2 rounded-lg border border-border-strong text-xs sm:text-sm bg-surface focus:outline-none"
         />
+        {localSearch && (
+          <button
+            onClick={() => {
+              setLocalSearch('');
+              if (setGlobalSearchQuery) setGlobalSearchQuery('');
+            }}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary cursor-pointer"
+          >
+            <X size={14} />
+          </button>
+        )}
       </div>
 
       {/* Results Header */}
       <div className="flex items-center justify-between text-xs text-text-muted font-mono-tabular">
         <span>SHOWING {filteredResources.length} DOCUMENTS</span>
+        {query && (
+          <span className="hidden md:inline-flex items-center gap-1.5 ml-2 text-accent-forest font-semibold">
+            • Filtered by "{query}"
+            <button
+              onClick={() => {
+                setLocalSearch('');
+                if (setGlobalSearchQuery) setGlobalSearchQuery('');
+              }}
+              className="text-text-muted hover:text-text-primary underline cursor-pointer ml-1"
+            >
+              Clear
+            </button>
+          </span>
+        )}
         <span>INDEXED IN ACADEMIC REPOSITORY</span>
       </div>
 

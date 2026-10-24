@@ -81,6 +81,22 @@ export default function Header({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Reset search query when navigating between distinct sections
+  const prevViewRef = useRef(currentView);
+  useEffect(() => {
+    if (prevViewRef.current !== currentView) {
+      if (setGlobalSearchQuery) setGlobalSearchQuery('');
+      prevViewRef.current = currentView;
+    }
+  }, [currentView, setGlobalSearchQuery]);
+
+  const searchPlaceholder =
+    currentView === 'resources' || currentView === 'discussions'
+      ? 'Search documents, PDFs, or study notes...'
+      : currentView === 'learning'
+      ? 'Search courses, subjects, or engineering topics...'
+      : 'Search Learn-O-Pia courses...';
+
   const handleSearchChange = (e) => {
     const val = e.target.value;
     if (setGlobalSearchQuery) setGlobalSearchQuery(val);
@@ -126,7 +142,7 @@ export default function Header({
       </div>
 
       {/* Global Fuzzy Search Bar */}
-      <div className="hidden sm:flex items-center flex-1 max-w-md mx-2">
+      <div className="hidden md:flex items-center flex-1 max-w-md mx-2">
         <div
           className="w-full flex items-center gap-2.5 px-3.5 py-1.5 rounded-lg border text-sm transition-all"
           style={{
@@ -138,7 +154,7 @@ export default function Header({
           <input
             ref={searchInputRef}
             type="text"
-            placeholder="Search courses, lectures, or PDFs..."
+            placeholder={searchPlaceholder}
             value={globalSearchQuery || ''}
             onChange={handleSearchChange}
             className="w-full bg-transparent border-none text-xs sm:text-sm focus:outline-none placeholder:text-text-muted"
