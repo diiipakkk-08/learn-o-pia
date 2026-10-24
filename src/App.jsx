@@ -96,7 +96,8 @@ function AppContent() {
 
   useEffect(() => {
     if (currentUser?.id) {
-      setOnboardingDone(Boolean(currentUser.onboardingCompleted));
+      const stored = typeof window !== 'undefined' ? localStorage.getItem(`learnopia_onboarding_done_${currentUser.id}`) : null;
+      setOnboardingDone(Boolean(currentUser.onboardingCompleted || stored === 'true'));
     } else {
       setOnboardingDone(false);
     }

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+          <!-- Lamp Shade (Classic Green Library Shade) -->
+          <path d="M18 22C18 15.3726 23.3726 10 30 10H38C44.6274 10 50 15.3726 50 22H18Z" fill="#1E5631" stroke="#141413" stroke-width="3"/>
+          <!-- Light Cone / Focus Beam -->
+          <path d="M23 24H45L53 48H15L23 24Z" fill="#1E5631" fill-opacity="0.18"/>
+          <!-- Play Triangle inside the Light Beam -->
+          <path d="M31 31L40 36.5L31 42V31Z" fill="#141413"/>
+          <!-- Desk Base Line -->
+          <path d="M10 50H54" stroke="#141413" stroke-width="4" stroke-linecap="round"/>
+          <!-- Lamp Neck Accent -->
+          <circle cx="34" cy="10" r="2.5" fill="#141413"/>
+        </svg>

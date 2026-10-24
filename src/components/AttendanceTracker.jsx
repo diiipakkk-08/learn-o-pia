@@ -1091,6 +1091,30 @@ export default function AttendanceTracker() {
     };
   }, [subjectAnalytics, classDurationMins]);
 
+  // Synchronize official attendance analytics to localStorage & entire app
+  useEffect(() => {
+    if (typeof window !== 'undefined' && overallStats) {
+      const summary = {
+        percentage: overallStats.pct,
+        percentageWithoutMassBunks: overallStats.pctWithoutMassBunks,
+        attended: overallStats.totAttendedCount,
+        total: overallStats.totConductedCount,
+        attendedPoints: overallStats.totAttendedPoints,
+        totalPoints: overallStats.totConductedPoints,
+        theoryPct: overallStats.theoryPct,
+        labPct: overallStats.labPct,
+        hoursStudiedText: overallStats.hoursStudiedText,
+        updatedAt: Date.now()
+      };
+      try {
+        localStorage.setItem(`learnopia_attendance_analytics_${userId}`, JSON.stringify(summary));
+        window.dispatchEvent(new Event('learnopia_attendance_updated'));
+      } catch (err) {
+        console.warn('Failed to cache attendance analytics:', err);
+      }
+    }
+  }, [overallStats, userId]);
+
   // End Semester Handler -> Clears & Resets Routine Completely
   const handleConfirmNewSemester = () => {
     if (!tempStartDateInput) return;

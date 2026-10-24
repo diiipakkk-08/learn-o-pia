@@ -39,7 +39,42 @@ const getCuratedCourseThumbnail = (title = '', department = '') => {
   return 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=900&q=80'; // University Study Library
 };
 
-export default function CoursesDashboard({
+class CoursesDashboardErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('CoursesDashboard error caught:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="w-full max-w-4xl mx-auto p-8 my-10 rounded-2xl border border-border-subtle bg-surface text-center space-y-4 shadow-sm animate-fade-in">
+          <h2 className="text-xl font-bold text-text-primary font-editorial">Course Catalog</h2>
+          <p className="text-xs text-text-secondary max-w-md mx-auto">
+            The course catalog was updated. Click below to reload.
+          </p>
+          <button
+            onClick={() => {
+              this.setState({ hasError: false });
+              window.location.reload();
+            }}
+            className="px-4 py-2 rounded-xl text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-90 cursor-pointer"
+          >
+            Reload Catalog
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function CoursesDashboardInner({
   setSelectedPlaylistId,
   setSelectedVideoIndex,
   setCurrentView
@@ -152,6 +187,7 @@ export default function CoursesDashboard({
 
     // 1. Ingest all semester subjects from DatabaseContext as first-class courses
     (subjects || []).forEach((sub) => {
+      const parentCourse = (courses || []).find((c) => c.id === sub.courseId);
       const primaryPl = (sub.playlists && sub.playlists[0]) || null;
       const firstVid = primaryPl?.videos && primaryPl.videos[0];
       const videoId = (firstVid?.youtubeId && !firstVid.youtubeId.startsWith('PL'))
@@ -165,7 +201,6 @@ export default function CoursesDashboard({
         getCuratedCourseThumbnail(sub.title, parentCourse?.department);
 
       const totalVideos = (sub.playlists || []).reduce((acc, pl) => acc + (pl.videos?.length || 0), 0);
-      const parentCourse = (courses || []).find((c) => c.id === sub.courseId);
 
       const isEnrolled =
         (currentUser?.enrolledPlaylists || []).includes(primaryPl?.id) ||
@@ -869,5 +904,13 @@ export default function CoursesDashboard({
         </div>
       )}
     </div>
+  );
+}
+
+export default function CoursesDashboard(props) {
+  return (
+    <CoursesDashboardErrorBoundary>
+      <CoursesDashboardInner {...props} />
+    </CoursesDashboardErrorBoundary>
   );
 }

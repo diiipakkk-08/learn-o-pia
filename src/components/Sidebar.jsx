@@ -57,14 +57,17 @@ export default function Sidebar({
       <div className="px-5 pt-6 pb-4 flex items-center justify-between">
         <button
           onClick={() => setCurrentView('my-learning')}
-          className="text-left group focus:outline-none"
+          className="flex items-center gap-2.5 text-left group focus:outline-none cursor-pointer"
         >
-          <span className="font-editorial text-3xl tracking-tight block leading-none transition-colors text-text-primary">
-            Learn-O-Pia
-          </span>
-          <span className="text-[11px] font-medium tracking-wider uppercase mt-1.5 block font-mono-tabular text-text-muted">
-            Academic Studio • Web & App
-          </span>
+          <img src="/logo.svg" alt="Learn-O-Pia" className="w-8 h-8 object-contain shrink-0" />
+          <div>
+            <span className="font-editorial text-2xl tracking-tight block leading-none transition-colors text-text-primary">
+              Learn-O-Pia
+            </span>
+            <span className="text-[10px] font-medium tracking-wider uppercase mt-1 block font-mono-tabular text-text-muted">
+              Academic OS • 2026
+            </span>
+          </div>
         </button>
 
         {/* Hide / Collapse Sidebar Button */}

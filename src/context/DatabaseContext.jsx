@@ -415,22 +415,7 @@ const SEED_SUBJECTS = [
     courseId: 'c-1',
     semester: 1,
     title: 'Engineering Mathematics I',
-    playlists: [
-      {
-        id: 'pl-1',
-        title: 'Calculus & Integral Theory',
-        description: 'Covers limits, differentiation, integration, and applications in Cartesian spaces.',
-        likes: ['u-3'],
-        videos: [
-          {
-            id: 'v-1',
-            title: 'Limits & Calculus Basics',
-            description: 'Understanding limits, continuity, and derivatives for engineers.',
-            youtubeId: 'RBSGKlAboiM'
-          }
-        ]
-      }
-    ],
+    playlists: [],
     customMaterialSections: ['Notes', 'Organizer', 'Past Year Papers'],
     materials: [
       { id: 'doc-1', title: 'Chapter 1: Limits & Differentiation Formulas.pdf', url: 'https://drive.google.com', sectionName: 'Notes' },
@@ -442,22 +427,7 @@ const SEED_SUBJECTS = [
     courseId: 'c-1',
     semester: 1,
     title: 'Engineering Physics',
-    playlists: [
-      {
-        id: 'pl-2',
-        title: 'Wave Optics Lectures',
-        description: 'Comprehensive study of wave properties, diffraction, and wave interference models.',
-        likes: [],
-        videos: [
-          {
-            id: 'v-2',
-            title: 'Diffraction & Wave Basics',
-            description: 'Double slit experiments and wave physics details.',
-            youtubeId: 'sf_9ps74HCc'
-          }
-        ]
-      }
-    ],
+    playlists: [],
     customMaterialSections: ['Notes', 'Organizer', 'Past Year Papers'],
     materials: [
       { id: 'doc-3', title: 'Physics Wave Interference Notes.pdf', url: 'https://drive.google.com', sectionName: 'Notes' },
@@ -1964,6 +1934,7 @@ export function DatabaseProvider({ children }) {
     const siblings = subject ? (subject.playlists || []) : [];
     const newPosition = siblings.length;
     const plId = 'pl-' + Date.now();
+    let createdPlId = plId;
 
     if (isSupabaseLive) {
       try {
@@ -1978,17 +1949,21 @@ export function DatabaseProvider({ children }) {
         }]).select();
         if (error) throw error;
         
-        const createdPlId = (data && data[0] && data[0].id) ? data[0].id : plId;
-        // Pure YouTube playlist architecture: videos are streamed on-the-fly, no redundant DB rows
+        if (data && data[0] && data[0].id) {
+          createdPlId = data[0].id;
+        }
       } catch (err) {
         console.warn("Retrying playlist insert without optional columns:", err);
-        await supabase.from('playlists').insert([{
+        const { data: retryData } = await supabase.from('playlists').insert([{
           subject_id: subjectId,
           title,
           description,
           likes: [],
           author: author || currentUser?.name || ''
-        }]);
+        }]).select();
+        if (retryData && retryData[0] && retryData[0].id) {
+          createdPlId = retryData[0].id;
+        }
       }
       addLog(`Playlist added: "${title}"`);
       syncSupabase();

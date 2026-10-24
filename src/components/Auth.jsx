@@ -3,7 +3,6 @@ import { useDatabase } from '../context/DatabaseContext';
 import { useGoogleLogin } from '@react-oauth/google';
 import { Eye, EyeOff, AlertCircle, CheckCircle, ArrowLeft, X, Sparkles, ShieldCheck, RotateCw } from 'lucide-react';
 import TermsModal from './TermsModal';
-import { SpiralNotebookSheet, StickyNote, AcademicSticker } from './StationeryNotebook';
 import { getRandomCuratedQuote, fetchRandomStudentQuote } from '../utils/studentQuotes';
 
 function GoogleIcon() {
@@ -197,17 +196,15 @@ export default function Auth({ setCurrentView }) {
   };
 
   return (
-    <div className="min-h-screen bg-canvas text-text-primary flex flex-col lg:flex-row">
+    <div className="h-screen w-screen overflow-hidden bg-canvas text-text-primary flex flex-col lg:flex-row">
       {/* =========================================================================
           LEFT PANEL: Sleek Authentication Form (Full-width mobile, 45-50% desktop)
       ========================================================================= */}
-      <div className="w-full lg:w-[48%] xl:w-[44%] flex flex-col justify-between p-6 sm:p-10 lg:p-12 xl:p-16 min-h-screen bg-canvas">
+      <div className="w-full lg:w-[48%] xl:w-[44%] flex flex-col justify-between p-6 sm:p-8 lg:p-10 h-full overflow-y-auto bg-canvas">
         {/* Top Header: Logo & Return Action */}
-        <div className="flex items-center justify-between pb-6">
+        <div className="flex items-center justify-between pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-accent-ink text-text-on-dark flex items-center justify-center font-bold text-sm tracking-tight shadow-xs">
-              L
-            </div>
+            <img src="/logo.svg" alt="Learn-O-Pia" className="w-8 h-8 object-contain shrink-0" />
             <span className="font-editorial text-xl font-bold tracking-tight text-text-primary">
               Learn-O-Pia
             </span>
@@ -463,92 +460,51 @@ export default function Auth({ setCurrentView }) {
       </div>
 
       {/* =========================================================================
-          RIGHT PANEL: Tactile Creamy Student Notebook Desk (Visible on desktop screens >= lg)
-          Inspired by authentic physical student stationery: spiral holes, ruled lines,
-          red margin, pinned sticky notes, and rotating motivational quotes.
+          RIGHT PANEL: Minimalist Lined Copy-Page Notebook with Single Quote
       ========================================================================= */}
-      <div className="hidden lg:flex flex-1 bg-[#ECE7DC] text-[#2C261E] flex-col justify-center items-center p-8 lg:p-12 xl:p-14 relative overflow-hidden select-none border-l border-[#DCD5C5]">
-        {/* Ambient warm desk illumination */}
-        <div className="absolute top-10 left-10 w-96 h-96 bg-amber-100/60 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-10 right-10 w-80 h-80 bg-stone-300/40 rounded-full blur-3xl pointer-events-none" />
+      <div className="hidden lg:flex flex-1 bg-[#ECE7DC] text-[#2C261E] h-full overflow-hidden flex-col justify-center items-center p-8 xl:p-14 relative select-none border-l border-[#DCD5C5]">
+        {/* Subtle warm ambient lighting */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-100/50 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Physical Spiral Notebook Sheet */}
-        <div className="w-full max-w-xl relative">
-          <SpiralNotebookSheet className="w-full min-h-[580px] flex flex-col justify-between shadow-2xl">
-            {/* Top Sheet Header */}
-            <div>
-              <div className="flex items-center justify-between pb-4 border-b border-[#E2DDD5] mb-4">
-                <div className="flex items-center gap-2">
-                  <AcademicSticker type="stamp" />
-                  <div>
-                    <div className="text-[11px] font-mono-tabular font-bold tracking-wider uppercase text-[#78350F]">
-                      DAILY CAMPUS MOTIVATION
-                    </div>
-                    <div className="text-[10px] text-[#78716C] font-mono-tabular">
-                      LEARN-O-PIA STUDY JOURNAL • 2026
-                    </div>
-                  </div>
-                </div>
+        {/* Clean Lined Notebook Copy-Page */}
+        <div
+          className="w-full max-w-lg rounded-xl overflow-hidden relative shadow-xl border border-[#DFD8C8]"
+          style={{
+            backgroundColor: '#FAF7F0',
+            backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 31px, rgba(175, 190, 205, 0.35) 32px)',
+            boxShadow: '0 20px 40px -15px rgba(44, 38, 28, 0.2), 0 0 0 1px rgba(60, 50, 35, 0.06)'
+          }}
+        >
+          {/* Classic Red Margin Line */}
+          <div
+            className="absolute top-0 bottom-0 w-[2px] bg-red-400/50 pointer-events-none z-10"
+            style={{ left: '56px' }}
+          />
 
-                <button
-                  type="button"
-                  onClick={handleCycleQuote}
-                  disabled={quoteLoading}
-                  className="px-3 py-1.5 rounded-xl border border-[#D5CEBF] bg-[#FAF7F0] hover:bg-[#F2ECE0] text-[#57534E] text-xs font-mono-tabular font-semibold cursor-pointer shadow-xs flex items-center gap-1.5 transition-all active:scale-95"
-                  title="Click for next motivational quote"
-                >
-                  <RotateCw size={12} className={quoteLoading ? 'animate-spin' : ''} />
-                  <span>{quoteLoading ? 'Refreshing...' : 'New Quote'}</span>
-                </button>
-              </div>
+          {/* Discreet Refresh Button */}
+          <button
+            type="button"
+            onClick={handleCycleQuote}
+            disabled={quoteLoading}
+            className="absolute top-3 right-3 p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-colors cursor-pointer z-20"
+            title="Refresh quote"
+          >
+            <RotateCw size={13} className={quoteLoading ? 'animate-spin' : ''} />
+          </button>
 
-              {/* The Quote on Ruled Notebook Lines */}
-              <div className="my-8 sm:my-10 space-y-4 px-2">
-                <div className="text-4xl text-amber-700/35 font-serif leading-none select-none">“</div>
-                <blockquote className="font-editorial text-2xl xl:text-3xl font-medium text-[#2C261E] leading-[1.38] tracking-tight -mt-4 italic">
-                  {currentQuote?.quote}
-                </blockquote>
-                <div className="pt-3 flex items-center gap-3">
-                  <div className="w-10 h-[2px] bg-amber-700/40" />
-                  <div>
-                    <div className="text-sm font-bold text-[#1C1917] font-sans">
-                      {currentQuote?.author}
-                    </div>
-                    <div className="text-xs text-[#78716C] font-mono-tabular">
-                      {currentQuote?.field}
-                    </div>
-                  </div>
-                </div>
+          {/* Simple Quote & Author on Lined Paper */}
+          <div className="pl-20 pr-8 py-14 sm:py-16 space-y-4">
+            <blockquote className="font-editorial text-2xl xl:text-3xl font-normal text-[#2C261E] leading-[1.38] tracking-tight italic">
+              “{currentQuote?.quote}”
+            </blockquote>
+
+            <div className="pt-2 flex items-center gap-3">
+              <div className="w-8 h-[1.5px] bg-stone-400" />
+              <div className="text-sm font-semibold text-[#1C1917] font-sans">
+                {currentQuote?.author}
               </div>
             </div>
-
-            {/* Bottom Section: Stickers & Pinned Sticky Memo Note */}
-            <div className="pt-6 border-t border-[#E2DDD5]/80 flex flex-col sm:flex-row items-end justify-between gap-4 relative">
-              <div className="flex flex-wrap items-center gap-2 pb-2">
-                <AcademicSticker type="focus" label="DISTRACTION FREE" />
-                <AcademicSticker type="attendance" label="75% BUNK GUARD" />
-              </div>
-
-              {/* Taped Sticky Memo Note */}
-              <StickyNote
-                rotate={-2}
-                color="#FEF9C3"
-                className="w-56 text-left shrink-0"
-              >
-                <div className="text-[10px] font-mono-tabular font-bold text-amber-900 uppercase tracking-wider mb-1">
-                  SEMESTER FOCUS
-                </div>
-                <p className="text-[11px] text-stone-700 leading-snug">
-                  Consistency beats intensity. One clean syllabus lecture every day keeps exam pressure away.
-                </p>
-              </StickyNote>
-            </div>
-          </SpiralNotebookSheet>
-        </div>
-
-        {/* Peaceful Bottom Caption */}
-        <div className="text-center text-[11px] font-mono-tabular text-[#78716C] mt-5 select-none">
-          Your quiet college desk. No distractions, no ads, pure focus.
+          </div>
         </div>
       </div>
 

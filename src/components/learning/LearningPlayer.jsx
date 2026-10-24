@@ -234,8 +234,12 @@ export default function LearningPlayer({
                   allowFullScreen
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-text-muted text-xs">
-                  Video source unavailable.
+                <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-surface-sunken select-none">
+                  <Play size={40} className="text-text-muted mb-3 opacity-30" />
+                  <p className="text-sm font-semibold text-text-primary">No video lectures linked yet</p>
+                  <p className="text-xs text-text-muted mt-1 max-w-sm">
+                    Attach any YouTube playlist URL in the Creator Studio to stream syllabus lectures here.
+                  </p>
                 </div>
               )}
             </div>

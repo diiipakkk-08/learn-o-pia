@@ -32,7 +32,7 @@ import {
   Globe,
   Copy
 } from 'lucide-react';
-import { calculateAttendanceMetrics } from '../../utils/attendanceMath';
+import { calculateAttendanceMetrics, getLiveAttendanceSummary } from '../../utils/attendanceMath';
 import { getWorkspaceFolders, saveWorkspaceFolders } from '../../utils/workspaceFolders';
 
 export default function MyLearningView({
@@ -153,10 +153,25 @@ export default function MyLearningView({
     setCurrentView('learning-player');
   };
 
-  // User Attendance Metrics (Calculated from user's logs in localStorage)
+  const [attendanceSyncVersion, setAttendanceSyncVersion] = useState(0);
+
+  useEffect(() => {
+    const handleUpdate = () => setAttendanceSyncVersion(v => v + 1);
+    window.addEventListener('learnopia_attendance_updated', handleUpdate);
+    return () => window.removeEventListener('learnopia_attendance_updated', handleUpdate);
+  }, []);
+
+  // User Attendance Metrics (100% synchronized with AttendanceTracker analytics)
   const attendanceMetrics = useMemo(() => {
-    let attended = 28;
-    let total = 34;
+    // 1. First, check if AttendanceTracker has broadcasted its official analytics
+    const liveSummary = getLiveAttendanceSummary(userId);
+    if (liveSummary) {
+      return liveSummary;
+    }
+
+    // 2. If not yet broadcasted, compute from local logs
+    let attended = 0;
+    let total = 0;
 
     try {
       const logsRaw = localStorage.getItem(`learnopia_attendance_logs_${userId}`);
@@ -171,7 +186,7 @@ export default function MyLearningView({
               if (st === 'attended') {
                 calcAttended++;
                 calcTotal++;
-              } else if (st === 'absent') {
+              } else if (st === 'absent' || st === 'bunked') {
                 calcTotal++;
               }
             });
@@ -190,7 +205,7 @@ export default function MyLearningView({
       attended,
       total
     };
-  }, [userId]);
+  }, [userId, attendanceSyncVersion]);
 
   // Today's Routine Schedule
   const todayClasses = useMemo(() => {

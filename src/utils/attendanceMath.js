@@ -42,3 +42,29 @@ export function calculateAttendanceMetrics(attended, total, targetRatio = 0.75) 
     };
   }
 }
+
+/**
+ * Get synchronized live attendance analytics snapshot from localStorage
+ * so that Dashboard, Tracker, and Analytics ALWAYS report identical values.
+ */
+export function getLiveAttendanceSummary(userId = 'guest') {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(`learnopia_attendance_analytics_${userId}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.percentage !== 'undefined') {
+        const pctNum = parseFloat(parsed.percentage);
+        const math = calculateAttendanceMetrics(parsed.attended || 0, parsed.total || 0, 0.75);
+        return {
+          ...math,
+          percentage: !isNaN(pctNum) ? pctNum.toFixed(1) : math.percentage,
+          attended: parsed.attended || 0,
+          total: parsed.total || 0,
+          isSafe: !isNaN(pctNum) ? pctNum >= 75 : math.isSafe
+        };
+      }
+    }
+  } catch {}
+  return null;
+}
