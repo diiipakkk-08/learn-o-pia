@@ -179,32 +179,48 @@ export function getAllMarketplaceItems() {
 
   try {
     const raw = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
-    if (raw) {
-      items = JSON.parse(raw);
+    if (raw && raw !== 'undefined' && raw !== 'null') {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        items = parsed.filter(item => item && typeof item === 'object');
+      }
     }
   } catch (err) {
     console.warn('Error reading marketplace items:', err);
   }
 
   if (!Array.isArray(items) || items.length === 0) {
-    items = SEEDED_MARKETPLACE_ITEMS;
+    items = [...SEEDED_MARKETPLACE_ITEMS];
     saveAllMarketplaceItems(items);
     return items;
   }
 
-  // Ensure all items have listedAt timestamp
+  // Ensure all items have listedAt timestamp and safe defaults
   let updatedAny = false;
-  items = items.map(item => {
-    if (!item.listedAt) {
-      item.listedAt = item.createdAt ? new Date(item.createdAt).getTime() : now;
-      updatedAny = true;
-    }
-    return item;
-  });
+  items = items
+    .filter(item => item && typeof item === 'object')
+    .map(item => {
+      let changed = false;
+      let listedAt = item.listedAt;
+      if (!listedAt) {
+        listedAt = item.createdAt ? new Date(item.createdAt).getTime() : now;
+        changed = true;
+      }
+      if (changed) updatedAny = true;
+      return {
+        ...item,
+        listedAt: Number(listedAt) || now,
+        title: item.title || 'Untitled Item',
+        author: item.author || 'Student',
+        price: item.price || 'Free'
+      };
+    });
 
   // Purge items that exceeded 180 days total (5 months active + 1 month Studio grace period)
   const nonPurgedItems = items.filter(item => {
-    const age = now - (item.listedAt || now);
+    if (!item) return false;
+    const itemListedAt = Number(item.listedAt) || now;
+    const age = now - itemListedAt;
     return age < PURGE_THRESHOLD_MS;
   });
 
@@ -221,7 +237,8 @@ export function getAllMarketplaceItems() {
 export function saveAllMarketplaceItems(items) {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    const safeItems = Array.isArray(items) ? items.filter(it => it && typeof it === 'object') : [];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(safeItems));
     window.dispatchEvent(new Event('learnopia_marketplace_updated'));
   } catch (err) {
     console.error('Failed to save marketplace items:', err);
@@ -234,8 +251,10 @@ export function saveAllMarketplaceItems(items) {
 export function getActiveMarketplaceItems() {
   const now = Date.now();
   const all = getAllMarketplaceItems();
-  return all.filter(item => {
-    const age = now - (item.listedAt || now);
+  return (all || []).filter(item => {
+    if (!item) return false;
+    const itemListedAt = Number(item.listedAt) || now;
+    const age = now - itemListedAt;
     return age < MARKETPLACE_ACTIVE_MS;
   });
 }
@@ -244,38 +263,49 @@ export function getActiveMarketplaceItems() {
  * Get items belonging to the current user (active or in Studio grace period).
  */
 export function getUserStudioListings(user) {
-  const now = Date.now();
-  const all = getAllMarketplaceItems();
-  const userId = user?.id || '';
-  const userName = (user?.name || '').toLowerCase();
-  const userEmail = (user?.email || '').toLowerCase();
+  try {
+    const now = Date.now();
+    const all = getAllMarketplaceItems();
+    const userId = user?.id ? String(user.id) : '';
+    const userName = (user?.name || '').toLowerCase().trim();
+    const userEmail = (user?.email || '').toLowerCase().trim();
 
-  return all
-    .filter(item => {
-      const matchId = item.sellerId && item.sellerId === userId;
-      const matchAuthor = (item.author || '').toLowerCase() === userName;
-      const matchContact = (item.contactDetail || '').toLowerCase() === userEmail;
-      const isUserCreated = item.isUserCreated && (userId === 'guest' || !item.sellerId || item.sellerId === userId);
-      return matchId || matchAuthor || matchContact || isUserCreated;
-    })
-    .map(item => {
-      const listedAt = item.listedAt || now;
-      const ageMs = now - listedAt;
-      const isMarketplaceActive = ageMs < MARKETPLACE_ACTIVE_MS;
-      const isInStudioGrace = ageMs >= MARKETPLACE_ACTIVE_MS && ageMs < PURGE_THRESHOLD_MS;
+    return (all || [])
+      .filter(item => {
+        if (!item || typeof item !== 'object') return false;
+        const itemSellerId = item.sellerId ? String(item.sellerId) : '';
+        const itemAuthor = (item.author || '').toLowerCase().trim();
+        const itemContact = (item.contactDetail || '').toLowerCase().trim();
 
-      const daysLeftOnMarketplace = Math.max(0, Math.ceil((MARKETPLACE_ACTIVE_MS - ageMs) / (24 * 60 * 60 * 1000)));
-      const daysLeftInGrace = Math.max(0, Math.ceil((PURGE_THRESHOLD_MS - ageMs) / (24 * 60 * 60 * 1000)));
+        const matchId = userId && itemSellerId === userId;
+        const matchAuthor = userName && itemAuthor === userName;
+        const matchContact = userEmail && itemContact === userEmail;
+        const isUserCreated = item.isUserCreated && (!itemSellerId || itemSellerId === 'guest' || itemSellerId === userId);
 
-      return {
-        ...item,
-        ageMs,
-        isMarketplaceActive,
-        isInStudioGrace,
-        daysLeftOnMarketplace,
-        daysLeftInGrace
-      };
-    });
+        return matchId || matchAuthor || matchContact || isUserCreated;
+      })
+      .map(item => {
+        const listedAt = Number(item.listedAt) || now;
+        const ageMs = Math.max(0, now - listedAt);
+        const isMarketplaceActive = ageMs < MARKETPLACE_ACTIVE_MS;
+        const isInStudioGrace = ageMs >= MARKETPLACE_ACTIVE_MS && ageMs < PURGE_THRESHOLD_MS;
+
+        const daysLeftOnMarketplace = Math.max(0, Math.ceil((MARKETPLACE_ACTIVE_MS - ageMs) / (24 * 60 * 60 * 1000)));
+        const daysLeftInGrace = Math.max(0, Math.ceil((PURGE_THRESHOLD_MS - ageMs) / (24 * 60 * 60 * 1000)));
+
+        return {
+          ...item,
+          ageMs,
+          isMarketplaceActive,
+          isInStudioGrace,
+          daysLeftOnMarketplace,
+          daysLeftInGrace
+        };
+      });
+  } catch (err) {
+    console.error('Failed to get user studio listings safely:', err);
+    return [];
+  }
 }
 
 /**

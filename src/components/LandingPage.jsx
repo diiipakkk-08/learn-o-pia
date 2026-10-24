@@ -14,8 +14,17 @@ import {
   Minus,
   Check,
   Sun,
-  Moon
+  Moon,
+  Sparkles
 } from 'lucide-react';
+import {
+  SpiralNotebookSheet,
+  LegalPadSheet,
+  GridPaperSheet,
+  StickyNote,
+  AcademicSticker,
+  WashiTape
+} from './StationeryNotebook';
 
 export default function LandingPage({
   setCurrentView,
@@ -82,6 +91,12 @@ export default function LandingPage({
               className="hover:text-text-primary transition-colors cursor-pointer"
             >
               Interactive Suite
+            </button>
+            <button
+              onClick={() => scrollToSection('notes-stationery')}
+              className="hover:text-text-primary transition-colors cursor-pointer"
+            >
+              Study Notes
             </button>
             <button
               onClick={() => scrollToSection('architecture')}
@@ -423,10 +438,10 @@ export default function LandingPage({
           {/* Section 2 Bottom Scroll to Section 3 */}
           <div className="w-full flex justify-center pt-1">
             <button
-              onClick={() => scrollToSection('architecture')}
+              onClick={() => scrollToSection('notes-stationery')}
               className="flex items-center gap-1.5 text-xs font-mono-tabular text-text-muted hover:text-text-primary transition-colors cursor-pointer"
             >
-              <span>Explore Architecture & Design</span>
+              <span>Explore Tactile Study Notes</span>
               <ArrowDown size={13} className="animate-bounce" />
             </button>
           </div>
@@ -434,7 +449,215 @@ export default function LandingPage({
       </section>
 
       {/* =================================================================
-          SECTION 03: ENGINEERED FOR HIGH-FOCUS UNIVERSITY STUDY
+          SECTION 03: TACTILE STUDY DESK & STATIONERY NOTEPADS
+          - Authentic student stationery sheets: Spiral, Legal Pad, Grid Sheet
+          - Creamy paper background, ruled lines, stickers & sticky notes
+      ================================================================= */}
+      <section
+        id="notes-stationery"
+        className="relative min-h-[calc(100vh-4rem)] scroll-mt-16 flex flex-col justify-center px-4 sm:px-8 py-12 sm:py-16 border-t border-border-subtle bg-[#F8F5EE]/40 dark:bg-canvas"
+      >
+        <div className="max-w-6xl mx-auto w-full space-y-8 sm:space-y-10 my-auto">
+          {/* Section Header */}
+          <div className="text-center max-w-2xl mx-auto space-y-2 px-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[11px] font-mono-tabular font-bold tracking-wider uppercase text-amber-800 dark:text-amber-400">
+              <Sparkles size={12} />
+              TACTILE STUDY DESK & STUDENT NOTEPADS
+            </div>
+            <h2 className="font-editorial text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-text-primary leading-snug">
+              Creamy Pages, Real Notes, Zero Clutter.
+            </h2>
+            <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
+              Study like you're sitting with an open notebook at a quiet desk. No algorithmic feeds or recommendation traps—just pure notes, syllabus checklists, and formulas.
+            </p>
+          </div>
+
+          {/* 3 Stationery Paper Sheets */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+            {/* Sheet 1: Spiral-Bound Creamy Paper */}
+            <SpiralNotebookSheet className="flex flex-col justify-between h-full min-h-[460px] hover:translate-y-[-2px] transition-transform">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-[#E0D8C8]">
+                  <AcademicSticker type="stamp" />
+                  <span className="text-[10px] font-mono-tabular text-stone-500 uppercase tracking-widest font-bold">
+                    SEM-02 SYLLABUS
+                  </span>
+                </div>
+
+                <div>
+                  <h3 className="font-editorial text-lg sm:text-xl font-bold text-[#1C1917] leading-snug">
+                    Engineering Mathematics & Physics
+                  </h3>
+                  <p className="text-xs text-stone-600 mt-1">
+                    Structured topic breakdown with direct YouTube lecture links.
+                  </p>
+                </div>
+
+                {/* Ruled Checklist */}
+                <div className="space-y-3 pt-2 text-xs text-stone-800 font-sans">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-4 h-4 rounded border border-emerald-600 bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                      <Check size={11} className="text-emerald-700" />
+                    </div>
+                    <div>
+                      <span className="font-bold">Laplace & Fourier Transforms:</span>
+                      <span className="text-stone-600 ml-1">Properties, shifting theorem & inverse.</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-4 h-4 rounded border border-emerald-600 bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                      <Check size={11} className="text-emerald-700" />
+                    </div>
+                    <div>
+                      <span className="font-bold">Electromagnetic Theory:</span>
+                      <span className="text-stone-600 ml-1">Maxwell's equations & Poynting vector.</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-4 h-4 rounded border border-stone-400 bg-white flex items-center justify-center shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold">Quantum Mechanics:</span>
+                      <span className="text-stone-600 ml-1">Schrödinger wave equation & particle in a box.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-[#E0D8C8] flex items-center justify-between">
+                <AcademicSticker type="verified" label="SYLLABUS CHECKED" />
+                <button
+                  onClick={browseCourses}
+                  className="text-xs font-bold text-stone-800 hover:text-amber-800 flex items-center gap-1 cursor-pointer font-mono-tabular"
+                >
+                  <span>Open Courses</span>
+                  <ArrowRight size={13} />
+                </button>
+              </div>
+            </SpiralNotebookSheet>
+
+            {/* Sheet 2: Top-Perforated Yellow Legal Pad */}
+            <LegalPadSheet className="flex flex-col justify-between h-full min-h-[460px] hover:translate-y-[-2px] transition-transform">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-editorial text-lg sm:text-xl font-bold text-[#1C1917] leading-snug">
+                    75% Attendance Survival Formula
+                  </h3>
+                  <p className="text-xs text-stone-600 mt-1">
+                    Calculate your safe bunk margin before missing classes.
+                  </p>
+                </div>
+
+                {/* Formula Box */}
+                <div className="p-3.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs font-mono-tabular text-stone-800 space-y-1">
+                  <div className="font-bold text-amber-900">MANDATORY UNIVERSITY RULE:</div>
+                  <div className="text-xs">Attended / Total Conducted ≥ 0.75</div>
+                  <div className="text-[11px] text-stone-600 mt-1">
+                    If attendance is 84% over 50 classes, you can safely take <strong>4 bunk classes</strong> without risk!
+                  </div>
+                </div>
+
+                {/* Taped Sticky Memo Note */}
+                <div className="pt-2">
+                  <StickyNote rotate={1} color="#FEF9C3" className="w-full text-left">
+                    <div className="text-[10px] font-mono-tabular font-bold text-amber-900 uppercase tracking-wider mb-0.5">
+                      EXAM REGISTRATION ADVISORY
+                    </div>
+                    <p className="text-[11px] text-stone-700 leading-snug">
+                      Semester debarment notices are issued below 75%. Learn-O-Pia sends instant warning alerts when your bunk margin hits zero.
+                    </p>
+                  </StickyNote>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-amber-900/10 flex items-center justify-between">
+                <AcademicSticker type="attendance" label="75% SAFE" />
+                <button
+                  onClick={enterApp}
+                  className="text-xs font-bold text-stone-800 hover:text-amber-800 flex items-center gap-1 cursor-pointer font-mono-tabular"
+                >
+                  <span>Track Routine</span>
+                  <ArrowRight size={13} />
+                </button>
+              </div>
+            </LegalPadSheet>
+
+            {/* Sheet 3: Engineering Graph / Grid Notepad */}
+            <GridPaperSheet className="flex flex-col justify-between h-full min-h-[460px] hover:translate-y-[-2px] transition-transform">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-[#E0D8C8]">
+                  <AcademicSticker type="focus" label="STUDENT EXCHANGE" />
+                  <span className="text-[10px] font-mono-tabular text-stone-500 uppercase tracking-widest font-bold">
+                    LAB GEAR & PYQS
+                  </span>
+                </div>
+
+                <div>
+                  <h3 className="font-editorial text-lg sm:text-xl font-bold text-[#1C1917] leading-snug">
+                    Handmade Organizers & Equipment
+                  </h3>
+                  <p className="text-xs text-stone-600 mt-1">
+                    Direct senior-to-junior campus gear trading. Available for 5 months on exchange.
+                  </p>
+                </div>
+
+                {/* Notes List */}
+                <div className="space-y-2.5 pt-1 text-xs text-stone-800">
+                  <div className="p-2.5 rounded-lg bg-white/70 border border-[#E0D8C8] space-y-0.5">
+                    <div className="font-bold flex items-center justify-between">
+                      <span>B.Tech Complete Organizers</span>
+                      <span className="text-amber-800 font-mono-tabular font-semibold">₹150</span>
+                    </div>
+                    <div className="text-[11px] text-stone-600">Handwritten step-by-step solved PYQs for 1st & 2nd year.</div>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-white/70 border border-[#E0D8C8] space-y-0.5">
+                    <div className="font-bold flex items-center justify-between">
+                      <span>Omega Mini Drafter & Board</span>
+                      <span className="text-amber-800 font-mono-tabular font-semibold">₹450</span>
+                    </div>
+                    <div className="text-[11px] text-stone-600">Pristine condition for Engineering Graphics practicals.</div>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-white/70 border border-[#E0D8C8] space-y-0.5">
+                    <div className="font-bold flex items-center justify-between">
+                      <span>ESP32 IoT Starter Lab Kit</span>
+                      <span className="text-amber-800 font-mono-tabular font-semibold">₹1,199</span>
+                    </div>
+                    <div className="text-[11px] text-stone-600">Pre-soldered sensors, OLED display & breadboard.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-[#E0D8C8] flex items-center justify-between">
+                <AcademicSticker type="verified" label="STUDENT VERIFIED" />
+                <button
+                  onClick={enterApp}
+                  className="text-xs font-bold text-stone-800 hover:text-amber-800 flex items-center gap-1 cursor-pointer font-mono-tabular"
+                >
+                  <span>View Exchange</span>
+                  <ArrowRight size={13} />
+                </button>
+              </div>
+            </GridPaperSheet>
+          </div>
+
+          {/* Bottom Scroll to Architecture */}
+          <div className="w-full flex justify-center pt-2">
+            <button
+              onClick={() => scrollToSection('architecture')}
+              className="flex items-center gap-1.5 text-xs font-mono-tabular text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+            >
+              <span>Explore High-Focus Architecture</span>
+              <ArrowDown size={13} className="animate-bounce" />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* =================================================================
+          SECTION 04: ENGINEERED FOR HIGH-FOCUS UNIVERSITY STUDY
           - Clear 3-pillar architectural explanation
           - Final Call-to-Action to enter workspace
       ================================================================= */}

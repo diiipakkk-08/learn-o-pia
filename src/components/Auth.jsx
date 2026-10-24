@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
 import { useGoogleLogin } from '@react-oauth/google';
-import { Eye, EyeOff, AlertCircle, CheckCircle, ArrowLeft, X, Sparkles, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, CheckCircle, ArrowLeft, X, Sparkles, ShieldCheck, RotateCw } from 'lucide-react';
 import TermsModal from './TermsModal';
+import { SpiralNotebookSheet, StickyNote, AcademicSticker } from './StationeryNotebook';
+import { getRandomCuratedQuote, fetchRandomStudentQuote } from '../utils/studentQuotes';
 
 function GoogleIcon() {
   return (
@@ -52,6 +54,31 @@ export default function Auth({ setCurrentView }) {
   // Terms & Conditions State
   const [agreeTerms, setAgreeTerms] = useState(true);
   const [showTermsModal, setShowTermsModal] = useState(false);
+
+  // Tactile Student Motivational Quotes
+  const [currentQuote, setCurrentQuote] = useState(() => getRandomCuratedQuote());
+  const [quoteLoading, setQuoteLoading] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchRandomStudentQuote().then((q) => {
+      if (isMounted && q) setCurrentQuote(q);
+    }).catch(() => {});
+    return () => { isMounted = false; };
+  }, []);
+
+  const handleCycleQuote = async () => {
+    if (quoteLoading) return;
+    setQuoteLoading(true);
+    try {
+      const fresh = await fetchRandomStudentQuote();
+      setCurrentQuote(fresh);
+    } catch {
+      setCurrentQuote(getRandomCuratedQuote());
+    } finally {
+      setTimeout(() => setQuoteLoading(false), 300);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -436,73 +463,92 @@ export default function Auth({ setCurrentView }) {
       </div>
 
       {/* =========================================================================
-          RIGHT PANEL: Editorial Showcase (Visible on desktop screens >= lg)
+          RIGHT PANEL: Tactile Creamy Student Notebook Desk (Visible on desktop screens >= lg)
+          Inspired by authentic physical student stationery: spiral holes, ruled lines,
+          red margin, pinned sticky notes, and rotating motivational quotes.
       ========================================================================= */}
-      <div className="hidden lg:flex flex-1 bg-[#141413] text-[#F7F5F0] flex-col justify-between p-12 lg:p-16 relative overflow-hidden select-none border-l border-white/5">
-        {/* Subtle geometric light rings */}
-        <div className="absolute top-1/4 -right-24 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-10 left-10 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="hidden lg:flex flex-1 bg-[#ECE7DC] text-[#2C261E] flex-col justify-center items-center p-8 lg:p-12 xl:p-14 relative overflow-hidden select-none border-l border-[#DCD5C5]">
+        {/* Ambient warm desk illumination */}
+        <div className="absolute top-10 left-10 w-96 h-96 bg-amber-100/60 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-10 right-10 w-80 h-80 bg-stone-300/40 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Top Header Tag */}
-        <div className="flex items-center justify-between relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 text-[11px] font-mono-tabular tracking-wider uppercase text-emerald-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            ACADEMIC OPERATING SYSTEM • 2026
-          </div>
-          <span className="text-[11px] font-mono-tabular text-white/40">CALCUTTA & BEYOND</span>
-        </div>
+        {/* Physical Spiral Notebook Sheet */}
+        <div className="w-full max-w-xl relative">
+          <SpiralNotebookSheet className="w-full min-h-[580px] flex flex-col justify-between shadow-2xl">
+            {/* Top Sheet Header */}
+            <div>
+              <div className="flex items-center justify-between pb-4 border-b border-[#E2DDD5] mb-4">
+                <div className="flex items-center gap-2">
+                  <AcademicSticker type="stamp" />
+                  <div>
+                    <div className="text-[11px] font-mono-tabular font-bold tracking-wider uppercase text-[#78350F]">
+                      DAILY CAMPUS MOTIVATION
+                    </div>
+                    <div className="text-[10px] text-[#78716C] font-mono-tabular">
+                      LEARN-O-PIA STUDY JOURNAL • 2026
+                    </div>
+                  </div>
+                </div>
 
-        {/* Center Showcase */}
-        <div className="max-w-lg space-y-8 my-auto relative z-10">
-          <div className="space-y-4">
-            <h2 className="font-editorial text-3xl xl:text-4xl 2xl:text-5xl font-bold tracking-tight text-white leading-[1.18]">
-              A quiet, focused workspace for your college lectures, attendance, and campus gear.
-            </h2>
-            <p className="text-sm text-stone-300 leading-relaxed font-light">
-              Built specifically for students tired of messy WhatsApp folders, lost PDFs, and unexpected attendance shortages. Everything is stored directly in your browser with cloud-sync resilience.
-            </p>
-          </div>
+                <button
+                  type="button"
+                  onClick={handleCycleQuote}
+                  disabled={quoteLoading}
+                  className="px-3 py-1.5 rounded-xl border border-[#D5CEBF] bg-[#FAF7F0] hover:bg-[#F2ECE0] text-[#57534E] text-xs font-mono-tabular font-semibold cursor-pointer shadow-xs flex items-center gap-1.5 transition-all active:scale-95"
+                  title="Click for next motivational quote"
+                >
+                  <RotateCw size={12} className={quoteLoading ? 'animate-spin' : ''} />
+                  <span>{quoteLoading ? 'Refreshing...' : 'New Quote'}</span>
+                </button>
+              </div>
 
-          {/* Highlights Grid */}
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            <div className="p-4 rounded-xl bg-white/[0.04] border border-white/[0.08] space-y-1">
-              <div className="text-xs font-semibold text-white">Pure YouTube Playlists</div>
-              <div className="text-[11px] text-stone-400 leading-snug">Instant lecture player with auto-extract syllabus and zero ads</div>
-            </div>
-            <div className="p-4 rounded-xl bg-white/[0.04] border border-white/[0.08] space-y-1">
-              <div className="text-xs font-semibold text-white">75% Attendance Guard</div>
-              <div className="text-[11px] text-stone-400 leading-snug">Real-time bunk margin and routine timetable tracking</div>
-            </div>
-            <div className="p-4 rounded-xl bg-white/[0.04] border border-white/[0.08] space-y-1">
-              <div className="text-xs font-semibold text-white">Campus Peer Exchange</div>
-              <div className="text-[11px] text-stone-400 leading-snug">Buy & sell drafters, organizers, and verified lab kits</div>
-            </div>
-            <div className="p-4 rounded-xl bg-white/[0.04] border border-white/[0.08] space-y-1">
-              <div className="text-xs font-semibold text-white">Local-First Architecture</div>
-              <div className="text-[11px] text-stone-400 leading-snug">Fast offline access with automatic Supabase sync</div>
-            </div>
-          </div>
-
-          {/* Verified Student Quote */}
-          <div className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-start gap-3.5">
-            <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-bold text-xs shrink-0">
-              <ShieldCheck size={16} />
-            </div>
-            <div className="space-y-1 text-xs">
-              <p className="text-stone-300 italic leading-relaxed">
-                “Learn-O-Pia replaced 5 separate messy tools for our batch. Having lecture syllabus and attendance bunk calculation in one tab is unmatched.”
-              </p>
-              <div className="text-[11px] font-mono-tabular text-stone-400 font-semibold">
-                Verified B.Tech Engineering Batch '26
+              {/* The Quote on Ruled Notebook Lines */}
+              <div className="my-8 sm:my-10 space-y-4 px-2">
+                <div className="text-4xl text-amber-700/35 font-serif leading-none select-none">“</div>
+                <blockquote className="font-editorial text-2xl xl:text-3xl font-medium text-[#2C261E] leading-[1.38] tracking-tight -mt-4 italic">
+                  {currentQuote?.quote}
+                </blockquote>
+                <div className="pt-3 flex items-center gap-3">
+                  <div className="w-10 h-[2px] bg-amber-700/40" />
+                  <div>
+                    <div className="text-sm font-bold text-[#1C1917] font-sans">
+                      {currentQuote?.author}
+                    </div>
+                    <div className="text-xs text-[#78716C] font-mono-tabular">
+                      {currentQuote?.field}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+
+            {/* Bottom Section: Stickers & Pinned Sticky Memo Note */}
+            <div className="pt-6 border-t border-[#E2DDD5]/80 flex flex-col sm:flex-row items-end justify-between gap-4 relative">
+              <div className="flex flex-wrap items-center gap-2 pb-2">
+                <AcademicSticker type="focus" label="DISTRACTION FREE" />
+                <AcademicSticker type="attendance" label="75% BUNK GUARD" />
+              </div>
+
+              {/* Taped Sticky Memo Note */}
+              <StickyNote
+                rotate={-2}
+                color="#FEF9C3"
+                className="w-56 text-left shrink-0"
+              >
+                <div className="text-[10px] font-mono-tabular font-bold text-amber-900 uppercase tracking-wider mb-1">
+                  SEMESTER FOCUS
+                </div>
+                <p className="text-[11px] text-stone-700 leading-snug">
+                  Consistency beats intensity. One clean syllabus lecture every day keeps exam pressure away.
+                </p>
+              </StickyNote>
+            </div>
+          </SpiralNotebookSheet>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="flex items-center justify-between text-[11px] font-mono-tabular text-white/40 pt-6 border-t border-white/5 relative z-10">
-          <span>STUDENT-LED INITIATIVE</span>
-          <span>NO ADS • ZERO BLOAT</span>
+        {/* Peaceful Bottom Caption */}
+        <div className="text-center text-[11px] font-mono-tabular text-[#78716C] mt-5 select-none">
+          Your quiet college desk. No distractions, no ads, pure focus.
         </div>
       </div>
 

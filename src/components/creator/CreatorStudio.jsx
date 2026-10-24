@@ -4,7 +4,7 @@
  * managing video curriculum, reordering lectures, and monitoring enrolled students.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { useDatabase, extractYoutubePlaylistId, fetchYoutubePlaylistVideos, getUserDesignation } from '../../context/DatabaseContext';
 import {
@@ -146,8 +146,57 @@ function InlineEdit({ value, onSave, multiline = false, inputStyle = {} }) {
   );
 }
 
+// ── Local Error Boundary ─────────────────────────────────────────────────────
+class StudioErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('Creator Studio Error Boundary caught:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="w-full max-w-4xl mx-auto p-8 my-10 rounded-2xl border border-border-subtle bg-surface text-center space-y-4 shadow-sm animate-fade-in">
+          <div className="w-12 h-12 rounded-full bg-accent-forest/10 text-accent-forest flex items-center justify-center mx-auto font-bold">
+            <Sparkles size={24} />
+          </div>
+          <h2 className="text-xl font-bold text-text-primary font-editorial">Creator Studio Workspace</h2>
+          <p className="text-xs text-text-secondary max-w-md mx-auto">
+            A temporary layout refresh was caught cleanly. You can reload your studio listings or return to your courses.
+          </p>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <button
+              onClick={() => {
+                this.setState({ hasError: false, error: null });
+                window.location.reload();
+              }}
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-90 cursor-pointer"
+            >
+              Reload Studio
+            </button>
+            <button
+              onClick={() => {
+                if (this.props.setCurrentView) this.props.setCurrentView('learning');
+              }}
+              className="px-4 py-2 rounded-xl text-xs font-semibold border border-border-strong bg-surface hover:bg-surface-hover text-text-primary cursor-pointer"
+            >
+              Return to Courses
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // ── Main Component ───────────────────────────────────────────────────────────
-export default function CreatorStudio({ setCurrentView, setSelectedPlaylistId }) {
+function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
   const {
     currentUser, courses, subjects, users,
     addCourse, editCourse, deleteCourse,
@@ -1164,7 +1213,7 @@ export default function CreatorStudio({ setCurrentView, setSelectedPlaylistId })
             <Sparkles size={14} />
             <span>My Studio Creations & Listings</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-accent-forest/20 text-accent-forest font-mono-tabular">
-              {marketplaceListings.length + myPlaylists.length + myResources.length}
+              {(marketplaceListings || []).length + (myPlaylists || []).length + (myResources || []).length}
             </span>
           </button>
 
@@ -1206,7 +1255,7 @@ export default function CreatorStudio({ setCurrentView, setSelectedPlaylistId })
               }`}
             >
               <Tag size={13} />
-              <span>Marketplace Listings ({marketplaceListings.length})</span>
+              <span>Marketplace Listings ({(marketplaceListings || []).length})</span>
             </button>
 
             <button
@@ -1218,7 +1267,7 @@ export default function CreatorStudio({ setCurrentView, setSelectedPlaylistId })
               }`}
             >
               <Video size={13} />
-              <span>Courses & Playlists ({myPlaylists.length})</span>
+              <span>Courses & Playlists ({(myPlaylists || []).length})</span>
             </button>
 
             <button
@@ -1230,7 +1279,7 @@ export default function CreatorStudio({ setCurrentView, setSelectedPlaylistId })
               }`}
             >
               <FileText size={13} />
-              <span>Open Study Resources ({myResources.length})</span>
+              <span>Open Study Resources ({(myResources || []).length})</span>
             </button>
           </div>
 
@@ -1632,7 +1681,7 @@ export default function CreatorStudio({ setCurrentView, setSelectedPlaylistId })
                     <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '8px', marginBottom: '6px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#DFDBD2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                          {u.name.charAt(0).toUpperCase()}
+                          {(u?.name || 'S').charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{u.name}</div>
@@ -2305,3 +2354,11 @@ const styles = {
   iconBtnGreen: { background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', padding: '5px', borderRadius: '5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   iconBtnRed: { background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5', padding: '5px', borderRadius: '5px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
 };
+
+export default function CreatorStudio(props) {
+  return (
+    <StudioErrorBoundary setCurrentView={props?.setCurrentView}>
+      <CreatorStudioInner {...props} />
+    </StudioErrorBoundary>
+  );
+}
