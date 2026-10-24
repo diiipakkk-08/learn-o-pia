@@ -93,6 +93,8 @@ export default function Header({
   const searchPlaceholder =
     currentView === 'resources' || currentView === 'discussions'
       ? 'Search documents, PDFs, or study notes...'
+      : currentView === 'marketplace'
+      ? 'Search textbooks, lab kits, drafters, services...'
       : currentView === 'learning'
       ? 'Search courses, subjects, or engineering topics...'
       : 'Search Learn-O-Pia courses...';
@@ -100,7 +102,7 @@ export default function Header({
   const handleSearchChange = (e) => {
     const val = e.target.value;
     if (setGlobalSearchQuery) setGlobalSearchQuery(val);
-    if (val.trim().length > 0 && currentView !== 'learning' && currentView !== 'resources') {
+    if (val.trim().length > 0 && currentView !== 'learning' && currentView !== 'resources' && currentView !== 'marketplace') {
       setCurrentView('learning');
     }
   };
