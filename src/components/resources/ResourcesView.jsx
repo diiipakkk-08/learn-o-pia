@@ -78,7 +78,8 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
         category: res.category || 'Study Guide',
         description: res.description || '',
         author: res.author || 'Educator',
-        subjectTitle: (res.subjects && res.subjects[0]) || 'General Vault'
+        subjectTitle: (res.subjects && res.subjects[0]) || 'General Vault',
+        keywords: res.keywords || ['makaut', 'notes', 'study material', 'pyq']
       });
     });
 
@@ -95,7 +96,8 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
           category: mat.sectionName || 'Subject Material',
           description: `Academic resource from ${sub.title}`,
           author: sub.title,
-          subjectTitle: sub.title
+          subjectTitle: sub.title,
+          keywords: mat.keywords || ['makaut', sub.title.toLowerCase(), mat.sectionName?.toLowerCase() || 'notes']
         });
       });
     });
@@ -112,11 +114,18 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
       }
 
       if (!query) return true;
+      const kw = res.keywords;
+      const kwMatch = Array.isArray(kw)
+        ? kw.some(k => String(k).toLowerCase().includes(query))
+        : String(kw || '').toLowerCase().includes(query);
+
       return (
         res.title.toLowerCase().includes(query) ||
         (res.category && res.category.toLowerCase().includes(query)) ||
         (res.author && res.author.toLowerCase().includes(query)) ||
-        (res.subjectTitle && res.subjectTitle.toLowerCase().includes(query))
+        (res.subjectTitle && res.subjectTitle.toLowerCase().includes(query)) ||
+        (res.description && res.description.toLowerCase().includes(query)) ||
+        kwMatch
       );
     });
   }, [allDocResources, activeTab, savedResourceIds, query]);

@@ -167,18 +167,19 @@ export default function Header({
 
       {/* Right Actions: Theme Toggle + Announcements + Profile */}
       <div className="flex items-center gap-2">
-        {/* Day / Night / Cinema Focus Mode Toggle */}
+        {/* Day / Night / Cinema Focus Mode Toggle (Icon Only) */}
         {setCinemaMode && (
           <button
             onClick={() => setCinemaMode(!cinemaMode)}
-            className="px-2.5 py-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-            title={cinemaMode ? 'Switch to Warm Paper (Day Mode)' : 'Dim lights (Cinema / Night Mode)'}
+            className="p-2 rounded-full hover:bg-surface-hover text-text-primary transition-colors cursor-pointer"
+            title={cinemaMode ? 'Switch to Light Mode' : 'Switch to Dim Mode'}
             aria-label="Toggle theme mode"
           >
-            {cinemaMode ? <Sun size={15} strokeWidth={2} className="text-accent-amber" /> : <Moon size={15} strokeWidth={2} className="text-text-muted" />}
-            <span className="hidden sm:inline text-xs font-mono-tabular">
-              {cinemaMode ? 'Warm Paper' : 'Dim Lights'}
-            </span>
+            {cinemaMode ? (
+              <Sun size={18} strokeWidth={1.75} className="text-accent-amber" />
+            ) : (
+              <Moon size={18} strokeWidth={1.75} className="text-text-secondary hover:text-text-primary" />
+            )}
           </button>
         )}
 
@@ -189,8 +190,7 @@ export default function Header({
               setShowAnnouncementsModal(!showAnnouncementsModal);
               if (markAnnouncementsRead) markAnnouncementsRead();
             }}
-            className="relative p-2 rounded-lg transition-colors hover:bg-black/5"
-            style={{ color: cinemaMode ? '#F2EFE9' : '#141413' }}
+            className="relative p-2 rounded-full hover:bg-surface-hover text-text-primary transition-colors cursor-pointer"
             title="Academic Notices & Updates"
             aria-label="Announcements"
           >
@@ -201,19 +201,16 @@ export default function Header({
           </button>
         )}
 
-        {/* User Profile Trigger / Auth Link */}
+        {/* User Profile Trigger (Icon Only) */}
         {currentUser ? (
           <div className="relative" ref={profileMenuRef}>
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex items-center gap-2 p-1 pl-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover transition-all text-text-primary"
+              className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border border-border-strong bg-subtle text-text-primary hover:border-accent-forest hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-xs"
+              title="Student Profile & Settings"
+              aria-label="User Profile"
             >
-              <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs border border-border-strong bg-subtle text-text-primary">
-                {userInitials}
-              </div>
-              <span className="hidden sm:inline text-xs font-semibold max-w-[100px] truncate text-text-primary">
-                {currentUser.name ? currentUser.name.split(' ')[0] : 'Student'}
-              </span>
+              {userInitials}
             </button>
 
             {/* Profile Dropdown Menu */}

@@ -230,73 +230,73 @@ export default function AdminDashboard() {
           <div className="flex flex-col gap-1.5">
             <button 
               onClick={() => setActiveTab('verification')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono-tabular transition-all text-left border-l-[3px] ${
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono-tabular transition-all text-left cursor-pointer ${
                 activeTab === 'verification'
-                  ? 'bg-surface-hover text-text-primary font-bold border-accent-forest shadow-xs'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover/50 border-transparent font-medium'
+                  ? 'bg-accent-ink text-text-on-dark font-bold shadow-xs'
+                  : 'bg-surface hover:bg-surface-hover text-text-secondary hover:text-text-primary border border-border-subtle font-medium'
               }`}
             >
-              <Award size={15} />
+              <Award size={15} className="shrink-0" />
               <span>Creator Queue ({pendingCreators.length})</span>
             </button>
 
             <button 
               onClick={() => setActiveTab('student-verify')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono-tabular transition-all text-left border-l-[3px] ${
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono-tabular transition-all text-left cursor-pointer ${
                 activeTab === 'student-verify'
-                  ? 'bg-surface-hover text-text-primary font-bold border-accent-forest shadow-xs'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover/50 border-transparent font-medium'
+                  ? 'bg-accent-ink text-text-on-dark font-bold shadow-xs'
+                  : 'bg-surface hover:bg-surface-hover text-text-secondary hover:text-text-primary border border-border-subtle font-medium'
               }`}
             >
-              <ShieldCheck size={15} />
+              <ShieldCheck size={15} className="shrink-0" />
               <span>ID Verification Queue ({pendingStudentVerifications.length})</span>
             </button>
             
             <button 
               onClick={() => setActiveTab('directory')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono-tabular transition-all text-left border-l-[3px] ${
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono-tabular transition-all text-left cursor-pointer ${
                 activeTab === 'directory'
-                  ? 'bg-surface-hover text-text-primary font-bold border-accent-forest shadow-xs'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover/50 border-transparent font-medium'
+                  ? 'bg-accent-ink text-text-on-dark font-bold shadow-xs'
+                  : 'bg-surface hover:bg-surface-hover text-text-secondary hover:text-text-primary border border-border-subtle font-medium'
               }`}
             >
-              <Users size={15} />
+              <Users size={15} className="shrink-0" />
               <span>User Directories</span>
             </button>
 
             <button 
               onClick={() => setActiveTab('routines')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono-tabular transition-all text-left border-l-[3px] ${
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono-tabular transition-all text-left cursor-pointer ${
                 activeTab === 'routines'
-                  ? 'bg-surface-hover text-text-primary font-bold border-accent-forest shadow-xs'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover/50 border-transparent font-medium'
+                  ? 'bg-accent-ink text-text-on-dark font-bold shadow-xs'
+                  : 'bg-surface hover:bg-surface-hover text-text-secondary hover:text-text-primary border border-border-subtle font-medium'
               }`}
             >
-              <CalendarDays size={15} color="#38bdf8" />
+              <CalendarDays size={15} className="shrink-0" />
               <span>Routine Generator ({sharedRoutinesList.length})</span>
             </button>
 
             <button 
               onClick={() => setActiveTab('ads')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono-tabular transition-all text-left border-l-[3px] ${
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono-tabular transition-all text-left cursor-pointer ${
                 activeTab === 'ads'
-                  ? 'bg-surface-hover text-text-primary font-bold border-accent-forest shadow-xs'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover/50 border-transparent font-medium'
+                  ? 'bg-accent-ink text-text-on-dark font-bold shadow-xs'
+                  : 'bg-surface hover:bg-surface-hover text-text-secondary hover:text-text-primary border border-border-subtle font-medium'
               }`}
             >
-              <Heart size={15} color="var(--primary)" />
+              <Heart size={15} className="shrink-0" />
               <span>Ads & Pop-up Controls</span>
             </button>
 
             <button 
               onClick={() => setActiveTab('announcements')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono-tabular transition-all text-left border-l-[3px] ${
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-mono-tabular transition-all text-left cursor-pointer ${
                 activeTab === 'announcements'
-                  ? 'bg-surface-hover text-text-primary font-bold border-accent-forest shadow-xs'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover/50 border-transparent font-medium'
+                  ? 'bg-accent-ink text-text-on-dark font-bold shadow-xs'
+                  : 'bg-surface hover:bg-surface-hover text-text-secondary hover:text-text-primary border border-border-subtle font-medium'
               }`}
             >
-              <Megaphone size={15} color="#a78bfa" />
+              <Megaphone size={15} className="shrink-0" />
               <span>Announcements & Broadcasts ({announcements?.length || 0})</span>
             </button>
           </div>

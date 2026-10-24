@@ -129,7 +129,16 @@ export default function CoursesDashboard({
         thumbnailUrl: thumb,
         isEnrolled,
         semester: sub.semester,
-        baseLikes
+        baseLikes,
+        keywords: [
+          'makaut', 'wbut', 'btech', 'b.tech', 'engineering',
+          sub.title.toLowerCase(),
+          sub.semester ? `semester ${sub.semester}` : 'core',
+          sub.semester ? `sem ${sub.semester}` : 'core',
+          parentCourse?.title?.toLowerCase() || '',
+          parentCourse?.department?.toLowerCase() || '',
+          ...(Array.isArray(sub.keywords) ? sub.keywords : (sub.keywords ? String(sub.keywords).split(',').map(s => s.trim().toLowerCase()) : []))
+        ].filter(Boolean)
       });
 
       if (primaryPl?.id) seen.add(primaryPl.id);
@@ -157,7 +166,14 @@ export default function CoursesDashboard({
             'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop',
           isEnrolled,
           semester: null,
-          baseLikes
+          baseLikes,
+          keywords: [
+            'makaut', 'course', 'certification', 'programming',
+            c.title.toLowerCase(),
+            (c.department || '').toLowerCase(),
+            (c.creatorName || '').toLowerCase(),
+            ...(Array.isArray(c.keywords) ? c.keywords : (c.keywords ? String(c.keywords).split(',').map(s => s.trim().toLowerCase()) : []))
+          ].filter(Boolean)
         });
       }
     });
@@ -179,7 +195,9 @@ export default function CoursesDashboard({
         const matchAuthor = course.author.toLowerCase().includes(query);
         const matchDesc = course.description.toLowerCase().includes(query);
         const matchCategory = course.category.toLowerCase().includes(query);
-        if (!matchTitle && !matchAuthor && !matchDesc && !matchCategory) return false;
+        const matchDept = (course.department || '').toLowerCase().includes(query);
+        const matchKeywords = (course.keywords || []).some(k => k.includes(query));
+        if (!matchTitle && !matchAuthor && !matchDesc && !matchCategory && !matchDept && !matchKeywords) return false;
       }
 
       // Category filter
@@ -259,21 +277,21 @@ export default function CoursesDashboard({
       )}
 
       {/* =================================================================
-          1. TOP ENROLLED COURSES SLIDER (Horizontal Carousel)
+          1. TOP ENROLLED COURSES SLIDER (Open Horizon Carousel - No Box-in-Box)
       ================================================================= */}
       {enrolledCoursesList.length > 0 && (
-        <div className="p-4 rounded-xl border border-border-subtle bg-surface space-y-3 shadow-xs">
+        <section className="space-y-3 pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-accent-forest animate-pulse" />
-              <span className="text-xs font-mono-tabular font-bold uppercase tracking-wider text-text-primary">
+              <h2 className="text-xs font-mono-tabular font-bold uppercase tracking-wider text-text-primary">
                 My Enrolled Subjects ({enrolledCoursesList.length})
-              </span>
+              </h2>
             </div>
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => scrollSlider('left')}
-                className="p-1.5 rounded-lg border border-border-subtle bg-subtle hover:bg-surface-hover text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-text-secondary hover:text-text-primary transition-colors cursor-pointer shadow-xs"
                 title="Scroll Left"
                 aria-label="Scroll left"
               >
@@ -281,7 +299,7 @@ export default function CoursesDashboard({
               </button>
               <button
                 onClick={() => scrollSlider('right')}
-                className="p-1.5 rounded-lg border border-border-subtle bg-subtle hover:bg-surface-hover text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-text-secondary hover:text-text-primary transition-colors cursor-pointer shadow-xs"
                 title="Scroll Right"
                 aria-label="Scroll right"
               >
@@ -292,41 +310,43 @@ export default function CoursesDashboard({
 
           <div
             ref={sliderRef}
-            className="flex items-center gap-3 overflow-x-auto pb-1 scroll-smooth"
+            className="flex items-center gap-3.5 overflow-x-auto pb-2 scroll-smooth"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {enrolledCoursesList.map((course) => (
               <div
                 key={`slider-${course.id}`}
                 onClick={() => handleOpenCourse(course)}
-                className="w-64 sm:w-72 shrink-0 p-2.5 rounded-lg border border-border-subtle bg-subtle/50 hover:bg-surface-hover/80 transition-all cursor-pointer flex items-center gap-3 group"
+                className="w-72 sm:w-80 shrink-0 p-3 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover hover:border-border-strong transition-all cursor-pointer flex items-center gap-3.5 group shadow-xs"
               >
-                <div className="relative w-20 aspect-video rounded-md overflow-hidden bg-black shrink-0 border border-border-subtle">
+                <div className="relative w-24 sm:w-28 aspect-video rounded-lg overflow-hidden bg-black shrink-0">
                   <img
                     src={course.thumbnailUrl}
                     alt={course.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform opacity-90"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90"
                   />
                   <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
-                    <Play size={11} fill="#FFFFFF" className="text-white" />
+                    <div className="w-6 h-6 rounded-full bg-black/70 flex items-center justify-center text-white">
+                      <Play size={10} fill="#FFFFFF" className="ml-0.5" />
+                    </div>
                   </div>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h4 className="text-xs font-bold text-text-primary truncate group-hover:text-accent-forest transition-colors">
+                  <h4 className="text-xs sm:text-sm font-bold text-text-primary truncate group-hover:text-accent-forest transition-colors">
                     {course.title}
                   </h4>
-                  <p className="text-[10px] text-text-muted font-mono-tabular truncate mt-0.5">
+                  <p className="text-[11px] text-text-muted font-mono-tabular truncate mt-0.5">
                     {course.category} • {course.lectureCount} Lectures
                   </p>
-                  <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-accent-forest">
-                    <span>Resume</span>
-                    <ArrowRight size={10} />
+                  <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-accent-forest group-hover:translate-x-0.5 transition-transform">
+                    <span>Resume Lecture</span>
+                    <ArrowRight size={11} />
                   </span>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {/* =================================================================
@@ -402,19 +422,19 @@ export default function CoursesDashboard({
               <div
                 key={course.id}
                 onClick={() => handleOpenCourse(course)}
-                className="rounded-xl p-4 border border-border-subtle bg-surface cursor-pointer transition-all hover:border-border-strong hover:shadow-md flex flex-col justify-between group"
+                className="rounded-xl p-3.5 sm:p-4 border border-border-subtle bg-surface cursor-pointer transition-all hover:border-border-strong hover:shadow-md flex flex-col justify-between group"
               >
                 <div>
-                  {/* 16:9 Thumbnail Frame */}
-                  <div className="relative aspect-video rounded-lg overflow-hidden border border-border-subtle mb-3 bg-[#141413]">
+                  {/* Compact 16:9 Thumbnail Frame */}
+                  <div className="relative aspect-video rounded-lg overflow-hidden border border-border-subtle mb-2.5 bg-[#141413]">
                     <img
                       src={course.thumbnailUrl}
                       alt={course.title}
                       className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300 opacity-90"
                     />
                     <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[#141413]/80 text-white opacity-0 group-hover:opacity-100 transition-opacity scale-90 group-hover:scale-100">
-                        <Play size={18} fill="#FFFFFF" className="ml-0.5" />
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#141413]/85 text-white opacity-0 group-hover:opacity-100 transition-opacity scale-90 group-hover:scale-100 shadow-md">
+                        <Play size={15} fill="#FFFFFF" className="ml-0.5" />
                       </div>
                     </div>
                     <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-mono-tabular font-bold bg-[#141413]/85 text-[#F7F5F0]">
@@ -426,22 +446,21 @@ export default function CoursesDashboard({
                   </div>
 
                   {/* Course Title & Author */}
-                  <h3 className="text-base font-bold text-text-primary group-hover:text-accent-forest transition-colors line-clamp-1">
+                  <h3 className="text-sm sm:text-base font-bold text-text-primary group-hover:text-accent-forest transition-colors line-clamp-1">
                     {course.title}
                   </h3>
-                  <p className="text-xs text-text-muted mt-0.5 font-mono-tabular">
+                  <p className="text-[11px] text-text-muted mt-0.5 font-mono-tabular truncate">
                     {course.author}
                   </p>
-                  <p className="text-xs text-text-secondary mt-1.5 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-text-secondary mt-1 line-clamp-1 leading-relaxed">
                     {course.description}
                   </p>
                 </div>
 
                 {/* Bottom Card Footer with YouTube, Share, Like, and Action Buttons */}
-                <div className="mt-4 pt-3 border-t border-border-subtle flex items-center justify-between gap-1.5">
-                  {/* Left: Like & Copy Link Buttons */}
-                  <div className="flex items-center gap-1.5">
-                    {/* Like / Heart Button (ranks course higher) */}
+                <div className="mt-3 pt-2.5 border-t border-border-subtle flex items-center justify-between gap-1.5">
+                  {/* Left: Like, YouTube, Copy Link */}
+                  <div className="flex items-center gap-1">
                     <button
                       onClick={(e) => toggleLike(course.id, e)}
                       className={`p-1.5 rounded-lg border transition-all flex items-center gap-1 text-xs cursor-pointer ${
@@ -449,19 +468,18 @@ export default function CoursesDashboard({
                           ? 'border-red-500/30 bg-red-500/10 text-red-500'
                           : 'border-border-subtle bg-surface hover:bg-surface-hover text-text-muted hover:text-red-500'
                       }`}
-                      title={isLiked ? 'Liked! Click to unlike' : 'Like this course (ranks higher)'}
+                      title={isLiked ? 'Liked! Click to unlike' : 'Like this course'}
                     >
                       <Heart size={13} fill={isLiked ? 'currentColor' : 'none'} />
-                      <span className="text-[11px] font-mono-tabular font-semibold">{likeCount}</span>
+                      <span className="text-[10px] font-mono-tabular font-semibold">{likeCount}</span>
                     </button>
 
-                    {/* YouTube Playlist Direct Link */}
                     <a
                       href={ytPlaylistUrl}
                       target="_blank"
                       rel="noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="p-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-red-600 hover:text-red-500 transition-colors flex items-center justify-center cursor-pointer"
+                      className="p-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-red-600 hover:text-red-500 transition-colors flex items-center justify-center cursor-pointer shadow-xs"
                       title="Open YouTube playlist in new tab"
                     >
                       <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
@@ -469,10 +487,9 @@ export default function CoursesDashboard({
                       </svg>
                     </a>
 
-                    {/* Direct Copy Playlist Link Button */}
                     <button
                       onClick={(e) => handleCopyCourseLink(course, e)}
-                      className="p-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-text-muted hover:text-text-primary transition-colors flex items-center gap-1 cursor-pointer"
+                      className="p-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-text-muted hover:text-text-primary transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
                       title="Copy YouTube Playlist Link"
                     >
                       {copiedPlId === course.id ? (
@@ -487,7 +504,7 @@ export default function CoursesDashboard({
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={(e) => handleQuickEnroll(course, e)}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                         course.isEnrolled
                           ? 'pill-safe border'
                           : 'border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary'
@@ -497,9 +514,9 @@ export default function CoursesDashboard({
                     </button>
                     <button
                       onClick={() => handleOpenCourse(course)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark flex items-center gap-1 hover:opacity-95 cursor-pointer shadow-xs"
+                      className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark flex items-center gap-1 hover:opacity-95 cursor-pointer shadow-xs"
                     >
-                      <Play size={11} fill="currentColor" />
+                      <Play size={10} fill="currentColor" />
                       <span>Watch</span>
                     </button>
                   </div>

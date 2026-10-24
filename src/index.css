@@ -175,6 +175,11 @@ body {
   transition: border-color 0.15s ease;
 }
 
+select, option {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+}
+
 .form-input, .form-select, textarea.form-input {
   width: 100%;
   background-color: var(--bg-canvas);

@@ -1744,7 +1744,7 @@ export function DatabaseProvider({ children }) {
     })));
   };
 
-  const addCourse = async (title, department, description, price = 0, isDegree = false, author = '', bannerUrl = '') => {
+  const addCourse = async (title, department, description, price = 0, isDegree = false, author = '', bannerUrl = '', keywords = '') => {
     if (!currentUser) return;
     const finalBanner = bannerUrl.trim() || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800&auto=format&fit=crop';
     if (isSupabaseLive) {
@@ -1772,7 +1772,8 @@ export function DatabaseProvider({ children }) {
         creatorName: currentUser.name,
         isDegree,
         author: author || currentUser.name,
-        bannerUrl: finalBanner
+        bannerUrl: finalBanner,
+        keywords: Array.isArray(keywords) ? keywords : String(keywords || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
       };
       setCourses(prev => [...prev, newCourse]);
       addLog(`Course created: "${title}"`);

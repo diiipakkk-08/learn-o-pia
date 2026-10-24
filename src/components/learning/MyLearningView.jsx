@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
 import {
   Play,
   ArrowRight,
+  ArrowLeft,
   BookOpen,
   Calendar,
   FileText,
@@ -12,7 +13,16 @@ import {
   Download,
   CalendarDays,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  Folder,
+  FolderPlus,
+  FolderOpen,
+  Plus,
+  Trash2,
+  X,
+  ExternalLink,
+  Link2,
+  Share2
 } from 'lucide-react';
 import { calculateAttendanceMetrics } from '../../utils/attendanceMath';
 
@@ -29,7 +39,8 @@ export default function MyLearningView({
     lastPlayed,
     savedResourceIds,
     standaloneResources,
-    routine
+    routine,
+    addStandaloneResource
   } = useDatabase();
 
   // Enrolled subjects & courses from DB
@@ -234,6 +245,153 @@ export default function MyLearningView({
     return { currentDay, dayClasses };
   }, [routine]);
 
+  // =================================================================
+  // ACADEMIC STUDY FOLDERS SYSTEM
+  // =================================================================
+  const userId = currentUser?.id || 'guest';
+  const [folders, setFolders] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`learnopia_folders_${userId}`);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [
+      {
+        id: 'folder-degree',
+        title: currentUser?.department ? `${currentUser.department} Core Track` : 'MAKAUT B.Tech Computer Science',
+        description: 'Official university curriculum syllabus, theory playlists, and lab modules.',
+        isSystem: true,
+        icon: 'degree',
+        items: []
+      },
+      {
+        id: 'folder-vault',
+        title: 'My Saved Notes & Vault',
+        description: 'Personal study guides, formula sheets, and past year question papers.',
+        isSystem: true,
+        icon: 'vault',
+        items: []
+      },
+      {
+        id: 'folder-gate',
+        title: 'GATE & Competitive Prep',
+        description: 'Algorithms, Data Structures, Operating Systems, and Aptitude.',
+        isSystem: false,
+        icon: 'code',
+        items: [
+          {
+            id: 'item-1',
+            title: 'Dynamic Programming & Graph Algorithms',
+            url: 'https://www.youtube.com/playlist?list=PLgUwDviBIf0rGlzIn_7rsaR2FQ5e6ZOL9',
+            type: 'playlist',
+            author: 'Take U Forward',
+            count: '42 lectures'
+          },
+          {
+            id: 'item-2',
+            title: 'Engineering Mathematics & Calculus Quick Formulae',
+            url: 'https://www.makautexam.net/pdf/syllabus.pdf',
+            type: 'document',
+            author: 'MAKAUT Faculty',
+            count: 'PDF Guide'
+          }
+        ]
+      }
+    ];
+  });
+
+  const [activeFolderId, setActiveFolderId] = useState(null);
+  const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderDesc, setNewFolderDesc] = useState('');
+  const [showAddItemModal, setShowAddItemModal] = useState(false);
+  const [itemTitle, setItemTitle] = useState('');
+  const [itemUrl, setItemUrl] = useState('');
+  const [itemType, setItemType] = useState('playlist');
+  const [publishPublicly, setPublishPublicly] = useState(false);
+  const [folderNotice, setFolderNotice] = useState('');
+
+  const saveFolders = (newFolders) => {
+    setFolders(newFolders);
+    try {
+      localStorage.setItem(`learnopia_folders_${userId}`, JSON.stringify(newFolders));
+    } catch {}
+  };
+
+  const handleCreateFolder = (e) => {
+    e.preventDefault();
+    if (!newFolderName.trim()) return;
+    const newFolder = {
+      id: `folder-${Date.now()}`,
+      title: newFolderName.trim(),
+      description: newFolderDesc.trim() || 'Custom academic study folder.',
+      isSystem: false,
+      icon: 'custom',
+      items: []
+    };
+    const updated = [...folders, newFolder];
+    saveFolders(updated);
+    setNewFolderName('');
+    setNewFolderDesc('');
+    setShowCreateFolderModal(false);
+    setFolderNotice(`Folder "${newFolder.title}" created!`);
+    setTimeout(() => setFolderNotice(''), 3000);
+  };
+
+  const handleDeleteFolder = (folderId, e) => {
+    if (e) e.stopPropagation();
+    const folder = folders.find(f => f.id === folderId);
+    if (folder?.isSystem) return;
+    const updated = folders.filter(f => f.id !== folderId);
+    saveFolders(updated);
+    if (activeFolderId === folderId) setActiveFolderId(null);
+  };
+
+  const handleAddItemToFolder = (e) => {
+    e.preventDefault();
+    if (!itemTitle.trim() || !itemUrl.trim() || !activeFolderId) return;
+
+    const newItem = {
+      id: `item-${Date.now()}`,
+      title: itemTitle.trim(),
+      url: itemUrl.trim(),
+      type: itemType,
+      author: currentUser?.name || 'Scholar',
+      count: itemType === 'playlist' ? 'Video Series' : 'Document'
+    };
+
+    if (publishPublicly && typeof addStandaloneResource === 'function' && itemType === 'document') {
+      addStandaloneResource({
+        title: itemTitle.trim(),
+        url: itemUrl.trim(),
+        type: 'pdf',
+        category: 'Community Notes',
+        description: `Shared by ${currentUser?.name || 'Scholar'}`,
+        author: currentUser?.name || 'Scholar',
+        keywords: ['makaut', 'student notes', itemTitle.toLowerCase()]
+      });
+    }
+
+    const updated = folders.map(f => {
+      if (f.id === activeFolderId) {
+        return {
+          ...f,
+          items: [newItem, ...(f.items || [])]
+        };
+      }
+      return f;
+    });
+
+    saveFolders(updated);
+    setItemTitle('');
+    setItemUrl('');
+    setPublishPublicly(false);
+    setShowAddItemModal(false);
+    setFolderNotice(`Added "${newItem.title}" to folder${publishPublicly ? ' & published publicly!' : '!'}`);
+    setTimeout(() => setFolderNotice(''), 3500);
+  };
+
+  const activeFolder = folders.find(f => f.id === activeFolderId);
+
   return (
     <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 space-y-5">
       {/* Editorial Workspace Header */}
@@ -330,85 +488,268 @@ export default function MyLearningView({
             LEFT COLUMN (7 cols): Enrolled Courses & Timestamped Notes
         =============================================================== */}
         <div className="lg:col-span-7 xl:col-span-7 space-y-5">
-          {/* SECTION 1: ENROLLED SUBJECTS & COURSES */}
-          <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm">
+          {/* SECTION 1: ACADEMIC FOLDERS SYSTEM */}
+          <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm space-y-4">
+            {/* Folder Navigation Header */}
             <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
               <div className="flex items-center gap-2">
-                <BookOpen size={16} className="text-text-primary" />
+                <Folder size={16} className="text-text-primary" />
                 <h2 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
-                  Enrolled Subjects & Modules
+                  {activeFolder ? `Folder: ${activeFolder.title}` : `Academic Study Folders (${folders.length})`}
                 </h2>
               </div>
-              <button
-                onClick={() => setCurrentView('learning')}
-                className="text-xs font-semibold text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
-              >
-                All Subjects ({courses.length}) &rarr;
-              </button>
-            </div>
-
-            {/* Clean List Rows (No AI box inside a box!) */}
-            <div className="divide-y divide-border-subtle">
-              {enrolledSubjectCourses.length > 0 ? (
-                enrolledSubjectCourses.slice(0, 4).map((item) => (
-                  <div
-                    key={item.id}
-                    onClick={() => {
-                      if (setSelectedPlaylistId) setSelectedPlaylistId(item.playlistId);
-                      if (setSelectedVideoIndex) setSelectedVideoIndex(0);
-                      setCurrentView('learning-player');
-                    }}
-                    className="py-3 flex items-center justify-between gap-3 hover:bg-surface-hover/60 px-2 -mx-2 rounded-lg transition-colors cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      {/* Compact Icon / Thumbnail */}
-                      <div className="w-10 h-10 rounded-md overflow-hidden bg-subtle shrink-0 flex items-center justify-center border border-border-subtle">
-                        {item.thumbnailUrl ? (
-                          <img src={item.thumbnailUrl} alt={item.title} className="w-full h-full object-cover" />
-                        ) : (
-                          <BookOpen size={16} className="text-text-muted" />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <h4 className="text-xs sm:text-sm font-bold text-text-primary truncate group-hover:text-accent-forest transition-colors">
-                          {item.title}
-                        </h4>
-                        <span className="text-[11px] text-text-muted truncate block mt-0.5 font-mono-tabular">
-                          {item.subjectTitle} • {item.videoCount} Lectures
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2.5 shrink-0">
-                      <div className="hidden sm:flex flex-col items-end">
-                        <span className="text-[10px] font-mono-tabular text-text-muted">
-                          {item.progress}%
-                        </span>
-                        <div className="w-14 h-1 rounded-full bg-subtle overflow-hidden mt-1">
-                          <div
-                            className="h-full bg-accent-forest rounded-full"
-                            style={{ width: `${item.progress}%` }}
-                          />
-                        </div>
-                      </div>
-                      <div className="w-7 h-7 rounded-full flex items-center justify-center bg-subtle group-hover:bg-accent-ink group-hover:text-text-on-dark transition-colors">
-                        <Play size={11} fill="currentColor" className="ml-0.5" />
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="py-8 text-center text-xs text-text-muted space-y-2">
-                  <p>You haven't enrolled in any subjects yet.</p>
+              <div className="flex items-center gap-2">
+                {activeFolder ? (
+                  <>
+                    <button
+                      onClick={() => setActiveFolderId(null)}
+                      className="px-2.5 py-1 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold flex items-center gap-1 text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
+                    >
+                      <ArrowLeft size={12} />
+                      <span>All Folders</span>
+                    </button>
+                    <button
+                      onClick={() => setShowAddItemModal(true)}
+                      className="px-2.5 py-1 rounded-lg bg-accent-ink text-text-on-dark text-xs font-semibold flex items-center gap-1 hover:opacity-95 cursor-pointer shadow-xs"
+                    >
+                      <Plus size={12} />
+                      <span>Add Item</span>
+                    </button>
+                  </>
+                ) : (
                   <button
-                    onClick={() => setCurrentView('learning')}
-                    className="text-xs font-semibold text-accent-forest hover:underline cursor-pointer"
+                    onClick={() => setShowCreateFolderModal(true)}
+                    className="px-2.5 py-1 rounded-lg bg-accent-ink text-text-on-dark text-xs font-semibold flex items-center gap-1 hover:opacity-95 cursor-pointer shadow-xs"
                   >
-                    Browse Catalog &rarr;
+                    <FolderPlus size={12} />
+                    <span>New Folder</span>
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
+
+            {/* A. FOLDERS OVERVIEW GRID (When activeFolderId === null) */}
+            {!activeFolder && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {folders.map((folder) => {
+                  let itemCountText = '';
+                  if (folder.id === 'folder-degree') {
+                    itemCountText = `${enrolledSubjectCourses.length} Subjects enrolled`;
+                  } else if (folder.id === 'folder-vault') {
+                    itemCountText = `${topVaultResources.length} Saved documents`;
+                  } else {
+                    itemCountText = `${(folder.items || []).length} Study items`;
+                  }
+
+                  return (
+                    <div
+                      key={folder.id}
+                      onClick={() => setActiveFolderId(folder.id)}
+                      className="p-3.5 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover/70 hover:border-border-strong transition-all cursor-pointer flex flex-col justify-between group shadow-xs space-y-3"
+                    >
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <div className="w-8 h-8 rounded-lg bg-subtle flex items-center justify-center text-text-primary group-hover:bg-accent-ink group-hover:text-text-on-dark transition-colors">
+                            {folder.id === 'folder-degree' ? (
+                              <BookOpen size={15} />
+                            ) : folder.id === 'folder-vault' ? (
+                              <BookmarkCheck size={15} />
+                            ) : (
+                              <Folder size={15} />
+                            )}
+                          </div>
+                          {!folder.isSystem && (
+                            <button
+                              onClick={(e) => handleDeleteFolder(folder.id, e)}
+                              className="p-1 text-text-muted hover:text-red-500 cursor-pointer transition-colors"
+                              title="Delete folder"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+
+                        <h3 className="text-xs sm:text-sm font-bold text-text-primary group-hover:text-accent-forest transition-colors truncate">
+                          {folder.title}
+                        </h3>
+                        <p className="text-[11px] text-text-secondary line-clamp-2 leading-relaxed">
+                          {folder.description}
+                        </p>
+                      </div>
+
+                      <div className="pt-2 border-t border-border-subtle flex items-center justify-between text-[11px] font-mono-tabular">
+                        <span className="text-text-muted truncate">{itemCountText}</span>
+                        <span className="font-semibold text-accent-forest flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform">
+                          <span>Open</span>
+                          <ArrowRight size={10} />
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* B. FOLDER DETAILS VIEW (When activeFolderId !== null) */}
+            {activeFolder && (
+              <div className="space-y-3">
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  {activeFolder.description}
+                </p>
+
+                {/* Contained Items List */}
+                <div className="divide-y divide-border-subtle pt-1">
+                  {activeFolder.id === 'folder-degree' && (
+                    enrolledSubjectCourses.length > 0 ? (
+                      enrolledSubjectCourses.map((item) => (
+                        <div
+                          key={item.id}
+                          onClick={() => {
+                            if (setSelectedPlaylistId) setSelectedPlaylistId(item.playlistId);
+                            if (setSelectedVideoIndex) setSelectedVideoIndex(0);
+                            setCurrentView('learning-player');
+                          }}
+                          className="py-2.5 flex items-center justify-between gap-3 hover:bg-surface-hover/60 px-2 -mx-2 rounded-lg transition-colors cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-9 h-9 rounded-md overflow-hidden bg-black shrink-0 flex items-center justify-center border border-border-subtle">
+                              {item.thumbnailUrl ? (
+                                <img src={item.thumbnailUrl} alt={item.title} className="w-full h-full object-cover opacity-90" />
+                              ) : (
+                                <BookOpen size={14} className="text-white" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-bold text-text-primary truncate group-hover:text-accent-forest transition-colors">
+                                {item.title}
+                              </h4>
+                              <span className="text-[10px] text-text-muted font-mono-tabular truncate block mt-0.5">
+                                {item.subjectTitle} • {item.videoCount} Lectures
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="hidden sm:inline text-[10px] font-mono-tabular text-text-muted">
+                              {item.progress}%
+                            </span>
+                            <div className="w-6 h-6 rounded-full flex items-center justify-center bg-subtle group-hover:bg-accent-ink group-hover:text-text-on-dark transition-colors">
+                              <Play size={10} fill="currentColor" className="ml-0.5" />
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="py-6 text-center text-xs text-text-muted space-y-2">
+                        <p>No curriculum subjects enrolled yet.</p>
+                        <button
+                          onClick={() => setCurrentView('learning')}
+                          className="text-xs font-semibold text-accent-forest hover:underline cursor-pointer"
+                        >
+                          Browse Course Catalog &rarr;
+                        </button>
+                      </div>
+                    )
+                  )}
+
+                  {activeFolder.id === 'folder-vault' && (
+                    topVaultResources.length > 0 ? (
+                      topVaultResources.map((res) => (
+                        <div
+                          key={res.id}
+                          className="py-2.5 flex items-center justify-between gap-3 hover:bg-surface-hover/60 px-2 -mx-2 rounded-lg transition-colors group"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-md bg-subtle flex items-center justify-center text-text-primary shrink-0 border border-border-subtle">
+                              <FileText size={15} />
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-bold text-text-primary truncate">
+                                {res.title}
+                              </h4>
+                              <span className="text-[10px] text-text-muted font-mono-tabular truncate block mt-0.5">
+                                {res.category || 'Study Material'} • {res.author || 'University Faculty'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {res.url && (
+                              <a
+                                href={res.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-2.5 py-1 rounded text-[11px] font-semibold border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary flex items-center gap-1 cursor-pointer"
+                              >
+                                <ExternalLink size={11} />
+                                <span>Open</span>
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="py-6 text-center text-xs text-text-muted space-y-2">
+                        <p>No saved notes or vault documents yet.</p>
+                        <button
+                          onClick={() => setCurrentView('resources')}
+                          className="text-xs font-semibold text-accent-forest hover:underline cursor-pointer"
+                        >
+                          Explore Academic Vault &rarr;
+                        </button>
+                      </div>
+                    )
+                  )}
+
+                  {!activeFolder.isSystem && (
+                    (activeFolder.items && activeFolder.items.length > 0) ? (
+                      activeFolder.items.map((item) => (
+                        <div
+                          key={item.id}
+                          className="py-2.5 flex items-center justify-between gap-3 hover:bg-surface-hover/60 px-2 -mx-2 rounded-lg transition-colors group"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-md bg-subtle flex items-center justify-center text-text-primary shrink-0 border border-border-subtle">
+                              {item.type === 'playlist' ? <Play size={13} fill="currentColor" /> : <FileText size={13} />}
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-bold text-text-primary truncate">
+                                {item.title}
+                              </h4>
+                              <span className="text-[10px] text-text-muted font-mono-tabular truncate block mt-0.5">
+                                {item.count} • {item.author}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-2.5 py-1 rounded text-[11px] font-semibold bg-accent-ink text-text-on-dark hover:opacity-90 flex items-center gap-1 cursor-pointer shadow-xs"
+                            >
+                              <span>{item.type === 'playlist' ? 'Watch' : 'View'}</span>
+                              <ExternalLink size={10} />
+                            </a>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="py-6 text-center text-xs text-text-muted space-y-2">
+                        <p>This folder is empty.</p>
+                        <button
+                          onClick={() => setShowAddItemModal(true)}
+                          className="text-xs font-semibold text-accent-forest hover:underline cursor-pointer"
+                        >
+                          + Add a lecture series or study document
+                        </button>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            )}
           </section>
 
           {/* SECTION 2: TIMESTAMPED LECTURE NOTES */}
@@ -619,6 +960,173 @@ export default function MyLearningView({
           </section>
         </div>
       </div>
+
+      {/* Toast Notice */}
+      {folderNotice && (
+        <div className="fixed top-20 right-6 z-50 px-4 py-2.5 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark shadow-modal animate-bounce-short">
+          {folderNotice}
+        </div>
+      )}
+
+      {/* CREATE FOLDER MODAL */}
+      {showCreateFolderModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="w-full max-w-md rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal">
+            <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+              <div className="flex items-center gap-2">
+                <FolderPlus size={18} className="text-text-primary" />
+                <h3 className="text-base font-bold text-text-primary">Create Academic Folder</h3>
+              </div>
+              <button
+                onClick={() => setShowCreateFolderModal(false)}
+                className="p-1 text-text-muted hover:text-text-primary cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateFolder} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">
+                  Folder Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. GATE Prep 2026, Semester 3 Labs, DSA Notes"
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-lg border border-border-strong text-xs sm:text-sm bg-canvas focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">
+                  Description / Topic Focus
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Study syllabus, algorithms, and past year question sets."
+                  value={newFolderDesc}
+                  onChange={(e) => setNewFolderDesc(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-lg border border-border-strong text-xs sm:text-sm bg-canvas focus:outline-none resize-none"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-border-subtle">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateFolderModal(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-secondary cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs"
+                >
+                  Create Folder
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ADD ITEM TO FOLDER MODAL */}
+      {showAddItemModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="w-full max-w-md rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal">
+            <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+              <div className="flex items-center gap-2">
+                <Plus size={18} className="text-text-primary" />
+                <h3 className="text-base font-bold text-text-primary">Add Study Resource to Folder</h3>
+              </div>
+              <button
+                onClick={() => setShowAddItemModal(false)}
+                className="p-1 text-text-muted hover:text-text-primary cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddItemToFolder} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">
+                  Title / Subject Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Operating Systems Lecture Series"
+                  value={itemTitle}
+                  onChange={(e) => setItemTitle(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-lg border border-border-strong text-xs sm:text-sm bg-canvas focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">
+                  URL / Web Link (YouTube or PDF)
+                </label>
+                <input
+                  type="url"
+                  required
+                  placeholder="https://www.youtube.com/playlist?list=... or https://..."
+                  value={itemUrl}
+                  onChange={(e) => setItemUrl(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-lg border border-border-strong text-xs sm:text-sm bg-canvas focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">
+                  Resource Type
+                </label>
+                <select
+                  value={itemType}
+                  onChange={(e) => setItemType(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-lg border border-border-strong text-xs bg-canvas text-text-primary focus:outline-none"
+                >
+                  <option value="playlist">YouTube Lecture Series / Video</option>
+                  <option value="document">PDF / Study Material Document</option>
+                </select>
+              </div>
+
+              <div className="pt-2">
+                <label className="flex items-center gap-2.5 cursor-pointer text-xs text-text-primary select-none">
+                  <input
+                    type="checkbox"
+                    checked={publishPublicly}
+                    onChange={(e) => setPublishPublicly(e.target.checked)}
+                    className="w-4 h-4 rounded border-border-strong accent-accent-ink cursor-pointer"
+                  />
+                  <span>Publish publicly to Learn-O-Pia Catalog</span>
+                </label>
+                <p className="text-[11px] text-text-muted ml-6.5 mt-0.5">
+                  Allow other university students to discover this material in search.
+                </p>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-border-subtle">
+                <button
+                  type="button"
+                  onClick={() => setShowAddItemModal(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-secondary cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs"
+                >
+                  Add to Folder
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

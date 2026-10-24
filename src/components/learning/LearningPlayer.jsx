@@ -18,7 +18,10 @@ import {
   Sparkles,
   ChevronLeft,
   Copy,
-  Plus
+  Plus,
+  ChevronDown,
+  ChevronUp,
+  Heart
 } from 'lucide-react';
 
 export default function LearningPlayer({
@@ -141,6 +144,31 @@ export default function LearningPlayer({
     }
   }, [playlist.id, currentVideo.youtubeId, currentIndex]);
 
+  const [showDetails, setShowDetails] = useState(false);
+  const [videoLikes, setVideoLikes] = useState(() => {
+    try {
+      const saved = localStorage.getItem('learnopia_video_likes');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const isVideoLiked = !!videoLikes[currentVideo.id || currentVideo.youtubeId || currentIndex];
+  const baseVideoLikes = 45 + ((currentIndex * 7) % 30);
+  const videoLikesCount = baseVideoLikes + (isVideoLiked ? 1 : 0);
+
+  const toggleVideoLike = () => {
+    const key = currentVideo.id || currentVideo.youtubeId || currentIndex;
+    setVideoLikes((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try {
+        localStorage.setItem('learnopia_video_likes', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
   const youtubeVideoUrl = currentVideo.youtubeId
     ? `https://www.youtube.com/watch?v=${currentVideo.youtubeId}`
     : null;
@@ -180,72 +208,14 @@ export default function LearningPlayer({
         color: cinemaMode ? '#F2EFE9' : '#141413'
       }}
     >
-      <main className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 space-y-4">
-        {/* Top Control Bar */}
-        <div className="flex items-center justify-between gap-3 pb-3 border-b border-border-subtle">
-          <div className="flex items-center gap-3 min-w-0">
-            <button
-              onClick={() => setCurrentView('learning')}
-              className="p-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold flex items-center gap-1.5 shrink-0"
-            >
-              <ArrowLeft size={14} />
-              <span className="hidden sm:inline">Back to Catalog</span>
-            </button>
-            <div className="min-w-0">
-              <h2 className="text-sm sm:text-base font-bold truncate">
-                {playlist.title}
-              </h2>
-              <p className="text-xs text-text-muted truncate">
-                {foundSubject ? foundSubject.title : playlist.author} • Lecture {currentIndex + 1} of {videos.length}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            {setCinemaMode && (
-              <button
-                onClick={() => setCinemaMode(!cinemaMode)}
-                className="p-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold flex items-center gap-1.5"
-                title={cinemaMode ? 'Turn lights on' : 'Dim lights (Cinema mode)'}
-              >
-                {cinemaMode ? <Sun size={14} className="text-[#E2A04B]" /> : <Moon size={14} />}
-                <span className="hidden md:inline">{cinemaMode ? 'Lights On' : 'Dim Lights'}</span>
-              </button>
-            )}
-
-            {youtubeVideoUrl && (
-              <a
-                href={youtubeVideoUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="p-2 sm:px-3 sm:py-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold flex items-center gap-1.5 text-red-600 hover:text-red-500 transition-colors"
-                title="Watch lecture directly on YouTube"
-              >
-                <svg className="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24">
-                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                </svg>
-                <span className="hidden sm:inline font-mono-tabular">YouTube</span>
-              </a>
-            )}
-
-            <button
-              onClick={handleShare}
-              className="p-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold flex items-center gap-1.5"
-              title="Copy direct YouTube video link"
-            >
-              <Share2 size={14} />
-              <span className="hidden sm:inline">{copiedLink ? 'Link Copied!' : 'Share Link'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Responsive Player Grid: Left Video IDE (takes full space) / Right Study Dock */}
+      <main className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-2 sm:pt-4 pb-12 space-y-4">
+        {/* Responsive Player Grid: Left Video Player directly at top / Right Study Dock */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           {/* =================================================================
-              LEFT COLUMN: 16:9 Video Player (expanded for full space)
+              LEFT COLUMN: 16:9 Video Player (Directly at top, zero distractions above)
           ================================================================= */}
           <div className="lg:col-span-8 xl:col-span-8 2xl:col-span-9 space-y-4">
-            {/* 16:9 Frame */}
+            {/* 16:9 Video Frame (Right at Top) */}
             <div className="relative aspect-video rounded-xl overflow-hidden bg-black border border-border-subtle shadow-md">
               {currentVideo.youtubeId ? (
                 <iframe
@@ -262,24 +232,75 @@ export default function LearningPlayer({
               )}
             </div>
 
-            {/* Lecture Header + Next / Previous Navigation */}
-            <div className="p-4 rounded-xl border border-border-subtle bg-surface space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <span className="text-[11px] font-mono-tabular font-semibold text-accent-forest uppercase">
-                    LECTURE {currentIndex + 1} OF {videos.length}
-                  </span>
-                  <h1 className="text-lg font-bold text-text-primary leading-snug mt-0.5">
-                    {currentVideo.title}
-                  </h1>
+            {/* YouTube-Style Below-Video Title & Actions Bar */}
+            <div className="space-y-3">
+              {/* Lecture Title */}
+              <div>
+                <span className="text-[11px] font-mono-tabular font-bold text-accent-forest uppercase tracking-wider">
+                  LECTURE {currentIndex + 1} OF {videos.length} • {foundSubject ? foundSubject.title : playlist.title}
+                </span>
+                <h1 className="text-base sm:text-lg lg:text-xl font-bold text-text-primary leading-snug mt-1">
+                  {currentVideo.title}
+                </h1>
+              </div>
+
+              {/* Action Buttons Row */}
+              <div className="flex flex-wrap items-center justify-between gap-2.5 pb-2 border-b border-border-subtle">
+                {/* Left Action Buttons: Back, YouTube, Share, Like */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => setCurrentView('learning')}
+                    className="px-2.5 py-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer text-text-secondary hover:text-text-primary"
+                    title="Back to Catalog"
+                  >
+                    <ArrowLeft size={13} />
+                    <span className="hidden sm:inline">Catalog</span>
+                  </button>
+
+                  {youtubeVideoUrl && (
+                    <a
+                      href={youtubeVideoUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold flex items-center gap-1.5 text-red-600 hover:text-red-500 transition-colors shadow-xs"
+                      title="Watch lecture directly on YouTube"
+                    >
+                      <svg className="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24">
+                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                      </svg>
+                      <span className="font-mono-tabular">YouTube</span>
+                    </a>
+                  )}
+
+                  <button
+                    onClick={handleShare}
+                    className="px-3 py-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs text-text-primary"
+                    title="Copy direct YouTube video link"
+                  >
+                    {copiedLink ? <Check size={13} className="text-accent-forest" /> : <Share2 size={13} />}
+                    <span className="font-mono-tabular">{copiedLink ? 'Copied!' : 'Share'}</span>
+                  </button>
+
+                  <button
+                    onClick={toggleVideoLike}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
+                      isVideoLiked
+                        ? 'border-red-500/30 bg-red-500/10 text-red-500'
+                        : 'border-border-subtle bg-surface hover:bg-surface-hover text-text-secondary hover:text-red-500'
+                    }`}
+                    title={isVideoLiked ? 'Liked' : 'Like lecture'}
+                  >
+                    <Heart size={13} fill={isVideoLiked ? 'currentColor' : 'none'} />
+                    <span className="font-mono-tabular">{videoLikesCount}</span>
+                  </button>
                 </div>
 
-                {/* Player Next & Prev Buttons */}
-                <div className="flex items-center gap-2 shrink-0">
+                {/* Right: Prev & Next Lecture Navigation */}
+                <div className="flex items-center gap-2">
                   <button
                     disabled={currentIndex === 0}
                     onClick={() => updateIndex(currentIndex - 1)}
-                    className="p-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold flex items-center gap-1"
+                    className="px-3 py-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold flex items-center gap-1 cursor-pointer"
                   >
                     <ChevronLeft size={14} />
                     <span>Previous</span>
@@ -287,12 +308,41 @@ export default function LearningPlayer({
                   <button
                     disabled={currentIndex >= videos.length - 1}
                     onClick={() => updateIndex(currentIndex + 1)}
-                    className="px-3 py-2 rounded-lg bg-accent-ink text-text-on-dark hover:opacity-95 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold flex items-center gap-1"
+                    className="px-3.5 py-1.5 rounded-lg bg-accent-ink text-text-on-dark hover:opacity-95 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold flex items-center gap-1 cursor-pointer shadow-xs"
                   >
                     <span>Next Lecture</span>
                     <ChevronRight size={14} />
                   </button>
                 </div>
+              </div>
+
+              {/* YouTube-Style Compact Collapsible Description Box */}
+              <div className="rounded-xl border border-border-subtle bg-surface/80 p-3.5 space-y-2 text-xs">
+                <div className="flex items-center justify-between text-text-muted font-mono-tabular text-[11px]">
+                  <span>{playlist.author || 'University Faculty'} • {videos.length} Lectures in Series</span>
+                  <button
+                    onClick={() => setShowDetails(!showDetails)}
+                    className="flex items-center gap-1 font-semibold text-text-primary hover:text-accent-forest transition-colors cursor-pointer"
+                  >
+                    <span>{showDetails ? 'Show less' : 'More details'}</span>
+                    {showDetails ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                  </button>
+                </div>
+
+                <p className={`text-text-secondary leading-relaxed ${showDetails ? '' : 'line-clamp-2'}`}>
+                  {playlist.description || `University curriculum lecture ${currentIndex + 1} for ${foundSubject ? foundSubject.title : playlist.title}.`}
+                </p>
+
+                {showDetails && (
+                  <div className="pt-2 border-t border-border-subtle mt-2 space-y-2 text-text-secondary">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono-tabular">
+                      <div><strong className="text-text-primary">Subject:</strong> {foundSubject?.title || playlist.title}</div>
+                      <div><strong className="text-text-primary">Department:</strong> {foundSubject?.semester ? `Semester ${foundSubject.semester}` : 'Academic Track'}</div>
+                      <div><strong className="text-text-primary">Video ID:</strong> {currentVideo.youtubeId || 'Standard Stream'}</div>
+                      <div><strong className="text-text-primary">Total Lectures:</strong> {videos.length}</div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -207,6 +207,7 @@ export default function CreatorStudio() {
   const [courseType, setCourseType] = useState('standard');
   const [coursePrice, setCoursePrice] = useState(0);
   const [courseBannerUrl, setCourseBannerUrl] = useState('');
+  const [courseKeywords, setCourseKeywords] = useState('');
 
   const [showSubjectForm, setShowSubjectForm] = useState(false);
   const [subjectTitle, setSubjectTitle] = useState('');
@@ -314,8 +315,9 @@ export default function CreatorStudio() {
   const handleCreateCourse = (e) => {
     e.preventDefault();
     if (!courseTitle.trim() || !courseDesc.trim()) return;
-    addCourse(courseTitle, courseDept, courseDesc, coursePrice, isAdmin ? (courseType === 'degree') : false, courseAuthor, courseBannerUrl);
-    setCourseTitle(''); setCourseDesc(''); setCoursePrice(0); setCourseAuthor(''); setCourseBannerUrl(''); setShowCourseForm(false);
+    addCourse(courseTitle, courseDept, courseDesc, coursePrice, isAdmin ? (courseType === 'degree') : false, courseAuthor, courseBannerUrl, courseKeywords);
+    setCourseTitle(''); setCourseDesc(''); setCoursePrice(0); setCourseAuthor(''); setCourseBannerUrl(''); setCourseKeywords(''); setShowCourseForm(false);
+
   };
   const handleCreateSubject = (e) => {
     e.preventDefault();
@@ -735,6 +737,10 @@ export default function CreatorStudio() {
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Course Banner Image URL (Optional)</label>
                   <input type="url" value={courseBannerUrl} onChange={e => setCourseBannerUrl(e.target.value)} placeholder="https://images.unsplash.com/photo-..." className="form-input" />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Search Keywords / College Tags (comma-separated)</label>
+                  <input type="text" value={courseKeywords} onChange={e => setCourseKeywords(e.target.value)} placeholder="e.g. MAKAUT, B.Tech, Calculus, Python, Semester 1" className="form-input" />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Description</label>
@@ -1288,10 +1294,10 @@ export default function CreatorStudio() {
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '6px' }}>
                                 <h4 style={{ ...styles.enrolledHeading, marginBottom: 0 }}>Material Sections & Files</h4>
                                 <div style={{ display: 'flex', gap: '6px' }}>
-                                  <button onClick={() => setShowLinkResForm(!showLinkResForm)} className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.72rem', gap: '4px' }}>
+                                  <button onClick={() => setShowLinkResForm(!showLinkResForm)} className={`btn ${showLinkResForm ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '5px 12px', fontSize: '0.75rem', gap: '5px', color: showLinkResForm ? 'var(--text-on-dark)' : 'var(--text-primary)' }}>
                                     <Link size={11} /> Link Resource by ID
                                   </button>
-                                  <button onClick={() => setShowAddSectionForm(!showAddSectionForm)} className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.72rem', gap: '4px' }}>
+                                  <button onClick={() => setShowAddSectionForm(!showAddSectionForm)} className={`btn ${showAddSectionForm ? 'btn-primary' : 'btn-secondary'}`} style={{ padding: '5px 12px', fontSize: '0.75rem', gap: '5px', color: showAddSectionForm ? 'var(--text-on-dark)' : 'var(--text-primary)' }}>
                                     <Plus size={11} /> Add Section
                                   </button>
                                 </div>
