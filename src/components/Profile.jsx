@@ -796,11 +796,11 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
               </button>
             )}
             <button
-              onClick={() => setCurrentView('landing')}
+              onClick={() => setCurrentView('about')}
               style={styles.mobileNavItem}
             >
               <ExternalLink size={20} color="var(--text-muted)" />
-              <span>About & Landing Page</span>
+              <span>About Learn-O-Pia</span>
             </button>
             <button
               onClick={logout}

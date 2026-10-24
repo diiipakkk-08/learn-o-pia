@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useDatabase } from '../../context/DatabaseContext';
+import { useDatabase, fetchYoutubePlaylistVideos, extractYoutubePlaylistId } from '../../context/DatabaseContext';
 import {
   Play,
   Check,
@@ -99,29 +99,67 @@ export default function LearningPlayer({
     ]
   };
 
-  const videos = playlist.videos && playlist.videos.length > 0 ? playlist.videos : [
-    { id: 'v1', title: 'Lecture 1: Course Overview', youtubeId: '0IAPZzGSbME' }
-  ];
+  const [dynamicVideos, setDynamicVideos] = useState([]);
+  const [loadingVideos, setLoadingVideos] = useState(false);
 
-  const currentVideo = videos[currentIndex] || videos[0];
+  const cleanYtPlaylistId = useMemo(() => {
+    return extractYoutubePlaylistId(playlist?.youtubePlaylistId || playlist?.youtube_playlist_id || '');
+  }, [playlist]);
+
+  // Dynamically load YouTube playlist lectures on-the-fly (no 1,400 video rows in database required!)
+  useEffect(() => {
+    let isMounted = true;
+    if (cleanYtPlaylistId) {
+      setLoadingVideos(true);
+      fetchYoutubePlaylistVideos(cleanYtPlaylistId)
+        .then((fetched) => {
+          if (isMounted && fetched && fetched.length > 0) {
+            setDynamicVideos(fetched);
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (isMounted) setLoadingVideos(false);
+        });
+    } else {
+      setDynamicVideos([]);
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [cleanYtPlaylistId]);
+
+  const videos = useMemo(() => {
+    if (dynamicVideos && dynamicVideos.length > 0) return dynamicVideos;
+    if (playlist.videos && playlist.videos.length > 0) return playlist.videos;
+    if (cleanYtPlaylistId) {
+      return [{ id: 'pl-stream', title: `${playlist.title}: Full Playlist Stream`, youtubeId: '' }];
+    }
+    return [{ id: 'v1', title: 'Lecture 1: Course Overview', youtubeId: '0IAPZzGSbME' }];
+  }, [dynamicVideos, playlist.videos, cleanYtPlaylistId, playlist.title]);
+
+  const currentVideo = videos[currentIndex] || videos[0] || {};
 
   // Sync lastPlayed to DB/context
   useEffect(() => {
     if (playlist && currentVideo && updateLastPlayed) {
+      const vidId = currentVideo.youtubeId || '';
       updateLastPlayed({
         playlistId: playlist.id,
         playlistTitle: playlist.title,
         videoIndex: currentIndex,
-        videoTitle: currentVideo.title,
-        youtubeId: currentVideo.youtubeId,
-        thumbnail: `https://i.ytimg.com/vi/${currentVideo.youtubeId}/hqdefault.jpg`,
-        progress: Math.round(((currentIndex + 1) / videos.length) * 100)
+        videoTitle: currentVideo.title || playlist.title,
+        youtubeId: vidId,
+        thumbnail: vidId ? `https://i.ytimg.com/vi/${vidId}/hqdefault.jpg` : '',
+        progress: Math.round(((currentIndex + 1) / Math.max(videos.length, 1)) * 100)
       });
     }
-  }, [playlist.id, currentVideo.youtubeId, currentIndex]);
+  }, [playlist.id, currentVideo?.youtubeId, currentIndex, videos.length]);
 
-  const youtubeVideoUrl = currentVideo.youtubeId
-    ? `https://www.youtube.com/watch?v=${currentVideo.youtubeId}`
+  const youtubeVideoUrl = currentVideo?.youtubeId
+    ? `https://www.youtube.com/watch?v=${currentVideo.youtubeId}${cleanYtPlaylistId ? `&list=${cleanYtPlaylistId}` : ''}`
+    : cleanYtPlaylistId
+    ? `https://www.youtube.com/playlist?list=${cleanYtPlaylistId}`
     : null;
 
   const handleShare = () => {
@@ -149,7 +187,19 @@ export default function LearningPlayer({
           <div className="lg:col-span-8 xl:col-span-8 2xl:col-span-9 space-y-3 flex flex-col">
             {/* 16:9 Video Frame (Right at Top, zero distractions) */}
             <div className="relative aspect-video rounded-xl overflow-hidden bg-black border border-border-subtle shadow-md">
-              {currentVideo.youtubeId ? (
+              {cleanYtPlaylistId ? (
+                <iframe
+                  src={
+                    currentVideo?.youtubeId
+                      ? `https://www.youtube-nocookie.com/embed/${currentVideo.youtubeId}?list=${cleanYtPlaylistId}&autoplay=1&rel=0&modestbranding=1`
+                      : `https://www.youtube-nocookie.com/embed/videoseries?list=${cleanYtPlaylistId}&autoplay=1&rel=0&modestbranding=1`
+                  }
+                  title={currentVideo?.title || playlist.title}
+                  className="w-full h-full border-none"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : currentVideo?.youtubeId ? (
                 <iframe
                   src={`https://www.youtube-nocookie.com/embed/${currentVideo.youtubeId}?autoplay=1&rel=0&modestbranding=1`}
                   title={currentVideo.title}
@@ -280,7 +330,7 @@ export default function LearningPlayer({
                     : 'border-transparent text-text-muted hover:text-text-primary'
                 }`}
               >
-                Syllabus ({videos.length})
+                Syllabus ({loadingVideos ? 'Loading...' : videos.length})
               </button>
               <button
                 onClick={() => setActiveRightTab('resources')}

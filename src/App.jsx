@@ -19,6 +19,7 @@ import Profile from './components/Profile';
 import About from './components/About';
 import MarketplaceView from './components/marketplace/MarketplaceView';
 import Auth from './components/Auth';
+import NotFound404 from './components/NotFound404';
 import OnboardingModal from './components/OnboardingModal';
 import AdDonationModal from './components/AdDonationModal';
 
@@ -43,22 +44,6 @@ function AccessDenied({ requiredRole, setCurrentView }) {
   );
 }
 
-function NotFoundView({ setCurrentView }) {
-  return (
-    <div className="max-w-md mx-auto my-16 p-8 rounded-xl border border-border-subtle bg-surface text-center space-y-4">
-      <h2 className="text-xl font-bold font-editorial">Page Not Found</h2>
-      <p className="text-sm text-text-secondary">
-        The workspace section you requested could not be located.
-      </p>
-      <button
-        onClick={() => setCurrentView('my-learning')}
-        className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark"
-      >
-        Return to Dashboard
-      </button>
-    </div>
-  );
-}
 
 function AppContent() {
   const { currentUser, authLoading } = useDatabase();
@@ -325,8 +310,9 @@ function AppContent() {
                 <About setCurrentView={setCurrentView} />
               )}
 
-              {['results-404', 'discussions-404'].includes(currentView) && (
-                <NotFoundView setCurrentView={setCurrentView} />
+              {(['404', 'results-404', 'discussions-404'].includes(currentView) ||
+                !['my-learning', 'learning', 'marketplace', 'academics', 'attendance', 'timetable', 'player', 'studio', 'admin', 'profile', 'about'].includes(currentView)) && (
+                <NotFound404 setCurrentView={setCurrentView} />
               )}
             </>
           )}

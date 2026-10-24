@@ -814,16 +814,16 @@ export function DatabaseProvider({ children }) {
         { data: coursesData },
         { data: subs },
         { data: playlists },
-        { data: videos },
         { data: materials },
+        { data: marketplaceData },
         { data: logs }
       ] = await Promise.all([
         supabase.from('profiles').select('*'),
         supabase.from('courses').select('*'),
         supabase.from('subjects').select('*'),
         supabase.from('playlists').select('*'),
-        supabase.from('videos').select('*'),
         supabase.from('materials').select('*'),
+        supabase.from('marketplace_items').select('*').eq('status', 'active'),
         supabase.from('activity_logs').select('*').order('timestamp', { ascending: false })
       ]);
 
@@ -864,17 +864,7 @@ export function DatabaseProvider({ children }) {
               author: pl.author,
               position: pl.position,
               youtubePlaylistId: pl.youtube_playlist_id || pl.youtubePlaylistId || '',
-              videos: (videos || [])
-                .filter(v => v.playlist_id === pl.id)
-                .sort((a, b) => (a.position || 0) - (b.position || 0))
-                .map(v => ({
-                  id: v.id,
-                  title: v.title,
-                  description: v.description,
-                  youtubeId: v.youtube_id,
-                  position: v.position,
-                  likes: v.likes || []
-                }))
+              videos: pl.videos || []
             }));
 
           const subMaterials = (materials || [])
@@ -902,6 +892,29 @@ export function DatabaseProvider({ children }) {
         });
         setSubjects(assembled);
         localStorage.setItem('learnopia_subjects_stable', JSON.stringify(assembled));
+      }
+
+      if (marketplaceData && marketplaceData.length > 0) {
+        const mappedMarketplace = marketplaceData.map(m => ({
+          id: m.id,
+          title: m.title,
+          category: m.category,
+          price: m.price,
+          description: m.description,
+          author: m.author,
+          sellerId: m.seller_id,
+          contactMethod: m.contact_method || 'whatsapp',
+          contactDetail: m.contact_detail || '',
+          imageUrl: m.image_url,
+          keywords: m.keywords,
+          status: m.status || 'active',
+          listedAt: m.listed_at ? new Date(m.listed_at).getTime() : Date.now(),
+          createdAt: m.created_at
+        }));
+        localStorage.setItem('learnopia_marketplace_items', JSON.stringify(mappedMarketplace));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('learnopia_marketplace_updated'));
+        }
       }
 
       if (logs && logs.length > 0) {
@@ -1742,7 +1755,6 @@ export function DatabaseProvider({ children }) {
     if (isSupabaseLive) {
       try {
         await supabase.from('playlists').delete().eq('id', playlistId);
-        await supabase.from('videos').delete().eq('playlist_id', playlistId);
       } catch {}
       addLog(`Playlist deleted.`);
       syncSupabase();
@@ -1944,16 +1956,7 @@ export function DatabaseProvider({ children }) {
         if (error) throw error;
         
         const createdPlId = (data && data[0] && data[0].id) ? data[0].id : plId;
-        if (initialVideos.length > 0) {
-          const videoInserts = initialVideos.map((v, idx) => ({
-            playlist_id: createdPlId,
-            title: v.title,
-            description: v.description || '',
-            youtube_id: v.youtubeId,
-            position: idx
-          }));
-          await supabase.from('videos').insert(videoInserts);
-        }
+        // Pure YouTube playlist architecture: videos are streamed on-the-fly, no redundant DB rows
       } catch (err) {
         console.warn("Retrying playlist insert without optional columns:", err);
         await supabase.from('playlists').insert([{
@@ -2000,18 +2003,12 @@ export function DatabaseProvider({ children }) {
     }
 
     if (isSupabaseLive) {
-      const videoInserts = fetchedVideos.map((v, idx) => ({
-        playlist_id: playlistId,
-        title: v.title,
-        description: v.description || '',
-        youtube_id: v.youtubeId,
-        position: idx
-      }));
-      const { error } = await supabase.from('videos').insert(videoInserts);
-      if (error) {
-        console.warn("Retrying video inserts:", error);
+      try {
+        await supabase.from('playlists').update({ youtube_playlist_id: ytPlId }).eq('id', playlistId);
+      } catch (err) {
+        console.warn("Could not update playlist youtube_playlist_id:", err);
       }
-      addLog(`Imported ${fetchedVideos.length} videos into playlist.`);
+      addLog(`Linked YouTube playlist with ${fetchedVideos.length} videos.`);
       syncSupabase();
     } else {
       setSubjects(prev => prev.map(s => {
@@ -2066,22 +2063,16 @@ export function DatabaseProvider({ children }) {
 
     if (isSupabaseLive) {
       try {
-        const { error } = await supabase.from('videos').insert([{
+        await supabase.from('videos').insert([{
           playlist_id: playlistId,
           title,
           description,
           youtube_id: videoId,
           position: newPosition
         }]);
-        if (error) throw error;
       } catch (err) {
-        console.warn("Retrying video insert without 'position' column:", err);
-        await supabase.from('videos').insert([{
-          playlist_id: playlistId,
-          title,
-          description,
-          youtube_id: videoId
-        }]);
+        // videos table is deprecated/dropped; maintain in local state
+        console.warn("Notice: Videos table not active; saving to client state:", err?.message);
       }
       addLog(`Video added: "${title}"`);
       syncSupabase();
@@ -2105,7 +2096,9 @@ export function DatabaseProvider({ children }) {
 
   const deleteVideoFromPlaylist = async (subjectId, playlistId, videoId) => {
     if (isSupabaseLive) {
-      await supabase.from('videos').delete().eq('id', videoId);
+      try {
+        await supabase.from('videos').delete().eq('id', videoId);
+      } catch {}
       addLog(`Video deleted.`);
       syncSupabase();
     } else {
@@ -2859,54 +2852,21 @@ export function DatabaseProvider({ children }) {
     }
   };
 
-  // ── SUPABASE DISCUSSIONS PERSISTENCE HELPERS ──
+  // ── LOCAL STORAGE DISCUSSIONS PERSISTENCE HELPERS (Supabase discussion_threads dropped) ──
   const saveDiscussionThreadsToDb = async (threadsData) => {
-    if (isSupabaseLive) {
-      try {
-        const { data: existing } = await supabase
-          .from('discussion_threads')
-          .select('id')
-          .eq('id', 'global_threads')
-          .maybeSingle();
-
-        if (existing) {
-          const { error } = await supabase
-            .from('discussion_threads')
-            .update({
-              threads_json: threadsData,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', 'global_threads');
-          if (error) console.error('[Supabase Discussion Threads Update Error]', error.message);
-        } else {
-          const { error } = await supabase
-            .from('discussion_threads')
-            .insert([{
-              id: 'global_threads',
-              threads_json: threadsData,
-              updated_at: new Date().toISOString()
-            }]);
-          if (error) console.error('[Supabase Discussion Threads Insert Error]', error.message);
-        }
-      } catch (e) {
-        console.warn('[Supabase Discussions Sync Error]', e);
-      }
+    try {
+      localStorage.setItem('learnopia_discussion_threads_cache', JSON.stringify(threadsData));
+    } catch (e) {
+      console.warn('[Discussion Threads Save Error]', e);
     }
   };
 
   const getDiscussionThreadsFromDb = async () => {
-    if (isSupabaseLive) {
-      try {
-        const { data, error } = await supabase
-          .from('discussion_threads')
-          .select('threads_json')
-          .eq('id', 'global_threads')
-          .maybeSingle();
-        if (error) console.error('[Supabase Discussion Threads Fetch Error]', error.message);
-        if (data && data.threads_json) return data.threads_json;
-      } catch (e) {
-        console.warn('[Supabase Discussion Threads Fetch Error]', e);
-      }
+    try {
+      const cached = localStorage.getItem('learnopia_discussion_threads_cache');
+      if (cached) return JSON.parse(cached);
+    } catch (e) {
+      console.warn('[Discussion Threads Fetch Error]', e);
     }
     return null;
   };

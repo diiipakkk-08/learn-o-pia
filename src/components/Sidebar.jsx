@@ -11,7 +11,6 @@ import {
   FileText,
   Users,
   ShoppingBag,
-  Sparkles,
   Pin,
   ShieldAlert,
   PanelLeftClose,
@@ -116,18 +115,6 @@ export default function Sidebar({
           <span className="px-3.5 text-[11px] font-semibold uppercase tracking-wider block mb-1.5 font-mono-tabular text-text-muted">
             Quick Actions
           </span>
-
-          <button
-            onClick={() => setCurrentView('landing')}
-            className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-lg text-xs font-medium transition-all text-left ${
-              currentView === 'landing'
-                ? 'bg-surface-hover text-text-primary font-semibold'
-                : 'text-text-secondary hover:bg-surface-hover/60 hover:text-text-primary'
-            }`}
-          >
-            <Sparkles size={15} strokeWidth={1.75} />
-            <span>Public Home</span>
-          </button>
 
           <button
             onClick={() => setCurrentView('about')}
