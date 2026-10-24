@@ -489,7 +489,7 @@ export default function CoursesDashboard({
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
             type="text"
-            placeholder="Search courses, subjects..."
+            placeholder="Search courses & university subjects..."
             value={localSearch}
             onChange={(e) => {
               setLocalSearch(e.target.value);

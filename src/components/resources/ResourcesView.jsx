@@ -308,7 +308,7 @@ export default function ResourcesView() {
         <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
         <input
           type="text"
-          placeholder="Filter documents by title, subject, or author..."
+          placeholder="Search documents, notes, or PDFs..."
           value={localSearch}
           onChange={(e) => {
             setLocalSearch(e.target.value);

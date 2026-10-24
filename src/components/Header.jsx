@@ -88,12 +88,12 @@ export default function Header({
 
   const searchPlaceholder =
     currentView === 'resources' || currentView === 'discussions'
-      ? 'Search documents, PDFs, or study notes...'
+      ? 'Search documents, notes, or PDFs...'
       : currentView === 'marketplace'
       ? 'Search textbooks, lab kits, drafters, services...'
       : currentView === 'learning'
-      ? 'Search courses, subjects, or engineering topics...'
-      : 'Search Learn-O-Pia courses...';
+      ? 'Search courses & university subjects...'
+      : 'Search Learn-O-Pia...';
 
   const handleSearchChange = (e) => {
     const val = e.target.value;
