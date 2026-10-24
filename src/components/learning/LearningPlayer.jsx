@@ -141,10 +141,15 @@ export default function LearningPlayer({
     }
   }, [playlist.id, currentVideo.youtubeId, currentIndex]);
 
+  const youtubeVideoUrl = currentVideo.youtubeId
+    ? `https://www.youtube.com/watch?v=${currentVideo.youtubeId}`
+    : null;
+
   const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
+    const linkToCopy = youtubeVideoUrl || window.location.href;
+    navigator.clipboard.writeText(linkToCopy);
     setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
+    setTimeout(() => setCopiedLink(false), 2500);
   };
 
   const handleAddNote = (e) => {
@@ -175,7 +180,7 @@ export default function LearningPlayer({
         color: cinemaMode ? '#F2EFE9' : '#141413'
       }}
     >
-      <main className="w-full px-3 sm:px-6 lg:px-8 xl:px-10 pt-3 pb-12 space-y-4">
+      <main className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 space-y-4">
         {/* Top Control Bar */}
         <div className="flex items-center justify-between gap-3 pb-3 border-b border-border-subtle">
           <div className="flex items-center gap-3 min-w-0">
@@ -208,13 +213,28 @@ export default function LearningPlayer({
               </button>
             )}
 
+            {youtubeVideoUrl && (
+              <a
+                href={youtubeVideoUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="p-2 sm:px-3 sm:py-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold flex items-center gap-1.5 text-red-600 hover:text-red-500 transition-colors"
+                title="Watch lecture directly on YouTube"
+              >
+                <svg className="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24">
+                  <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                </svg>
+                <span className="hidden sm:inline font-mono-tabular">YouTube</span>
+              </a>
+            )}
+
             <button
               onClick={handleShare}
               className="p-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold flex items-center gap-1.5"
-              title="Share Course Link"
+              title="Copy direct YouTube video link"
             >
               <Share2 size={14} />
-              <span className="hidden sm:inline">{copiedLink ? 'Copied!' : 'Share'}</span>
+              <span className="hidden sm:inline">{copiedLink ? 'Link Copied!' : 'Share Link'}</span>
             </button>
           </div>
         </div>

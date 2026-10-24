@@ -235,7 +235,7 @@ export default function MyLearningView({
   }, [routine]);
 
   return (
-    <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-10 pt-4 sm:pt-6 pb-12 space-y-5">
+    <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 space-y-5">
       {/* Editorial Workspace Header */}
       <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-border-subtle pb-3.5">
         <div>

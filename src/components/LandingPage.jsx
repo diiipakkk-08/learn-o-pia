@@ -11,10 +11,19 @@ import {
   ExternalLink,
   Plus,
   Minus,
-  Check
+  Check,
+  Sun,
+  Moon
 } from 'lucide-react';
 
-export default function LandingPage({ setCurrentView, onEnterApp, onOpenAuth, onBrowseCourses }) {
+export default function LandingPage({
+  setCurrentView,
+  onEnterApp,
+  onOpenAuth,
+  onBrowseCourses,
+  cinemaMode = false,
+  onToggleTheme
+}) {
   const [activePreviewTab, setActivePreviewTab] = useState('player'); // 'player' | 'attendance' | 'vault'
   const [previewAttendance, setPreviewAttendance] = useState({ attended: 18, total: 22 });
   const [demoChecked, setDemoChecked] = useState([true, true, false, false]);
@@ -48,7 +57,7 @@ export default function LandingPage({ setCurrentView, onEnterApp, onOpenAuth, on
   const previewNeedAttend = Math.max(1, Math.ceil((0.75 * previewAttendance.total - previewAttendance.attended) / 0.25));
 
   return (
-    <div className="min-h-screen bg-canvas text-text-primary selection:bg-[#E2DDD3]">
+    <div className="min-h-screen bg-canvas text-text-primary selection:bg-surface-hover">
       {/* 1. Minimal Editorial Navbar */}
       <header className="sticky top-0 z-40 px-4 sm:px-8 h-16 flex items-center justify-between border-b border-border-subtle bg-canvas/90 backdrop-blur-md">
         <div className="flex items-center gap-8">
@@ -73,25 +82,32 @@ export default function LandingPage({ setCurrentView, onEnterApp, onOpenAuth, on
           </nav>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          {/* Light / Dark Mode Toggle on Landing Page */}
+          {onToggleTheme && (
+            <button
+              onClick={onToggleTheme}
+              className="p-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary transition-colors flex items-center justify-center cursor-pointer shadow-xs"
+              title={cinemaMode ? 'Switch to Light Mode' : 'Switch to Dim Mode'}
+              aria-label="Toggle theme mode"
+            >
+              {cinemaMode ? <Sun size={15} className="text-[#E2A04B]" /> : <Moon size={15} className="text-text-secondary" />}
+            </button>
+          )}
+
+          {/* Prominent Sign In Button */}
           <button
             onClick={openAuth}
-            className="px-3.5 py-2 text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors"
+            className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark transition-all hover:opacity-95 active:scale-[0.98] shadow-xs cursor-pointer"
           >
             Sign In
-          </button>
-          <button
-            onClick={enterApp}
-            className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark transition-all hover:opacity-95 active:scale-[0.98]"
-          >
-            Open Workspace — Free
           </button>
         </div>
       </header>
 
       {/* 2. Editorial Hero Section */}
       <section className="max-w-5xl mx-auto px-4 sm:px-8 pt-14 pb-10 text-center space-y-6">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border border-border-strong bg-[#EFECE6] text-text-secondary">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border border-border-strong bg-subtle text-text-secondary">
           <span className="w-1.5 h-1.5 rounded-full bg-accent-forest" />
           <span>100% Free Academic Workspace • Web & Android</span>
         </div>
@@ -126,18 +142,18 @@ export default function LandingPage({ setCurrentView, onEnterApp, onOpenAuth, on
       <section className="max-w-6xl mx-auto px-4 sm:px-8 pb-20">
         <div className="rounded-xl border border-border-subtle bg-surface shadow-modal overflow-hidden">
           {/* Simulated Browser Chrome / Tab Switcher */}
-          <div className="px-4 py-3 bg-[#EFECE6] border-b border-border-subtle flex items-center justify-between gap-4">
+          <div className="px-4 py-3 bg-subtle border-b border-border-subtle flex items-center justify-between gap-4">
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-[#D4CFBE]" />
-              <div className="w-3 h-3 rounded-full bg-[#D4CFBE]" />
-              <div className="w-3 h-3 rounded-full bg-[#D4CFBE]" />
+              <div className="w-3 h-3 rounded-full bg-border-strong" />
+              <div className="w-3 h-3 rounded-full bg-border-strong" />
+              <div className="w-3 h-3 rounded-full bg-border-strong" />
               <span className="ml-2 text-xs font-mono-tabular text-text-muted hidden sm:inline">
                 https://learn-o-pia.workspace/studio
               </span>
             </div>
 
             {/* Interactive Mode Pills */}
-            <div className="flex items-center gap-1 bg-[#E2DDD3] p-1 rounded-lg">
+            <div className="flex items-center gap-1 bg-surface-hover p-1 rounded-lg">
               <button
                 onClick={() => setActivePreviewTab('player')}
                 className={`px-3 py-1 rounded text-xs font-medium transition-all ${
@@ -318,7 +334,7 @@ export default function LandingPage({ setCurrentView, onEnterApp, onOpenAuth, on
                   ].map((res, i) => (
                     <div key={i} className="px-4 py-3 flex items-center justify-between hover:bg-surface-hover">
                       <div className="flex items-center gap-3">
-                        <span className="font-mono-tabular px-1.5 py-0.5 rounded text-[10px] font-bold border border-border-strong bg-[#EFECE6]">
+                        <span className="font-mono-tabular px-1.5 py-0.5 rounded text-[10px] font-bold border border-border-strong bg-subtle">
                           {res.type}
                         </span>
                         <div>
@@ -328,7 +344,7 @@ export default function LandingPage({ setCurrentView, onEnterApp, onOpenAuth, on
                       </div>
                       <button
                         onClick={enterApp}
-                        className="px-3 py-1.5 rounded border border-border-subtle bg-surface hover:bg-[#EFECE6] font-semibold text-xs"
+                        className="px-3 py-1.5 rounded border border-border-subtle bg-surface hover:bg-surface-hover font-semibold text-xs"
                       >
                         Open Vault
                       </button>
@@ -354,7 +370,7 @@ export default function LandingPage({ setCurrentView, onEnterApp, onOpenAuth, on
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="p-6 rounded-xl border border-border-subtle bg-surface space-y-3">
-            <div className="w-10 h-10 rounded-lg bg-[#EFECE6] flex items-center justify-center text-text-primary">
+            <div className="w-10 h-10 rounded-lg bg-subtle flex items-center justify-center text-text-primary">
               <Play size={18} />
             </div>
             <h3 className="text-base font-bold">Distraction-Free Video IDE</h3>
@@ -364,7 +380,7 @@ export default function LandingPage({ setCurrentView, onEnterApp, onOpenAuth, on
           </div>
 
           <div className="p-6 rounded-xl border border-border-subtle bg-surface space-y-3">
-            <div className="w-10 h-10 rounded-lg bg-[#EFECE6] flex items-center justify-center text-accent-forest">
+            <div className="w-10 h-10 rounded-lg bg-subtle flex items-center justify-center text-accent-forest">
               <Calendar size={18} />
             </div>
             <h3 className="text-base font-bold">Predictive Attendance Ledger</h3>
@@ -374,7 +390,7 @@ export default function LandingPage({ setCurrentView, onEnterApp, onOpenAuth, on
           </div>
 
           <div className="p-6 rounded-xl border border-border-subtle bg-surface space-y-3">
-            <div className="w-10 h-10 rounded-lg bg-[#EFECE6] flex items-center justify-center text-text-primary">
+            <div className="w-10 h-10 rounded-lg bg-subtle flex items-center justify-center text-text-primary">
               <ShieldCheck size={18} />
             </div>
             <h3 className="text-base font-bold">Community-Backed & Free</h3>

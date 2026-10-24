@@ -182,7 +182,7 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className="animate-fade-in" style={styles.container}>
+    <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 animate-fade-in" style={styles.container}>
       {/* Metrics Header widgets */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-2">
         <div className="glass-panel" style={styles.statCard}>

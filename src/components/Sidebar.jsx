@@ -5,6 +5,7 @@ import {
   Calendar,
   FileText,
   Users,
+  ShoppingBag,
   Play,
   Sparkles,
   Pin,
@@ -31,6 +32,7 @@ export default function Sidebar({
     { id: 'learning', label: 'Courses', icon: BookOpen },
     { id: 'attendance', label: 'Attendance Tracker', icon: Calendar },
     { id: 'resources', label: 'Resources View', icon: FileText },
+    { id: 'marketplace', label: 'Marketplace', icon: ShoppingBag },
     { id: 'studio', label: 'Creator Studio', icon: Users },
   ];
 

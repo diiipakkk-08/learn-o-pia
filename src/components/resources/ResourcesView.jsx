@@ -53,12 +53,13 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
     setPage(1);
   }, [localSearch, activeTab]);
 
-  const handleCopy = (id, e) => {
+  const handleCopyLink = (res, e) => {
     if (e) e.preventDefault();
-    if (!id) return;
-    navigator.clipboard.writeText(id);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+    if (!res) return;
+    const linkToCopy = res.url || `${window.location.origin}/#vault-${res.id}`;
+    navigator.clipboard.writeText(linkToCopy);
+    setCopiedId(res.id);
+    setTimeout(() => setCopiedId(null), 2500);
   };
 
   // Compile all standalone resources and subject document materials
@@ -133,7 +134,7 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
   ];
 
   return (
-    <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-10 pt-4 sm:pt-6 pb-12 space-y-6">
+    <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 space-y-6">
       {/* Header & Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border-subtle pb-4">
         <div>
@@ -230,14 +231,20 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
                   </button>
 
                   <button
-                    onClick={(e) => handleCopy(res.id, e)}
-                    className="p-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold cursor-pointer transition-colors"
-                    title="Copy Document ID"
+                    onClick={(e) => handleCopyLink(res, e)}
+                    className="p-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold cursor-pointer transition-colors flex items-center gap-1"
+                    title="Copy Document Direct Link"
                   >
                     {copiedId === res.id ? (
-                      <Check size={15} className="text-accent-forest" />
+                      <>
+                        <Check size={14} className="text-accent-forest" />
+                        <span className="text-[10px] font-mono-tabular text-accent-forest font-bold">Copied!</span>
+                      </>
                     ) : (
-                      <Copy size={15} className="text-text-muted" />
+                      <>
+                        <Copy size={14} className="text-text-muted" />
+                        <span className="text-[10px] font-mono-tabular text-text-muted hidden sm:inline">Link</span>
+                      </>
                     )}
                   </button>
 

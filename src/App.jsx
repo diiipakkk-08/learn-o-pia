@@ -18,6 +18,7 @@ import CreatorStudio from './components/creator/CreatorStudio';
 import AdminDashboard from './components/admin/AdminDashboard';
 import Profile from './components/Profile';
 import About from './components/About';
+import MarketplaceView from './components/marketplace/MarketplaceView';
 import Auth from './components/Auth';
 import OnboardingModal from './components/OnboardingModal';
 import AdDonationModal from './components/AdDonationModal';
@@ -163,12 +164,16 @@ function AppContent() {
   // Standalone Public Landing Page
   if (currentView === 'landing') {
     return (
-      <LandingPage
-        setCurrentView={setCurrentView}
-        onEnterApp={() => setCurrentView(currentUser ? 'my-learning' : 'auth')}
-        onOpenAuth={() => setCurrentView('auth')}
-        onBrowseCourses={() => setCurrentView('learning')}
-      />
+      <div data-theme={cinemaMode ? 'cinema' : 'default'} className="min-h-screen bg-canvas text-text-primary">
+        <LandingPage
+          setCurrentView={setCurrentView}
+          onEnterApp={() => setCurrentView(currentUser ? 'my-learning' : 'auth')}
+          onOpenAuth={() => setCurrentView('auth')}
+          onBrowseCourses={() => setCurrentView('learning')}
+          cinemaMode={cinemaMode}
+          onToggleTheme={() => setCinemaMode(!cinemaMode)}
+        />
+      </div>
     );
   }
 
@@ -230,7 +235,7 @@ function AppContent() {
         {/* Main View Container */}
         <main className="flex-1 w-full pb-20 lg:pb-8">
           {/* Unauthenticated Wall for Protected Views */}
-          {!currentUser && !['about', 'learning'].includes(currentView) ? (
+          {!currentUser && !['about', 'learning', 'marketplace'].includes(currentView) ? (
             <div className="max-w-md mx-auto my-16 p-8 rounded-xl border border-border-subtle bg-surface text-center space-y-4 shadow-modal">
               <h2 className="text-xl font-bold font-editorial">Student Workspace Sign In</h2>
               <p className="text-sm text-text-secondary">
@@ -259,6 +264,13 @@ function AppContent() {
                   isSidebarCollapsed={isSidebarCollapsed}
                   setSelectedPlaylistId={setSelectedPlaylistId}
                   setSelectedVideoIndex={setSelectedVideoIndex}
+                  setCurrentView={setCurrentView}
+                />
+              )}
+
+              {currentView === 'marketplace' && (
+                <MarketplaceView
+                  isSidebarCollapsed={isSidebarCollapsed}
                   setCurrentView={setCurrentView}
                 />
               )}

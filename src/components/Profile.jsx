@@ -194,7 +194,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
   const myEnrolledCourses = courses.filter(c => currentUser.enrolledCourses?.includes(c.id));
 
   return (
-    <div style={styles.container} className="animate-fade-in">
+    <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 animate-fade-in">
       {/* Top Banner & Status */}
       <div className="glass-panel" style={{ padding: '20px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', textAlign: 'left' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -203,7 +203,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <h2 style={{ fontSize: '1.4rem', margin: 0, color: '#ffffff' }}>{formattedDesignation}</h2>
+              <h2 style={{ fontSize: '1.4rem', margin: 0, color: 'var(--text-primary)' }}>{formattedDesignation}</h2>
               {currentUser.isVerified ? (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(16,185,129,0.15)', color: '#10b981', padding: '3px 8px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 800 }}>
                   <CheckCircle2 size={13} /> {currentUser.verificationType === 'professor' ? 'Verified Professor' : currentUser.verificationType === 'creator' ? 'Verified Creator' : 'Verified Student'}
@@ -262,7 +262,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
       {/* PASSWORD LINKING & CHANGE PASSWORD BOX */}
       {showPasswordBox && (
         <form onSubmit={handleSavePassword} className="glass-panel animate-fade-in" style={{ padding: '20px', textAlign: 'left', marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '1rem', color: '#ffffff', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h3 style={{ fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <KeyRound size={18} color="var(--primary)" /> {currentUser.password ? 'Change Password' : 'Set Password & Enable Direct Sign-In'}
           </h3>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '14px' }}>
@@ -318,7 +318,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
       {isEditing ? (
         <form onSubmit={handleSaveProfile} className="glass-panel animate-fade-in" style={{ padding: '24px', marginBottom: '24px', textAlign: 'left' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '1.1rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ fontSize: '1.1rem', margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Edit3 size={18} color="var(--primary)" /> Edit Profile & Academic Credentials
             </h3>
             <button type="button" onClick={() => setIsEditing(false)} className="btn btn-secondary btn-sm">
@@ -503,7 +503,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
 
           {/* Verification Option Selection */}
           <div style={{ padding: '18px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border-subtle)', marginBottom: '20px' }}>
-            <h4 style={{ fontSize: '0.9rem', marginBottom: '6px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <h4 style={{ fontSize: '0.9rem', marginBottom: '6px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
               <Shield size={16} color="var(--primary)" /> Account Verification Type & ID Document Link
             </h4>
             <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
@@ -556,7 +556,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
                 type="button"
                 onClick={(e) => handleSaveProfile(e, false)}
                 className="btn btn-secondary"
-                style={{ borderColor: 'rgba(255,255,255,0.2)', color: '#ffffff' }}
+                style={{ borderColor: 'rgba(255,255,255,0.2)', color: 'var(--text-primary)' }}
               >
                 💾 Save Details
               </button>
@@ -577,7 +577,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
       <div className="profile-grid-layout">
         {/* LEFT COLUMN: Profile Summary Card */}
         <div className="glass-panel" style={styles.card}>
-          <h3 style={{ fontSize: '1rem', color: '#ffffff', marginBottom: '14px', textAlign: 'left' }}>Profile Information</h3>
+          <h3 style={{ fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '14px', textAlign: 'left' }}>Profile Information</h3>
 
           <div style={styles.infoList}>
             <div style={styles.infoItem}>
@@ -719,7 +719,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
                             {course.department}
                           </span>
                         </div>
-                        <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#ffffff', marginTop: '4px' }}>
+                        <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px' }}>
                           {course.title}
                         </h4>
                       </div>
@@ -745,7 +745,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
 
       {isMobile && (
         <div className="glass-panel" style={{ padding: '20px', marginTop: '24px', textAlign: 'left' }}>
-          <h3 style={{ fontSize: '1rem', color: '#ffffff', marginBottom: '14px', fontWeight: 700 }}>
+          <h3 style={{ fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '14px', fontWeight: 700 }}>
             Account Quick Navigation
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -838,7 +838,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
                 <AlertTriangle size={28} color="#f59e0b" />
               </div>
               <div>
-                <h3 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>Unlock & Edit Verified Credentials?</h3>
+                <h3 style={{ fontSize: '1.2rem', margin: 0, color: 'var(--text-primary)' }}>Unlock & Edit Verified Credentials?</h3>
                 <span style={{ fontSize: '0.8rem', color: '#f59e0b', fontWeight: 600 }}>🔓 Reset Verification to Unverified</span>
               </div>
             </div>
@@ -886,7 +886,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
                 <AlertTriangle size={28} color="#ef4444" />
               </div>
               <div>
-                <h3 style={{ fontSize: '1.2rem', margin: 0, color: '#ffffff' }}>Permanently Delete Account?</h3>
+                <h3 style={{ fontSize: '1.2rem', margin: 0, color: 'var(--text-primary)' }}>Permanently Delete Account?</h3>
                 <span style={{ fontSize: '0.8rem', color: '#f87171', fontWeight: 600 }}>⚠️ Irreversible Action</span>
               </div>
             </div>
@@ -1006,7 +1006,7 @@ const styles = {
     width: '100%',
     background: 'none',
     border: 'none',
-    color: '#ffffff',
+    color: 'var(--text-primary)',
     cursor: 'pointer',
     padding: '8px 0',
     fontFamily: 'var(--font-body)'
@@ -1028,7 +1028,7 @@ const styles = {
     borderRadius: '12px',
     background: 'var(--bg-surface)',
     border: '1px solid var(--border-subtle)',
-    color: '#ffffff',
+    color: 'var(--text-primary)',
     fontSize: '0.88rem',
     fontWeight: 500,
     cursor: 'pointer',

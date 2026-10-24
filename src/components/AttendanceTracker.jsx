@@ -1131,7 +1131,7 @@ export default function AttendanceTracker({ setCurrentView }) {
   };
 
   return (
-    <div style={styles.container} className="animate-fade-in">
+    <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 animate-fade-in" style={styles.container}>
       {/* Consolidated Top Action & Navigation Bar */}
       <div className="glass-panel" style={{
         padding: isMobile ? '8px 10px' : '12px 18px',

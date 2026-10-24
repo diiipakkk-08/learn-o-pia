@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutGrid, BookOpen, Calendar, FileText, User } from 'lucide-react';
+import { LayoutGrid, BookOpen, Calendar, FileText, ShoppingBag } from 'lucide-react';
 
 export default function MobileBottomNav({ currentView, setCurrentView }) {
   const TABS = [
@@ -7,7 +7,7 @@ export default function MobileBottomNav({ currentView, setCurrentView }) {
     { id: 'learning', label: 'Courses', icon: BookOpen },
     { id: 'attendance', label: 'Attendance', icon: Calendar },
     { id: 'resources', label: 'Vault', icon: FileText },
-    { id: 'profile', label: 'Profile', icon: User }
+    { id: 'marketplace', label: 'Marketplace', icon: ShoppingBag }
   ];
 
   return (

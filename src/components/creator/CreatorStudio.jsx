@@ -499,7 +499,7 @@ export default function CreatorStudio() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="animate-fade-in" style={styles.container}>
+    <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 animate-fade-in" style={styles.container}>
 
       {/* Banner */}
       <section style={styles.studioBanner} className="glass-panel">
