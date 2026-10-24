@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
 import {
+  FileText,
   Search,
   BookOpen,
   Play,
@@ -50,9 +51,32 @@ export default function CoursesDashboard({
   // Folder assignment modal state
   const [courseToAddToFolder, setCourseToAddToFolder] = useState(null);
   const [targetFolderId, setTargetFolderId] = useState('academic');
-  const [targetSubfolderId, setTargetSubfolderId] = useState('sem-1');
+  const [targetSubfolderId, setTargetSubfolderId] = useState('');
 
   // Load explorer folders to know if courses are assigned
+    // Reload explorer folders whenever modal opens to reflect user changes
+  useEffect(() => {
+    if (courseToAddToFolder) {
+      try {
+        const raw = localStorage.getItem(`learnopia_explorer_folders_v2_${userId}`);
+        if (raw) {
+          let parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            parsed = parsed.map(f => (f.id === 'source' ? { ...f, id: 'document', title: 'Document' } : f));
+            setUserFolders(parsed);
+          }
+        }
+      } catch {}
+      setTargetFolderId('academic');
+      setTargetSubfolderId('');
+    }
+  }, [courseToAddToFolder, userId]);
+
+  const handleSelectFolder = (folderId) => {
+    setTargetFolderId(folderId);
+    setTargetSubfolderId('');
+  };
+
   const [userFolders, setUserFolders] = useState(() => {
     try {
       const saved = localStorage.getItem(`learnopia_explorer_folders_v2_${userId}`);
@@ -313,11 +337,13 @@ export default function CoursesDashboard({
     if (!currentFolders || currentFolders.length === 0) {
       // Default structure fallback
       currentFolders = [
-        { id: 'academic', title: 'Academic', subfolders: [{ id: 'sem-1', title: 'Semester 1', items: [] }], items: [] },
-        { id: 'source', title: 'Source', subfolders: [], items: [] },
+        { id: 'academic', title: 'Academic', subfolders: [], items: [] },
+        { id: 'document', title: 'Document', subfolders: [], items: [] },
         { id: 'links', title: 'Important Links', subfolders: [], items: [] },
         { id: 'personal', title: 'Personal', subfolders: [], items: [] }
       ];
+    } else {
+      currentFolders = currentFolders.map(f => (f.id === 'source' ? { ...f, id: 'document', title: 'Document' } : f));
     }
 
     const ytPlaylistUrl = `https://www.youtube.com/playlist?list=${(courseToAddToFolder.playlistId || courseToAddToFolder.id).replace('pl-', '')}`;
@@ -338,20 +364,26 @@ export default function CoursesDashboard({
       if (root.id !== targetFolderId) return root;
 
       if (targetSubfolderId && root.subfolders?.length > 0) {
-        return {
-          ...root,
-          subfolders: root.subfolders.map((sf) => {
-            if (sf.id === targetSubfolderId) {
-              return {
-                ...sf,
-                items: [newItem, ...(sf.items || [])]
-              };
-            }
-            return sf;
-          })
-        };
+        let matched = false;
+        const newSubfolders = root.subfolders.map((sf) => {
+          if (sf.id === targetSubfolderId) {
+            matched = true;
+            return {
+              ...sf,
+              items: [newItem, ...(sf.items || [])]
+            };
+          }
+          return sf;
+        });
+        if (matched) {
+          return {
+            ...root,
+            subfolders: newSubfolders
+          };
+        }
       }
 
+      // Default: Direct to root items
       return {
         ...root,
         items: [newItem, ...(root.items || [])]
@@ -370,14 +402,11 @@ export default function CoursesDashboard({
       enrollInCourse(courseToAddToFolder.id);
     }
 
-    const folderName =
-      targetFolderId === 'academic'
-        ? `Academic (${targetSubfolderId.toUpperCase()})`
-        : targetFolderId === 'source'
-        ? 'Source Code'
-        : targetFolderId === 'links'
-        ? 'Important Links'
-        : 'Personal';
+    const activeFolderObj = updated.find(f => f.id === targetFolderId);
+    const activeSubfolderObj = targetSubfolderId ? activeFolderObj?.subfolders?.find(sf => sf.id === targetSubfolderId) : null;
+    const folderName = activeSubfolderObj
+      ? `${activeFolderObj?.title || 'Academic'} / ${activeSubfolderObj.title}`
+      : (activeFolderObj?.title || 'Academic');
 
     setEnrollNotice(`Saved "${courseToAddToFolder.title}" to ${folderName}!`);
     setTimeout(() => setEnrollNotice(null), 3000);
@@ -750,14 +779,14 @@ export default function CoursesDashboard({
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { id: 'academic', title: 'Academic', icon: <GraduationCap size={15} /> },
-                    { id: 'source', title: 'Source', icon: <Code2 size={15} /> },
+                    { id: 'document', title: 'Document', icon: <FileText size={15} /> },
                     { id: 'links', title: 'Important Links', icon: <Link2 size={15} /> },
                     { id: 'personal', title: 'Personal', icon: <Lock size={15} /> }
                   ].map((f) => (
                     <button
                       type="button"
                       key={f.id}
-                      onClick={() => setTargetFolderId(f.id)}
+                      onClick={() => handleSelectFolder(f.id)}
                       className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
                         targetFolderId === f.id
                           ? 'border-border-strong bg-accent-ink text-text-on-dark shadow-xs'
@@ -771,25 +800,38 @@ export default function CoursesDashboard({
                 </div>
               </div>
 
-              {/* Subfolder Picker if Academic */}
-              {targetFolderId === 'academic' && (
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary mb-1">
-                    Select Semester
-                  </label>
-                  <select
-                    value={targetSubfolderId}
-                    onChange={(e) => setTargetSubfolderId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border-strong text-xs bg-canvas text-text-primary focus:outline-none"
-                  >
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
-                      <option key={`sem-${sem}`} value={`sem-${sem}`}>
-                        Semester {sem}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              {/* Dynamic Subfolder Picker */}
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">
+                  Folder Location / Subfolder (Optional)
+                </label>
+                {(() => {
+                  const activeRoot = userFolders.find(f => f.id === targetFolderId);
+                  const availableSubfolders = activeRoot?.subfolders || [];
+                  if (availableSubfolders.length > 0) {
+                    return (
+                      <select
+                        value={targetSubfolderId}
+                        onChange={(e) => setTargetSubfolderId(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-border-strong text-xs bg-canvas text-text-primary focus:outline-none"
+                      >
+                        <option value="">-- Direct to {activeRoot?.title || 'Root'} (Root) --</option>
+                        {availableSubfolders.map((sf) => (
+                          <option key={sf.id} value={sf.id}>
+                            {sf.title}
+                          </option>
+                        ))}
+                      </select>
+                    );
+                  }
+                  return (
+                    <div className="text-[11px] text-text-muted bg-surface-sunken p-2.5 rounded-lg border border-border-subtle flex items-center justify-between">
+                      <span>Directly saves inside <strong>{activeRoot?.title || 'Root'}</strong></span>
+                      <span className="text-[10px] text-text-tertiary font-mono-tabular">No subfolders</span>
+                    </div>
+                  );
+                })()}
+              </div>
 
               <div className="pt-2 flex items-center justify-end gap-2 border-t border-border-subtle">
                 <button

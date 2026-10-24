@@ -192,49 +192,6 @@ export default function MyLearningView({
     };
   }, [userId]);
 
-  // User Recent Notes (Collected from localStorage video notes)
-  const userRecentNotes = useMemo(() => {
-    const list = [];
-    try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('learnopia_notes_')) {
-          const playlistId = key.replace('learnopia_notes_', '');
-          const raw = localStorage.getItem(key);
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-              parsed.forEach((n) => {
-                list.push({ ...n, playlistId });
-              });
-            }
-          }
-        }
-      }
-    } catch {}
-
-    if (list.length === 0) {
-      return [
-        {
-          id: 'sample-1',
-          text: 'Verify continuity at x=0 before applying L\'Hopital\'s Rule in limits problems.',
-          timestamp: '08:24',
-          playlistId: 'pl-1',
-          courseTitle: 'Engineering Mathematics I'
-        },
-        {
-          id: 'sample-2',
-          text: 'Wave equation solution: Ψ(x,t) = A sin(kx - ωt + φ). Phase velocity v = ω/k.',
-          timestamp: '14:10',
-          playlistId: 'pl-2',
-          courseTitle: 'Engineering Physics'
-        }
-      ];
-    }
-
-    return list.slice(0, 4);
-  }, []);
-
   // Saved Academic Vault Resources (Top 3)
   const topVaultResources = useMemo(() => {
     const saved = (standaloneResources || []).filter((r) =>
@@ -253,14 +210,26 @@ export default function MyLearningView({
   }, [routine]);
 
   // =================================================================
-  // 4 FIXED ROOT FOLDERS SYSTEM: Academic, Source, Important Links, Personal
+  // 4 FIXED ROOT FOLDERS SYSTEM: Academic, Document, Important Links, Personal
   // =================================================================
   const [folders, setFolders] = useState(() => {
     try {
       const saved = localStorage.getItem(`learnopia_explorer_folders_v2_${userId}`);
       if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length === 4 && parsed.some(f => f.id === 'academic')) {
+        let parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length === 4) {
+          // Seamless migration: Rename old 'source' id/title to 'document'
+          let changed = false;
+          parsed = parsed.map(f => {
+            if (f.id === 'source') {
+              changed = true;
+              return { ...f, id: 'document', title: 'Document' };
+            }
+            return f;
+          });
+          if (changed) {
+            localStorage.setItem(`learnopia_explorer_folders_v2_${userId}`, JSON.stringify(parsed));
+          }
           return parsed;
         }
       }
@@ -446,12 +415,12 @@ export default function MyLearningView({
         items: []
       },
       {
-        id: 'source',
-        title: 'Source',
+        id: 'document',
+        title: 'Document',
         isSystem: true,
         subfolders: [
           {
-            id: 'source-dsa',
+            id: 'doc-dsa',
             title: 'Algorithms & LeetCode Solutions',
             subfolders: [],
             items: [
@@ -476,8 +445,8 @@ export default function MyLearningView({
             ]
           },
           {
-            id: 'source-labs',
-            title: 'University Lab Code & Assignments',
+            id: 'doc-labs',
+            title: 'University Lab Code & Manuals',
             subfolders: [],
             items: [
               {
@@ -501,8 +470,8 @@ export default function MyLearningView({
             ]
           },
           {
-            id: 'source-web',
-            title: 'Full-Stack Web Dev Projects',
+            id: 'doc-guides',
+            title: 'Course Notes & Reference Guides',
             subfolders: [],
             items: [
               {
@@ -657,7 +626,7 @@ export default function MyLearningView({
   });
 
   // Explorer Navigation State
-  const [activeRootFolderId, setActiveRootFolderId] = useState(null); // 'academic' | 'source' | 'links' | 'personal' | null
+  const [activeRootFolderId, setActiveRootFolderId] = useState(null); // 'academic' | 'document' | 'links' | 'personal' | null
   const [subfolderPath, setSubfolderPath] = useState([]); // Array of subfolder IDs
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -892,7 +861,6 @@ export default function MyLearningView({
 
       {/* =================================================================
           VIEW CONDITION 1: FULL-SCREEN FILE EXPLORER VIEW
-          (Rendered when activeRootFolderId is set)
       ================================================================= */}
       {activeRootFolderId && activeRootFolder ? (
         <div className="w-full space-y-6">
@@ -1005,8 +973,8 @@ export default function MyLearningView({
                 <div className="w-10 h-10 rounded-xl bg-subtle flex items-center justify-center text-text-primary border border-border-subtle shadow-2xs">
                   {activeRootFolder.id === 'academic' ? (
                     <GraduationCap size={20} />
-                  ) : activeRootFolder.id === 'source' ? (
-                    <Code2 size={20} />
+                  ) : activeRootFolder.id === 'document' ? (
+                    <FileText size={20} />
                   ) : activeRootFolder.id === 'links' ? (
                     <Link2 size={20} />
                   ) : (
@@ -1183,7 +1151,7 @@ export default function MyLearningView({
                 <p className="text-xs text-text-secondary">
                   {searchQuery
                     ? `No subfolders or items match "${searchQuery}". Try a different search keyword.`
-                    : 'Add subfolders, lecture playlists, syllabus PDFs, or code repositories to this folder.'}
+                    : 'Add subfolders, lecture playlists, syllabus PDFs, or documents to this folder.'}
                 </p>
               </div>
               {!searchQuery && (
@@ -1210,7 +1178,6 @@ export default function MyLearningView({
       ) : (
         /* =================================================================
             VIEW CONDITION 2: HOME DASHBOARD VIEW
-            (Rendered when activeRootFolderId is null)
         ================================================================= */
         <div className="w-full space-y-5">
           {/* Editorial Workspace Header */}
@@ -1220,7 +1187,7 @@ export default function MyLearningView({
                 Study Workspace
               </h1>
               <p className="text-xs text-text-secondary mt-0.5">
-                Welcome back, {currentUser?.name ? currentUser.name.split(' ')[0] : 'Scholar'}. Track your courses, attendance, and notes.
+                Welcome back, {currentUser?.name ? currentUser.name.split(' ')[0] : 'Scholar'}. Track your courses, attendance, and study materials.
               </p>
             </div>
             <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -1296,11 +1263,11 @@ export default function MyLearningView({
 
           {/* MAIN BALANCED 2-COLUMN STUDIO GRID */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-            {/* LEFT COLUMN (7 cols): Folders & Notes */}
+            {/* LEFT COLUMN (7 cols): Folders Only (Lecture notes removed as requested) */}
             <div className="lg:col-span-7 xl:col-span-7 space-y-5">
-              {/* SECTION 1: WORKSPACE 4-FOLDERS BLOCK */}
-              <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm space-y-3.5">
-                <div className="flex items-center justify-between pb-2.5 border-b border-border-subtle">
+              {/* SECTION: WORKSPACE 4-FOLDERS BLOCK */}
+              <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
                   <div className="flex items-center gap-2">
                     <Folder size={16} className="text-text-primary" />
                     <h2 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
@@ -1312,14 +1279,14 @@ export default function MyLearningView({
                   </span>
                 </div>
 
-                {/* Exactly 4 Clean File Manager Blocks: Academic, Source, Important Links, Personal */}
+                {/* Exactly 4 Clean File Manager Blocks: Academic, Document, Important Links, Personal */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {folders.map((folder) => {
                     const icon =
                       folder.id === 'academic' ? (
                         <GraduationCap size={18} />
-                      ) : folder.id === 'source' ? (
-                        <Code2 size={18} />
+                      ) : folder.id === 'document' ? (
+                        <FileText size={18} />
                       ) : folder.id === 'links' ? (
                         <Link2 size={18} />
                       ) : (
@@ -1345,52 +1312,6 @@ export default function MyLearningView({
                       </div>
                     );
                   })}
-                </div>
-              </section>
-
-              {/* SECTION 2: TIMESTAMPED LECTURE NOTES */}
-              <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm">
-                <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-                  <div className="flex items-center gap-2">
-                    <FileText size={16} className="text-accent-amber" />
-                    <h2 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
-                      Recent Lecture Notes
-                    </h2>
-                  </div>
-                  <button
-                    onClick={() => setCurrentView('resources')}
-                    className="text-xs font-semibold text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
-                  >
-                    Vault &rarr;
-                  </button>
-                </div>
-
-                {/* Clean Timeline List Rows */}
-                <div className="divide-y divide-border-subtle">
-                  {userRecentNotes.slice(0, 3).map((note) => (
-                    <div
-                      key={note.id}
-                      onClick={() => {
-                        if (setSelectedPlaylistId && note.playlistId) {
-                          setSelectedPlaylistId(note.playlistId);
-                        }
-                        setCurrentView('learning-player');
-                      }}
-                      className="py-3 hover:bg-surface-hover/60 px-2 -mx-2 rounded-lg transition-colors cursor-pointer group"
-                    >
-                      <div className="flex items-center justify-between text-[11px] font-mono-tabular mb-1">
-                        <span className="font-semibold text-accent-forest">
-                          [{note.timestamp}]
-                        </span>
-                        <span className="text-text-muted truncate max-w-[200px]">
-                          {note.courseTitle || 'Lecture'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed group-hover:text-text-primary transition-colors">
-                        {note.text}
-                      </p>
-                    </div>
-                  ))}
                 </div>
               </section>
             </div>
@@ -1559,7 +1480,7 @@ export default function MyLearningView({
 
       {/* CREATE SUBFOLDER MODAL */}
       {showCreateSubfolderModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start justify-center p-4 pt-12 sm:pt-16 md:pt-20 overflow-y-auto animate-fade-in">
+        <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-start justify-center p-4 pt-12 sm:pt-16 md:pt-20 overflow-y-auto animate-fade-in">
           <div className="w-full max-w-md rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal">
             <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
               <div className="flex items-center gap-2">
@@ -1616,7 +1537,7 @@ export default function MyLearningView({
 
       {/* ADD ITEM TO FOLDER MODAL */}
       {showAddItemModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start justify-center p-4 pt-12 sm:pt-16 md:pt-20 overflow-y-auto animate-fade-in">
+        <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-start justify-center p-4 pt-12 sm:pt-16 md:pt-20 overflow-y-auto animate-fade-in">
           <div className="w-full max-w-md rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal">
             <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
               <div className="flex items-center gap-2">
