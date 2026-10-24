@@ -1,3 +1,8 @@
+/**
+ * ResourcesView.jsx
+ * University document repository and study notes library with search and folder storage.
+ */
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
 import { getWorkspaceFolders, saveWorkspaceFolders } from '../../utils/workspaceFolders';
@@ -8,12 +13,9 @@ import {
   Copy,
   Check,
   FolderPlus,
-  Folder,
   GraduationCap,
-  Code2,
   Link2,
   Lock,
-  ExternalLink,
   ChevronLeft,
   ChevronRight,
   X
@@ -21,7 +23,7 @@ import {
 
 const ITEMS_PER_PAGE = 10;
 
-export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, isSidebarCollapsed = false }) {
+export default function ResourcesView() {
   const {
     currentUser,
     standaloneResources,
@@ -232,7 +234,7 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
     });
 
     try {
-      localStorage.setItem(`learnopia_explorer_folders_v2_${userId}`, JSON.stringify(updated));
+      saveWorkspaceFolders(userId, updated);
       setUserFolders(updated);
     } catch {}
 

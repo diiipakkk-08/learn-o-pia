@@ -1,3 +1,8 @@
+/**
+ * LearningPlayer.jsx
+ * Distraction-free, top-aligned video lecture player with unified controls, syllabus drawer, and study dock.
+ */
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
 import {
@@ -19,8 +24,7 @@ export default function LearningPlayer({
   activeVideoIndex = 0,
   setActiveVideoIndex,
   setCurrentView,
-  cinemaMode = false,
-  isSidebarCollapsed = false
+  cinemaMode = false
 }) {
   const {
     subjects,
@@ -39,11 +43,10 @@ export default function LearningPlayer({
     else setInternalVideoIndex(idx);
   };
 
-  // Find playlist, subject, course metadata
-  const { foundPlaylist, foundSubject, foundCourse } = useMemo(() => {
+  // Find playlist and subject metadata
+  const { foundPlaylist, foundSubject } = useMemo(() => {
     let p = null;
     let s = null;
-    let c = null;
 
     if (playlistId) {
       // 1. Check in subjects playlists
@@ -52,7 +55,6 @@ export default function LearningPlayer({
         if (match) {
           p = match;
           s = sub;
-          c = (courses || []).find((cr) => cr.id === sub.courseId);
         }
       });
 
@@ -60,7 +62,6 @@ export default function LearningPlayer({
       if (!p) {
         const directCourse = (courses || []).find((cr) => cr.id === playlistId);
         if (directCourse) {
-          c = directCourse;
           p = {
             id: directCourse.id,
             title: directCourse.title,
@@ -85,7 +86,7 @@ export default function LearningPlayer({
       }
     }
 
-    return { foundPlaylist: p, foundSubject: s, foundCourse: c };
+    return { foundPlaylist: p, foundSubject: s };
   }, [playlistId, subjects, courses]);
 
   const playlist = foundPlaylist || {

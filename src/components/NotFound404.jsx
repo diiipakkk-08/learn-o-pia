@@ -1,5 +1,10 @@
+/**
+ * NotFound404.jsx
+ * Displayed when an accessed lecture series, study note, or resource route is missing.
+ */
+
 import React from 'react';
-import { ArrowLeft, BookOpen } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 export default function NotFound404({ setCurrentView }) {
   return (

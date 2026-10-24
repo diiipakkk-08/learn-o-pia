@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
 import {
-  GraduationCap,
-  ShieldCheck,
   Target,
   BookOpen,
-  CheckCircle2,
   Heart,
-  ArrowRight,
   Scale,
-  Users,
   ArrowLeft
 } from 'lucide-react';
 import TermsModal from './TermsModal';
 
+/**
+ * About Page Component
+ * Describes the philosophy and features of Learn-O-Pia:
+ * 1. Focus-driven video player (distraction-free YouTube).
+ * 2. Predictive Attendance and safe-bunk calculation.
+ * 3. 100% Free educational ethos.
+ */
 export default function About({ setCurrentView }) {
   const [showTermsModal, setShowTermsModal] = useState(false);
 
@@ -21,7 +23,7 @@ export default function About({ setCurrentView }) {
       {/* Return Button */}
       <button
         onClick={() => setCurrentView && setCurrentView('my-learning')}
-        className="text-xs font-semibold text-text-secondary hover:text-text-primary flex items-center gap-1.5 transition-colors"
+        className="text-xs font-semibold text-text-secondary hover:text-text-primary flex items-center gap-1.5 transition-colors cursor-pointer"
       >
         <ArrowLeft size={14} />
         <span>Return to Workspace</span>
@@ -86,7 +88,7 @@ export default function About({ setCurrentView }) {
         </div>
         <button
           onClick={() => setShowTermsModal(true)}
-          className="px-4 py-2 rounded-lg text-xs font-semibold border border-border-strong bg-surface hover:bg-surface-hover shrink-0 flex items-center gap-1.5"
+          className="px-4 py-2 rounded-lg text-xs font-semibold border border-border-strong bg-surface hover:bg-surface-hover shrink-0 flex items-center gap-1.5 cursor-pointer"
         >
           <Scale size={14} />
           <span>View Terms of Service</span>

@@ -1,3 +1,12 @@
+/**
+ * DatabaseContext.jsx
+ * Central application state and data persistence layer for Learn-O-Pia:
+ * - Supabase Cloud Synchronization (Courses, Playlists, Users, Notices, Shared Routines)
+ * - LocalStorage Offline Resilience & Cache Fallback
+ * - YouTube Data API & IFrame Playlist Scraper Utilities
+ * - Student, Educator, and Administrator role-based access control (RBAC)
+ */
+
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { supabase, isSupabaseLive } from '../lib/supabaseClient';
 
@@ -97,7 +106,7 @@ const fetchYoutubePlaylistVideosFallback = async (playlistId) => {
           }
         }
       }
-    } catch (e) {}
+    } catch {}
     if (bestVideoList.length >= 20) break;
   }
 
@@ -131,7 +140,7 @@ const fetchYoutubePlaylistVideosFallback = async (playlistId) => {
         };
       }).filter(v => v.youtubeId);
     }
-  } catch (err) {}
+  } catch {}
 
   return bestVideoList;
 };
@@ -204,7 +213,7 @@ export const fetchYoutubePlaylistVideos = async (playlistId) => {
                     if (Array.isArray(videoIds) && videoIds.length > 0) {
                       resolved = true;
                       clearTimeout(timeoutTimer);
-                      try { player.destroy(); playerDiv.remove(); } catch (e) {}
+                      try { player.destroy(); playerDiv.remove(); } catch {}
 
                       // Fetch titles in parallel via oembed
                       const formatted = await Promise.all(
@@ -216,7 +225,7 @@ export const fetchYoutubePlaylistVideos = async (playlistId) => {
                               const oeData = await oeRes.json();
                               if (oeData.title) title = oeData.title;
                             }
-                          } catch (e) {}
+                          } catch {}
 
                           return {
                             id: 'yt-v-' + Date.now() + '-' + idx,
@@ -239,13 +248,13 @@ export const fetchYoutubePlaylistVideos = async (playlistId) => {
                   if (!resolved) {
                     resolved = true;
                     clearTimeout(timeoutTimer);
-                    try { player.destroy(); playerDiv.remove(); } catch (e) {}
+                    try { player.destroy(); playerDiv.remove(); } catch {}
                     resolve(null);
                   }
                 }
               }
             });
-          } catch (e) {
+          } catch {
             if (!resolved) {
               resolved = true;
               clearTimeout(timeoutTimer);
@@ -560,7 +569,7 @@ export function DatabaseProvider({ children }) {
     if (isSupabaseLive) {
       try {
         await supabase.from('materials').delete().eq('id', resourceId);
-      } catch (e) {}
+      } catch {}
       syncSupabase();
     }
     setStandaloneResources(prev => {
@@ -1140,7 +1149,7 @@ export function DatabaseProvider({ children }) {
         try {
           await supabase.from('profiles').update({ password }).eq('id', profile.id);
           profile.password = password;
-        } catch (e) {}
+        } catch {}
       }
 
       const mapped = mapProfile(profile);
@@ -1390,7 +1399,7 @@ export function DatabaseProvider({ children }) {
           userId = session.user.id;
           if (!profileData.email) profileData.email = session.user.email;
         }
-      } catch (e) {}
+      } catch {}
     }
 
     if (!userId) return { success: false, error: 'No user ID specified.' };
@@ -1523,7 +1532,7 @@ export function DatabaseProvider({ children }) {
       // Sync Supabase to refresh all users state
       try {
         await syncSupabase();
-      } catch (e) {}
+      } catch {}
     }
 
     return { success: true, user: updatedUser };
@@ -1546,11 +1555,11 @@ export function DatabaseProvider({ children }) {
 
       try {
         await supabase.rpc('delete_user_account');
-      } catch (rpcErr) {}
+      } catch {}
 
       try {
         await supabase.auth.signOut({ scope: 'global' });
-      } catch (e) {}
+      } catch {}
     }
 
     // 2. Delete from local state and clean all storage
@@ -1572,7 +1581,7 @@ export function DatabaseProvider({ children }) {
       localStorage.removeItem(`learnopia_attendance_logs_${idToDelete}`);
       localStorage.removeItem(`learnopia_archived_semesters_${idToDelete}`);
       localStorage.removeItem(`learnopia_semester_start_${idToDelete}`);
-    } catch (e) {}
+    } catch {}
 
     return { success: true };
   };
@@ -1620,7 +1629,7 @@ export function DatabaseProvider({ children }) {
       }
       try {
         syncSupabase();
-      } catch (e) {}
+      } catch {}
     }
 
     setUsers(prev => {
@@ -1694,7 +1703,7 @@ export function DatabaseProvider({ children }) {
           .from('profiles')
           .update({ enrolled_playlists: updated })
           .eq('id', currentUser.id);
-      } catch (e) {}
+      } catch {}
       addLog(`Playlist added to My Learning.`);
       syncSupabase();
     } else {
@@ -1716,7 +1725,7 @@ export function DatabaseProvider({ children }) {
           .from('profiles')
           .update({ enrolled_playlists: updated })
           .eq('id', target.id);
-      } catch (e) {}
+      } catch {}
       addLog(`Playlist removed from My Learning.`);
       syncSupabase();
     } else {
@@ -1734,7 +1743,7 @@ export function DatabaseProvider({ children }) {
       try {
         await supabase.from('playlists').delete().eq('id', playlistId);
         await supabase.from('videos').delete().eq('playlist_id', playlistId);
-      } catch (e) {}
+      } catch {}
       addLog(`Playlist deleted.`);
       syncSupabase();
     }
@@ -2041,7 +2050,7 @@ export function DatabaseProvider({ children }) {
 
   const addVideoToPlaylist = async (subjectId, playlistId, title, description, url) => {
     let videoId = '';
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
 
     if (match && match[2].length === 11) {
@@ -2930,7 +2939,7 @@ export function DatabaseProvider({ children }) {
       const localPool = JSON.parse(localStorage.getItem('learnopia_shared_routines') || '{}');
       localPool[shareCode] = record;
       localStorage.setItem('learnopia_shared_routines', JSON.stringify(localPool));
-    } catch (e) {}
+    } catch {}
 
     // 2. Save to Supabase shared_routines table
     if (isSupabaseLive) {
@@ -2962,7 +2971,7 @@ export function DatabaseProvider({ children }) {
     // 1. Fetch from Supabase
     if (isSupabaseLive) {
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('shared_routines')
           .select('*')
           .or(`share_code.eq.${cleanCode},id.eq.${cleanCode}`)
@@ -2995,7 +3004,7 @@ export function DatabaseProvider({ children }) {
           creatorName: localData.creator_name
         };
       }
-    } catch (e) {}
+    } catch {}
 
     return null;
   };
@@ -3004,7 +3013,7 @@ export function DatabaseProvider({ children }) {
     let routines = [];
     if (isSupabaseLive) {
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('shared_routines')
           .select('*')
           .order('created_at', { ascending: false });
@@ -3022,7 +3031,7 @@ export function DatabaseProvider({ children }) {
           routines.push(localR);
         }
       });
-    } catch (e) {}
+    } catch {}
     return routines;
   };
 
@@ -3030,13 +3039,13 @@ export function DatabaseProvider({ children }) {
     if (isSupabaseLive) {
       try {
         await supabase.from('shared_routines').delete().eq('share_code', shareCode);
-      } catch (e) {}
+      } catch {}
     }
     try {
       const localPool = JSON.parse(localStorage.getItem('learnopia_shared_routines') || '{}');
       delete localPool[shareCode];
       localStorage.setItem('learnopia_shared_routines', JSON.stringify(localPool));
-    } catch (e) {}
+    } catch {}
   };
 
   // ── COMMUNITY AD & POP-UP SETTINGS ──────────────────────────────────────────
@@ -3054,7 +3063,7 @@ export function DatabaseProvider({ children }) {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('learnopia_ad_settings_stable');
       if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
+        try { return JSON.parse(saved); } catch {}
       }
     }
     return DEFAULT_AD_SETTINGS;

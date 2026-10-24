@@ -1,6 +1,17 @@
+/**
+ * Profile.jsx
+ * Comprehensive student identity card, verified credentials, academic settings,
+ * workspace password management, and account preferences.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useDatabase, getUserDesignation } from '../context/DatabaseContext';
-import { User, Mail, Award, Shield, FileText, CheckCircle2, Clock, LogOut, Play, BookOpen, Lock, Edit3, Link as LinkIcon, Phone, Building, Sparkles, Check, AlertCircle, KeyRound, Scale, Trash2, AlertTriangle, GraduationCap, Calendar, ExternalLink, MessageSquare, Info, ChevronDown, ChevronUp, XCircle } from 'lucide-react';
+import {
+  User, Mail, Shield, CheckCircle2, Clock, LogOut, Play, BookOpen,
+  Edit3, Link as LinkIcon, Phone, Building, Sparkles, Check, AlertCircle,
+  KeyRound, Scale, Trash2, AlertTriangle, GraduationCap, Calendar,
+  ExternalLink, MessageSquare, XCircle
+} from 'lucide-react';
 import TermsModal from './TermsModal';
 
 const COUNTRY_CODES = [
@@ -27,7 +38,6 @@ const COUNTRY_CODES = [
 
 export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
   const { currentUser, courses, setPasswordForUser, updateUserProfile, logout, deleteUserAccount, unverifyUser } = useDatabase();
-  const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordBox, setShowPasswordBox] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
@@ -35,7 +45,6 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
   const [showUnverifyConfirmModal, setShowUnverifyConfirmModal] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
-  const [showNavMenu, setShowNavMenu] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -45,7 +54,6 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
 
   // Edit Profile Form State
   const [name, setName] = useState(currentUser?.name || '');
-  const [username, setUsername] = useState(currentUser?.username || '');
   const [countryCode, setCountryCode] = useState('+91');
   const [phoneNumber, setPhoneNumber] = useState(() => {
     if (currentUser?.phone) {
@@ -67,7 +75,6 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
   useEffect(() => {
     if (currentUser) {
       setName(currentUser.name || '');
-      setUsername(currentUser.username || '');
       if (currentUser.phone) {
         setPhoneNumber(currentUser.phone.replace(/^\+\d+\s*/, ''));
       }

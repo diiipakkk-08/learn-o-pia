@@ -1,6 +1,11 @@
+/**
+ * OnboardingModal.jsx
+ * Multi-step student workspace initialization wizard for new user profiles.
+ */
+
 import React, { useState } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
-import { GraduationCap, School, BookOpen, Calendar, Phone, ArrowRight, ArrowLeft, User, CheckCircle2, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { ArrowRight, ArrowLeft, CheckCircle2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 const COUNTRY_CODES = [
   { flag: '🇮🇳', name: 'India', code: '+91' },
@@ -29,12 +34,12 @@ export default function OnboardingModal({ user, onComplete }) {
   const [dob, setDob] = useState(targetUser?.dob || '');
 
   // Step 2
-  const [educationLevel, setEducationLevel] = useState(targetUser?.educationLevel || 'college');
+  const educationLevel = targetUser?.educationLevel || 'college';
   const [courseName, setCourseName] = useState(targetUser?.courseName || '');
   const [institutionName, setInstitutionName] = useState(targetUser?.college || '');
   const [joiningYear, setJoiningYear] = useState(targetUser?.joiningYear || '2023');
   const [passingYear, setPassingYear] = useState(targetUser?.passingYear || '2027');
-  const [interests, setInterests] = useState(targetUser?.interests || '');
+  const interests = targetUser?.interests || '';
 
   // Step 3
   const [password, setPassword] = useState(targetUser?.password || '');

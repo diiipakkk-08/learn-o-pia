@@ -1,18 +1,22 @@
+/**
+ * MyLearningView.jsx
+ * Unified student command center dashboard displaying:
+ * - Resume study card (last played video/playlist)
+ * - 4 Fixed root folders file manager (Academic, Document, Important Links, Personal)
+ * - Attendance quick buffer & status
+ * - Timetable routine schedule
+ */
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
 import {
   Play,
   ArrowRight,
   ArrowLeft,
-  BookOpen,
   Calendar,
   FileText,
   Clock,
-  CheckCircle2,
-  BookmarkCheck,
-  Download,
   CalendarDays,
-  Sparkles,
   ChevronRight,
   Folder,
   FolderPlus,
@@ -22,13 +26,11 @@ import {
   X,
   ExternalLink,
   Link2,
-  Share2,
   Search,
   Code2,
   GraduationCap,
   Lock,
-  Copy,
-  Check
+  Copy
 } from 'lucide-react';
 import { calculateAttendanceMetrics } from '../../utils/attendanceMath';
 import { getWorkspaceFolders, saveWorkspaceFolders } from '../../utils/workspaceFolders';
@@ -36,16 +38,13 @@ import { getWorkspaceFolders, saveWorkspaceFolders } from '../../utils/workspace
 export default function MyLearningView({
   setCurrentView,
   setSelectedPlaylistId,
-  setSelectedVideoIndex,
-  isSidebarCollapsed = false
+  setSelectedVideoIndex
 }) {
   const {
     currentUser,
     courses,
     subjects,
     lastPlayed,
-    savedResourceIds,
-    standaloneResources,
     routine,
     addStandaloneResource
   } = useDatabase();
@@ -192,15 +191,6 @@ export default function MyLearningView({
       total
     };
   }, [userId]);
-
-  // Saved Academic Vault Resources (Top 3)
-  const topVaultResources = useMemo(() => {
-    const saved = (standaloneResources || []).filter((r) =>
-      (savedResourceIds || []).includes(r.id)
-    );
-    if (saved.length > 0) return saved.slice(0, 3);
-    return (standaloneResources || []).slice(0, 3);
-  }, [standaloneResources, savedResourceIds]);
 
   // Today's Routine Schedule
   const todayClasses = useMemo(() => {

@@ -1,3 +1,8 @@
+/**
+ * CoursesDashboard.jsx
+ * Browse, search, filter, and enroll into university course subjects and playlist lecture series.
+ */
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
 import { getWorkspaceFolders, saveWorkspaceFolders } from '../../utils/workspaceFolders';
@@ -8,17 +13,14 @@ import {
   Play,
   Check,
   Copy,
-  Sparkles,
   ChevronRight,
   ChevronLeft,
   Heart,
   X,
   ArrowRight,
   FolderPlus,
-  Folder,
   SlidersHorizontal,
   GraduationCap,
-  Code2,
   Link2,
   Lock
 } from 'lucide-react';
@@ -26,8 +28,7 @@ import {
 export default function CoursesDashboard({
   setSelectedPlaylistId,
   setSelectedVideoIndex,
-  setCurrentView,
-  isSidebarCollapsed = false
+  setCurrentView
 }) {
   const {
     courses,

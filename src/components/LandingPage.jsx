@@ -1,15 +1,15 @@
+/**
+ * LandingPage.jsx
+ * Public-facing editorial landing page for Learn-O-Pia with interactive preview showcases.
+ */
+
 import React, { useState } from 'react';
 import {
   Play,
   ArrowRight,
   ArrowDown,
-  BookOpen,
   Calendar,
-  FileText,
   ShieldCheck,
-  CheckCircle2,
-  Sparkles,
-  ExternalLink,
   Plus,
   Minus,
   Check,

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
 import { useGoogleLogin } from '@react-oauth/google';
-import { Mail, Lock, User, Eye, EyeOff, AlertCircle, CheckCircle, ShieldCheck, ArrowLeft, X } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, CheckCircle, ArrowLeft, X } from 'lucide-react';
 import TermsModal from './TermsModal';
 
 function GoogleIcon() {

@@ -1,9 +1,38 @@
+/**
+ * AdminDashboard.jsx
+ * Administrator command console for verifying student profiles, moderating creator privileges,
+ * configuring platform banners/ads, publishing notices, and generating campus shared routines.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
-import { Users, BookOpen, ShieldCheck, Check, Ban, Award, FileText, Shield, X, ExternalLink, CheckCircle2, Heart, Video, Sliders, Clock, Sparkles, PowerOff, Power, Eye, Calendar, Copy, Trash2, CalendarDays, BookCheck, AlertCircle, Info, RefreshCw, XCircle, Megaphone } from 'lucide-react';
+import {
+  Users, BookOpen, ShieldCheck, Check, Award, Shield, X,
+  ExternalLink, CheckCircle2, Heart, Video, Sliders, Clock, Sparkles,
+  PowerOff, Power, Eye, Calendar, Copy, Trash2, CalendarDays, BookCheck,
+  AlertCircle, RefreshCw, Megaphone
+} from 'lucide-react';
 
 export default function AdminDashboard() {
-  const { currentUser, users, courses, subjects, activityLogs, approveCreator, rejectCreator, makeAdmin, toggleUserStatus, changeUserRole, adminVerifyUser, adSettings, updateAdSettings, createSharedRoutine, getAllSharedRoutines, deleteSharedRoutine, broadcastAnnouncement, announcements } = useDatabase();
+  const {
+    currentUser,
+    users,
+    courses,
+    subjects,
+    approveCreator,
+    rejectCreator,
+    makeAdmin,
+    toggleUserStatus,
+    changeUserRole,
+    adminVerifyUser,
+    adSettings,
+    updateAdSettings,
+    createSharedRoutine,
+    getAllSharedRoutines,
+    deleteSharedRoutine,
+    broadcastAnnouncement,
+    announcements
+  } = useDatabase();
   const [activeTab, setActiveTab] = useState('verification');
   const [userSearchQuery, setUserSearchQuery] = useState('');
 
@@ -135,7 +164,7 @@ export default function AdminDashboard() {
       let parsed;
       try {
         parsed = JSON.parse(routineJsonInput.trim());
-      } catch (jsonErr) {
+      } catch {
         throw new Error('Invalid JSON format. Please check for proper brackets and quotation marks.');
       }
 

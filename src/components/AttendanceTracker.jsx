@@ -1,3 +1,9 @@
+/**
+ * AttendanceTracker.jsx
+ * Comprehensive academic timetable routine manager, daily lecture ledger (attended/absent/bunked/cancelled),
+ * cumulative semester percentage calculations, and minimum attendance margin projections.
+ */
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
 import {
@@ -10,7 +16,6 @@ import {
   Plus,
   Trash2,
   TrendingUp,
-  Award,
   BookOpen,
   ChevronLeft,
   ChevronRight,
@@ -18,8 +23,6 @@ import {
   Settings,
   Archive,
   RefreshCw,
-  AlertCircle,
-  Database,
   CalendarCheck,
   Users,
   Timer,
@@ -29,7 +32,6 @@ import {
   Copy,
   Code,
   Check,
-  Upload,
   X,
   Zap
 } from 'lucide-react';
@@ -52,7 +54,7 @@ function sanitizeAndFormatRoutineJson(rawJson) {
   if (typeof rawJson === 'string') {
     try {
       parsed = JSON.parse(rawJson);
-    } catch (err) {
+    } catch {
       throw new Error('Invalid JSON format. Please paste valid JSON text.');
     }
   }
@@ -248,7 +250,7 @@ const sortClassesByTime = (classList) => {
   });
 };
 
-export default function AttendanceTracker({ setCurrentView }) {
+export default function AttendanceTracker() {
   const {
     currentUser,
     saveUserRoutineToDb,
@@ -415,7 +417,7 @@ export default function AttendanceTracker({ setCurrentView }) {
     if (typeof window !== 'undefined') {
       const savedUserRoutine = localStorage.getItem(routineKey);
       if (savedUserRoutine) {
-        try { return JSON.parse(savedUserRoutine); } catch (e) {}
+        try { return JSON.parse(savedUserRoutine); } catch {}
       }
     }
     return DEFAULT_ROUTINE;
@@ -426,7 +428,7 @@ export default function AttendanceTracker({ setCurrentView }) {
     if (typeof window !== 'undefined') {
       const savedUserLogs = localStorage.getItem(logsKey);
       if (savedUserLogs) {
-        try { return JSON.parse(savedUserLogs); } catch (e) {}
+        try { return JSON.parse(savedUserLogs); } catch {}
       }
     }
     return {};
@@ -437,7 +439,7 @@ export default function AttendanceTracker({ setCurrentView }) {
     if (typeof window !== 'undefined') {
       const savedUserArchives = localStorage.getItem(archivesKey);
       if (savedUserArchives) {
-        try { return JSON.parse(savedUserArchives); } catch (e) {}
+        try { return JSON.parse(savedUserArchives); } catch {}
       }
     }
     return [];
@@ -514,7 +516,7 @@ export default function AttendanceTracker({ setCurrentView }) {
   const [durationHours, setDurationHours] = useState('1'); // 1 hour default
   const [durationMins, setDurationMins] = useState('0'); // 0 mins default
   const [newRoom, setNewRoom] = useState('Room 101');
-  const [targetPercent, setTargetPercent] = useState(75);
+  const targetPercent = 75;
 
   // Extra Class Logger Form State
   const [showExtraClassForm, setShowExtraClassForm] = useState(false);
@@ -958,7 +960,7 @@ export default function AttendanceTracker({ setCurrentView }) {
         isAlert: pct < item.target
       };
     });
-  }, [routine, logs, semesterStartDate, selectedDate, todayStr]);
+  }, [activeRoutine, logs, semesterStartDate, selectedDate, todayStr]);
 
   // Analytics Category Counts & Filtered List
   const theorySubjectsCount = useMemo(() => subjectAnalytics.filter((s) => !s.isLab).length, [subjectAnalytics]);
@@ -2761,7 +2763,6 @@ export default function AttendanceTracker({ setCurrentView }) {
 
 const styles = {
   container: {
-    width: '100%',
     width: '100%',
     boxSizing: 'border-box'
   }

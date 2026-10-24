@@ -1,9 +1,9 @@
 import React from 'react';
-import { Heart, Sparkles } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { useDatabase } from '../context/DatabaseContext';
 
 export default function AdProgressBar({ onTriggerAd, onOpenModal, cinemaMode = false, isPlayerView = false }) {
-  const { adSettings, serverGoal } = useDatabase();
+  const { serverGoal } = useDatabase();
   const trigger = onOpenModal || onTriggerAd;
 
   const current = serverGoal?.currentAmount || 420;

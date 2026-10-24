@@ -10,7 +10,7 @@ function extractYoutubeVideoId(url) {
 }
 
 export default function AdDonationModal({ isOpen, onClose }) {
-  const { adSettings, currentUser } = useDatabase();
+  const { adSettings } = useDatabase();
   const skipDelay = adSettings?.skipDelaySeconds || 10;
   const [secondsRemaining, setSecondsRemaining] = useState(skipDelay);
   const [canSkip, setCanSkip] = useState(false);
@@ -26,7 +26,7 @@ export default function AdDonationModal({ isOpen, onClose }) {
         iframes.forEach((iframe) => {
           try {
             iframe.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo' }), '*');
-          } catch (e) {}
+          } catch {}
         });
       }
 

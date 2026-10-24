@@ -5,7 +5,6 @@ import { DatabaseProvider, useDatabase } from './context/DatabaseContext';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import MobileBottomNav from './components/MobileBottomNav';
-import AdProgressBar from './components/AdProgressBar';
 
 // Core Workspace Views
 import LandingPage from './components/LandingPage';
@@ -89,7 +88,7 @@ function AppContent() {
       if (typeof document !== 'undefined') {
         document.documentElement.setAttribute('data-theme', cinemaMode ? 'cinema' : 'default');
       }
-    } catch (e) {}
+    } catch {}
   }, [cinemaMode]);
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
@@ -107,7 +106,7 @@ function AppContent() {
   useEffect(() => {
     try {
       localStorage.setItem('learnopia_sidebar_collapsed', isSidebarCollapsed ? 'true' : 'false');
-    } catch (e) {}
+    } catch {}
   }, [isSidebarCollapsed]);
 
   useEffect(() => {
@@ -129,7 +128,7 @@ function AppContent() {
         const timer = setTimeout(() => {
           try {
             window.history.replaceState(null, '', window.location.pathname);
-          } catch (e) {}
+          } catch {}
         }, 1200);
         return () => clearTimeout(timer);
       }
@@ -182,7 +181,6 @@ function AppContent() {
     return <Auth setCurrentView={setCurrentView} />;
   }
 
-  const isPlayerView = currentView === 'learning-player';
   const showOnboardingModal = !!currentUser && !currentUser.onboardingCompleted && !onboardingDone;
   const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner');
 
@@ -195,10 +193,8 @@ function AppContent() {
       <Sidebar
         currentView={currentView}
         setCurrentView={setCurrentView}
-        cinemaMode={cinemaMode}
         isCollapsed={isSidebarCollapsed}
         setIsCollapsed={setIsSidebarCollapsed}
-        onOpenAdModal={() => setShowAdModal(true)}
         onOpenProfile={() => setCurrentView('profile')}
       />
 
@@ -212,12 +208,9 @@ function AppContent() {
         <Header
           currentView={currentView}
           setCurrentView={setCurrentView}
-          setSelectedPlaylistId={setSelectedPlaylistId}
-          isSidebarCollapsed={isSidebarCollapsed}
           onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           cinemaMode={cinemaMode}
           setCinemaMode={setCinemaMode}
-          onTriggerAdModal={() => setShowAdModal(true)}
         />
 
         {/* Floating Quick Restore Access Bar Button (Desktop Only, Hidden on Mobile) */}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, FileText, Lock, Scale, Download, CheckCircle2, AlertTriangle, X } from 'lucide-react';
+import { Scale, X } from 'lucide-react';
 
 export const COMPREHENSIVE_LEGAL_TERMS_TEXT = `
 ================================================================================

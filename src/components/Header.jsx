@@ -1,31 +1,29 @@
+/**
+ * Header.jsx
+ * Top sticky navigation bar featuring brand identity, fuzzy search, theme toggling, notices, and user profile.
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useDatabase } from '../context/DatabaseContext';
 import {
   Search,
   Bell,
   User,
-  PanelLeftOpen,
-  PanelLeftClose,
   Moon,
   Sun,
   LogOut,
   Sparkles,
   ShieldAlert,
   Info,
-  BookOpen,
-  X,
-  FileText
+  X
 } from 'lucide-react';
 
 export default function Header({
   currentView,
   setCurrentView,
-  setSelectedPlaylistId,
-  isSidebarCollapsed,
   onToggleSidebar,
   cinemaMode,
-  setCinemaMode,
-  onTriggerAdModal
+  setCinemaMode
 }) {
   const {
     currentUser,
@@ -41,8 +39,6 @@ export default function Header({
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showAnnouncementsModal, setShowAnnouncementsModal] = useState(false);
   const profileMenuRef = useRef(null);
-
-  const isPlayerView = currentView === 'learning-player';
 
   // Keyboard shortcut '/' to focus search
   useEffect(() => {

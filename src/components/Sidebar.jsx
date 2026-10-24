@@ -1,3 +1,8 @@
+/**
+ * Sidebar.jsx
+ * Primary desktop left sidebar navigation for Learn-O-Pia.
+ */
+
 import React from 'react';
 import {
   LayoutGrid,
@@ -6,7 +11,6 @@ import {
   FileText,
   Users,
   ShoppingBag,
-  Play,
   Sparkles,
   Pin,
   ShieldAlert,
@@ -18,14 +22,11 @@ import { useDatabase } from '../context/DatabaseContext';
 export default function Sidebar({
   currentView,
   setCurrentView,
-  cinemaMode = false,
   isCollapsed,
   setIsCollapsed,
-  onOpenAdModal,
   onOpenProfile
 }) {
   const { currentUser } = useDatabase();
-  const isPlayerView = currentView === 'learning-player';
 
   const NAV_ITEMS = [
     { id: 'my-learning', label: 'Dashboard', icon: LayoutGrid },

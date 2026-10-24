@@ -1,10 +1,14 @@
+/**
+ * MarketplaceView.jsx
+ * Campus academic buy/sell/resell exchange for books, hardware kits, engineering drafters, and student services.
+ */
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
 import {
   ShoppingBag,
   Search,
   Tag,
-  Star,
   ExternalLink,
   BookOpen,
   Cpu,
@@ -18,9 +22,7 @@ import {
   MessageCircle,
   Share2,
   Trash2,
-  User,
-  ShieldCheck,
-  ArrowRight
+  User
 } from 'lucide-react';
 
 const SEEDED_MARKETPLACE_ITEMS = [
@@ -162,7 +164,7 @@ const SEEDED_MARKETPLACE_ITEMS = [
   }
 ];
 
-export default function MarketplaceView({ isSidebarCollapsed = false, setCurrentView }) {
+export default function MarketplaceView() {
   const { currentUser, globalSearchQuery, setGlobalSearchQuery } = useDatabase();
 
   const [items, setItems] = useState(() => {

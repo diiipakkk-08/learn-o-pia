@@ -1,10 +1,16 @@
+/**
+ * CreatorStudio.jsx
+ * Instructor & Educator studio for creating subjects, importing YouTube playlists,
+ * managing video curriculum, reordering lectures, and monitoring enrolled students.
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useDatabase, extractYoutubePlaylistId, fetchYoutubePlaylistVideos, getUserDesignation } from '../../context/DatabaseContext';
 import {
   Plus, BookOpen, Trash2, Film, FolderPlus, ChevronDown,
   Pencil, Check, X, Users, AlertCircle, ArrowUp, ArrowDown, Copy,
-  Video, Link, Bookmark, Sparkles, Download
+  Video, Link
 } from 'lucide-react';
 
 // ── Portal Dropdown ─────────────────────────────────────────────────────────
@@ -240,7 +246,6 @@ export default function CreatorStudio() {
   const [stDesc, setStDesc] = useState('');
   const [stAuthor, setStAuthor] = useState('');
   const [stYtUrl, setStYtUrl] = useState('');
-  const [stBannerUrl, setStBannerUrl] = useState('');
   const [stError, setStError] = useState('');
 
   const handleCreateStandalonePlaylist = async (e) => {
@@ -856,7 +861,7 @@ export default function CreatorStudio() {
                   ) : enrolledStudents.map(u => (
                     <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '8px', marginBottom: '6px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#DFDBD2', color: '#141413', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#DFDBD2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                           {u.name.charAt(0).toUpperCase()}
                         </div>
                         <div>

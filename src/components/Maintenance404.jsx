@@ -1,5 +1,10 @@
+/**
+ * Maintenance404.jsx
+ * Displayed when the database or platform is undergoing scheduled maintenance.
+ */
+
 import React from 'react';
-import { Wrench, ShieldAlert, RefreshCw } from 'lucide-react';
+import { Wrench, RefreshCw } from 'lucide-react';
 
 export default function Maintenance404({ onRefresh, onAdminClick }) {
   return (
