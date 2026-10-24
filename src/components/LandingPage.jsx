@@ -138,34 +138,34 @@ export default function LandingPage({
       >
         {/* Top Spacer Badge */}
         <div className="w-full flex justify-center pt-2">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono-tabular border border-border-strong bg-subtle text-text-secondary shadow-2xs">
+          <div className="inline-flex items-center gap-2 px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-mono-tabular border border-border-strong bg-subtle text-text-secondary shadow-2xs">
             <span className="w-2 h-2 rounded-full bg-accent-forest animate-pulse" />
             <span>100% Free Academic Workspace • Web & Android</span>
           </div>
         </div>
 
         {/* Center Main Headline & CTA */}
-        <div className="max-w-4xl mx-auto space-y-6 my-auto py-4">
-          <h1 className="font-editorial text-4xl sm:text-6xl md:text-7xl lg:text-[76px] leading-[1.06] tracking-tight max-w-4xl mx-auto text-text-primary">
+        <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 my-auto py-3 sm:py-4">
+          <h1 className="font-editorial text-2xl sm:text-4xl md:text-5xl lg:text-6xl leading-[1.18] sm:leading-[1.12] tracking-tight max-w-3xl mx-auto text-text-primary px-2">
             Turn chaotic YouTube playlists into a quiet, structured study desk.
           </h1>
 
-          <p className="text-base sm:text-lg md:text-xl max-w-2xl mx-auto text-text-secondary leading-relaxed font-sans">
+          <p className="text-xs sm:text-base md:text-lg max-w-xl mx-auto text-text-secondary leading-relaxed font-sans px-2">
             Watch university lectures without algorithmic distraction, capture timestamped notes,
             and track your college attendance with predictive buffer math—zero fluff, zero ads.
           </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-3">
+          <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 pt-2 sm:pt-3">
             <button
               onClick={enterApp}
-              className="px-6 py-3 rounded-xl text-sm font-semibold bg-accent-ink text-text-on-dark inline-flex items-center gap-2 shadow-sm transition-all hover:opacity-95 active:scale-[0.98] cursor-pointer"
+              className="px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-semibold bg-accent-ink text-text-on-dark inline-flex items-center gap-2 shadow-sm transition-all hover:opacity-95 active:scale-[0.98] cursor-pointer"
             >
               <span>Start Learning Now</span>
-              <ArrowRight size={16} />
+              <ArrowRight size={15} />
             </button>
             <button
               onClick={browseCourses}
-              className="px-5 py-3 rounded-xl text-sm font-semibold border border-border-strong bg-surface hover:bg-surface-hover text-text-primary transition-colors cursor-pointer shadow-xs"
+              className="px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-semibold border border-border-strong bg-surface hover:bg-surface-hover text-text-primary transition-colors cursor-pointer shadow-xs"
             >
               Explore Catalog
             </button>
@@ -197,8 +197,8 @@ export default function LandingPage({
       >
         <div className="max-w-5xl mx-auto w-full space-y-5 sm:space-y-6">
           {/* Section Header (Clean, no section tag) */}
-          <div className="text-center max-w-2xl mx-auto space-y-1.5">
-            <h2 className="font-editorial text-2xl sm:text-4xl font-bold tracking-tight text-text-primary">
+          <div className="text-center max-w-2xl mx-auto space-y-1.5 px-2">
+            <h2 className="font-editorial text-xl sm:text-3xl md:text-4xl font-bold tracking-tight text-text-primary leading-snug">
               Experience the Workspace Before You Enter
             </h2>
             <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
@@ -444,8 +444,8 @@ export default function LandingPage({
       >
         <div className="max-w-5xl mx-auto w-full space-y-8 sm:space-y-10 my-auto">
           {/* Section Header (Clean, no section tag) */}
-          <div className="text-center max-w-2xl mx-auto space-y-1.5">
-            <h2 className="font-editorial text-2xl sm:text-4xl font-bold tracking-tight text-text-primary">
+          <div className="text-center max-w-2xl mx-auto space-y-1.5 px-2">
+            <h2 className="font-editorial text-xl sm:text-3xl md:text-4xl font-bold tracking-tight text-text-primary leading-snug">
               Engineered for high-focus university study.
             </h2>
             <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
@@ -487,8 +487,8 @@ export default function LandingPage({
           </div>
 
           {/* Bottom Call to Action Card */}
-          <div className="p-6 sm:p-10 rounded-2xl border border-border-subtle bg-surface text-center space-y-3 shadow-sm">
-            <h3 className="font-editorial text-2xl sm:text-3xl font-bold text-text-primary">
+          <div className="p-5 sm:p-10 rounded-2xl border border-border-subtle bg-surface text-center space-y-3 shadow-sm">
+            <h3 className="font-editorial text-lg sm:text-2xl md:text-3xl font-bold text-text-primary leading-snug">
               Ready to take control of your academic semester?
             </h3>
             <p className="text-xs text-text-secondary max-w-md mx-auto leading-relaxed">

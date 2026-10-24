@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useDatabase } from '../../context/DatabaseContext';
 import {
   ShoppingBag,
@@ -55,6 +56,17 @@ export default function MarketplaceView({ setCurrentView }) {
       setLocalSearch(globalSearchQuery);
     }
   }, [globalSearchQuery]);
+
+  // Lock body scroll while Contact/Buy modal is open
+  useEffect(() => {
+    if (activeBuyItem) {
+      const origOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = origOverflow;
+      };
+    }
+  }, [activeBuyItem]);
 
   const CATEGORIES = [
     { id: 'all', label: 'All Items', icon: <ShoppingBag size={14} /> },
@@ -155,37 +167,22 @@ export default function MarketplaceView({ setCurrentView }) {
         </div>
       )}
 
-      {/* Header & Sell CTA */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border-subtle pb-5">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-[10px] font-mono-tabular font-bold px-2 py-0.5 rounded bg-accent-forest/10 text-accent-forest border border-accent-forest/20 uppercase tracking-wider">
-              CAMPUS RESELLER & EXCHANGE
-            </span>
-            <span className="text-xs text-text-muted font-mono-tabular">
-              Student-to-Student
-            </span>
-          </div>
-          <h1 className="text-2xl lg:text-[28px] font-bold tracking-tight font-editorial text-text-primary">
-            Student Academic Marketplace
-          </h1>
-          <p className="text-xs sm:text-sm text-text-secondary mt-0.5">
-            Buy & sell textbooks, lab kits, drawing drafters, and peer mentoring gear across campus.
-          </p>
+      {/* Clean Marketplace Header */}
+      <div className="border-b border-border-subtle pb-4">
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="text-[10px] font-mono-tabular font-bold px-2 py-0.5 rounded bg-accent-forest/10 text-accent-forest border border-accent-forest/20 uppercase tracking-wider">
+            CAMPUS RESELLER & EXCHANGE
+          </span>
+          <span className="text-xs text-text-muted font-mono-tabular">
+            Student-to-Student
+          </span>
         </div>
-
-        {/* Action: Sell in Studio Button */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          <button
-            onClick={() => {
-              if (setCurrentView) setCurrentView('studio');
-            }}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-accent-ink text-text-on-dark hover:opacity-95 transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
-          >
-            <Plus size={15} />
-            <span>List an Item in Studio</span>
-          </button>
-        </div>
+        <h1 className="text-2xl lg:text-[28px] font-bold tracking-tight font-editorial text-text-primary">
+          Student Academic Marketplace
+        </h1>
+        <p className="text-xs sm:text-sm text-text-secondary mt-0.5">
+          Buy & sell textbooks, lab kits, drawing drafters, and study tools across campus.
+        </p>
       </div>
 
       {/* Category Navigation Pills */}
@@ -302,38 +299,17 @@ export default function MarketplaceView({ setCurrentView }) {
                     </div>
                   )}
 
-                  {/* Body Content */}
-                  <div className="p-4 sm:p-5 space-y-2.5">
+                  {/* Clean, Distraction-Free Card Body */}
+                  <div className="p-4 sm:p-5 space-y-2">
                     <h3 className="text-sm sm:text-base font-bold text-text-primary group-hover:text-accent-forest transition-colors line-clamp-2 leading-snug">
                       {item.title}
                     </h3>
 
-                    {/* Author & Contact Info */}
-                    <div className="flex items-center gap-1.5 text-[11px] text-text-muted font-mono-tabular">
-                      <User size={12} />
-                      <span className="truncate max-w-[150px]">{item.author}</span>
-                      <span>•</span>
-                      <span className="capitalize">{item.contactMethod || 'WhatsApp'}</span>
+                    {/* Simple Author Line */}
+                    <div className="flex items-center gap-1.5 text-xs text-text-muted">
+                      <User size={13} className="shrink-0" />
+                      <span className="truncate">By {item.author}</span>
                     </div>
-
-                    {/* Description */}
-                    <p className="text-xs text-text-secondary line-clamp-3 leading-relaxed">
-                      {item.description}
-                    </p>
-
-                    {/* Keywords / Tags */}
-                    {item.keywords && (
-                      <div className="flex flex-wrap gap-1 pt-1">
-                        {item.keywords.split(',').slice(0, 3).map((kw, idx) => (
-                          <span
-                            key={idx}
-                            className="text-[10px] font-mono-tabular px-1.5 py-0.2 rounded bg-subtle text-text-muted border border-border-subtle"
-                          >
-                            #{kw.trim()}
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -383,7 +359,7 @@ export default function MarketplaceView({ setCurrentView }) {
           <p className="text-xs text-text-secondary max-w-sm mx-auto">
             Try adjusting your search terms or switch to "All Items" to browse campus textbooks, kits, and tools.
           </p>
-          <div className="pt-2 flex items-center justify-center gap-3">
+          <div className="pt-2 flex items-center justify-center">
             <button
               onClick={() => {
                 setLocalSearch('');
@@ -394,143 +370,147 @@ export default function MarketplaceView({ setCurrentView }) {
             >
               Reset Filters
             </button>
-            <button
-              onClick={() => {
-                if (setCurrentView) setCurrentView('studio');
-              }}
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer"
-            >
-              List an Item in Studio
-            </button>
           </div>
         </div>
       )}
 
       {/* =================================================================
-          MODAL: BUY ITEM / CONNECT WITH SELLER (Centered, Full Dimming)
+          MODAL: BUY ITEM / CONNECT WITH SELLER (Mounted via Portal at Body, Centered Viewport)
       ================================================================= */}
-      {activeBuyItem && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-150"
-          onClick={() => setActiveBuyItem(null)}
-        >
+      {activeBuyItem &&
+        createPortal(
           <div
-            className="w-full max-w-md bg-canvas border border-border-strong rounded-2xl shadow-2xl p-5 sm:p-6 relative space-y-4"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md overflow-y-auto animate-in fade-in duration-150"
+            onClick={() => setActiveBuyItem(null)}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-surface-sunken border border-border-subtle flex items-center justify-center text-text-primary">
-                  <ShoppingBag size={16} />
+            <div
+              className="w-full max-w-md max-h-[90vh] bg-surface border border-border-strong rounded-2xl shadow-2xl p-5 sm:p-6 relative my-auto overflow-y-auto space-y-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-surface-sunken border border-border-subtle flex items-center justify-center text-text-primary">
+                    <ShoppingBag size={16} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-text-primary">Contact Seller</h3>
+                    <p className="text-[11px] text-text-muted">Instant campus connection</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-text-primary">Contact Seller</h3>
-                  <p className="text-[11px] text-text-muted">Instant campus connection</p>
+                <button
+                  onClick={() => setActiveBuyItem(null)}
+                  className="w-7 h-7 rounded-lg border border-border-subtle hover:bg-surface-hover flex items-center justify-center text-text-muted cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* Item Snapshot */}
+              <div className="p-3.5 rounded-xl bg-surface-sunken border border-border-subtle space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold font-mono-tabular uppercase tracking-wider text-text-muted">
+                    {activeBuyItem.category}
+                  </span>
+                  <span className="text-sm font-bold text-accent-forest font-mono-tabular">
+                    {activeBuyItem.price}
+                  </span>
                 </div>
+                <h4 className="text-sm font-bold text-text-primary">
+                  {activeBuyItem.title}
+                </h4>
+                <p className="text-[11px] text-text-muted">
+                  Seller: <strong>{activeBuyItem.author}</strong>
+                </p>
               </div>
-              <button
-                onClick={() => setActiveBuyItem(null)}
-                className="w-7 h-7 rounded-lg border border-border-subtle hover:bg-surface-hover flex items-center justify-center text-text-muted cursor-pointer"
-              >
-                <X size={14} />
-              </button>
-            </div>
 
-            {/* Item Snapshot */}
-            <div className="p-3.5 rounded-xl bg-surface-sunken border border-border-subtle space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold font-mono-tabular uppercase tracking-wider text-text-muted">
-                  {activeBuyItem.category}
-                </span>
-                <span className="text-sm font-bold text-accent-forest font-mono-tabular">
-                  {activeBuyItem.price}
-                </span>
+              {/* Item Details / Description */}
+              {activeBuyItem.description && (
+                <div className="p-3 rounded-xl bg-surface-sunken border border-border-subtle text-xs text-text-secondary leading-relaxed space-y-1">
+                  <div className="text-[10px] font-bold font-mono-tabular uppercase tracking-wider text-text-muted">
+                    Description & Condition
+                  </div>
+                  <p className="text-text-primary whitespace-pre-line">{activeBuyItem.description}</p>
+                </div>
+              )}
+
+              {/* Automatic Copy Notification */}
+              <div className="p-3 rounded-xl border border-accent-forest/30 bg-accent-forest/10 space-y-1">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-accent-forest">
+                  <Check size={14} />
+                  <span>Inquiry message copied to clipboard!</span>
+                </div>
+                <p className="text-[11px] text-text-secondary leading-relaxed">
+                  When you click to chat below, simply paste your clipboard message directly to the seller.
+                </p>
               </div>
-              <h4 className="text-sm font-bold text-text-primary line-clamp-1">
-                {activeBuyItem.title}
-              </h4>
-              <p className="text-[11px] text-text-muted">
-                Seller: <strong>{activeBuyItem.author}</strong>
-              </p>
-            </div>
 
-            {/* Automatic Copy Notification */}
-            <div className="p-3 rounded-xl border border-accent-forest/30 bg-accent-forest/10 space-y-1">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-accent-forest">
-                <Check size={14} />
-                <span>Inquiry message copied to clipboard!</span>
-              </div>
-              <p className="text-[11px] text-text-secondary leading-relaxed">
-                When you click to chat below, simply paste your clipboard message directly to the seller.
-              </p>
-            </div>
-
-            {/* Message Preview Box */}
-            <div className="relative p-2.5 rounded-lg border border-border-subtle bg-surface text-xs font-mono-tabular text-text-secondary text-[11px] leading-relaxed">
-              "Hi {activeBuyItem.author}! I found your listing '{activeBuyItem.title}' on Learn-O-Pia for {activeBuyItem.price}. Is it still available?"
-              <button
-                type="button"
-                onClick={() => copyInquiryAgain(activeBuyItem)}
-                className="absolute top-2 right-2 p-1 rounded hover:bg-surface-sunken text-text-muted hover:text-text-primary cursor-pointer"
-                title="Copy Inquiry Text"
-              >
-                {inquiryCopied ? <Check size={12} className="text-accent-forest" /> : <Copy size={12} />}
-              </button>
-            </div>
-
-            {/* Direct Connect Buttons */}
-            <div className="pt-2 space-y-2">
-              <a
-                href={getContactLink(activeBuyItem)}
-                target="_blank"
-                rel="noreferrer"
-                className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs ${
-                  activeBuyItem.contactMethod === 'telegram'
-                    ? 'bg-[#0088cc] hover:bg-[#0077b5] text-white'
-                    : activeBuyItem.contactMethod === 'phone'
-                    ? 'bg-accent-ink hover:opacity-95 text-text-on-dark'
-                    : 'bg-[#25D366] hover:bg-[#20ba5a] text-white'
-                }`}
-              >
-                {activeBuyItem.contactMethod === 'telegram' ? (
-                  <>
-                    <ExternalLink size={14} />
-                    <span>Open Telegram Chat (@{activeBuyItem.contactDetail})</span>
-                  </>
-                ) : activeBuyItem.contactMethod === 'phone' ? (
-                  <>
-                    <Phone size={14} />
-                    <span>Call Seller ({activeBuyItem.contactDetail})</span>
-                  </>
-                ) : (
-                  <>
-                    <MessageCircle size={15} />
-                    <span>Chat on WhatsApp (+91 {activeBuyItem.contactDetail})</span>
-                  </>
-                )}
-              </a>
-
-              <div className="flex items-center gap-2 pt-1">
+              {/* Message Preview Box */}
+              <div className="relative p-2.5 rounded-lg border border-border-subtle bg-surface text-xs font-mono-tabular text-text-secondary text-[11px] leading-relaxed">
+                "Hi {activeBuyItem.author}! I found your listing '{activeBuyItem.title}' on Learn-O-Pia for {activeBuyItem.price}. Is it still available?"
                 <button
                   type="button"
                   onClick={() => copyInquiryAgain(activeBuyItem)}
-                  className="flex-1 py-2 rounded-xl text-xs font-semibold border border-border-subtle bg-surface hover:bg-surface-hover text-text-secondary cursor-pointer flex items-center justify-center gap-1.5"
+                  className="absolute top-2 right-2 p-1 rounded hover:bg-surface-sunken text-text-muted hover:text-text-primary cursor-pointer"
+                  title="Copy Inquiry Text"
                 >
-                  <Copy size={12} />
-                  <span>Copy Message Again</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveBuyItem(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-muted cursor-pointer"
-                >
-                  Close
+                  {inquiryCopied ? <Check size={12} className="text-accent-forest" /> : <Copy size={12} />}
                 </button>
               </div>
+
+              {/* Direct Connect Buttons */}
+              <div className="pt-2 space-y-2">
+                <a
+                  href={getContactLink(activeBuyItem)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs ${
+                    activeBuyItem.contactMethod === 'telegram'
+                      ? 'bg-[#0088cc] hover:bg-[#0077b5] text-white'
+                      : activeBuyItem.contactMethod === 'phone'
+                      ? 'bg-accent-ink hover:opacity-95 text-text-on-dark'
+                      : 'bg-[#25D366] hover:bg-[#20ba5a] text-white'
+                  }`}
+                >
+                  {activeBuyItem.contactMethod === 'telegram' ? (
+                    <>
+                      <ExternalLink size={14} />
+                      <span>Open Telegram Chat (@{activeBuyItem.contactDetail})</span>
+                    </>
+                  ) : activeBuyItem.contactMethod === 'phone' ? (
+                    <>
+                      <Phone size={14} />
+                      <span>Call Seller ({activeBuyItem.contactDetail})</span>
+                    </>
+                  ) : (
+                    <>
+                      <MessageCircle size={15} />
+                      <span>Chat on WhatsApp (+91 {activeBuyItem.contactDetail})</span>
+                    </>
+                  )}
+                </a>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => copyInquiryAgain(activeBuyItem)}
+                    className="flex-1 py-2 rounded-xl text-xs font-semibold border border-border-subtle bg-surface hover:bg-surface-hover text-text-secondary cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <Copy size={12} />
+                    <span>Copy Message</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveBuyItem(null)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-muted cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

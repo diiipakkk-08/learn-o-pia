@@ -269,7 +269,7 @@ export default function LearningPlayer({
           {/* =================================================================
               RIGHT COLUMN: Tabbed Study Dock (Syllabus, Materials)
           ================================================================= */}
-          <div className="lg:col-span-4 xl:col-span-4 2xl:col-span-3 rounded-xl border border-border-subtle bg-surface overflow-hidden shadow-sm flex flex-col h-full min-h-[480px]">
+          <div className="lg:col-span-4 xl:col-span-4 2xl:col-span-3 rounded-xl border border-border-subtle bg-surface overflow-hidden shadow-sm flex flex-col h-[520px] lg:h-[calc(100vh-140px)] max-h-[840px]">
             {/* Dock Tabs Header */}
             <div className="flex border-b border-border-subtle bg-surface-hover/50 shrink-0">
               <button
@@ -294,45 +294,86 @@ export default function LearningPlayer({
               </button>
             </div>
 
-            {/* TAB 1: SYLLABUS LECTURE CHECKLIST */}
+            {/* TAB 1: SYLLABUS LECTURE CHECKLIST WITH THUMBNAILS */}
             {activeRightTab === 'syllabus' && (
               <div className="flex-1 overflow-y-auto divide-y divide-border-subtle min-h-0">
                 {videos.map((vid, idx) => {
                   const isCurrent = idx === currentIndex;
+                  const thumbUrl =
+                    vid.thumbnail ||
+                    (vid.youtubeId
+                      ? `https://i.ytimg.com/vi/${vid.youtubeId}/mqdefault.jpg`
+                      : null);
+
                   return (
                     <div
                       key={vid.id || idx}
                       onClick={() => updateIndex(idx)}
-                      className={`p-3.5 flex items-start gap-3 cursor-pointer transition-colors ${
+                      className={`p-2.5 sm:p-3 flex items-center gap-3 cursor-pointer transition-colors ${
                         isCurrent
-                          ? 'bg-surface-hover border-l-4 border-l-accent-forest'
-                          : 'hover:bg-surface-hover/60'
+                          ? 'bg-accent-forest/10 border-l-4 border-l-accent-forest text-text-primary'
+                          : 'hover:bg-surface-hover text-text-secondary hover:text-text-primary'
                       }`}
                     >
+                      {/* Index Badge */}
                       <div
-                        className={`w-5 h-5 rounded flex items-center justify-center shrink-0 mt-0.5 text-xs font-mono-tabular font-bold border ${
+                        className={`w-5 h-5 rounded flex items-center justify-center shrink-0 text-[10px] font-mono-tabular font-bold border ${
                           isCurrent
-                            ? 'bg-accent-forest text-white border-accent-forest'
-                            : 'bg-canvas text-text-muted border-border-strong'
+                            ? 'bg-accent-forest text-white border-accent-forest shadow-xs'
+                            : 'bg-surface text-text-muted border-border-subtle'
                         }`}
                       >
                         {idx + 1}
                       </div>
+
+                      {/* Video Thumbnail */}
+                      <div className="relative w-16 h-10 sm:w-20 sm:h-12 rounded-md overflow-hidden bg-black/10 shrink-0 border border-border-subtle">
+                        {thumbUrl ? (
+                          <img
+                            src={thumbUrl}
+                            alt={vid.title}
+                            loading="lazy"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-black/5 text-text-muted">
+                            <Play size={12} />
+                          </div>
+                        )}
+                        {isCurrent && (
+                          <div className="absolute inset-0 bg-black/35 flex items-center justify-center backdrop-blur-2xs">
+                            <Play size={14} fill="#ffffff" className="text-white" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Video Title & Meta */}
                       <div className="min-w-0 flex-1">
                         <div
-                          className={`text-xs leading-snug truncate ${
-                            isCurrent ? 'font-bold text-text-primary' : 'font-medium text-text-secondary'
+                          className={`text-xs leading-snug line-clamp-2 ${
+                            isCurrent
+                              ? 'font-bold text-text-primary'
+                              : 'font-medium text-text-secondary'
                           }`}
+                          title={vid.title}
                         >
                           {vid.title}
                         </div>
-                        <div className="text-[10px] text-text-muted font-mono-tabular mt-0.5">
-                          {isCurrent ? 'NOW PLAYING' : 'LECTURE'}
+                        <div className="flex items-center gap-2 text-[10px] text-text-muted font-mono-tabular mt-1">
+                          <span className={isCurrent ? 'text-accent-forest font-bold' : ''}>
+                            {isCurrent ? 'NOW PLAYING' : `LEC ${idx + 1}`}
+                          </span>
+                          {vid.duration && (
+                            <>
+                              <span>•</span>
+                              <span>{vid.duration}</span>
+                            </>
+                          )}
                         </div>
                       </div>
-                      {isCurrent && (
-                        <Play size={12} fill="#1E5631" className="text-accent-forest shrink-0 mt-1" />
-                      )}
                     </div>
                   );
                 })}

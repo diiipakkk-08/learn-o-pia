@@ -1133,7 +1133,7 @@ export default function AttendanceTracker() {
   };
 
   return (
-    <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 animate-fade-in" style={styles.container}>
+    <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-20 animate-fade-in" style={styles.container}>
       {/* Consolidated Top Action & Navigation Bar */}
       <div className="glass-panel" style={{
         padding: isMobile ? '8px 10px' : '12px 18px',
@@ -1383,9 +1383,9 @@ export default function AttendanceTracker() {
                       </div>
 
                       <div style={{
-                        display: 'flex',
-                        gap: isMobile ? '3px' : '6px',
-                        flexWrap: isMobile ? 'nowrap' : 'wrap',
+                        display: isMobile ? 'grid' : 'flex',
+                        gridTemplateColumns: isMobile ? 'repeat(4, minmax(0, 1fr))' : undefined,
+                        gap: isMobile ? '4px' : '6px',
                         width: isMobile ? '100%' : 'auto',
                         justifyContent: isMobile ? 'stretch' : 'flex-end',
                         boxSizing: 'border-box'
@@ -1394,9 +1394,8 @@ export default function AttendanceTracker() {
                           onClick={() => markClassStatus(cls.id, 'attended')}
                           className={`btn ${rawStatus === 'attended' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
                           style={{
-                            fontSize: isMobile ? '0.66rem' : '0.72rem',
-                            padding: isMobile ? '5px 2px' : '4px 8px',
-                            flex: isMobile ? '1 1 0' : 'none',
+                            fontSize: isMobile ? '0.68rem' : '0.72rem',
+                            padding: isMobile ? '6px 2px' : '4px 8px',
                             minWidth: 0,
                             justifyContent: 'center',
                             whiteSpace: 'nowrap',
@@ -1410,10 +1409,9 @@ export default function AttendanceTracker() {
                           onClick={() => markClassStatus(cls.id, 'absent')}
                           className={`btn ${rawStatus === 'absent' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
                           style={{
-                            fontSize: isMobile ? '0.66rem' : '0.72rem',
-                            padding: isMobile ? '5px 2px' : '4px 8px',
+                            fontSize: isMobile ? '0.68rem' : '0.72rem',
+                            padding: isMobile ? '6px 2px' : '4px 8px',
                             color: rawStatus === 'absent' ? '#f87171' : undefined,
-                            flex: isMobile ? '1 1 0' : 'none',
                             minWidth: 0,
                             justifyContent: 'center',
                             whiteSpace: 'nowrap',
@@ -1427,10 +1425,9 @@ export default function AttendanceTracker() {
                           onClick={() => markClassStatus(cls.id, 'massbunk')}
                           className={`btn ${rawStatus === 'massbunk' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
                           style={{
-                            fontSize: isMobile ? '0.66rem' : '0.72rem',
-                            padding: isMobile ? '5px 2px' : '4px 8px',
+                            fontSize: isMobile ? '0.68rem' : '0.72rem',
+                            padding: isMobile ? '6px 2px' : '4px 8px',
                             color: rawStatus === 'massbunk' ? '#f59e0b' : undefined,
-                            flex: isMobile ? '1 1 0' : 'none',
                             minWidth: 0,
                             justifyContent: 'center',
                             whiteSpace: 'nowrap',
@@ -1444,9 +1441,8 @@ export default function AttendanceTracker() {
                           onClick={() => markClassStatus(cls.id, 'cancelled')}
                           className={`btn ${rawStatus === 'cancelled' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
                           style={{
-                            fontSize: isMobile ? '0.66rem' : '0.72rem',
-                            padding: isMobile ? '5px 2px' : '4px 8px',
-                            flex: isMobile ? '1 1 0' : 'none',
+                            fontSize: isMobile ? '0.68rem' : '0.72rem',
+                            padding: isMobile ? '6px 2px' : '4px 8px',
                             minWidth: 0,
                             justifyContent: 'center',
                             whiteSpace: 'nowrap',
@@ -1623,9 +1619,9 @@ export default function AttendanceTracker() {
                         </div>
 
                         <div style={{
-                          display: 'flex',
-                          gap: isMobile ? '3px' : '6px',
-                          flexWrap: isMobile ? 'nowrap' : 'wrap',
+                          display: isMobile ? 'grid' : 'flex',
+                          gridTemplateColumns: isMobile ? 'repeat(4, minmax(0, 1fr)) auto' : undefined,
+                          gap: isMobile ? '4px' : '6px',
                           width: isMobile ? '100%' : 'auto',
                           justifyContent: isMobile ? 'stretch' : 'flex-end',
                           alignItems: 'center',
@@ -1635,9 +1631,8 @@ export default function AttendanceTracker() {
                             onClick={() => markExtraClassStatus(extCls.id, 'attended')}
                             className={`btn ${status === 'attended' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
                             style={{
-                              fontSize: isMobile ? '0.66rem' : '0.72rem',
-                              padding: isMobile ? '5px 2px' : '4px 8px',
-                              flex: isMobile ? '1 1 0' : 'none',
+                              fontSize: isMobile ? '0.68rem' : '0.72rem',
+                              padding: isMobile ? '6px 2px' : '4px 8px',
                               minWidth: 0,
                               justifyContent: 'center',
                               whiteSpace: 'nowrap',
@@ -1651,10 +1646,9 @@ export default function AttendanceTracker() {
                             onClick={() => markExtraClassStatus(extCls.id, 'absent')}
                             className={`btn ${status === 'absent' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
                             style={{
-                              fontSize: isMobile ? '0.66rem' : '0.72rem',
-                              padding: isMobile ? '5px 2px' : '4px 8px',
+                              fontSize: isMobile ? '0.68rem' : '0.72rem',
+                              padding: isMobile ? '6px 2px' : '4px 8px',
                               color: status === 'absent' ? '#f87171' : undefined,
-                              flex: isMobile ? '1 1 0' : 'none',
                               minWidth: 0,
                               justifyContent: 'center',
                               whiteSpace: 'nowrap',
@@ -1668,10 +1662,9 @@ export default function AttendanceTracker() {
                             onClick={() => markExtraClassStatus(extCls.id, 'massbunk')}
                             className={`btn ${status === 'massbunk' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
                             style={{
-                              fontSize: isMobile ? '0.66rem' : '0.72rem',
-                              padding: isMobile ? '5px 2px' : '4px 8px',
+                              fontSize: isMobile ? '0.68rem' : '0.72rem',
+                              padding: isMobile ? '6px 2px' : '4px 8px',
                               color: status === 'massbunk' ? '#f59e0b' : undefined,
-                              flex: isMobile ? '1 1 0' : 'none',
                               minWidth: 0,
                               justifyContent: 'center',
                               whiteSpace: 'nowrap',
@@ -1685,9 +1678,8 @@ export default function AttendanceTracker() {
                             onClick={() => markExtraClassStatus(extCls.id, 'cancelled')}
                             className={`btn ${status === 'cancelled' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
                             style={{
-                              fontSize: isMobile ? '0.66rem' : '0.72rem',
-                              padding: isMobile ? '5px 2px' : '4px 8px',
-                              flex: isMobile ? '1 1 0' : 'none',
+                              fontSize: isMobile ? '0.68rem' : '0.72rem',
+                              padding: isMobile ? '6px 2px' : '4px 8px',
                               minWidth: 0,
                               justifyContent: 'center',
                               whiteSpace: 'nowrap',
@@ -1792,8 +1784,8 @@ export default function AttendanceTracker() {
           )}
 
           {/* FIRST SECTION: Current Routine View (Sorted Chronologically) */}
-          <div className="glass-panel" style={{ padding: isMobile ? '16px' : '20px', maxWidth: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+          <div className="glass-panel" style={{ padding: isMobile ? '14px' : '20px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
               <h3 style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', margin: 0, color: '#ffffff', fontWeight: 700 }}>
                 Weekly Timetable Schedule
               </h3>
@@ -1807,30 +1799,30 @@ export default function AttendanceTracker() {
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 w-full max-w-full">
               {DAYS_OF_WEEK.map((d) => {
                 const dayClasses = sortClassesByTime(routine[d] || []);
                 return (
-                  <div key={d} style={{ padding: isMobile ? '10px 12px' : '12px 14px', borderRadius: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', width: '100%', boxSizing: 'border-box' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <strong style={{ color: 'var(--primary)', fontSize: isMobile ? '0.8rem' : '0.85rem' }}>{d}</strong>
+                  <div key={d} className="w-full max-w-full min-w-0 box-border rounded-xl bg-surface border border-border-subtle p-3 sm:p-3.5">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <strong style={{ color: 'var(--primary)', fontSize: isMobile ? '0.82rem' : '0.88rem' }}>{d}</strong>
                       <span style={{ fontSize: '0.72rem', color: dayClasses.length > 0 ? '#10b981' : 'var(--text-muted)', fontWeight: 600 }}>
                         {dayClasses.length} {dayClasses.length === 1 ? 'class' : 'classes'}
                       </span>
                     </div>
 
                     {dayClasses.length === 0 ? (
-                      <span style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: 2 }}>No classes scheduled</span>
+                      <span style={{ fontSize: isMobile ? '0.72rem' : '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: 4 }}>No classes scheduled</span>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: 6 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: 6, width: '100%' }}>
                         {dayClasses.map((c) => (
-                          <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: isMobile ? '0.78rem' : '0.82rem', color: '#ffffff', width: '100%', boxSizing: 'border-box', background: 'var(--bg-surface)', padding: '6px 8px', borderRadius: '8px' }}>
+                          <div key={c.id} className="w-full max-w-full min-w-0 flex items-center justify-between gap-2 p-2 rounded-lg bg-surface-sunken border border-border-subtle/40">
                             <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                              <span style={{ fontWeight: 600, color: '#ffffff', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.subject}</span>
-                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>{c.startTime} - {c.endTime} {c.room ? `· ${c.room}` : ''}</span>
+                              <span style={{ fontWeight: 600, color: '#ffffff', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontSize: isMobile ? '0.78rem' : '0.82rem' }}>{c.subject}</span>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.startTime} - {c.endTime} {c.room ? `· ${c.room}` : ''}</span>
                             </div>
-                            <button onClick={() => handleDeleteRoutineClass(d, c.id)} title="Delete class" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', cursor: 'pointer', padding: '6px', borderRadius: '6px', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Trash2 size={14} />
+                            <button onClick={() => handleDeleteRoutineClass(d, c.id)} title="Delete class" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', cursor: 'pointer', padding: '5px', borderRadius: '6px', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Trash2 size={13} />
                             </button>
                           </div>
                         ))}
