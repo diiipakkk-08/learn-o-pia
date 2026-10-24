@@ -15,8 +15,7 @@ import {
   ChevronRight,
   ChevronLeft,
   ChevronDown,
-  ChevronUp,
-  Heart
+  ChevronUp
 } from 'lucide-react';
 
 export default function LearningPlayer({
@@ -121,30 +120,6 @@ export default function LearningPlayer({
     }
   }, [playlist.id, currentVideo.youtubeId, currentIndex]);
 
-  const [videoLikes, setVideoLikes] = useState(() => {
-    try {
-      const saved = localStorage.getItem('learnopia_video_likes');
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
-
-  const isVideoLiked = !!videoLikes[currentVideo.id || currentVideo.youtubeId || currentIndex];
-  // Likes baseline starts at 0!
-  const videoLikesCount = isVideoLiked ? 1 : 0;
-
-  const toggleVideoLike = () => {
-    const key = currentVideo.id || currentVideo.youtubeId || currentIndex;
-    setVideoLikes((prev) => {
-      const next = { ...prev, [key]: !prev[key] };
-      try {
-        localStorage.setItem('learnopia_video_likes', JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-  };
-
   const youtubeVideoUrl = currentVideo.youtubeId
     ? `https://www.youtube.com/watch?v=${currentVideo.youtubeId}`
     : null;
@@ -167,11 +142,11 @@ export default function LearningPlayer({
     >
       <main className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-2 sm:pt-4 pb-12 space-y-4 animate-fade-in">
         {/* Responsive Player Grid: Left Video Player directly at top / Right Study Dock */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
           {/* =================================================================
               LEFT COLUMN: 16:9 Video Player directly at top
           ================================================================= */}
-          <div className="lg:col-span-8 xl:col-span-8 2xl:col-span-9 space-y-3">
+          <div className="lg:col-span-8 xl:col-span-8 2xl:col-span-9 space-y-3 flex flex-col">
             {/* 16:9 Video Frame (Right at Top, zero distractions) */}
             <div className="relative aspect-video rounded-xl overflow-hidden bg-black border border-border-subtle shadow-md">
               {currentVideo.youtubeId ? (
@@ -227,7 +202,7 @@ export default function LearningPlayer({
                 {currentVideo.title}
               </h1>
 
-              {/* Line 3: Actions Row: Catalog, YouTube, Share, Like, More Details Toggle */}
+              {/* Line 3: Actions Row: Catalog, YouTube, Share, More Details Toggle */}
               <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-border-subtle">
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
@@ -262,19 +237,6 @@ export default function LearningPlayer({
                     {copiedLink ? <Check size={13} className="text-accent-forest" /> : <Share2 size={13} />}
                     <span className="font-mono-tabular">{copiedLink ? 'Copied!' : 'Share'}</span>
                   </button>
-
-                  <button
-                    onClick={toggleVideoLike}
-                    className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
-                      isVideoLiked
-                        ? 'border-red-500/30 bg-red-500/10 text-red-500'
-                        : 'border-border-subtle bg-surface hover:bg-surface-hover text-text-secondary hover:text-red-500'
-                    }`}
-                    title={isVideoLiked ? 'Liked' : 'Like lecture'}
-                  >
-                    <Heart size={13} fill={isVideoLiked ? 'currentColor' : 'none'} />
-                    <span className="font-mono-tabular">{videoLikesCount}</span>
-                  </button>
                 </div>
 
                 {/* Collapsible Details Toggle */}
@@ -307,9 +269,9 @@ export default function LearningPlayer({
           {/* =================================================================
               RIGHT COLUMN: Tabbed Study Dock (Syllabus, Materials)
           ================================================================= */}
-          <div className="lg:col-span-4 xl:col-span-4 2xl:col-span-3 rounded-xl border border-border-subtle bg-surface overflow-hidden shadow-sm">
+          <div className="lg:col-span-4 xl:col-span-4 2xl:col-span-3 rounded-xl border border-border-subtle bg-surface overflow-hidden shadow-sm flex flex-col h-full min-h-[480px]">
             {/* Dock Tabs Header */}
-            <div className="flex border-b border-border-subtle bg-surface-hover/50">
+            <div className="flex border-b border-border-subtle bg-surface-hover/50 shrink-0">
               <button
                 onClick={() => setActiveRightTab('syllabus')}
                 className={`flex-1 py-3 text-xs font-semibold text-center transition-colors border-b-2 cursor-pointer ${
@@ -334,7 +296,7 @@ export default function LearningPlayer({
 
             {/* TAB 1: SYLLABUS LECTURE CHECKLIST */}
             {activeRightTab === 'syllabus' && (
-              <div className="max-h-[560px] overflow-y-auto divide-y divide-border-subtle">
+              <div className="flex-1 overflow-y-auto divide-y divide-border-subtle min-h-0">
                 {videos.map((vid, idx) => {
                   const isCurrent = idx === currentIndex;
                   return (
@@ -379,7 +341,7 @@ export default function LearningPlayer({
 
             {/* TAB 2: SUBJECT ATTACHED MATERIALS */}
             {activeRightTab === 'resources' && (
-              <div className="p-4 max-h-[560px] overflow-y-auto space-y-3">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
                 {foundSubject && foundSubject.materials && foundSubject.materials.length > 0 ? (
                   foundSubject.materials.map((mat) => (
                     <div
@@ -408,14 +370,20 @@ export default function LearningPlayer({
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-12 text-xs text-text-muted space-y-2">
-                    <FileText size={24} className="text-text-muted mx-auto" />
-                    <p>No course documents attached to this playlist.</p>
+                  <div className="p-4 rounded-xl border border-border-subtle bg-canvas space-y-2.5 text-left">
+                    <div className="flex items-center gap-2 text-text-primary font-semibold text-xs">
+                      <FileText size={16} className="text-accent-forest shrink-0" />
+                      <span>No Course Documents Attached</span>
+                    </div>
+                    <p className="text-[11px] text-text-muted leading-relaxed">
+                      This playlist does not have attached PDFs or lecture notes yet. You can find comprehensive study material in the community vault.
+                    </p>
                     <button
                       onClick={() => setCurrentView('resources')}
-                      className="px-3 py-1.5 rounded border border-border-subtle bg-surface hover:bg-surface-hover font-semibold text-xs text-text-primary cursor-pointer transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-strong bg-surface hover:bg-surface-hover font-semibold text-xs text-text-primary cursor-pointer transition-colors shadow-xs"
                     >
-                      Browse Academic Vault &rarr;
+                      <span>Browse Academic Vault</span>
+                      <span className="font-mono-tabular">&rarr;</span>
                     </button>
                   </div>
                 )}

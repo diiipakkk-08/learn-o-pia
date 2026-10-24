@@ -26,7 +26,6 @@ import {
   X,
   ExternalLink,
   Link2,
-  Search,
   Code2,
   GraduationCap,
   Lock,
@@ -212,12 +211,9 @@ export default function MyLearningView({
   // Explorer Navigation State
   const [activeRootFolderId, setActiveRootFolderId] = useState(null); // 'academic' | 'document' | 'links' | 'personal' | null
   const [subfolderPath, setSubfolderPath] = useState([]); // Array of subfolder IDs
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // Modals state
-  const [showCreateSubfolderModal, setShowCreateSubfolderModal] = useState(false);
+  // Inline Add Form State ('subfolder' | 'item' | null)
+  const [inlineAddType, setInlineAddType] = useState(null);
   const [newSubfolderName, setNewSubfolderName] = useState('');
-  const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [itemTitle, setItemTitle] = useState('');
   const [itemUrl, setItemUrl] = useState('');
   const [itemType, setItemType] = useState('playlist');
@@ -287,24 +283,14 @@ export default function MyLearningView({
     return crumbs;
   }, [activeRootFolder, subfolderPath]);
 
-  // Filtered subfolders & items inside current active node
+  // Subfolders & items inside current active node
   const filteredSubfolders = useMemo(() => {
-    if (!activeNode?.subfolders) return [];
-    if (!searchQuery.trim()) return activeNode.subfolders;
-    const q = searchQuery.toLowerCase();
-    return activeNode.subfolders.filter(sf => sf.title.toLowerCase().includes(q));
-  }, [activeNode, searchQuery]);
+    return activeNode?.subfolders || [];
+  }, [activeNode]);
 
   const filteredItems = useMemo(() => {
-    if (!activeNode?.items) return [];
-    if (!searchQuery.trim()) return activeNode.items;
-    const q = searchQuery.toLowerCase();
-    return activeNode.items.filter(item =>
-      item.title.toLowerCase().includes(q) ||
-      (item.author && item.author.toLowerCase().includes(q)) ||
-      (item.type && item.type.toLowerCase().includes(q))
-    );
-  }, [activeNode, searchQuery]);
+    return activeNode?.items || [];
+  }, [activeNode]);
 
   // Explorer Handlers
   const handleCreateSubfolder = (e) => {
@@ -325,7 +311,7 @@ export default function MyLearningView({
 
     saveFolders(updated);
     setNewSubfolderName('');
-    setShowCreateSubfolderModal(false);
+    setInlineAddType(null);
     setFolderNotice(`Subfolder "${newSub.title}" created!`);
     setTimeout(() => setFolderNotice(''), 3000);
   };
@@ -390,7 +376,7 @@ export default function MyLearningView({
     setItemAuthor('');
     setItemType('playlist');
     setPublishPublicly(false);
-    setShowAddItemModal(false);
+    setInlineAddType(null);
     setFolderNotice(`Added "${newItem.title}"!`);
     setTimeout(() => setFolderNotice(''), 3000);
   };
@@ -509,48 +495,15 @@ export default function MyLearningView({
                 </nav>
               </div>
 
-              {/* Action Controls: Search, + Subfolder, + Add Item */}
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Search bar */}
-                <div className="relative flex-1 sm:w-48 lg:w-56">
-                  <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
-                  <input
-                    type="text"
-                    placeholder="Filter in folder..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-border-subtle bg-canvas text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-border-strong"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary cursor-pointer"
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
+              {folderNotice && (
+                <div className="text-[11px] font-mono-tabular text-accent-forest font-bold shrink-0 animate-fade-in">
+                  ✓ {folderNotice}
                 </div>
-
-                <button
-                  onClick={() => setShowCreateSubfolderModal(true)}
-                  className="px-3 py-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold flex items-center gap-1.5 text-text-primary cursor-pointer shadow-xs transition-colors"
-                >
-                  <FolderPlus size={13} />
-                  <span>New Subfolder</span>
-                </button>
-
-                <button
-                  onClick={() => setShowAddItemModal(true)}
-                  className="px-3 py-1.5 rounded-lg bg-accent-ink text-text-on-dark text-xs font-semibold flex items-center gap-1.5 hover:opacity-95 cursor-pointer shadow-xs transition-opacity"
-                >
-                  <Plus size={13} />
-                  <span>Add Item</span>
-                </button>
-              </div>
+              )}
             </div>
 
-            {/* Current Folder Heading Banner */}
-            <div className="flex items-center justify-between">
+            {/* Current Folder Heading Banner with Action Buttons */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-subtle flex items-center justify-center text-text-primary border border-border-subtle shadow-2xs">
                   {activeRootFolder.id === 'academic' ? (
@@ -572,8 +525,192 @@ export default function MyLearningView({
                   </span>
                 </div>
               </div>
+
+              {/* Action Buttons: Inline Toggle for Subfolder / Item */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setInlineAddType(prev => prev === 'subfolder' ? null : 'subfolder')}
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors ${
+                    inlineAddType === 'subfolder'
+                      ? 'bg-accent-ink text-text-on-dark border-accent-ink'
+                      : 'border-border-subtle bg-surface hover:bg-surface-hover text-text-primary'
+                  }`}
+                  title="Create new subfolder in this section"
+                >
+                  <FolderPlus size={13} />
+                  <span>+ Subfolder</span>
+                </button>
+
+                <button
+                  onClick={() => setInlineAddType(prev => prev === 'item' ? null : 'item')}
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors ${
+                    inlineAddType === 'item'
+                      ? 'bg-accent-ink text-text-on-dark border-accent-ink'
+                      : 'bg-accent-ink text-text-on-dark hover:opacity-95'
+                  }`}
+                  title="Add course or item in this section"
+                >
+                  <Plus size={13} />
+                  <span>+ Item</span>
+                </button>
+              </div>
             </div>
           </div>
+
+          {/* INLINE SECTION: CREATE NEW SUBFOLDER */}
+          {inlineAddType === 'subfolder' && (
+            <div className="rounded-xl border border-border-strong bg-surface p-4 sm:p-5 shadow-sm space-y-3 animate-fade-in">
+              <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+                <div className="flex items-center gap-2 font-bold text-xs text-text-primary">
+                  <FolderPlus size={15} className="text-accent-forest" />
+                  <span>New Subfolder inside {activeNode?.title}</span>
+                </div>
+                <button
+                  onClick={() => setInlineAddType(null)}
+                  className="p-1 rounded text-text-muted hover:text-text-primary cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateSubfolder} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary mb-1">
+                    Subfolder Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Unit 2: Quantum Physics, Lab Assignments, Cheat Sheets"
+                    value={newSubfolderName}
+                    onChange={(e) => setNewSubfolderName(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-lg border border-border-strong text-xs sm:text-sm bg-canvas focus:outline-none"
+                    autoFocus
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-2 border-t border-border-subtle">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInlineAddType(null);
+                      setNewSubfolderName('');
+                    }}
+                    className="px-4 py-2 rounded-lg text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-secondary cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs"
+                  >
+                    Create Subfolder
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* INLINE SECTION: ADD ITEM / RESOURCE */}
+          {inlineAddType === 'item' && (
+            <div className="rounded-xl border border-border-strong bg-surface p-4 sm:p-5 shadow-sm space-y-3 animate-fade-in">
+              <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+                <div className="flex items-center gap-2 font-bold text-xs text-text-primary">
+                  <Plus size={15} className="text-accent-forest" />
+                  <span>Add Resource to {activeNode?.title}</span>
+                </div>
+                <button
+                  onClick={() => setInlineAddType(null)}
+                  className="p-1 rounded text-text-muted hover:text-text-primary cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <form onSubmit={handleAddItemToFolder} className="space-y-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary mb-1">
+                    Title / Subject Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Operating Systems Lecture Series or DSA Master Notes"
+                    value={itemTitle}
+                    onChange={(e) => setItemTitle(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-lg border border-border-strong text-xs sm:text-sm bg-canvas focus:outline-none"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary mb-1">
+                    Resource URL / Link
+                  </label>
+                  <input
+                    type="url"
+                    required
+                    placeholder="https://www.youtube.com/playlist?list=... or https://..."
+                    value={itemUrl}
+                    onChange={(e) => setItemUrl(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-lg border border-border-strong text-xs sm:text-sm bg-canvas focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-text-secondary mb-1">
+                      Resource Type
+                    </label>
+                    <select
+                      value={itemType}
+                      onChange={(e) => setItemType(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-border-strong text-xs bg-canvas text-text-primary focus:outline-none"
+                    >
+                      <option value="playlist">YouTube Video / Playlist</option>
+                      <option value="document">Document / PDF Note</option>
+                      <option value="source">Code Repository / Source</option>
+                      <option value="link">Web Link / Article</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-text-secondary mb-1">
+                      Author / Professor Credits
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. NPTEL / MIT OpenCourseWare"
+                      value={itemAuthor}
+                      onChange={(e) => setItemAuthor(e.target.value)}
+                      className="w-full px-3.5 py-2 rounded-lg border border-border-strong text-xs bg-canvas focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-2 border-t border-border-subtle">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInlineAddType(null);
+                      setItemTitle('');
+                      setItemUrl('');
+                      setItemAuthor('');
+                    }}
+                    className="px-4 py-2 rounded-lg text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-secondary cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs"
+                  >
+                    Save to Folder
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
 
           {/* Section 1: Subfolders Grid (if any) */}
           {filteredSubfolders.length > 0 && (
@@ -591,7 +728,6 @@ export default function MyLearningView({
                     key={sf.id}
                     onClick={() => {
                       setSubfolderPath(prev => [...prev, sf.id]);
-                      setSearchQuery('');
                     }}
                     className="p-3.5 sm:p-4 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover/80 hover:border-border-strong transition-all cursor-pointer flex flex-col justify-between group shadow-xs space-y-2.5 active:scale-[0.99]"
                   >
@@ -728,32 +864,28 @@ export default function MyLearningView({
               </div>
               <div className="max-w-md mx-auto space-y-1">
                 <h4 className="text-sm font-bold text-text-primary">
-                  {searchQuery ? 'No matching resources found' : 'This folder is currently empty'}
+                  This folder is currently empty
                 </h4>
                 <p className="text-xs text-text-secondary">
-                  {searchQuery
-                    ? `No subfolders or items match "${searchQuery}". Try a different search keyword.`
-                    : 'Add subfolders, lecture playlists, syllabus PDFs, or documents to this folder.'}
+                  Add subfolders, lecture playlists, syllabus PDFs, or documents to this folder.
                 </p>
               </div>
-              {!searchQuery && (
-                <div className="flex items-center justify-center gap-2 pt-2">
-                  <button
-                    onClick={() => setShowCreateSubfolderModal(true)}
-                    className="px-3.5 py-2 rounded-lg text-xs font-semibold border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary flex items-center gap-1.5 cursor-pointer shadow-xs"
-                  >
-                    <FolderPlus size={13} />
-                    <span>New Subfolder</span>
-                  </button>
-                  <button
-                    onClick={() => setShowAddItemModal(true)}
-                    className="px-3.5 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark flex items-center gap-1.5 hover:opacity-95 cursor-pointer shadow-xs"
-                  >
-                    <Plus size={13} />
-                    <span>Add Resource</span>
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center justify-center gap-2 pt-2">
+                <button
+                  onClick={() => setInlineAddType('subfolder')}
+                  className="px-3.5 py-2 rounded-lg text-xs font-semibold border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <FolderPlus size={13} />
+                  <span>+ Subfolder</span>
+                </button>
+                <button
+                  onClick={() => setInlineAddType('item')}
+                  className="px-3.5 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark flex items-center gap-1.5 hover:opacity-95 cursor-pointer shadow-xs"
+                >
+                  <Plus size={13} />
+                  <span>+ Item</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -881,7 +1013,6 @@ export default function MyLearningView({
                         onClick={() => {
                           setActiveRootFolderId(folder.id);
                           setSubfolderPath([]);
-                          setSearchQuery('');
                         }}
                         className="p-3.5 sm:p-4 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover/80 hover:border-border-strong transition-all cursor-pointer flex flex-col items-center justify-center text-center gap-2.5 group shadow-xs active:scale-[0.98]"
                       >
@@ -1014,194 +1145,6 @@ export default function MyLearningView({
                 )}
               </section>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* CREATE SUBFOLDER MODAL (Centered, Full Dimming & Blur) */}
-      {showCreateSubfolderModal && (
-        <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
-          onClick={() => setShowCreateSubfolderModal(false)}
-        >
-          <div
-            className="w-full max-w-md rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal my-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
-              <div className="flex items-center gap-2">
-                <FolderPlus size={18} className="text-text-primary" />
-                <h3 className="text-base font-bold text-text-primary">Create Subfolder</h3>
-              </div>
-              <button
-                onClick={() => setShowCreateSubfolderModal(false)}
-                className="p-1 text-text-muted hover:text-text-primary cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <p className="text-xs text-text-secondary">
-              Inside <span className="font-semibold text-text-primary">{activeNode?.title || activeRootFolder?.title}</span>
-            </p>
-
-            <form onSubmit={handleCreateSubfolder} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">
-                  Subfolder Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Unit 2: Quantum Physics, Lab Assignments, Cheat Sheets"
-                  value={newSubfolderName}
-                  onChange={(e) => setNewSubfolderName(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-lg border border-border-strong text-xs sm:text-sm bg-canvas focus:outline-none"
-                  autoFocus
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2 border-t border-border-subtle">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateSubfolderModal(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-secondary cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs"
-                >
-                  Create Subfolder
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ADD ITEM TO FOLDER MODAL (Centered, Full Dimming & Blur) */}
-      {showAddItemModal && (
-        <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
-          onClick={() => setShowAddItemModal(false)}
-        >
-          <div
-            className="w-full max-w-md rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal my-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
-              <div className="flex items-center gap-2">
-                <Plus size={18} className="text-text-primary" />
-                <h3 className="text-base font-bold text-text-primary">Add Resource to Folder</h3>
-              </div>
-              <button
-                onClick={() => setShowAddItemModal(false)}
-                className="p-1 text-text-muted hover:text-text-primary cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <p className="text-xs text-text-secondary">
-              Target folder: <span className="font-semibold text-text-primary">{activeNode?.title || activeRootFolder?.title}</span>
-            </p>
-
-            <form onSubmit={handleAddItemToFolder} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">
-                  Title / Subject Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Operating Systems Lecture Series or DSA Master Notes"
-                  value={itemTitle}
-                  onChange={(e) => setItemTitle(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-lg border border-border-strong text-xs sm:text-sm bg-canvas focus:outline-none"
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">
-                  Resource URL / Link
-                </label>
-                <input
-                  type="url"
-                  required
-                  placeholder="https://www.youtube.com/playlist?list=... or https://github.com/..."
-                  value={itemUrl}
-                  onChange={(e) => setItemUrl(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-lg border border-border-strong text-xs sm:text-sm bg-canvas focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary mb-1">
-                    Resource Type
-                  </label>
-                  <select
-                    value={itemType}
-                    onChange={(e) => setItemType(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border-strong text-xs bg-canvas text-text-primary focus:outline-none"
-                  >
-                    <option value="playlist">YouTube Playlist / Video</option>
-                    <option value="document">PDF / Study Material</option>
-                    <option value="source">Source Code / GitHub</option>
-                    <option value="link">Web Link / Portal</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary mb-1">
-                    Author / Source
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. MAKAUT, Striver, NPTEL"
-                    value={itemAuthor}
-                    onChange={(e) => setItemAuthor(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border-strong text-xs bg-canvas text-text-primary focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {itemType === 'document' && (
-                <div className="pt-1">
-                  <label className="flex items-center gap-2.5 cursor-pointer text-xs text-text-primary select-none">
-                    <input
-                      type="checkbox"
-                      checked={publishPublicly}
-                      onChange={(e) => setPublishPublicly(e.target.checked)}
-                      className="w-4 h-4 rounded border-border-strong accent-accent-ink cursor-pointer"
-                    />
-                    <span>Publish publicly to Learn-O-Pia Catalog</span>
-                  </label>
-                  <p className="text-[11px] text-text-muted ml-6.5 mt-0.5">
-                    Allow other university students to discover this material in search.
-                  </p>
-                </div>
-              )}
-
-              <div className="pt-3 flex items-center justify-end gap-2 border-t border-border-subtle">
-                <button
-                  type="button"
-                  onClick={() => setShowAddItemModal(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-secondary cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs"
-                >
-                  Add to Folder
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

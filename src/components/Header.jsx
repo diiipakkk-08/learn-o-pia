@@ -37,8 +37,9 @@ export default function Header({
 
   const searchInputRef = useRef(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showAnnouncementsModal, setShowAnnouncementsModal] = useState(false);
+  const [showAnnouncementsDropdown, setShowAnnouncementsDropdown] = useState(false);
   const profileMenuRef = useRef(null);
+  const announcementsRef = useRef(null);
 
   // Keyboard shortcut '/' to focus search
   useEffect(() => {
@@ -66,11 +67,14 @@ export default function Header({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onToggleSidebar]);
 
-  // Click outside listener for profile dropdown
+  // Click outside listener for profile and announcements dropdowns
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
         setShowProfileMenu(false);
+      }
+      if (announcementsRef.current && !announcementsRef.current.contains(e.target)) {
+        setShowAnnouncementsDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -197,22 +201,79 @@ export default function Header({
           </button>
         )}
 
-        {/* Announcements Bell */}
+        {/* Announcements Bell Dropdown */}
         {currentUser && (
-          <button
-            onClick={() => {
-              setShowAnnouncementsModal(!showAnnouncementsModal);
-              if (markAnnouncementsRead) markAnnouncementsRead();
-            }}
-            className="relative p-2 rounded-full hover:bg-surface-hover text-text-primary transition-colors cursor-pointer"
-            title="Academic Notices & Updates"
-            aria-label="Announcements"
-          >
-            <Bell size={18} strokeWidth={1.75} />
-            {unreadAnnouncementsCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent-forest ring-2 ring-canvas" />
+          <div className="relative" ref={announcementsRef}>
+            <button
+              onClick={() => {
+                setShowAnnouncementsDropdown(!showAnnouncementsDropdown);
+                if (markAnnouncementsRead) markAnnouncementsRead();
+              }}
+              className="relative p-2 rounded-full hover:bg-surface-hover text-text-primary transition-colors cursor-pointer"
+              title="Academic Notices & Updates"
+              aria-label="Announcements"
+            >
+              <Bell size={18} strokeWidth={1.75} />
+              {unreadAnnouncementsCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent-forest ring-2 ring-canvas" />
+              )}
+            </button>
+
+            {/* Anchored Notification Dropdown Menu */}
+            {showAnnouncementsDropdown && (
+              <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-xl border border-border-subtle bg-surface p-3.5 shadow-modal z-50 animate-fade-in text-text-primary space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+                  <div>
+                    <span className="font-editorial text-lg tracking-tight block">
+                      Academic Broadcasts
+                    </span>
+                    <span className="text-[10px] text-text-muted font-mono-tabular">
+                      OFFICIAL CAMPUS & PLATFORM NOTICES
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setShowAnnouncementsDropdown(false)}
+                    className="p-1 rounded text-text-muted hover:text-text-primary cursor-pointer"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+
+                <div className="max-h-72 overflow-y-auto space-y-2.5 pr-0.5">
+                  {announcements && announcements.length > 0 ? (
+                    announcements.map((item, idx) => (
+                      <div
+                        key={item.id || idx}
+                        className="p-3 rounded-lg border border-border-subtle bg-canvas space-y-1"
+                      >
+                        <div className="flex items-center justify-between text-[11px] text-text-muted font-mono-tabular">
+                          <span className="font-semibold text-text-secondary">{item.author || 'Dean of Academics'}</span>
+                          <span>{item.date || 'Recent'}</span>
+                        </div>
+                        <p className="text-xs text-text-primary font-medium leading-relaxed">
+                          {item.title || item.message || item.text}
+                        </p>
+                        {item.link && (
+                          <a
+                            href={item.link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[11px] font-semibold text-accent-forest hover:underline inline-block mt-0.5"
+                          >
+                            Open attached document &rarr;
+                          </a>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-6 text-text-muted text-xs">
+                      No active announcements. Check back later for campus notices.
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
-          </button>
+          </div>
         )}
 
         {/* User Profile Trigger (Icon Only) */}
@@ -318,75 +379,6 @@ export default function Header({
           </div>
         )}
       </div>
-
-      {/* Announcements Modal / Drawer */}
-      {showAnnouncementsModal && (
-        <div
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowAnnouncementsModal(false);
-          }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-black/60 backdrop-blur-md animate-fade-in"
-        >
-          <div className="w-full max-w-lg my-auto rounded-xl border border-border-subtle bg-surface p-6 shadow-modal space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-              <div>
-                <span className="font-editorial text-2xl tracking-tight block">
-                  Academic Broadcasts
-                </span>
-                <span className="text-xs text-text-muted font-mono-tabular">
-                  OFFICIAL CAMPUS & PLATFORM NOTICES
-                </span>
-              </div>
-              <button
-                onClick={() => setShowAnnouncementsModal(false)}
-                className="p-1 rounded text-text-muted hover:text-text-primary"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="max-h-80 overflow-y-auto space-y-3">
-              {announcements && announcements.length > 0 ? (
-                announcements.map((item, idx) => (
-                  <div
-                    key={item.id || idx}
-                    className="p-3.5 rounded-lg border border-border-subtle bg-canvas space-y-1.5"
-                  >
-                    <div className="flex items-center justify-between text-xs text-text-muted font-mono-tabular">
-                      <span>{item.author || 'Dean of Academics'}</span>
-                      <span>{item.date || 'Recent'}</span>
-                    </div>
-                    <p className="text-sm text-text-primary font-medium leading-relaxed">
-                      {item.title || item.message || item.text}
-                    </p>
-                    {item.link && (
-                      <a
-                        href={item.link}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs font-semibold text-accent-forest hover:underline inline-block mt-1"
-                      >
-                        Open attached document &rarr;
-                      </a>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-text-muted text-xs">
-                  No active announcements. Check back later for campus notices.
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={() => setShowAnnouncementsModal(false)}
-              className="w-full py-2.5 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95"
-            >
-              Dismiss Notices
-            </button>
-          </div>
-        </div>
-      )}
     </header>
   );
 }

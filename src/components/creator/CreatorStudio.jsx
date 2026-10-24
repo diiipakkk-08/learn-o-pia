@@ -660,6 +660,74 @@ export default function CreatorStudio() {
         </form>
       )}
 
+      {/* CREATE PROGRAM / COURSE FORM (Inline Card) */}
+      {showCourseForm && (
+        <form onSubmit={handleCreateCourse} className="glass-panel animate-fade-in" style={{ padding: '20px', marginBottom: '20px', textAlign: 'left', borderRadius: '14px', border: '1px solid rgba(20, 20, 19, 0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <h3 style={{ fontSize: '1.1rem', margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FolderPlus size={18} color="var(--primary)" /> {isAdmin ? 'Setup Program / Course' : 'Setup Standard Course'}
+            </h3>
+            <button type="button" onClick={() => setShowCourseForm(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+              <X size={18} />
+            </button>
+          </div>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '14px' }}>
+            Create a structured curriculum or degree program with semester modules, subjects, and study tracks.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '14px' }}>
+            {isAdmin && (
+              <CustomStudioSelect
+                label="Program Type"
+                value={courseType}
+                options={[
+                  { label: 'Degree Program (Semester-wise)', value: 'degree' },
+                  { label: 'Standard Course (Unified)', value: 'standard' }
+                ]}
+                onChange={val => setCourseType(val)}
+              />
+            )}
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">{isAdmin && courseType === 'degree' ? 'Degree Title' : 'Course Title'}</label>
+              <input type="text" value={courseTitle} onChange={e => setCourseTitle(e.target.value)} placeholder="e.g. B.Tech Computer Science" className="form-input" required />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Department</label>
+              <input type="text" value={courseDept} onChange={e => setCourseDept(e.target.value)} placeholder="e.g. Computer Science, Mechanical Engineering" className="form-input" required />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Author / Organization Credits</label>
+              <input type="text" value={courseAuthor} onChange={e => setCourseAuthor(e.target.value)} placeholder="e.g. Training to Infinity, Prof. Sarah Miller" className="form-input" />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Price (INR / 0 for Free)</label>
+              <input type="number" min="0" value={coursePrice} onChange={e => setCoursePrice(e.target.value)} placeholder="0" className="form-input" />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Course Banner Image URL (Optional)</label>
+              <input type="url" value={courseBannerUrl} onChange={e => setCourseBannerUrl(e.target.value)} placeholder="https://images.unsplash.com/photo-..." className="form-input" />
+            </div>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: '14px' }}>
+            <label className="form-label">Search Keywords / College Tags (comma-separated)</label>
+            <input type="text" value={courseKeywords} onChange={e => setCourseKeywords(e.target.value)} placeholder="e.g. MAKAUT, B.Tech, Calculus, Python, Semester 1" className="form-input" />
+          </div>
+
+          <div className="form-group" style={{ marginBottom: '14px' }}>
+            <label className="form-label">Description</label>
+            <textarea value={courseDesc} onChange={e => setCourseDesc(e.target.value)} placeholder="Program description and objectives..." className="form-input" rows={2} style={{ resize: 'vertical' }} required />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <button type="button" onClick={() => setShowCourseForm(false)} className="btn btn-secondary">Cancel</button>
+            <button type="submit" className="btn btn-primary">
+              {isAdmin && courseType === 'degree' ? 'Initialize Program' : 'Create Course'}
+            </button>
+          </div>
+        </form>
+      )}
+
       {resSuccess && (
         <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', color: '#34d399', marginBottom: '20px', textAlign: 'left', fontSize: '0.85rem' }}>
           ✔ {resSuccess}
@@ -706,101 +774,6 @@ export default function CreatorStudio() {
 
         {/* RIGHT: Workspace */}
         <div style={styles.rightColumn}>
-
-          {/* A. Create Course Form */}
-          {showCourseForm && (
-            <div
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'rgba(0, 0, 0, 0.75)',
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 10000,
-                padding: '16px',
-                overflowY: 'auto'
-              }}
-              className="animate-fade-in"
-              onClick={() => setShowCourseForm(false)}
-            >
-              <div
-                className="glass-panel modal-card"
-                style={{
-                  maxWidth: '560px',
-                  width: '100%',
-                  padding: '26px',
-                  borderRadius: '20px',
-                  boxShadow: '0 25px 60px rgba(0,0,0,0.7)',
-                  border: '1px solid var(--border-strong)',
-                  background: 'var(--bg-surface)',
-                  textAlign: 'left',
-                  margin: 'auto'
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                  <h3 style={styles.workspaceHeading}>{isAdmin ? 'Setup Program / Course' : 'Setup Standard Course'}</h3>
-                  <button type="button" onClick={() => setShowCourseForm(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <X size={18} />
-                  </button>
-                </div>
-                <form onSubmit={handleCreateCourse} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {isAdmin && (
-                  <CustomStudioSelect
-                    label="Program Type"
-                    value={courseType}
-                    options={[
-                      { label: 'Degree Program (Semester-wise)', value: 'degree' },
-                      { label: 'Standard Course (Unified)', value: 'standard' }
-                    ]}
-                    onChange={val => setCourseType(val)}
-                  />
-                )}
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">{isAdmin && courseType === 'degree' ? 'Degree Title' : 'Course Title'}</label>
-                  <input type="text" value={courseTitle} onChange={e => setCourseTitle(e.target.value)} placeholder="e.g. B.Tech Computer Science" className="form-input" required />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Department</label>
-                  <input type="text" value={courseDept} onChange={e => setCourseDept(e.target.value)} placeholder="e.g. Computer Science, Mechanical Engineering, Fine Arts" className="form-input" required />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Author / Organization Credits</label>
-                  <input type="text" value={courseAuthor} onChange={e => setCourseAuthor(e.target.value)} placeholder="e.g. Training to Infinity, Prof. Sarah Miller" className="form-input" />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Price (INR / 0 for Free)</label>
-                  <input type="number" min="0" value={coursePrice} onChange={e => setCoursePrice(e.target.value)} placeholder="499" className="form-input" />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Course Banner Image URL (Optional)</label>
-                  <input type="url" value={courseBannerUrl} onChange={e => setCourseBannerUrl(e.target.value)} placeholder="https://images.unsplash.com/photo-..." className="form-input" />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Search Keywords / College Tags (comma-separated)</label>
-                  <input type="text" value={courseKeywords} onChange={e => setCourseKeywords(e.target.value)} placeholder="e.g. MAKAUT, B.Tech, Calculus, Python, Semester 1" className="form-input" />
-                </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Description</label>
-                  <textarea value={courseDesc} onChange={e => setCourseDesc(e.target.value)} placeholder="Program description..." className="form-input" rows={3} style={{ resize: 'none' }} required />
-                </div>
-                <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                  <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-                    {isAdmin && courseType === 'degree' ? 'Initialize Program' : 'Create Course'}
-                  </button>
-                  <button type="button" onClick={() => setShowCourseForm(false)} className="btn btn-secondary">Cancel</button>
-                </div>
-              </form>
-            
-              </div>
-            </div>
-          )}
 
           {/* B. Active Course Workspace */}
           {activeCourse && (
@@ -911,69 +884,32 @@ export default function CreatorStudio() {
                   </div>
 
                   {showSubjectForm && (
-                    <div
-                      style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: 'rgba(0, 0, 0, 0.75)',
-                        backdropFilter: 'blur(10px)',
-                        WebkitBackdropFilter: 'blur(10px)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 10000,
-                        padding: '16px',
-                        overflowY: 'auto'
-                      }}
-                      className="animate-fade-in"
-                      onClick={() => setShowSubjectForm(false)}
-                    >
-                      <div
-                        className="glass-panel modal-card"
-                        style={{
-                          maxWidth: '460px',
-                          width: '100%',
-                          padding: '24px',
-                          borderRadius: '20px',
-                          boxShadow: '0 25px 60px rgba(0,0,0,0.7)',
-                          border: '1px solid var(--border-strong)',
-                          background: 'var(--bg-surface)',
-                          textAlign: 'left',
-                          margin: 'auto'
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                          <h3 style={{ fontSize: '1.1rem', margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <Plus size={16} color="var(--primary)" /> Add Subject to Semester {selectedSemester}
-                          </h3>
-                          <button type="button" onClick={() => setShowSubjectForm(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                            <X size={18} />
-                          </button>
-                        </div>
-                        <form onSubmit={handleCreateSubject} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                          <div>
-                            <label className="form-label" style={{ fontSize: '0.78rem' }}>Subject Name</label>
-                            <input
-                              type="text"
-                              value={subjectTitle}
-                              onChange={e => setSubjectTitle(e.target.value)}
-                              placeholder="e.g. Discrete Mathematics"
-                              className="form-input"
-                              required
-                              autoFocus
-                            />
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
-                            <button type="button" onClick={() => setShowSubjectForm(false)} className="btn btn-secondary">Cancel</button>
-                            <button type="submit" className="btn btn-primary">Create Subject</button>
-                          </div>
-                        </form>
+                    <form onSubmit={handleCreateSubject} className="glass-panel animate-fade-in" style={{ padding: '18px', borderRadius: '16px', border: '1px solid var(--border-strong)', background: 'var(--bg-surface)', marginBottom: '18px', textAlign: 'left' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <h3 style={{ fontSize: '1rem', margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Plus size={16} color="var(--primary)" /> Add Subject to Semester {selectedSemester}
+                        </h3>
+                        <button type="button" onClick={() => setShowSubjectForm(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                          <X size={18} />
+                        </button>
                       </div>
-                    </div>
+                      <div style={{ marginBottom: '12px' }}>
+                        <label className="form-label" style={{ fontSize: '0.78rem' }}>Subject Name</label>
+                        <input
+                          type="text"
+                          value={subjectTitle}
+                          onChange={e => setSubjectTitle(e.target.value)}
+                          placeholder="e.g. Discrete Mathematics"
+                          className="form-input"
+                          required
+                          autoFocus
+                        />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                        <button type="button" onClick={() => setShowSubjectForm(false)} className="btn btn-secondary">Cancel</button>
+                        <button type="submit" className="btn btn-primary">Create Subject</button>
+                      </div>
+                    </form>
                   )}
 
                   {/* Subjects split */}

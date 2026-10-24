@@ -1842,56 +1842,35 @@ export default function AttendanceTracker() {
             </div>
           </div>
 
-          {/* CENTERED MODAL: Add Class Form (Full Blur & Dimming) */}
+          {/* INLINE EXPANDABLE: Add Class Form (No Pop-up Blur) */}
           {showAddClassForm && (
             <div
+              className="glass-panel animate-fade-in"
               style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'rgba(0, 0, 0, 0.75)',
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 10000,
-                padding: '16px',
-                overflowY: 'auto'
+                maxWidth: '680px',
+                width: '100%',
+                padding: isMobile ? '18px' : '24px',
+                borderRadius: '16px',
+                border: '1px solid var(--border-strong)',
+                background: 'var(--bg-surface)',
+                textAlign: 'left',
+                margin: '0 auto 16px auto',
+                boxSizing: 'border-box'
               }}
-              className="animate-fade-in"
-              onClick={() => setShowAddClassForm(false)}
             >
-              <div
-                className="glass-panel modal-card"
-                style={{
-                  maxWidth: '520px',
-                  width: '100%',
-                  padding: isMobile ? '18px' : '24px',
-                  borderRadius: '20px',
-                  boxShadow: '0 25px 60px rgba(0,0,0,0.7)',
-                  border: '1px solid var(--border-strong)',
-                  background: 'var(--bg-surface)',
-                  textAlign: 'left',
-                  margin: 'auto'
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                  <h3 style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Plus size={isMobile ? 16 : 18} color="var(--primary)" /> Add Class to Weekly Routine
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddClassForm(false)}
-                    style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-                <form onSubmit={handleAddRoutineClass} style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <h3 style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Plus size={isMobile ? 16 : 18} color="var(--primary)" /> Add Class to Weekly Routine
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowAddClassForm(false)}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <form onSubmit={handleAddRoutineClass} style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '14px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '10px' : '14px' }}>
                   <div>
                     <label className="form-label" style={{ fontSize: isMobile ? '0.7rem' : '0.78rem' }}>Day of Week</label>
@@ -1966,7 +1945,6 @@ export default function AttendanceTracker() {
                   </button>
                 </div>
               </form>
-              </div>
             </div>
           )}
 
