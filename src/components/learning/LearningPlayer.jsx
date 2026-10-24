@@ -48,36 +48,62 @@ export default function LearningPlayer({
     let s = null;
 
     if (playlistId) {
-      // 1. Check in subjects playlists
+      // 1. Direct match in subject playlists (by playlist ID or youtubePlaylistId)
       (subjects || []).forEach((sub) => {
-        const match = (sub.playlists || []).find((pl) => pl.id === playlistId);
-        if (match) {
-          p = match;
+        (sub.playlists || []).forEach((pl) => {
+          if (pl.id === playlistId || (pl.youtubePlaylistId && pl.youtubePlaylistId === playlistId)) {
+            p = pl;
+            s = sub;
+          }
+        });
+        // 2. Check if playlistId is actually a subject ID (e.g. s-1, s-2)
+        if (!p && sub.id === playlistId && sub.playlists && sub.playlists.length > 0) {
+          p = sub.playlists[0];
           s = sub;
         }
       });
 
-      // 2. Check if playlistId is a standalone course
+      // 3. Check if playlistId matches a course in courses
       if (!p) {
-        const directCourse = (courses || []).find((cr) => cr.id === playlistId);
+        const directCourse = (courses || []).find((cr) => cr.id === playlistId || cr.title?.toLowerCase() === playlistId?.toLowerCase());
         if (directCourse) {
+          // Check if any subject belongs to this course
+          const courseSub = (subjects || []).find(sub => sub.courseId === directCourse.id && sub.playlists && sub.playlists.length > 0);
+          if (courseSub) {
+            p = courseSub.playlists[0];
+            s = courseSub;
+          } else {
+            const ytId = extractYoutubePlaylistId(directCourse.youtubePlaylistId || directCourse.playlist_url || directCourse.playlistUrl || directCourse.youtube_playlist_id || '');
+            p = {
+              id: directCourse.id,
+              title: directCourse.title,
+              description: directCourse.description || `Lecture series for ${directCourse.title}.`,
+              author: directCourse.creatorName || directCourse.author || 'Instructor',
+              youtubePlaylistId: ytId || (directCourse.title?.toLowerCase().includes('web') ? 'PLu0W_9lII9agq5TrH9XLIKQvv0iaF2X3w' : ''),
+              videos: directCourse.videos || []
+            };
+          }
+        }
+      }
+
+      // 4. Check if playlistId is a raw YouTube Playlist link or ID
+      if (!p) {
+        const rawYtId = extractYoutubePlaylistId(playlistId);
+        if (rawYtId) {
           p = {
-            id: directCourse.id,
-            title: directCourse.title,
-            description: directCourse.description,
-            author: directCourse.creatorName || 'Instructor',
-            videos: [
-              { id: 'v1', title: `${directCourse.title}: Complete Masterclass`, youtubeId: '0IAPZzGSbME' },
-              { id: 'v2', title: `${directCourse.title}: Hands-on Project Implementation`, youtubeId: 'vBURTt97EkA' },
-              { id: 'v3', title: `${directCourse.title}: Architectural Deep Dive`, youtubeId: 'oeYBdghaIjc' }
-            ]
+            id: `pl-${rawYtId}`,
+            title: 'YouTube Lecture Stream',
+            description: 'Streaming live from linked YouTube playlist.',
+            author: 'Faculty & Educators',
+            youtubePlaylistId: rawYtId,
+            videos: []
           };
         }
       }
     }
 
     if (!p) {
-      // Default to first playlist in first subject
+      // Default to first available playlist
       const firstSub = (subjects || [])[0];
       if (firstSub && firstSub.playlists && firstSub.playlists.length > 0) {
         p = firstSub.playlists[0];
@@ -92,11 +118,7 @@ export default function LearningPlayer({
     id: playlistId || 'pl-default',
     title: 'University Lecture Series',
     author: 'Course Instructor',
-    videos: [
-      { id: 'v1', title: 'Lecture 1: Introduction & Fundamentals', youtubeId: '0IAPZzGSbME' },
-      { id: 'v2', title: 'Lecture 2: Core Architecture & Setup', youtubeId: 'vBURTt97EkA' },
-      { id: 'v3', title: 'Lecture 3: Advanced Principles & Applications', youtubeId: 'oeYBdghaIjc' }
-    ]
+    videos: []
   };
 
   const [dynamicVideos, setDynamicVideos] = useState([]);
@@ -106,10 +128,10 @@ export default function LearningPlayer({
     return extractYoutubePlaylistId(playlist?.youtubePlaylistId || playlist?.youtube_playlist_id || '');
   }, [playlist]);
 
-  // Dynamically load YouTube playlist lectures on-the-fly (no 1,400 video rows in database required!)
+  // Dynamically load YouTube playlist lectures only if database videos are absent
   useEffect(() => {
     let isMounted = true;
-    if (cleanYtPlaylistId) {
+    if (cleanYtPlaylistId && (!playlist.videos || playlist.videos.length === 0)) {
       setLoadingVideos(true);
       fetchYoutubePlaylistVideos(cleanYtPlaylistId)
         .then((fetched) => {
@@ -127,16 +149,20 @@ export default function LearningPlayer({
     return () => {
       isMounted = false;
     };
-  }, [cleanYtPlaylistId]);
+  }, [cleanYtPlaylistId, playlist.videos]);
 
   const videos = useMemo(() => {
-    if (dynamicVideos && dynamicVideos.length > 0) return dynamicVideos;
+    // 1. If playlist already has real videos from the database, use them!
     if (playlist.videos && playlist.videos.length > 0) return playlist.videos;
+    // 2. If dynamic extraction found lectures, use them!
+    if (dynamicVideos && dynamicVideos.length > 0) return dynamicVideos;
+    // 3. If a YouTube playlist ID is present, offer playlist stream placeholder
     if (cleanYtPlaylistId) {
       return [{ id: 'pl-stream', title: `${playlist.title}: Full Playlist Stream`, youtubeId: '' }];
     }
-    return [{ id: 'v1', title: 'Lecture 1: Course Overview', youtubeId: '0IAPZzGSbME' }];
-  }, [dynamicVideos, playlist.videos, cleanYtPlaylistId, playlist.title]);
+    // 4. Fallback based on playlist title
+    return [{ id: 'v1', title: `${playlist.title}: Lecture Overview`, youtubeId: '' }];
+  }, [playlist.videos, dynamicVideos, cleanYtPlaylistId, playlist.title]);
 
   const currentVideo = videos[currentIndex] || videos[0] || {};
 

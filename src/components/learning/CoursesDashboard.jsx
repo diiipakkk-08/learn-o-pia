@@ -25,6 +25,20 @@ import {
   Lock
 } from 'lucide-react';
 
+const getCuratedCourseThumbnail = (title = '', department = '') => {
+  const t = (title + ' ' + department).toLowerCase();
+  if (t.includes('physic')) return 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?auto=format&fit=crop&w=900&q=80'; // Physics & Optics
+  if (t.includes('math') || t.includes('calculus') || t.includes('algebra')) return 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=900&q=80'; // Mathematics & Geometry
+  if (t.includes('chem')) return 'https://images.unsplash.com/photo-1603126857599-f6e157fa2fe6?auto=format&fit=crop&w=900&q=80'; // Chemistry Lab
+  if (t.includes('electr') || t.includes('circuit') || t.includes('analog') || t.includes('digital') || t.includes('microprocessor') || t.includes('iot')) return 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=900&q=80'; // Microchip & Circuits
+  if (t.includes('mechanic') || t.includes('graphics') || t.includes('drawing') || t.includes('cad') || t.includes('draft')) return 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=900&q=80'; // Mechanical & Drafter
+  if (t.includes('civil') || t.includes('survey') || t.includes('structure')) return 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=900&q=80'; // Civil Engineering & Architecture
+  if (t.includes('web') || t.includes('sigma') || t.includes('frontend') || t.includes('fullstack') || t.includes('full-stack') || t.includes('javascript') || t.includes('react')) return 'https://images.unsplash.com/photo-1547658719-da2b51169166?auto=format&fit=crop&w=900&q=80'; // Modern Web Development
+  if (t.includes('data structure') || t.includes('algorithm') || t.includes('dsa') || t.includes('c++') || t.includes('java')) return 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=900&q=80'; // Algorithms & Code
+  if (t.includes('network') || t.includes('cloud') || t.includes('security') || t.includes('os') || t.includes('operating')) return 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=900&q=80'; // Cloud & Networks
+  return 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=900&q=80'; // University Study Library
+};
+
 export default function CoursesDashboard({
   setSelectedPlaylistId,
   setSelectedVideoIndex,
@@ -140,14 +154,15 @@ export default function CoursesDashboard({
     (subjects || []).forEach((sub) => {
       const primaryPl = (sub.playlists && sub.playlists[0]) || null;
       const firstVid = primaryPl?.videos && primaryPl.videos[0];
-      const yId =
-        primaryPl?.youtubePlaylistId ||
-        firstVid?.youtubeId ||
-        (firstVid?.url ? (firstVid.url.match(/[?&]v=([^#&]+)/) || [])[1] : '');
+      const videoId = (firstVid?.youtubeId && !firstVid.youtubeId.startsWith('PL'))
+        ? firstVid.youtubeId
+        : (firstVid?.url ? (firstVid.url.match(/[?&]v=([^#&]+)/) || [])[1] : null);
+
       const thumb =
         primaryPl?.bannerUrl ||
-        (yId ? `https://i.ytimg.com/vi/${yId}/hqdefault.jpg` : null) ||
-        'https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&w=900&q=80';
+        sub?.bannerUrl ||
+        (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null) ||
+        getCuratedCourseThumbnail(sub.title, parentCourse?.department);
 
       const totalVideos = (sub.playlists || []).reduce((acc, pl) => acc + (pl.videos?.length || 0), 0);
       const parentCourse = (courses || []).find((c) => c.id === sub.courseId);
@@ -210,7 +225,7 @@ export default function CoursesDashboard({
           lectureCount: 24,
           thumbnailUrl:
             c.bannerUrl ||
-            'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop',
+            getCuratedCourseThumbnail(c.title, c.department),
           isEnrolled,
           semester: null,
           baseLikes,

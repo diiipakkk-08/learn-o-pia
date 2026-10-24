@@ -311,7 +311,7 @@ function AppContent() {
               )}
 
               {(['404', 'results-404', 'discussions-404'].includes(currentView) ||
-                !['my-learning', 'learning', 'marketplace', 'academics', 'attendance', 'timetable', 'player', 'studio', 'admin', 'profile', 'about'].includes(currentView)) && (
+                !['my-learning', 'learning', 'marketplace', 'academics', 'attendance', 'timetable', 'learning-player', 'player', 'resources', 'discussions', 'studio', 'admin', 'profile', 'about'].includes(currentView)) && (
                 <NotFound404 setCurrentView={setCurrentView} />
               )}
             </>

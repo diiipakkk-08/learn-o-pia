@@ -387,7 +387,7 @@ export default function CreatorStudio({ setCurrentView, setSelectedPlaylistId })
     setShowStandalonePlaylistForm(false);
   };
 
-  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'owner';
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'owner';
 
   const myPlaylists = useMemo(() => {
     const list = [];
@@ -412,20 +412,20 @@ export default function CreatorStudio({ setCurrentView, setSelectedPlaylistId })
     });
   }, [standaloneResources, currentUser, isAdmin]);
 
-  const myCourses = courses.filter(c => isAdmin ? true : (c.creatorId === currentUser.id && !c.isDegree));
-  const activeCourse = courses.find(c => c.id === activeCourseId);
+  const myCourses = (courses || []).filter(c => isAdmin ? true : (c.creatorId === currentUser?.id && !c.isDegree));
+  const activeCourse = (courses || []).find(c => c.id === activeCourseId);
   const isDegree = activeCourse?.isDegree;
   const courseSubjects = activeCourse 
-    ? subjects
+    ? (subjects || [])
         .filter(s => s.courseId === activeCourse.id)
         .sort((a, b) => (a.position || 0) - (b.position || 0))
     : [];
   const semesterSubjects = courseSubjects.filter(s => Number(s.semester) === Number(selectedSemester));
   const activeSubjectsList = isDegree ? semesterSubjects : courseSubjects;
-  const activeSubject = subjects.find(s => s.id === activeSubjectId);
+  const activeSubject = (subjects || []).find(s => s.id === activeSubjectId);
 
   const enrolledStudents = activeCourse
-    ? users.filter(u => u.enrolledCourses?.includes(activeCourse.id))
+    ? (users || []).filter(u => u.enrolledCourses?.includes(activeCourse.id))
     : [];
 
   // ── Handlers ────────────────────────────────────────────────────────────────
@@ -617,6 +617,23 @@ export default function CreatorStudio({ setCurrentView, setSelectedPlaylistId })
   };
 
   // ── Render ──────────────────────────────────────────────────────────────────
+  if (!currentUser) {
+    return (
+      <div className="w-full max-w-lg mx-auto my-16 p-8 rounded-2xl border border-border-subtle bg-surface text-center space-y-4 shadow-modal animate-fade-in">
+        <h2 className="text-xl font-bold font-editorial">Studio Sign In Required</h2>
+        <p className="text-xs text-text-secondary leading-relaxed">
+          Please sign in to access your Creator & Campus Marketplace Studio.
+        </p>
+        <button
+          onClick={() => setCurrentView ? setCurrentView('auth') : null}
+          className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-accent-ink text-text-on-dark cursor-pointer shadow-xs hover:opacity-95"
+        >
+          Sign In to Workspace
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 animate-fade-in" style={styles.container}>
 
@@ -1624,7 +1641,7 @@ export default function CreatorStudio({ setCurrentView, setSelectedPlaylistId })
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span className={`badge badge-${u.role}`} style={{ fontSize: '0.6rem' }}>{u.role}</span>
-                        {(currentUser.role === 'admin' || currentUser.role === 'owner') && (
+                        {(currentUser?.role === 'admin' || currentUser?.role === 'owner') && (
                           <button
                             onClick={() => {
                               if (window.confirm(`Are you sure you want to remove ${u.name} from this course?`)) {

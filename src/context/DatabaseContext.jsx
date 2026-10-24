@@ -827,6 +827,15 @@ export function DatabaseProvider({ children }) {
         supabase.from('activity_logs').select('*').order('timestamp', { ascending: false })
       ]);
 
+      // Gracefully check if videos table is present in Supabase for backward compatibility
+      let existingVideos = [];
+      try {
+        const { data: vids } = await supabase.from('videos').select('*');
+        if (vids && Array.isArray(vids)) existingVideos = vids;
+      } catch (err) {
+        console.info('Supabase videos table not active; utilizing dynamic playlist architecture.');
+      }
+
       if (profiles && profiles.length > 0) {
         const mappedUsers = profiles.map(mapProfile);
         setUsers(mappedUsers);
@@ -856,16 +865,30 @@ export function DatabaseProvider({ children }) {
           const subPlaylists = (playlists || [])
             .filter(pl => pl.subject_id === s.id)
             .sort((a, b) => (a.position || 0) - (b.position || 0))
-            .map(pl => ({
-              id: pl.id,
-              title: pl.title,
-              description: pl.description,
-              likes: pl.likes || [],
-              author: pl.author,
-              position: pl.position,
-              youtubePlaylistId: pl.youtube_playlist_id || pl.youtubePlaylistId || '',
-              videos: pl.videos || []
-            }));
+            .map(pl => {
+              const dbVideos = (existingVideos || [])
+                .filter(v => v.playlist_id === pl.id)
+                .sort((a, b) => (a.position || 0) - (b.position || 0))
+                .map(v => ({
+                  id: v.id,
+                  title: v.title,
+                  description: v.description || '',
+                  youtubeId: v.youtube_id || v.youtubeId || '',
+                  position: v.position,
+                  likes: v.likes || []
+                }));
+
+              return {
+                id: pl.id,
+                title: pl.title,
+                description: pl.description,
+                likes: pl.likes || [],
+                author: pl.author,
+                position: pl.position,
+                youtubePlaylistId: pl.youtube_playlist_id || pl.youtubePlaylistId || '',
+                videos: dbVideos.length > 0 ? dbVideos : (pl.videos || [])
+              };
+            });
 
           const subMaterials = (materials || [])
             .filter(m => m.subject_id === s.id)
