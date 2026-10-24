@@ -31,6 +31,7 @@ import {
   Check
 } from 'lucide-react';
 import { calculateAttendanceMetrics } from '../../utils/attendanceMath';
+import { getWorkspaceFolders, saveWorkspaceFolders } from '../../utils/workspaceFolders';
 
 export default function MyLearningView({
   setCurrentView,
@@ -212,418 +213,11 @@ export default function MyLearningView({
   // =================================================================
   // 4 FIXED ROOT FOLDERS SYSTEM: Academic, Document, Important Links, Personal
   // =================================================================
-  const [folders, setFolders] = useState(() => {
-    try {
-      const saved = localStorage.getItem(`learnopia_explorer_folders_v2_${userId}`);
-      if (saved) {
-        let parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length === 4) {
-          // Seamless migration: Rename old 'source' id/title to 'document'
-          let changed = false;
-          parsed = parsed.map(f => {
-            if (f.id === 'source') {
-              changed = true;
-              return { ...f, id: 'document', title: 'Document' };
-            }
-            return f;
-          });
-          if (changed) {
-            localStorage.setItem(`learnopia_explorer_folders_v2_${userId}`, JSON.stringify(parsed));
-          }
-          return parsed;
-        }
-      }
-    } catch {}
+  const [folders, setFolders] = useState(() => getWorkspaceFolders(userId));
 
-    return [
-      {
-        id: 'academic',
-        title: 'Academic',
-        isSystem: true,
-        subfolders: [
-          {
-            id: 'sem-1',
-            title: 'Semester 1',
-            subfolders: [],
-            items: [
-              {
-                id: 'item-math1',
-                title: 'Engineering Mathematics I (Calculus & Linear Systems)',
-                url: 'https://www.youtube.com/playlist?list=PLgUwDviBIf0rGlzIn_7rsaR2FQ5e6ZOL9',
-                playlistId: 'pl-1',
-                type: 'playlist',
-                author: 'MAKAUT Faculty',
-                count: '36 Lectures',
-                date: 'Core Subject'
-              },
-              {
-                id: 'item-phys1',
-                title: 'Engineering Physics: Quantum & Wave Optics',
-                url: 'https://www.youtube.com/playlist?list=PLgUwDviBIf0rGlzIn_7rsaR2FQ5e6ZOL9',
-                playlistId: 'pl-2',
-                type: 'playlist',
-                author: 'Dept. of Physics',
-                count: '28 Lectures',
-                date: 'Core Subject'
-              },
-              {
-                id: 'item-bee1',
-                title: 'Basic Electrical Engineering: AC/DC Circuits & Transformers',
-                url: 'https://www.youtube.com/playlist?list=PLgUwDviBIf0rGlzIn_7rsaR2FQ5e6ZOL9',
-                playlistId: 'pl-3',
-                type: 'playlist',
-                author: 'EE Department',
-                count: '24 Lectures',
-                date: 'Core Subject'
-              },
-              {
-                id: 'item-pps1',
-                title: 'Programming for Problem Solving in C',
-                url: 'https://www.youtube.com/playlist?list=PLgUwDviBIf0rGlzIn_7rsaR2FQ5e6ZOL9',
-                playlistId: 'pl-4',
-                type: 'playlist',
-                author: 'Computer Science Faculty',
-                count: '32 Lectures',
-                date: 'Core Subject'
-              },
-              {
-                id: 'item-syl1',
-                title: 'MAKAUT 1st Year Official Syllabus & Credit Distribution',
-                url: 'https://makautexam.net/pdf/syllabus_btech_1st_year.pdf',
-                type: 'document',
-                author: 'MAKAUT Academic Council',
-                count: 'PDF Document',
-                date: 'Official Syllabus'
-              },
-              {
-                id: 'item-pyq1',
-                title: 'Previous Years Solved Question Papers & Solutions',
-                url: 'https://makautexam.net/question_papers/btech_sem1.pdf',
-                type: 'document',
-                author: 'Exam Cell',
-                count: 'Question Bank',
-                date: 'Verified'
-              }
-            ]
-          },
-          {
-            id: 'sem-2',
-            title: 'Semester 2',
-            subfolders: [],
-            items: [
-              {
-                id: 'item-math2',
-                title: 'Engineering Mathematics II: Differential Equations & Vector Calculus',
-                url: 'https://www.youtube.com/playlist?list=PLgUwDviBIf0rGlzIn_7rsaR2FQ5e6ZOL9',
-                playlistId: 'pl-1',
-                type: 'playlist',
-                author: 'MAKAUT Faculty',
-                count: '30 Lectures',
-                date: 'Core Subject'
-              },
-              {
-                id: 'item-chem1',
-                title: 'Engineering Chemistry & Material Science',
-                url: 'https://www.youtube.com/playlist?list=PLgUwDviBIf0rGlzIn_7rsaR2FQ5e6ZOL9',
-                playlistId: 'pl-2',
-                type: 'playlist',
-                author: 'Chemistry Faculty',
-                count: '22 Lectures',
-                date: 'Core Subject'
-              }
-            ]
-          },
-          {
-            id: 'sem-3',
-            title: 'Semester 3',
-            subfolders: [],
-            items: [
-              {
-                id: 'item-dsa3',
-                title: 'Data Structures and Algorithms in C/C++',
-                url: 'https://www.youtube.com/playlist?list=PLgUwDviBIf0rGlzIn_7rsaR2FQ5e6ZOL9',
-                playlistId: 'pl-1',
-                type: 'playlist',
-                author: 'CS Faculty',
-                count: '42 Lectures',
-                date: 'Core Subject'
-              },
-              {
-                id: 'item-coa3',
-                title: 'Computer Organization and Architecture',
-                url: 'https://www.youtube.com/playlist?list=PLgUwDviBIf0rGlzIn_7rsaR2FQ5e6ZOL9',
-                playlistId: 'pl-2',
-                type: 'playlist',
-                author: 'CS Faculty',
-                count: '34 Lectures',
-                date: 'Core Subject'
-              }
-            ]
-          },
-          {
-            id: 'sem-4',
-            title: 'Semester 4',
-            subfolders: [],
-            items: [
-              {
-                id: 'item-os4',
-                title: 'Operating Systems Principles & Concurrency',
-                url: 'https://www.youtube.com/playlist?list=PLgUwDviBIf0rGlzIn_7rsaR2FQ5e6ZOL9',
-                playlistId: 'pl-1',
-                type: 'playlist',
-                author: 'CS Faculty',
-                count: '38 Lectures',
-                date: 'Core Subject'
-              },
-              {
-                id: 'item-dbms4',
-                title: 'Database Management Systems & SQL Fundamentals',
-                url: 'https://www.youtube.com/playlist?list=PLgUwDviBIf0rGlzIn_7rsaR2FQ5e6ZOL9',
-                playlistId: 'pl-2',
-                type: 'playlist',
-                author: 'CS Faculty',
-                count: '35 Lectures',
-                date: 'Core Subject'
-              }
-            ]
-          },
-          {
-            id: 'sem-5',
-            title: 'Semester 5',
-            subfolders: [],
-            items: []
-          },
-          {
-            id: 'sem-6',
-            title: 'Semester 6',
-            subfolders: [],
-            items: []
-          },
-          {
-            id: 'sem-7',
-            title: 'Semester 7',
-            subfolders: [],
-            items: []
-          },
-          {
-            id: 'sem-8',
-            title: 'Semester 8',
-            subfolders: [],
-            items: []
-          }
-        ],
-        items: []
-      },
-      {
-        id: 'document',
-        title: 'Document',
-        isSystem: true,
-        subfolders: [
-          {
-            id: 'doc-dsa',
-            title: 'Algorithms & LeetCode Solutions',
-            subfolders: [],
-            items: [
-              {
-                id: 'src-1',
-                title: 'DSA Master Repository (C++ / Java / Python)',
-                url: 'https://github.com/topics/data-structures-and-algorithms',
-                type: 'source',
-                author: 'Open Source Community',
-                count: 'Git Repository',
-                date: 'v2.4'
-              },
-              {
-                id: 'src-2',
-                title: 'Striver SDE Sheet Implementations & Solutions',
-                url: 'https://takeuforward.org/strivers-a2z-dsa-course/strivers-a2z-dsa-course-sheet-2/',
-                type: 'link',
-                author: 'Striver Tuf',
-                count: 'Coding Sheet',
-                date: '2026'
-              }
-            ]
-          },
-          {
-            id: 'doc-labs',
-            title: 'University Lab Code & Manuals',
-            subfolders: [],
-            items: [
-              {
-                id: 'src-3',
-                title: 'MAKAUT B.Tech CS Lab Code Boilerplates',
-                url: 'https://github.com/topics/btech-cse',
-                type: 'source',
-                author: 'MAKAUT Code Lab',
-                count: 'Git Repository',
-                date: 'Semester 1-4'
-              },
-              {
-                id: 'src-4',
-                title: 'Linux Shell Scripting & GCC Build Tools',
-                url: 'https://github.com/topics/shell-script',
-                type: 'source',
-                author: 'Systems Lab',
-                count: 'Scripts',
-                date: 'Lab Kit'
-              }
-            ]
-          },
-          {
-            id: 'doc-guides',
-            title: 'Course Notes & Reference Guides',
-            subfolders: [],
-            items: [
-              {
-                id: 'src-5',
-                title: 'LearnOpia Frontend & Architecture Codebase',
-                url: 'https://github.com',
-                type: 'source',
-                author: 'Deepak',
-                count: 'React + Vite',
-                date: 'Active Project'
-              }
-            ]
-          }
-        ],
-        items: []
-      },
-      {
-        id: 'links',
-        title: 'Important Links',
-        isSystem: true,
-        subfolders: [
-          {
-            id: 'links-university',
-            title: 'MAKAUT & Examination Portals',
-            subfolders: [],
-            items: [
-              {
-                id: 'link-1',
-                title: 'MAKAUT Official Student Examination Portal',
-                url: 'https://makautexam.net',
-                type: 'link',
-                author: 'Controller of Examinations',
-                count: 'Official Portal',
-                date: 'makautexam.net'
-              },
-              {
-                id: 'link-2',
-                title: 'MAKAUT Semester Results & Review Publication',
-                url: 'https://makautexam.net/results',
-                type: 'link',
-                author: 'MAKAUT Exam Cell',
-                count: 'Results Portal',
-                date: 'makautexam.net'
-              },
-              {
-                id: 'link-3',
-                title: 'MAKAUT Main University Website',
-                url: 'https://makautwb.ac.in',
-                type: 'link',
-                author: 'West Bengal Tech Univ',
-                count: 'Official Website',
-                date: 'makautwb.ac.in'
-              }
-            ]
-          },
-          {
-            id: 'links-resources',
-            title: 'Digital Libraries & National Portals',
-            subfolders: [],
-            items: [
-              {
-                id: 'link-4',
-                title: 'National Digital Library of India (NDLI)',
-                url: 'https://ndl.iitkgp.ac.in',
-                type: 'link',
-                author: 'Ministry of Education, IIT KGP',
-                count: 'E-Library',
-                date: 'ndl.iitkgp.ac.in'
-              },
-              {
-                id: 'link-5',
-                title: 'SWAYAM / NPTEL Online Certification Courses',
-                url: 'https://swayam.gov.in',
-                type: 'link',
-                author: 'Govt of India / IITs / IISc',
-                count: 'Courses Portal',
-                date: 'swayam.gov.in'
-              },
-              {
-                id: 'link-6',
-                title: 'AICTE Virtual Internship & Scholastic Portal',
-                url: 'https://internship.aicte-india.org',
-                type: 'link',
-                author: 'AICTE New Delhi',
-                count: 'Internships',
-                date: 'aicte-india.org'
-              }
-            ]
-          }
-        ],
-        items: []
-      },
-      {
-        id: 'personal',
-        title: 'Personal',
-        isSystem: true,
-        subfolders: [
-          {
-            id: 'pers-notes',
-            title: 'Personal Study Notes',
-            subfolders: [],
-            items: [
-              {
-                id: 'pers-1',
-                title: 'Engineering Mathematics - Quick Formula Sheet',
-                url: 'https://makautexam.net',
-                type: 'document',
-                author: 'My Notes',
-                count: 'Formula Guide',
-                date: 'Updated recently'
-              },
-              {
-                id: 'pers-2',
-                title: 'Operating Systems - Deadlocks & CPU Scheduling Summary',
-                url: 'https://makautexam.net',
-                type: 'document',
-                author: 'My Notes',
-                count: 'Revision Doc',
-                date: 'Oct 2026'
-              }
-            ]
-          },
-          {
-            id: 'pers-prep',
-            title: 'Interview & Placement Prep',
-            subfolders: [],
-            items: [
-              {
-                id: 'pers-3',
-                title: 'System Design Interview Primer',
-                url: 'https://github.com/donnemartin/system-design-primer',
-                type: 'source',
-                author: 'Donne Martin',
-                count: 'Guide & Code',
-                date: 'Placement'
-              },
-              {
-                id: 'pers-4',
-                title: 'CS Core Subjects Interview Questions (OS, DBMS, CN)',
-                url: 'https://takeuforward.org',
-                type: 'link',
-                author: 'Placement Cell',
-                count: 'Handout',
-                date: 'Preparation'
-              }
-            ]
-          }
-        ],
-        items: []
-      }
-    ];
-  });
+  useEffect(() => {
+    setFolders(getWorkspaceFolders(userId));
+  }, [userId]);
 
   // Explorer Navigation State
   const [activeRootFolderId, setActiveRootFolderId] = useState(null); // 'academic' | 'document' | 'links' | 'personal' | null
@@ -643,9 +237,7 @@ export default function MyLearningView({
 
   const saveFolders = (newFolders) => {
     setFolders(newFolders);
-    try {
-      localStorage.setItem(`learnopia_explorer_folders_v2_${userId}`, JSON.stringify(newFolders));
-    } catch {}
+    saveWorkspaceFolders(userId, newFolders);
   };
 
   // Helper: recursively update a node at given subfolderPath
@@ -1262,9 +854,9 @@ export default function MyLearningView({
           </div>
 
           {/* MAIN BALANCED 2-COLUMN STUDIO GRID */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-            {/* LEFT COLUMN (7 cols): Folders Only (Lecture notes removed as requested) */}
-            <div className="lg:col-span-7 xl:col-span-7 space-y-5">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+            {/* LEFT COLUMN (7 cols): Workspace Folders on top, Attendance Buffer below */}
+            <div className="lg:col-span-7 xl:col-span-7 flex flex-col gap-5">
               {/* SECTION: WORKSPACE 4-FOLDERS BLOCK */}
               <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
@@ -1279,7 +871,7 @@ export default function MyLearningView({
                   </span>
                 </div>
 
-                {/* Exactly 4 Clean File Manager Blocks: Academic, Document, Important Links, Personal */}
+                {/* Mobile 2x2 grid (Academic & Document, then Important Links & Personal), Desktop 4 in a row */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {folders.map((folder) => {
                     const icon =
@@ -1314,11 +906,8 @@ export default function MyLearningView({
                   })}
                 </div>
               </section>
-            </div>
 
-            {/* RIGHT COLUMN (5 cols): Attendance, Timetable, Vault */}
-            <div className="lg:col-span-5 xl:col-span-5 space-y-5">
-              {/* WIDGET 1: ATTENDANCE SNAPSHOT */}
+              {/* SECTION: ATTENDANCE BUFFER (DIRECTLY BELOW WORKSPACE FOLDERS) */}
               <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
                   <div className="flex items-center gap-2">
@@ -1377,9 +966,11 @@ export default function MyLearningView({
                   <span>Log Today's Classes</span>
                 </button>
               </section>
+            </div>
 
-              {/* WIDGET 2: TODAY'S TIMETABLE / CLASSES */}
-              <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm space-y-3">
+            {/* RIGHT COLUMN (5 cols): TODAY'S ROUTINE / TIMETABLE TAKING COMPLETE HEIGHT */}
+            <div className="lg:col-span-5 xl:col-span-5 flex flex-col">
+              <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm space-y-4 flex flex-col h-full min-h-[340px]">
                 <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
                   <div className="flex items-center gap-2">
                     <Clock size={16} className="text-text-primary" />
@@ -1396,8 +987,8 @@ export default function MyLearningView({
                 </div>
 
                 {todayClasses.dayClasses.length > 0 ? (
-                  <div className="divide-y divide-border-subtle">
-                    {todayClasses.dayClasses.slice(0, 3).map((item, idx) => (
+                  <div className="divide-y divide-border-subtle flex-1">
+                    {todayClasses.dayClasses.slice(0, 5).map((item, idx) => (
                       <div key={item.id || idx} className="py-2.5 flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <h4 className="text-xs font-bold text-text-primary truncate">
@@ -1414,64 +1005,23 @@ export default function MyLearningView({
                     ))}
                   </div>
                 ) : (
-                  <div className="py-4 text-center text-xs text-text-muted">
-                    <p>No classes scheduled for today.</p>
+                  <div className="flex-1 flex flex-col items-center justify-center py-10 text-center text-xs text-text-muted">
+                    <div className="w-11 h-11 rounded-2xl bg-surface-sunken border border-border-subtle flex items-center justify-center text-text-muted mb-3 shadow-2xs">
+                      <Clock size={20} />
+                    </div>
+                    <p className="font-bold text-text-primary text-sm">No classes scheduled today</p>
+                    <p className="text-xs text-text-muted max-w-xs mt-1">
+                      No routine lectures scheduled for {todayClasses.currentDay}. Take time to study or review your coursework.
+                    </p>
                     <button
                       onClick={() => setCurrentView('attendance')}
-                      className="mt-1 text-xs font-semibold text-accent-forest hover:underline cursor-pointer"
+                      className="mt-4 px-3.5 py-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold text-text-primary hover:text-accent-forest cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs"
                     >
-                      Configure Routine &rarr;
+                      <span>Configure Routine</span>
+                      <ArrowRight size={12} />
                     </button>
                   </div>
                 )}
-              </section>
-
-              {/* WIDGET 3: ACADEMIC VAULT QUICK LINKS */}
-              <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm space-y-3">
-                <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-                  <div className="flex items-center gap-2">
-                    <BookmarkCheck size={16} className="text-accent-forest" />
-                    <h2 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
-                      Academic Vault
-                    </h2>
-                  </div>
-                  <button
-                    onClick={() => setCurrentView('resources')}
-                    className="text-xs font-semibold text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
-                  >
-                    All ({standaloneResources?.length || 0}) &rarr;
-                  </button>
-                </div>
-
-                <div className="divide-y divide-border-subtle">
-                  {topVaultResources.map((res) => (
-                    <div key={res.id} className="py-2.5 flex items-center justify-between gap-3 group">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-mono-tabular font-bold bg-subtle text-text-primary uppercase border border-border-subtle">
-                            {res.type || 'PDF'}
-                          </span>
-                          <h4 className="text-xs font-bold text-text-primary truncate">
-                            {res.title}
-                          </h4>
-                        </div>
-                        <span className="text-[11px] text-text-muted mt-0.5 block truncate">
-                          {res.category}
-                        </span>
-                      </div>
-
-                      <a
-                        href={res.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-1.5 rounded-lg border border-border-subtle hover:bg-surface-hover text-text-secondary hover:text-text-primary shrink-0 transition-colors"
-                        title="Download / View Resource"
-                      >
-                        <Download size={13} />
-                      </a>
-                    </div>
-                  ))}
-                </div>
               </section>
             </div>
           </div>

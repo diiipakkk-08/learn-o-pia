@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
+import { getWorkspaceFolders, saveWorkspaceFolders } from '../../utils/workspaceFolders';
 import {
   Search,
   FileText,
@@ -44,19 +45,12 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
   const [targetFolderId, setTargetFolderId] = useState('academic');
   const [targetSubfolderId, setTargetSubfolderId] = useState('');
 
-  // Reload explorer folders whenever modal opens to reflect user changes
+  // Explorer workspace folders
+  const [userFolders, setUserFolders] = useState(() => getWorkspaceFolders(userId));
+
   useEffect(() => {
     if (resourceToAddToFolder) {
-      try {
-        const raw = localStorage.getItem(`learnopia_explorer_folders_v2_${userId}`);
-        if (raw) {
-          let parsed = JSON.parse(raw);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            parsed = parsed.map(f => (f.id === 'source' ? { ...f, id: 'document', title: 'Document' } : f));
-            setUserFolders(parsed);
-          }
-        }
-      } catch {}
+      setUserFolders(getWorkspaceFolders(userId));
       setTargetFolderId('academic');
       setTargetSubfolderId('');
     }
@@ -66,15 +60,6 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
     setTargetFolderId(folderId);
     setTargetSubfolderId('');
   };
-
-  // Load explorer folders to know if resources are assigned
-  const [userFolders, setUserFolders] = useState(() => {
-    try {
-      const saved = localStorage.getItem(`learnopia_explorer_folders_v2_${userId}`);
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return [];
-  });
 
   useEffect(() => {
     if (globalSearchQuery !== undefined) {
@@ -187,6 +172,7 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
   }, [filteredResources, currentPage]);
 
   const handleOpenAddToFolder = (res) => {
+    setUserFolders(getWorkspaceFolders(userId));
     setResourceToAddToFolder(res);
     setTargetFolderId('academic');
     setTargetSubfolderId('');
@@ -369,15 +355,14 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
                 <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                   <button
                     onClick={() => handleOpenAddToFolder(res)}
-                    className={`px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 shadow-xs ${
+                    className={`p-2 rounded-lg border text-xs font-semibold cursor-pointer transition-all flex items-center justify-center shadow-xs ${
                       isInFolder
                         ? 'border-accent-forest/30 bg-accent-forest/10 text-accent-forest font-bold'
                         : 'border-border-subtle bg-surface hover:bg-surface-hover text-text-primary'
                     }`}
-                    title="Add to Workspace Folder"
+                    title={isInFolder ? 'Saved in Folder' : 'Add to Workspace Folder'}
                   >
-                    {isInFolder ? <Check size={13} className="text-accent-forest" /> : <FolderPlus size={13} />}
-                    <span>{isInFolder ? 'Saved' : 'Add to Folder'}</span>
+                    {isInFolder ? <Check size={14} className="text-accent-forest" /> : <FolderPlus size={14} />}
                   </button>
 
                   <button
@@ -500,7 +485,7 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
             <form onSubmit={handleSaveToFolder} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-text-secondary mb-2">
-                  Select Workspace Folder
+                  Workspace
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
@@ -529,7 +514,7 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
               {/* Dynamic Subfolder Picker */}
               <div>
                 <label className="block text-xs font-semibold text-text-secondary mb-1">
-                  Folder Location / Subfolder (Optional)
+                  Subfolder
                 </label>
                 {(() => {
                   const activeRoot = userFolders.find(f => f.id === targetFolderId);

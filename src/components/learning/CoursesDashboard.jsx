@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
+import { getWorkspaceFolders, saveWorkspaceFolders } from '../../utils/workspaceFolders';
 import {
   FileText,
   Search,
@@ -54,19 +55,12 @@ export default function CoursesDashboard({
   const [targetSubfolderId, setTargetSubfolderId] = useState('');
 
   // Load explorer folders to know if courses are assigned
-    // Reload explorer folders whenever modal opens to reflect user changes
+  // Explorer workspace folders
+  const [userFolders, setUserFolders] = useState(() => getWorkspaceFolders(userId));
+
   useEffect(() => {
     if (courseToAddToFolder) {
-      try {
-        const raw = localStorage.getItem(`learnopia_explorer_folders_v2_${userId}`);
-        if (raw) {
-          let parsed = JSON.parse(raw);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            parsed = parsed.map(f => (f.id === 'source' ? { ...f, id: 'document', title: 'Document' } : f));
-            setUserFolders(parsed);
-          }
-        }
-      } catch {}
+      setUserFolders(getWorkspaceFolders(userId));
       setTargetFolderId('academic');
       setTargetSubfolderId('');
     }
@@ -76,14 +70,6 @@ export default function CoursesDashboard({
     setTargetFolderId(folderId);
     setTargetSubfolderId('');
   };
-
-  const [userFolders, setUserFolders] = useState(() => {
-    try {
-      const saved = localStorage.getItem(`learnopia_explorer_folders_v2_${userId}`);
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return [];
-  });
 
   // Persistent user course likes (all values start at 0!)
   const [likedCourses, setLikedCourses] = useState(() => {
@@ -318,9 +304,10 @@ export default function CoursesDashboard({
   // Open "Add to Folder" modal
   const handleOpenAddToFolder = (course, e) => {
     if (e) e.stopPropagation();
+    setUserFolders(getWorkspaceFolders(userId));
     setCourseToAddToFolder(course);
     setTargetFolderId('academic');
-    setTargetSubfolderId('sem-1');
+    setTargetSubfolderId('');
   };
 
   // Confirm adding course to folder
@@ -328,24 +315,7 @@ export default function CoursesDashboard({
     e.preventDefault();
     if (!courseToAddToFolder) return;
 
-    let currentFolders = [];
-    try {
-      const raw = localStorage.getItem(`learnopia_explorer_folders_v2_${userId}`);
-      if (raw) currentFolders = JSON.parse(raw);
-    } catch {}
-
-    if (!currentFolders || currentFolders.length === 0) {
-      // Default structure fallback
-      currentFolders = [
-        { id: 'academic', title: 'Academic', subfolders: [], items: [] },
-        { id: 'document', title: 'Document', subfolders: [], items: [] },
-        { id: 'links', title: 'Important Links', subfolders: [], items: [] },
-        { id: 'personal', title: 'Personal', subfolders: [], items: [] }
-      ];
-    } else {
-      currentFolders = currentFolders.map(f => (f.id === 'source' ? { ...f, id: 'document', title: 'Document' } : f));
-    }
-
+    const currentFolders = getWorkspaceFolders(userId);
     const ytPlaylistUrl = `https://www.youtube.com/playlist?list=${(courseToAddToFolder.playlistId || courseToAddToFolder.id).replace('pl-', '')}`;
 
     const newItem = {
@@ -390,10 +360,8 @@ export default function CoursesDashboard({
       };
     });
 
-    try {
-      localStorage.setItem(`learnopia_explorer_folders_v2_${userId}`, JSON.stringify(updated));
-      setUserFolders(updated);
-    } catch {}
+    saveWorkspaceFolders(userId, updated);
+    setUserFolders(updated);
 
     // Auto-enroll user in course
     if (courseToAddToFolder.playlistId && enrollInPlaylist) {
@@ -696,15 +664,14 @@ export default function CoursesDashboard({
                   <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       onClick={(e) => handleOpenAddToFolder(course, e)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-xs ${
+                      className={`p-1.5 rounded-lg border text-xs font-semibold flex items-center justify-center transition-all cursor-pointer shadow-xs ${
                         isInFolder
-                          ? 'border border-accent-forest/30 bg-accent-forest/10 text-accent-forest font-bold'
-                          : 'border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary'
+                          ? 'border-accent-forest/30 bg-accent-forest/10 text-accent-forest font-bold'
+                          : 'border-border-subtle bg-surface hover:bg-surface-hover text-text-primary'
                       }`}
-                      title="Organize into Workspace Folder"
+                      title={isInFolder ? 'Saved in Folder' : 'Add to Workspace Folder'}
                     >
-                      {isInFolder ? <Check size={11} /> : <FolderPlus size={11} />}
-                      <span>{isInFolder ? 'Saved' : 'Folder'}</span>
+                      {isInFolder ? <Check size={12} className="text-accent-forest" /> : <FolderPlus size={12} />}
                     </button>
 
                     <button
@@ -774,7 +741,7 @@ export default function CoursesDashboard({
             <form onSubmit={handleSaveToFolder} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-text-secondary mb-2">
-                  Select Workspace Folder
+                  Workspace
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
@@ -803,7 +770,7 @@ export default function CoursesDashboard({
               {/* Dynamic Subfolder Picker */}
               <div>
                 <label className="block text-xs font-semibold text-text-secondary mb-1">
-                  Folder Location / Subfolder (Optional)
+                  Subfolder
                 </label>
                 {(() => {
                   const activeRoot = userFolders.find(f => f.id === targetFolderId);
