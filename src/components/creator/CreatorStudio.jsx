@@ -717,14 +717,13 @@ export default function CreatorStudio() {
                 right: 0,
                 bottom: 0,
                 background: 'rgba(0, 0, 0, 0.75)',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
                 display: 'flex',
-                alignItems: 'flex-start',
+                alignItems: 'center',
                 justifyContent: 'center',
                 zIndex: 10000,
                 padding: '16px',
-                paddingTop: '64px',
                 overflowY: 'auto'
               }}
               className="animate-fade-in"
@@ -740,7 +739,8 @@ export default function CreatorStudio() {
                   boxShadow: '0 25px 60px rgba(0,0,0,0.7)',
                   border: '1px solid var(--border-strong)',
                   background: 'var(--bg-surface)',
-                  textAlign: 'left'
+                  textAlign: 'left',
+                  margin: 'auto'
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -919,14 +919,13 @@ export default function CreatorStudio() {
                         right: 0,
                         bottom: 0,
                         background: 'rgba(0, 0, 0, 0.75)',
-                        backdropFilter: 'blur(8px)',
-                        WebkitBackdropFilter: 'blur(8px)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
                         display: 'flex',
-                        alignItems: 'flex-start',
+                        alignItems: 'center',
                         justifyContent: 'center',
                         zIndex: 10000,
                         padding: '16px',
-                        paddingTop: '64px',
                         overflowY: 'auto'
                       }}
                       className="animate-fade-in"
@@ -942,7 +941,8 @@ export default function CreatorStudio() {
                           boxShadow: '0 25px 60px rgba(0,0,0,0.7)',
                           border: '1px solid var(--border-strong)',
                           background: 'var(--bg-surface)',
-                          textAlign: 'left'
+                          textAlign: 'left',
+                          margin: 'auto'
                         }}
                         onClick={(e) => e.stopPropagation()}
                       >

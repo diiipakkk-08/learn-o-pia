@@ -1842,7 +1842,7 @@ export default function AttendanceTracker() {
             </div>
           </div>
 
-          {/* TOP-POSITIONED FLOATING MODAL: Add Class Form */}
+          {/* CENTERED MODAL: Add Class Form (Full Blur & Dimming) */}
           {showAddClassForm && (
             <div
               style={{
@@ -1852,14 +1852,13 @@ export default function AttendanceTracker() {
                 right: 0,
                 bottom: 0,
                 background: 'rgba(0, 0, 0, 0.75)',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
                 display: 'flex',
-                alignItems: 'flex-start',
+                alignItems: 'center',
                 justifyContent: 'center',
                 zIndex: 10000,
                 padding: '16px',
-                paddingTop: '64px',
                 overflowY: 'auto'
               }}
               className="animate-fade-in"
@@ -1875,7 +1874,8 @@ export default function AttendanceTracker() {
                   boxShadow: '0 25px 60px rgba(0,0,0,0.7)',
                   border: '1px solid var(--border-strong)',
                   background: 'var(--bg-surface)',
-                  textAlign: 'left'
+                  textAlign: 'left',
+                  margin: 'auto'
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -2399,9 +2399,10 @@ export default function AttendanceTracker() {
           right: 0,
           bottom: 0,
           background: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(8px)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
           display: 'flex',
-          alignItems: 'flex-start', justifyContent: 'center', zIndex: 10000, padding: '16px', paddingTop: '64px', overflowY: 'auto'
+          alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px', overflowY: 'auto'
         }} className="animate-fade-in">
           <div className="glass-panel" style={{
             maxWidth: '500px',
@@ -2411,7 +2412,8 @@ export default function AttendanceTracker() {
             boxShadow: '0 20px 50px rgba(0,0,0,0.7)',
             border: '1px solid rgba(239, 68, 68, 0.4)',
             background: 'rgba(18, 14, 24, 0.95)',
-            textAlign: 'left'
+            textAlign: 'left',
+            margin: 'auto'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
               <div style={{ background: 'rgba(239, 68, 68, 0.2)', padding: '10px', borderRadius: '14px' }}>
@@ -2488,11 +2490,12 @@ export default function AttendanceTracker() {
           right: 0,
           bottom: 0,
           background: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(8px)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
           display: 'flex',
-          alignItems: 'flex-start', justifyContent: 'center', zIndex: 10000, padding: '16px', paddingTop: '64px', overflowY: 'auto'
+          alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px', overflowY: 'auto'
         }} className="animate-fade-in">
-          <div className="glass-panel modal-card" style={{ maxWidth: '420px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left' }}>
+          <div className="glass-panel modal-card" style={{ maxWidth: '420px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left', margin: 'auto' }}>
             <h3 style={{ fontSize: '1.1rem', margin: '0 0 10px 0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
               <CalendarCheck size={18} color="var(--primary)" /> Update Semester Start Date
             </h3>
@@ -2527,11 +2530,12 @@ export default function AttendanceTracker() {
           position: 'fixed',
           top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(8px)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
           display: 'flex',
-          alignItems: 'flex-start', justifyContent: 'center', zIndex: 10000, padding: '16px', paddingTop: '64px', overflowY: 'auto'
+          alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px', overflowY: 'auto'
         }} className="animate-fade-in">
-          <div className="glass-panel modal-card" style={{ maxWidth: '440px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left' }}>
+          <div className="glass-panel modal-card" style={{ maxWidth: '440px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left', margin: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
               <h3 style={{ fontSize: '1.15rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Share2 size={18} color="var(--primary)" /> Share Routine ID
@@ -2577,11 +2581,12 @@ export default function AttendanceTracker() {
           position: 'fixed',
           top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(8px)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
           display: 'flex',
-          alignItems: 'flex-start', justifyContent: 'center', zIndex: 10000, padding: '16px', paddingTop: '64px', overflowY: 'auto'
+          alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px', overflowY: 'auto'
         }} className="animate-fade-in">
-          <div className="glass-panel modal-card" style={{ maxWidth: '440px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left' }}>
+          <div className="glass-panel modal-card" style={{ maxWidth: '440px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left', margin: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
               <h3 style={{ fontSize: '1.15rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Download size={18} color="#10b981" /> Import Routine by ID
@@ -2632,11 +2637,12 @@ export default function AttendanceTracker() {
           position: 'fixed',
           top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0, 0, 0, 0.88)',
-          backdropFilter: 'blur(8px)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
           display: 'flex',
-          alignItems: 'flex-start', justifyContent: 'center', zIndex: 10000, padding: '16px', paddingTop: '64px', overflowY: 'auto'
+          alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px', overflowY: 'auto'
         }} className="animate-fade-in">
-          <div className="glass-panel modal-card" style={{ maxWidth: '620px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="glass-panel modal-card" style={{ maxWidth: '620px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left', maxHeight: '90vh', overflowY: 'auto', margin: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Code size={18} color="var(--primary)" />

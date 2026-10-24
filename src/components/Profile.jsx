@@ -832,13 +832,13 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
       {showUnverifyConfirmModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(8px)',
+          background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 10000, padding: '20px'
+          zIndex: 10000, padding: '20px', overflowY: 'auto'
         }} className="animate-fade-in">
           <div className="glass-panel" style={{
             maxWidth: '500px', width: '100%', padding: '28px', borderRadius: '24px',
-            border: '1px solid rgba(245, 158, 11, 0.5)', background: 'rgba(20, 16, 10, 0.95)', textAlign: 'left'
+            border: '1px solid rgba(245, 158, 11, 0.5)', background: 'rgba(20, 16, 10, 0.95)', textAlign: 'left', margin: 'auto'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
               <div style={{ background: 'rgba(245, 158, 11, 0.2)', padding: '10px', borderRadius: '14px' }}>
@@ -880,13 +880,13 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
       {showDeleteModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(8px)',
+          background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 10000, padding: '20px'
+          zIndex: 10000, padding: '20px', overflowY: 'auto'
         }} className="animate-fade-in">
           <div className="glass-panel" style={{
             maxWidth: '500px', width: '100%', padding: '28px', borderRadius: '24px',
-            border: '1px solid rgba(239, 68, 68, 0.5)', background: 'rgba(18, 14, 24, 0.95)', textAlign: 'left'
+            border: '1px solid rgba(239, 68, 68, 0.5)', background: 'rgba(18, 14, 24, 0.95)', textAlign: 'left', margin: 'auto'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
               <div style={{ background: 'rgba(239, 68, 68, 0.2)', padding: '10px', borderRadius: '14px' }}>

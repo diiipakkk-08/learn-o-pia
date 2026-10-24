@@ -22,7 +22,8 @@ import {
   MessageCircle,
   Share2,
   Trash2,
-  User
+  User,
+  ArrowLeft
 } from 'lucide-react';
 
 const SEEDED_MARKETPLACE_ITEMS = [
@@ -345,6 +346,250 @@ export default function MarketplaceView() {
     if (activeBuyItem?.id === itemId) setActiveBuyItem(null);
   };
 
+  // Full-page Google Forms style listing creator when user wants to sell an item
+  if (showSellModal) {
+    return (
+      <div className="w-full min-h-screen bg-canvas text-text-primary pb-24 animate-fade-in">
+        {/* Sticky Header with Back Button */}
+        <div className="sticky top-0 z-30 px-4 sm:px-8 h-14 bg-canvas/95 backdrop-blur-md border-b border-border-subtle flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setShowSellModal(false)}
+            className="flex items-center gap-2 text-xs font-semibold text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
+          >
+            <ArrowLeft size={16} />
+            <span>Back to Marketplace</span>
+          </button>
+          <div className="text-xs font-mono-tabular font-bold text-text-muted uppercase">
+            Campus Marketplace • New Listing
+          </div>
+        </div>
+
+        {/* Centered Google Forms Container */}
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 space-y-6">
+          {/* Header Card */}
+          <div className="rounded-2xl border border-border-subtle bg-surface p-6 sm:p-8 space-y-2 shadow-xs border-t-4 border-t-accent-forest">
+            <span className="text-[11px] font-mono-tabular font-bold text-accent-forest uppercase tracking-wider">
+              Student Resale & Peer Exchange
+            </span>
+            <h1 className="font-editorial text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
+              List Gear, Notes, or Tools for Sale
+            </h1>
+            <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
+              Post physical engineering instruments, verified semester organizers, or lab hardware. Peer buyers will connect directly with you via your preferred messaging channel.
+            </p>
+          </div>
+
+          <form onSubmit={handlePublishListing} className="space-y-5">
+            {/* 1. Item Essentials Card */}
+            <div className="rounded-2xl border border-border-subtle bg-surface p-6 space-y-4 shadow-xs">
+              <div className="border-b border-border-subtle pb-2">
+                <h3 className="text-sm font-bold text-text-primary">
+                  1. Item Essentials
+                </h3>
+                <p className="text-xs text-text-muted">What are you listing on campus?</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">
+                  Item Title / Heading *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Omega Mini Drafter with Board, ESP32 Dev Kit, GATE Solved Notes..."
+                  value={newItemTitle}
+                  onChange={(e) => setNewItemTitle(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-border-strong text-xs sm:text-sm bg-canvas text-text-primary focus:outline-none focus:border-accent-forest"
+                  autoFocus
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary mb-1">
+                    Category *
+                  </label>
+                  <select
+                    value={newItemCategory}
+                    onChange={(e) => setNewItemCategory(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-border-strong text-xs sm:text-sm bg-canvas text-text-primary focus:outline-none focus:border-accent-forest"
+                  >
+                    <option value="Books & Notes">Books & Notes</option>
+                    <option value="Hardware Kits">Hardware Kits</option>
+                    <option value="Tools & Gear">Tools & Gear</option>
+                    <option value="Services">Services</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary mb-1">
+                    Price (₹ or Free) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 450 or Free / Open"
+                    value={newItemPrice}
+                    onChange={(e) => setNewItemPrice(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-border-strong text-xs sm:text-sm bg-canvas text-text-primary focus:outline-none focus:border-accent-forest font-mono-tabular"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">
+                  Condition & Description *
+                </label>
+                <textarea
+                  rows={4}
+                  required
+                  placeholder="Describe the condition, semester used, included accessories or cables..."
+                  value={newItemDesc}
+                  onChange={(e) => setNewItemDesc(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-border-strong text-xs sm:text-sm bg-canvas text-text-primary focus:outline-none focus:border-accent-forest resize-none leading-relaxed"
+                />
+              </div>
+            </div>
+
+            {/* 2. Media & Tags Card */}
+            <div className="rounded-2xl border border-border-subtle bg-surface p-6 space-y-4 shadow-xs">
+              <div className="border-b border-border-subtle pb-2">
+                <h3 className="text-sm font-bold text-text-primary">
+                  2. Photo & Search Discoverability
+                </h3>
+                <p className="text-xs text-text-muted">Help peers find and inspect your item</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">
+                  Image Web Link (Optional)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://images.unsplash.com/... or image URL"
+                  value={newItemImageUrl}
+                  onChange={(e) => setNewItemImageUrl(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-border-strong text-xs sm:text-sm bg-canvas text-text-primary focus:outline-none focus:border-accent-forest"
+                />
+                <p className="text-[11px] text-text-muted mt-1">
+                  Leave empty to use a curated category cover image automatically.
+                </p>
+              </div>
+
+              {newItemImageUrl && (
+                <div className="w-full max-w-xs aspect-video rounded-xl overflow-hidden border border-border-subtle bg-black">
+                  <img src={newItemImageUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">
+                  Keywords & Search Tags (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. drafter, mechanical, drawing, first year (comma-separated)"
+                  value={newItemKeywords}
+                  onChange={(e) => setNewItemKeywords(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-border-strong text-xs sm:text-sm bg-canvas text-text-primary focus:outline-none focus:border-accent-forest"
+                />
+              </div>
+            </div>
+
+            {/* 3. Contact & Delivery Card */}
+            <div className="rounded-2xl border border-border-subtle bg-surface p-6 space-y-4 shadow-xs">
+              <div className="border-b border-border-subtle pb-2">
+                <h3 className="text-sm font-bold text-text-primary">
+                  3. Contact & Handover Details
+                </h3>
+                <p className="text-xs text-text-muted">How should interested students reach you?</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary mb-1">
+                    Your Display Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Subhashis (ME, 2nd Year)"
+                    value={sellerName}
+                    onChange={(e) => setSellerName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-border-strong text-xs sm:text-sm bg-canvas text-text-primary focus:outline-none focus:border-accent-forest"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary mb-1">
+                    Contact Channel *
+                  </label>
+                  <select
+                    value={newItemContactMethod}
+                    onChange={(e) => setNewItemContactMethod(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-border-strong text-xs sm:text-sm bg-canvas text-text-primary focus:outline-none focus:border-accent-forest"
+                  >
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="telegram">Telegram</option>
+                    <option value="phone">Direct Phone Call</option>
+                    <option value="linkedin">LinkedIn / Profile Link</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">
+                  {newItemContactMethod === 'whatsapp'
+                    ? 'WhatsApp Number (10 digits) *'
+                    : newItemContactMethod === 'telegram'
+                    ? 'Telegram Username or Link *'
+                    : newItemContactMethod === 'phone'
+                    ? 'Phone Number *'
+                    : 'Profile / Contact Web Link *'}
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder={
+                    newItemContactMethod === 'whatsapp'
+                      ? 'e.g. 9876543210'
+                      : newItemContactMethod === 'telegram'
+                      ? 'e.g. @username or t.me/username'
+                      : newItemContactMethod === 'phone'
+                      ? 'e.g. 9876543210'
+                      : 'e.g. linkedin.com/in/username'
+                  }
+                  value={newItemContactDetail}
+                  onChange={(e) => setNewItemContactDetail(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-border-strong text-xs sm:text-sm bg-canvas text-text-primary focus:outline-none focus:border-accent-forest font-mono-tabular"
+                />
+              </div>
+            </div>
+
+            {/* Submission Actions */}
+            <div className="flex items-center justify-between pt-2">
+              <button
+                type="button"
+                onClick={() => setShowSellModal(false)}
+                className="px-5 py-2.5 rounded-xl text-xs font-semibold border border-border-strong bg-surface hover:bg-surface-hover text-text-secondary cursor-pointer transition-colors"
+              >
+                Cancel & Discard
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-2.5 rounded-xl text-xs font-bold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-sm flex items-center gap-2 transition-transform hover:scale-[1.01] active:scale-[0.99]"
+              >
+                <Tag size={14} />
+                <span>Publish Listing to Marketplace</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-16 space-y-6 animate-fade-in">
       {/* Toast Notice */}
@@ -603,11 +848,11 @@ export default function MarketplaceView() {
       )}
 
       {/* =================================================================
-          MODAL 1: BUY ITEM / CONNECT WITH SELLER
+          MODAL: BUY ITEM / CONNECT WITH SELLER (Centered, Full Dimming)
       ================================================================= */}
       {activeBuyItem && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-150"
           onClick={() => setActiveBuyItem(null)}
         >
           <div
@@ -724,214 +969,6 @@ export default function MarketplaceView() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* =================================================================
-          MODAL 2: SELL SOMETHING (ADD NEW LISTING)
-      ================================================================= */}
-      {showSellModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center pt-14 px-4 bg-black/40 backdrop-blur-xs overflow-y-auto pb-10 animate-in fade-in duration-150"
-          onClick={() => setShowSellModal(false)}
-        >
-          <div
-            className="w-full max-w-lg bg-canvas border border-border-strong rounded-2xl shadow-2xl p-5 sm:p-6 relative space-y-4 my-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-surface-sunken border border-border-subtle flex items-center justify-center text-text-primary">
-                  <Tag size={16} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-text-primary">List an Item for Sale</h3>
-                  <p className="text-[11px] text-text-muted">Post your gear to the campus marketplace</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowSellModal(false)}
-                className="w-7 h-7 rounded-lg border border-border-subtle hover:bg-surface-hover flex items-center justify-center text-text-muted cursor-pointer"
-              >
-                <X size={14} />
-              </button>
-            </div>
-
-            <form onSubmit={handlePublishListing} className="space-y-3.5">
-              {/* Item Title */}
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">
-                  Item Title / Heading *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Omega Mini Drafter with Board, ESP32 Kit, GATE Notes..."
-                  value={newItemTitle}
-                  onChange={(e) => setNewItemTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-border-strong text-xs sm:text-sm bg-surface text-text-primary focus:outline-none"
-                  autoFocus
-                />
-              </div>
-
-              {/* Category & Price Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary mb-1">
-                    Category *
-                  </label>
-                  <select
-                    value={newItemCategory}
-                    onChange={(e) => setNewItemCategory(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-border-strong text-xs bg-surface text-text-primary focus:outline-none"
-                  >
-                    <option value="Books & Notes">Books & Notes</option>
-                    <option value="Hardware Kits">Hardware Kits</option>
-                    <option value="Tools & Gear">Tools & Gear</option>
-                    <option value="Services">Services</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary mb-1">
-                    Price (₹ or Free) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 450 or Free / Open"
-                    value={newItemPrice}
-                    onChange={(e) => setNewItemPrice(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-border-strong text-xs bg-surface text-text-primary focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">
-                  Condition & Description *
-                </label>
-                <textarea
-                  rows={3}
-                  required
-                  placeholder="Describe the condition, semester used, included accessories..."
-                  value={newItemDesc}
-                  onChange={(e) => setNewItemDesc(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-border-strong text-xs bg-surface text-text-primary focus:outline-none resize-none leading-relaxed"
-                />
-              </div>
-
-              {/* Keywords / Tags */}
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">
-                  Keywords & Search Tags (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. drafter, drawing, scale, first year (comma-separated)"
-                  value={newItemKeywords}
-                  onChange={(e) => setNewItemKeywords(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-surface text-text-primary text-xs focus:outline-none"
-                />
-              </div>
-
-              {/* Image URL (Optional) */}
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">
-                  Image Link (Optional)
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://images.unsplash.com/... or leave empty"
-                  value={newItemImageUrl}
-                  onChange={(e) => setNewItemImageUrl(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-surface text-text-primary text-xs focus:outline-none"
-                />
-                <p className="text-[10px] text-text-muted mt-0.5">
-                  Share a direct web link or Unsplash image to showcase your gear.
-                </p>
-              </div>
-
-              {/* Seller Name & Contact Details */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-border-subtle">
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary mb-1">
-                    Your Name / Display *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Subhashis (ME)"
-                    value={sellerName}
-                    onChange={(e) => setSellerName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-border-strong text-xs bg-surface text-text-primary focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary mb-1">
-                    Contact Method *
-                  </label>
-                  <select
-                    value={newItemContactMethod}
-                    onChange={(e) => setNewItemContactMethod(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-border-strong text-xs bg-surface text-text-primary focus:outline-none"
-                  >
-                    <option value="whatsapp">WhatsApp</option>
-                    <option value="telegram">Telegram</option>
-                    <option value="phone">Direct Phone Call</option>
-                    <option value="linkedin">LinkedIn / Profile Link</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">
-                  {newItemContactMethod === 'whatsapp'
-                    ? 'WhatsApp Number (10 digits) *'
-                    : newItemContactMethod === 'telegram'
-                    ? 'Telegram Username or Link *'
-                    : newItemContactMethod === 'phone'
-                    ? 'Phone Number *'
-                    : 'Profile / Contact Web Link *'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder={
-                    newItemContactMethod === 'whatsapp'
-                      ? 'e.g. 9876543210'
-                      : newItemContactMethod === 'telegram'
-                      ? 'e.g. @username or t.me/username'
-                      : newItemContactMethod === 'phone'
-                      ? 'e.g. 9876543210'
-                      : 'e.g. linkedin.com/in/username'
-                  }
-                  value={newItemContactDetail}
-                  onChange={(e) => setNewItemContactDetail(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-border-strong text-xs bg-surface text-text-primary focus:outline-none font-mono-tabular"
-                />
-              </div>
-
-              <div className="pt-3 flex items-center justify-end gap-2 border-t border-border-subtle">
-                <button
-                  type="button"
-                  onClick={() => setShowSellModal(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-secondary cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-accent-ink text-text-on-dark hover:opacity-95 transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
-                >
-                  <Tag size={13} />
-                  <span>Publish to Marketplace</span>
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
