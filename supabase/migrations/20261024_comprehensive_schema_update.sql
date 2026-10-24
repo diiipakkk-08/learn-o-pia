@@ -1,11 +1,9 @@
 -- ==============================================================================
 -- LEARN-O-PIA: 100% Compatible & Safe Supabase Schema Migration
--- Version: 2026-10-24 (Hotfix: Incompatible foreign key types & RLS policies)
+-- Version: 2026-10-24 (Hotfix: Explicit type casts for UUID/TEXT compatibility)
 -- ==============================================================================
 
--- ------------------------------------------------------------------------------
 -- 1. PROFILES TABLE
--- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.profiles (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -22,9 +20,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ------------------------------------------------------------------------------
 -- 2. SUBJECTS / COURSES TABLE
--- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.subjects (
     id TEXT PRIMARY KEY,
     code TEXT,
@@ -44,9 +40,7 @@ CREATE TABLE IF NOT EXISTS public.subjects (
 ALTER TABLE public.subjects ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT TRUE;
 ALTER TABLE public.subjects ADD COLUMN IF NOT EXISTS created_by TEXT;
 
--- ------------------------------------------------------------------------------
--- 3. PLAYLISTS TABLE (Link/YouTube Playlist Centric)
--- ------------------------------------------------------------------------------
+-- 3. PLAYLISTS TABLE (YouTube Link/Playlist Centric)
 CREATE TABLE IF NOT EXISTS public.playlists (
     id TEXT PRIMARY KEY,
     subject_id TEXT,
@@ -66,9 +60,7 @@ ALTER TABLE public.playlists ADD COLUMN IF NOT EXISTS youtube_playlist_id TEXT;
 ALTER TABLE public.playlists ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT TRUE;
 ALTER TABLE public.playlists ADD COLUMN IF NOT EXISTS created_by TEXT;
 
--- ------------------------------------------------------------------------------
 -- 4. MATERIALS & ACADEMIC VAULT RESOURCES (Public / Private)
--- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.materials (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
@@ -89,9 +81,7 @@ ALTER TABLE public.materials ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'aca
 ALTER TABLE public.materials ADD COLUMN IF NOT EXISTS author TEXT;
 ALTER TABLE public.materials ADD COLUMN IF NOT EXISTS user_id TEXT;
 
--- ------------------------------------------------------------------------------
 -- 5. CAMPUS MARKETPLACE & RESELLER EXCHANGE
--- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.marketplace_items (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
@@ -99,7 +89,7 @@ CREATE TABLE IF NOT EXISTS public.marketplace_items (
     price TEXT NOT NULL,
     description TEXT,
     author TEXT NOT NULL,
-    seller_id TEXT, -- Compatible with both text strings and Supabase UUIDs
+    seller_id TEXT,
     contact_method TEXT DEFAULT 'whatsapp',
     contact_detail TEXT NOT NULL,
     image_url TEXT,
@@ -119,9 +109,7 @@ CREATE INDEX IF NOT EXISTS idx_marketplace_status ON public.marketplace_items(st
 CREATE INDEX IF NOT EXISTS idx_marketplace_category ON public.marketplace_items(category);
 CREATE INDEX IF NOT EXISTS idx_marketplace_seller ON public.marketplace_items(seller_id);
 
--- ------------------------------------------------------------------------------
 -- 6. ATTENDANCE & ROUTINE MANAGEMENT TABLES
--- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.user_routines (
     user_id TEXT PRIMARY KEY,
     routine_json JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -148,9 +136,7 @@ CREATE TABLE IF NOT EXISTS public.shared_routines (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ------------------------------------------------------------------------------
 -- 7. PLATFORM SETTINGS & LOGS
--- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.platform_settings (
     id TEXT PRIMARY KEY,
     settings_json JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -163,9 +149,7 @@ CREATE TABLE IF NOT EXISTS public.activity_logs (
     timestamp TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ------------------------------------------------------------------------------
--- 8. ROW LEVEL SECURITY (RLS) & IDEMPOTENT POLICIES
--- ------------------------------------------------------------------------------
+-- 8. ROW LEVEL SECURITY (RLS) & POLICIES WITH EXPLICIT ::TEXT CASTS
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subjects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.playlists ENABLE ROW LEVEL SECURITY;
@@ -185,51 +169,51 @@ CREATE POLICY "Public profiles are readable by everyone" ON public.profiles
 
 DROP POLICY IF EXISTS "Users can insert and update their own profile" ON public.profiles;
 CREATE POLICY "Users can insert and update their own profile" ON public.profiles
-    FOR ALL USING (auth.uid()::text = id OR id IS NOT NULL);
+    FOR ALL USING (auth.uid()::text = id::text OR id IS NOT NULL);
 
 -- Subjects & Playlists Policies
 DROP POLICY IF EXISTS "Subjects are readable by everyone" ON public.subjects;
 CREATE POLICY "Subjects are readable by everyone" ON public.subjects
-    FOR SELECT USING (is_public = true OR auth.uid()::text = created_by);
+    FOR SELECT USING (is_public = true OR auth.uid()::text = created_by::text);
 
 DROP POLICY IF EXISTS "Playlists are readable by everyone" ON public.playlists;
 CREATE POLICY "Playlists are readable by everyone" ON public.playlists
-    FOR SELECT USING (is_public = true OR auth.uid()::text = created_by);
+    FOR SELECT USING (is_public = true OR auth.uid()::text = created_by::text);
 
 DROP POLICY IF EXISTS "Creators can manage playlists" ON public.playlists;
 CREATE POLICY "Creators can manage playlists" ON public.playlists
-    FOR ALL USING (auth.uid()::text = created_by OR created_by IS NOT NULL);
+    FOR ALL USING (auth.uid()::text = created_by::text OR created_by IS NOT NULL);
 
--- Materials Policies (Public by default; private viewable only by owner)
+-- Materials Policies
 DROP POLICY IF EXISTS "Public materials are readable by everyone" ON public.materials;
 CREATE POLICY "Public materials are readable by everyone" ON public.materials
-    FOR SELECT USING (is_public = true OR auth.uid()::text = user_id);
+    FOR SELECT USING (is_public = true OR auth.uid()::text = user_id::text);
 
 DROP POLICY IF EXISTS "Users can manage their own materials" ON public.materials;
 CREATE POLICY "Users can manage their own materials" ON public.materials
-    FOR ALL USING (auth.uid()::text = user_id OR user_id IS NOT NULL);
+    FOR ALL USING (auth.uid()::text = user_id::text OR user_id IS NOT NULL);
 
--- Marketplace Policies (Active items readable by all; seller manages their own)
+-- Marketplace Policies
 DROP POLICY IF EXISTS "Active marketplace items are readable by everyone" ON public.marketplace_items;
 CREATE POLICY "Active marketplace items are readable by everyone" ON public.marketplace_items
-    FOR SELECT USING (status = 'active' OR auth.uid()::text = seller_id);
+    FOR SELECT USING (status = 'active' OR auth.uid()::text = seller_id::text);
 
 DROP POLICY IF EXISTS "Sellers can manage their marketplace items" ON public.marketplace_items;
 CREATE POLICY "Sellers can manage their marketplace items" ON public.marketplace_items
-    FOR ALL USING (auth.uid()::text = seller_id OR seller_id IS NOT NULL);
+    FOR ALL USING (auth.uid()::text = seller_id::text OR seller_id IS NOT NULL);
 
 -- Routine & Logs Policies
 DROP POLICY IF EXISTS "Users can view and manage their routine" ON public.user_routines;
 CREATE POLICY "Users can view and manage their routine" ON public.user_routines
-    FOR ALL USING (auth.uid()::text = user_id OR user_id IS NOT NULL);
+    FOR ALL USING (auth.uid()::text = user_id::text OR user_id IS NOT NULL);
 
 DROP POLICY IF EXISTS "Users can view and manage their logs" ON public.user_logs;
 CREATE POLICY "Users can view and manage their logs" ON public.user_logs
-    FOR ALL USING (auth.uid()::text = user_id OR user_id IS NOT NULL);
+    FOR ALL USING (auth.uid()::text = user_id::text OR user_id IS NOT NULL);
 
 DROP POLICY IF EXISTS "Users can view and manage archives" ON public.user_archived_semesters;
 CREATE POLICY "Users can view and manage archives" ON public.user_archived_semesters
-    FOR ALL USING (auth.uid()::text = user_id OR user_id IS NOT NULL);
+    FOR ALL USING (auth.uid()::text = user_id::text OR user_id IS NOT NULL);
 
 -- Shared Routines Policies
 DROP POLICY IF EXISTS "Shared routines are readable by all" ON public.shared_routines;
@@ -257,19 +241,15 @@ DROP POLICY IF EXISTS "Activity logs insertable by all" ON public.activity_logs;
 CREATE POLICY "Activity logs insertable by all" ON public.activity_logs
     FOR INSERT WITH CHECK (true);
 
--- ------------------------------------------------------------------------------
--- 9. MARKETPLACE LIFECYCLE ROUTINE (Non-destructive status update)
--- ------------------------------------------------------------------------------
+-- 9. MARKETPLACE LIFECYCLE ROUTINE
 CREATE OR REPLACE FUNCTION public.maintain_marketplace_lifecycle()
 RETURNS void AS $$
 BEGIN
-    -- Move active items older than 150 days to 'grace' (visible in Creator Studio only)
     UPDATE public.marketplace_items
     SET status = 'grace'
     WHERE status = 'active'
       AND listed_at < NOW() - INTERVAL '150 days';
 
-    -- Mark expired grace items as 'purged' after 180 days (30 days in grace)
     UPDATE public.marketplace_items
     SET status = 'purged'
     WHERE status = 'grace'
