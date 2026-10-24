@@ -6,20 +6,16 @@ import {
   Download,
   Copy,
   Check,
-  Bookmark,
-  BookmarkCheck,
-  Video,
-  Play,
-  FolderKanban,
-  Sparkles,
+  FolderPlus,
+  Folder,
+  GraduationCap,
+  Code2,
+  Link2,
+  Lock,
   ExternalLink,
-  Clock,
-  User,
-  Filter,
-  Layers,
   ChevronLeft,
   ChevronRight,
-  Trash2
+  X
 } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 10;
@@ -29,19 +25,33 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
     currentUser,
     standaloneResources,
     subjects,
-    courses,
     globalSearchQuery,
     setGlobalSearchQuery,
     savedResourceIds,
-    toggleSaveResource,
-    isResourceSaved,
-    deleteStandaloneResource
+    toggleSaveResource
   } = useDatabase();
 
+  const userId = currentUser?.id || 'guest';
+
   const [copiedId, setCopiedId] = useState(null);
-  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'documents' | 'videos' | 'saved'
+  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'saved'
   const [localSearch, setLocalSearch] = useState(globalSearchQuery || '');
   const [page, setPage] = useState(1);
+  const [toastNotice, setToastNotice] = useState(null);
+
+  // Folder assignment modal state
+  const [resourceToAddToFolder, setResourceToAddToFolder] = useState(null);
+  const [targetFolderId, setTargetFolderId] = useState('academic');
+  const [targetSubfolderId, setTargetSubfolderId] = useState('sem-1');
+
+  // Load explorer folders to know if resources are assigned
+  const [userFolders, setUserFolders] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`learnopia_explorer_folders_v2_${userId}`);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
 
   useEffect(() => {
     if (globalSearchQuery !== undefined) {
@@ -105,18 +115,34 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
     return list;
   }, [standaloneResources, subjects]);
 
+  // Check which resources are in folders
+  const isResourceInFolders = useMemo(() => {
+    const map = {};
+    const scan = (node) => {
+      (node.items || []).forEach((item) => {
+        if (item.id) map[item.id] = true;
+        if (item.url) map[item.url] = true;
+      });
+      (node.subfolders || []).forEach(scan);
+    };
+    (userFolders || []).forEach(scan);
+    return map;
+  }, [userFolders]);
+
   const query = (localSearch || '').trim().toLowerCase();
 
   const filteredResources = useMemo(() => {
     return allDocResources.filter((res) => {
       if (activeTab === 'saved') {
-        if (!savedResourceIds?.includes(res.id)) return false;
+        const isInFolder = !!isResourceInFolders[res.id] || !!isResourceInFolders[res.url];
+        const isDBSaved = savedResourceIds?.includes(res.id);
+        if (!isInFolder && !isDBSaved) return false;
       }
 
       if (!query) return true;
       const kw = res.keywords;
       const kwMatch = Array.isArray(kw)
-        ? kw.some(k => String(k).toLowerCase().includes(query))
+        ? kw.some((k) => String(k).toLowerCase().includes(query))
         : String(kw || '').toLowerCase().includes(query);
 
       return (
@@ -128,7 +154,7 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
         kwMatch
       );
     });
-  }, [allDocResources, activeTab, savedResourceIds, query]);
+  }, [allDocResources, activeTab, savedResourceIds, isResourceInFolders, query]);
 
   const totalPages = Math.max(1, Math.ceil(filteredResources.length / ITEMS_PER_PAGE));
   const currentPage = Math.min(page, totalPages);
@@ -137,13 +163,103 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
     return filteredResources.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredResources, currentPage]);
 
+  const handleOpenAddToFolder = (res) => {
+    setResourceToAddToFolder(res);
+    setTargetFolderId('academic');
+    setTargetSubfolderId('sem-1');
+  };
+
+  const handleSaveToFolder = (e) => {
+    e.preventDefault();
+    if (!resourceToAddToFolder) return;
+
+    let currentFolders = [];
+    try {
+      const raw = localStorage.getItem(`learnopia_explorer_folders_v2_${userId}`);
+      if (raw) currentFolders = JSON.parse(raw);
+    } catch {}
+
+    if (!currentFolders || currentFolders.length === 0) {
+      currentFolders = [
+        { id: 'academic', title: 'Academic', subfolders: [{ id: 'sem-1', title: 'Semester 1', items: [] }], items: [] },
+        { id: 'source', title: 'Source', subfolders: [], items: [] },
+        { id: 'links', title: 'Important Links', subfolders: [], items: [] },
+        { id: 'personal', title: 'Personal', subfolders: [], items: [] }
+      ];
+    }
+
+    const newItem = {
+      id: `item-${Date.now()}`,
+      title: resourceToAddToFolder.title,
+      url: resourceToAddToFolder.url || '#',
+      type: 'document',
+      author: resourceToAddToFolder.author || 'University Vault',
+      count: resourceToAddToFolder.type ? resourceToAddToFolder.type.toUpperCase() : 'PDF Document',
+      date: 'Added from Vault'
+    };
+
+    const updated = currentFolders.map((root) => {
+      if (root.id !== targetFolderId) return root;
+
+      if (targetSubfolderId && root.subfolders?.length > 0) {
+        return {
+          ...root,
+          subfolders: root.subfolders.map((sf) => {
+            if (sf.id === targetSubfolderId) {
+              return {
+                ...sf,
+                items: [newItem, ...(sf.items || [])]
+              };
+            }
+            return sf;
+          })
+        };
+      }
+
+      return {
+        ...root,
+        items: [newItem, ...(root.items || [])]
+      };
+    });
+
+    try {
+      localStorage.setItem(`learnopia_explorer_folders_v2_${userId}`, JSON.stringify(updated));
+      setUserFolders(updated);
+    } catch {}
+
+    // Also mark saved in DB if not already
+    if (toggleSaveResource && !savedResourceIds?.includes(resourceToAddToFolder.id)) {
+      toggleSaveResource(resourceToAddToFolder.id);
+    }
+
+    const folderName =
+      targetFolderId === 'academic'
+        ? `Academic (${targetSubfolderId.toUpperCase()})`
+        : targetFolderId === 'source'
+        ? 'Source'
+        : targetFolderId === 'links'
+        ? 'Important Links'
+        : 'Personal';
+
+    setToastNotice(`Saved "${resourceToAddToFolder.title}" to ${folderName}!`);
+    setTimeout(() => setToastNotice(null), 3000);
+    setResourceToAddToFolder(null);
+  };
+
   const TABS = [
     { id: 'all', label: `All Vault (${allDocResources.length})` },
-    { id: 'saved', label: `Saved Bookmarks (${savedResourceIds?.length || 0})` }
+    { id: 'saved', label: `Saved in Folders (${savedResourceIds?.length || 0})` }
   ];
 
   return (
     <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 space-y-6">
+      {/* Toast Notice */}
+      {toastNotice && (
+        <div className="fixed top-20 right-6 z-50 px-4 py-2.5 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark shadow-modal animate-bounce-short">
+          {toastNotice}
+        </div>
+      )}
+
       {/* Header & Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border-subtle pb-4">
         <div>
@@ -201,7 +317,8 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
       {paginatedResources.length > 0 ? (
         <div className="rounded-xl border border-border-subtle bg-surface overflow-hidden shadow-sm divide-y divide-border-subtle">
           {paginatedResources.map((res) => {
-            const isSaved = savedResourceIds?.includes(res.id);
+            const isInFolder = !!isResourceInFolders[res.id] || !!isResourceInFolders[res.url] || savedResourceIds?.includes(res.id);
+
             return (
               <div
                 key={res.id}
@@ -225,18 +342,19 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
                   </div>
                 </div>
 
-                {/* Actions */}
+                {/* Actions: Add to Folder, Copy Link, Open */}
                 <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                   <button
-                    onClick={() => toggleSaveResource && toggleSaveResource(res.id)}
-                    className="p-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold cursor-pointer transition-colors"
-                    title={isSaved ? 'Remove Bookmark' : 'Bookmark Document'}
+                    onClick={() => handleOpenAddToFolder(res)}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5 shadow-xs ${
+                      isInFolder
+                        ? 'border-accent-forest/30 bg-accent-forest/10 text-accent-forest font-bold'
+                        : 'border-border-subtle bg-surface hover:bg-surface-hover text-text-primary'
+                    }`}
+                    title="Add to Workspace Folder"
                   >
-                    {isSaved ? (
-                      <BookmarkCheck size={15} className="text-accent-forest" />
-                    ) : (
-                      <Bookmark size={15} className="text-text-muted" />
-                    )}
+                    {isInFolder ? <Check size={13} className="text-accent-forest" /> : <FolderPlus size={13} />}
+                    <span>{isInFolder ? 'Saved' : 'Add to Folder'}</span>
                   </button>
 
                   <button
@@ -262,10 +380,10 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
                       href={res.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-3.5 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark flex items-center gap-1.5 hover:opacity-95"
+                      className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark flex items-center gap-1.5 hover:opacity-95 shadow-xs"
                     >
                       <Download size={13} />
-                      <span>Open Document</span>
+                      <span>Open</span>
                     </a>
                   )}
                 </div>
@@ -314,6 +432,114 @@ export default function ResourcesView({ setCurrentView, setSelectedPlaylistId, i
             >
               <ChevronRight size={14} />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* =================================================================
+          TOP-POSITIONED ADD DOCUMENT TO STUDY FOLDER MODAL
+          Positioned near top of viewport with backdrop blur!
+      ================================================================= */}
+      {resourceToAddToFolder && (
+        <div
+          className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-start justify-center p-4 pt-12 sm:pt-16 md:pt-20 overflow-y-auto animate-fade-in"
+          onClick={() => setResourceToAddToFolder(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+              <div className="flex items-center gap-2">
+                <FolderPlus size={18} className="text-text-primary" />
+                <h3 className="text-base font-bold text-text-primary">Add Document to Folder</h3>
+              </div>
+              <button
+                onClick={() => setResourceToAddToFolder(null)}
+                className="p-1 text-text-muted hover:text-text-primary cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-3 rounded-xl border border-border-subtle bg-subtle space-y-1">
+              <span className="text-[10px] font-mono-tabular font-bold text-accent-forest uppercase">
+                {resourceToAddToFolder.category}
+              </span>
+              <h4 className="text-xs sm:text-sm font-bold text-text-primary line-clamp-1">
+                {resourceToAddToFolder.title}
+              </h4>
+              <p className="text-[11px] text-text-muted font-mono-tabular truncate">
+                {resourceToAddToFolder.author} • {resourceToAddToFolder.type?.toUpperCase() || 'PDF'}
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveToFolder} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-2">
+                  Select Workspace Folder
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'academic', title: 'Academic', icon: <GraduationCap size={15} /> },
+                    { id: 'source', title: 'Source', icon: <Code2 size={15} /> },
+                    { id: 'links', title: 'Important Links', icon: <Link2 size={15} /> },
+                    { id: 'personal', title: 'Personal', icon: <Lock size={15} /> }
+                  ].map((f) => (
+                    <button
+                      type="button"
+                      key={f.id}
+                      onClick={() => setTargetFolderId(f.id)}
+                      className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
+                        targetFolderId === f.id
+                          ? 'border-border-strong bg-accent-ink text-text-on-dark shadow-xs'
+                          : 'border-border-subtle bg-surface hover:bg-surface-hover text-text-primary'
+                      }`}
+                    >
+                      {f.icon}
+                      <span>{f.title}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Subfolder Picker if Academic */}
+              {targetFolderId === 'academic' && (
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary mb-1">
+                    Select Semester
+                  </label>
+                  <select
+                    value={targetSubfolderId}
+                    onChange={(e) => setTargetSubfolderId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border-strong text-xs bg-canvas text-text-primary focus:outline-none"
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+                      <option key={`sem-${sem}`} value={`sem-${sem}`}>
+                        Semester {sem}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-border-subtle">
+                <button
+                  type="button"
+                  onClick={() => setResourceToAddToFolder(null)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-secondary cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs flex items-center gap-1.5"
+                >
+                  <FolderPlus size={13} />
+                  <span>Save to Folder</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

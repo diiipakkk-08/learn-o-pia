@@ -704,9 +704,48 @@ export default function CreatorStudio() {
 
           {/* A. Create Course Form */}
           {showCourseForm && (
-            <div className="glass-panel" style={styles.formWorkspace}>
-              <h3 style={styles.workspaceHeading}>{isAdmin ? 'Setup Program / Course' : 'Setup Standard Course'}</h3>
-              <form onSubmit={handleCreateCourse} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(0, 0, 0, 0.75)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'center',
+                zIndex: 10000,
+                padding: '16px',
+                paddingTop: '64px',
+                overflowY: 'auto'
+              }}
+              className="animate-fade-in"
+              onClick={() => setShowCourseForm(false)}
+            >
+              <div
+                className="glass-panel modal-card"
+                style={{
+                  maxWidth: '560px',
+                  width: '100%',
+                  padding: '26px',
+                  borderRadius: '20px',
+                  boxShadow: '0 25px 60px rgba(0,0,0,0.7)',
+                  border: '1px solid var(--border-strong)',
+                  background: 'var(--bg-surface)',
+                  textAlign: 'left'
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                  <h3 style={styles.workspaceHeading}>{isAdmin ? 'Setup Program / Course' : 'Setup Standard Course'}</h3>
+                  <button type="button" onClick={() => setShowCourseForm(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                    <X size={18} />
+                  </button>
+                </div>
+                <form onSubmit={handleCreateCourse} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {isAdmin && (
                   <CustomStudioSelect
                     label="Program Type"
@@ -753,6 +792,8 @@ export default function CreatorStudio() {
                   <button type="button" onClick={() => setShowCourseForm(false)} className="btn btn-secondary">Cancel</button>
                 </div>
               </form>
+            
+              </div>
             </div>
           )}
 
@@ -865,14 +906,69 @@ export default function CreatorStudio() {
                   </div>
 
                   {showSubjectForm && (
-                    <form onSubmit={handleCreateSubject} className="glass-panel animate-fade-in" style={{ ...styles.formWorkspace, display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
-                      <div style={{ flex: 1 }}>
-                        <label className="form-label" style={{ fontSize: '0.75rem' }}>Subject Name</label>
-                        <input type="text" value={subjectTitle} onChange={e => setSubjectTitle(e.target.value)} placeholder="e.g. Discrete Mathematics" className="form-input" style={{ padding: '8px 12px', fontSize: '0.85rem' }} required />
+                    <div
+                      style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0, 0, 0, 0.75)',
+                        backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        justifyContent: 'center',
+                        zIndex: 10000,
+                        padding: '16px',
+                        paddingTop: '64px',
+                        overflowY: 'auto'
+                      }}
+                      className="animate-fade-in"
+                      onClick={() => setShowSubjectForm(false)}
+                    >
+                      <div
+                        className="glass-panel modal-card"
+                        style={{
+                          maxWidth: '460px',
+                          width: '100%',
+                          padding: '24px',
+                          borderRadius: '20px',
+                          boxShadow: '0 25px 60px rgba(0,0,0,0.7)',
+                          border: '1px solid var(--border-strong)',
+                          background: 'var(--bg-surface)',
+                          textAlign: 'left'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                          <h3 style={{ fontSize: '1.1rem', margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Plus size={16} color="var(--primary)" /> Add Subject to Semester {selectedSemester}
+                          </h3>
+                          <button type="button" onClick={() => setShowSubjectForm(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                            <X size={18} />
+                          </button>
+                        </div>
+                        <form onSubmit={handleCreateSubject} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                          <div>
+                            <label className="form-label" style={{ fontSize: '0.78rem' }}>Subject Name</label>
+                            <input
+                              type="text"
+                              value={subjectTitle}
+                              onChange={e => setSubjectTitle(e.target.value)}
+                              placeholder="e.g. Discrete Mathematics"
+                              className="form-input"
+                              required
+                              autoFocus
+                            />
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
+                            <button type="button" onClick={() => setShowSubjectForm(false)} className="btn btn-secondary">Cancel</button>
+                            <button type="submit" className="btn btn-primary">Create Subject</button>
+                          </div>
+                        </form>
                       </div>
-                      <button type="submit" className="btn btn-primary" style={{ padding: '9px 16px', fontSize: '0.85rem' }}>Create</button>
-                      <button type="button" onClick={() => setShowSubjectForm(false)} className="btn btn-secondary" style={{ padding: '9px 16px', fontSize: '0.85rem' }}>Cancel</button>
-                    </form>
+                    </div>
                   )}
 
                   {/* Subjects split */}

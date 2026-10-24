@@ -50,7 +50,7 @@ export default function AdDonationModal({ isOpen, onClose }) {
   const ytVideoId = extractYoutubeVideoId(adSettings?.youtubeUrl);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-12 sm:pt-16 md:pt-20 overflow-y-auto bg-black/45 backdrop-blur-sm animate-fade-in">
       <div className="w-full max-w-lg rounded-xl border border-border-subtle bg-surface p-6 shadow-modal space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-border-subtle">

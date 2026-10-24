@@ -1840,23 +1840,56 @@ export default function AttendanceTracker({ setCurrentView }) {
             </div>
           </div>
 
-          {/* SECOND SECTION: Add Class Form (Placed below routine or expanded) */}
-          {showAddClassForm ? (
-            <div className="glass-panel animate-fade-in" style={{ padding: isMobile ? '16px' : '22px', border: '1px solid rgba(20, 20, 19, 0.06)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                <h3 style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Plus size={isMobile ? 16 : 18} color="var(--primary)" /> Add Class to Weekly Routine
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setShowAddClassForm(false)}
-                  style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <form onSubmit={handleAddRoutineClass} style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '14px' }}>
+          {/* TOP-POSITIONED FLOATING MODAL: Add Class Form */}
+          {showAddClassForm && (
+            <div
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(0, 0, 0, 0.75)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'center',
+                zIndex: 10000,
+                padding: '16px',
+                paddingTop: '64px',
+                overflowY: 'auto'
+              }}
+              className="animate-fade-in"
+              onClick={() => setShowAddClassForm(false)}
+            >
+              <div
+                className="glass-panel modal-card"
+                style={{
+                  maxWidth: '520px',
+                  width: '100%',
+                  padding: isMobile ? '18px' : '24px',
+                  borderRadius: '20px',
+                  boxShadow: '0 25px 60px rgba(0,0,0,0.7)',
+                  border: '1px solid var(--border-strong)',
+                  background: 'var(--bg-surface)',
+                  textAlign: 'left'
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                  <h3 style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Plus size={isMobile ? 16 : 18} color="var(--primary)" /> Add Class to Weekly Routine
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddClassForm(false)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                <form onSubmit={handleAddRoutineClass} style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '10px' : '14px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: isMobile ? '10px' : '14px' }}>
                   <div>
                     <label className="form-label" style={{ fontSize: isMobile ? '0.7rem' : '0.78rem' }}>Day of Week</label>
@@ -1931,19 +1964,10 @@ export default function AttendanceTracker({ setCurrentView }) {
                   </button>
                 </div>
               </form>
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', marginTop: '6px' }}>
-              <button
-                type="button"
-                onClick={() => setShowAddClassForm(true)}
-                className="btn btn-secondary"
-                style={{ padding: '10px 24px', fontSize: '0.88rem', gap: '8px', margin: '0 auto' }}
-              >
-                <Plus size={18} color="var(--primary)" /> + Add New Class Below Timetable
-              </button>
+              </div>
             </div>
           )}
+
         </div>
       )}
 
@@ -2375,10 +2399,7 @@ export default function AttendanceTracker({ setCurrentView }) {
           background: 'rgba(0, 0, 0, 0.85)',
           backdropFilter: 'blur(8px)',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          padding: '20px'
+          alignItems: 'flex-start', justifyContent: 'center', zIndex: 10000, padding: '16px', paddingTop: '64px', overflowY: 'auto'
         }} className="animate-fade-in">
           <div className="glass-panel" style={{
             maxWidth: '500px',
@@ -2467,10 +2488,7 @@ export default function AttendanceTracker({ setCurrentView }) {
           background: 'rgba(0, 0, 0, 0.85)',
           backdropFilter: 'blur(8px)',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          padding: '20px'
+          alignItems: 'flex-start', justifyContent: 'center', zIndex: 10000, padding: '16px', paddingTop: '64px', overflowY: 'auto'
         }} className="animate-fade-in">
           <div className="glass-panel modal-card" style={{ maxWidth: '420px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left' }}>
             <h3 style={{ fontSize: '1.1rem', margin: '0 0 10px 0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2509,10 +2527,7 @@ export default function AttendanceTracker({ setCurrentView }) {
           background: 'rgba(0, 0, 0, 0.85)',
           backdropFilter: 'blur(8px)',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          padding: '20px'
+          alignItems: 'flex-start', justifyContent: 'center', zIndex: 10000, padding: '16px', paddingTop: '64px', overflowY: 'auto'
         }} className="animate-fade-in">
           <div className="glass-panel modal-card" style={{ maxWidth: '440px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
@@ -2562,10 +2577,7 @@ export default function AttendanceTracker({ setCurrentView }) {
           background: 'rgba(0, 0, 0, 0.85)',
           backdropFilter: 'blur(8px)',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          padding: '20px'
+          alignItems: 'flex-start', justifyContent: 'center', zIndex: 10000, padding: '16px', paddingTop: '64px', overflowY: 'auto'
         }} className="animate-fade-in">
           <div className="glass-panel modal-card" style={{ maxWidth: '440px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
@@ -2620,10 +2632,7 @@ export default function AttendanceTracker({ setCurrentView }) {
           background: 'rgba(0, 0, 0, 0.88)',
           backdropFilter: 'blur(8px)',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          padding: '20px'
+          alignItems: 'flex-start', justifyContent: 'center', zIndex: 10000, padding: '16px', paddingTop: '64px', overflowY: 'auto'
         }} className="animate-fade-in">
           <div className="glass-panel modal-card" style={{ maxWidth: '620px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
