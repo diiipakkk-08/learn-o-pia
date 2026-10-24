@@ -11,7 +11,14 @@ import {
   ChevronLeft,
   Heart,
   X,
-  ArrowRight
+  ArrowRight,
+  FolderPlus,
+  Folder,
+  SlidersHorizontal,
+  GraduationCap,
+  Code2,
+  Link2,
+  Lock
 } from 'lucide-react';
 
 export default function CoursesDashboard({
@@ -30,13 +37,31 @@ export default function CoursesDashboard({
     setGlobalSearchQuery
   } = useDatabase();
 
+  const userId = currentUser?.id || 'guest';
+
   const [localSearch, setLocalSearch] = useState(globalSearchQuery || '');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [copiedPlId, setCopiedPlId] = useState(null);
   const [enrollNotice, setEnrollNotice] = useState(null);
   const sliderRef = useRef(null);
+  const filterMenuRef = useRef(null);
 
-  // Persistent user course likes
+  // Folder assignment modal state
+  const [courseToAddToFolder, setCourseToAddToFolder] = useState(null);
+  const [targetFolderId, setTargetFolderId] = useState('academic');
+  const [targetSubfolderId, setTargetSubfolderId] = useState('sem-1');
+
+  // Load explorer folders to know if courses are assigned
+  const [userFolders, setUserFolders] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`learnopia_explorer_folders_v2_${userId}`);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
+
+  // Persistent user course likes (all values start at 0!)
   const [likedCourses, setLikedCourses] = useState(() => {
     try {
       const saved = localStorage.getItem('learnopia_liked_courses');
@@ -51,6 +76,17 @@ export default function CoursesDashboard({
       setLocalSearch(globalSearchQuery);
     }
   }, [globalSearchQuery]);
+
+  // Click outside to close filter menu
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (filterMenuRef.current && !filterMenuRef.current.contains(e.target)) {
+        setShowFilterMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const toggleLike = (courseId, e) => {
     if (e) e.stopPropagation();
@@ -68,7 +104,7 @@ export default function CoursesDashboard({
     const ytLink = `https://www.youtube.com/playlist?list=${(course.playlistId || course.id).replace('pl-', '')}`;
     navigator.clipboard.writeText(ytLink);
     setCopiedPlId(course.id);
-    setEnrollNotice(`Copied direct YouTube link for "${course.title}"!`);
+    setEnrollNotice(`Copied direct link for "${course.title}"!`);
     setTimeout(() => {
       setCopiedPlId(null);
       setEnrollNotice(null);
@@ -77,14 +113,14 @@ export default function CoursesDashboard({
 
   const scrollSlider = (direction) => {
     if (sliderRef.current) {
-      const scrollAmount = direction === 'left' ? -280 : 280;
+      const scrollAmount = direction === 'left' ? -380 : 380;
       sliderRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
 
   const query = (localSearch || '').trim().toLowerCase();
 
-  // Unified Subject Courses with dynamic like scores
+  // Unified Subject Courses (Base likes are strictly 0!)
   const allSubjectCourses = useMemo(() => {
     const list = [];
     const seen = new Set();
@@ -111,8 +147,8 @@ export default function CoursesDashboard({
 
       const targetPlaylistId = primaryPl?.id || sub.id;
 
-      // Seed baseline likes based on string hash
-      const baseLikes = Math.abs(sub.title.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 85) + 32;
+      // Base likes are strictly 0!
+      const baseLikes = 0;
 
       list.push({
         id: targetPlaylistId,
@@ -149,7 +185,7 @@ export default function CoursesDashboard({
     (courses || []).forEach((c) => {
       if (!c.isDegree && !seen.has(c.id)) {
         const isEnrolled = (currentUser?.enrolledCourses || []).includes(c.id);
-        const baseLikes = Math.abs(c.title.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0) % 90) + 40;
+        const baseLikes = 0; // Strictly 0!
 
         list.push({
           id: c.id,
@@ -181,12 +217,26 @@ export default function CoursesDashboard({
     return list;
   }, [subjects, courses, currentUser]);
 
+  // Map courses to folder presence
+  const isCourseInFolders = useMemo(() => {
+    const map = {};
+    const scan = (node) => {
+      (node.items || []).forEach((item) => {
+        if (item.playlistId) map[item.playlistId] = true;
+        if (item.id) map[item.id] = true;
+      });
+      (node.subfolders || []).forEach(scan);
+    };
+    (userFolders || []).forEach(scan);
+    return map;
+  }, [userFolders]);
+
   // List of enrolled courses for the horizontal top slider
   const enrolledCoursesList = useMemo(() => {
     return allSubjectCourses.filter((c) => c.isEnrolled);
   }, [allSubjectCourses]);
 
-  // Filter and sort courses (courses with more likes rank higher)
+  // Filter and sort courses
   const filteredCourses = useMemo(() => {
     const list = allSubjectCourses.filter((course) => {
       // Query filter
@@ -228,10 +278,9 @@ export default function CoursesDashboard({
       return true;
     });
 
-    // Rank courses with higher likes at the top
     return list.sort((a, b) => {
-      const aLikes = (a.baseLikes || 0) + (likedCourses[a.id] ? 100 : 0);
-      const bLikes = (b.baseLikes || 0) + (likedCourses[b.id] ? 100 : 0);
+      const aLikes = (likedCourses[a.id] ? 1 : 0);
+      const bLikes = (likedCourses[b.id] ? 1 : 0);
       return bLikes - aLikes;
     });
   }, [allSubjectCourses, query, selectedCategory, likedCourses]);
@@ -242,21 +291,97 @@ export default function CoursesDashboard({
     setCurrentView('learning-player');
   };
 
-  const handleQuickEnroll = (course, e) => {
+  // Open "Add to Folder" modal
+  const handleOpenAddToFolder = (course, e) => {
     if (e) e.stopPropagation();
-    if (!currentUser) {
-      setCurrentView('auth');
-      return;
+    setCourseToAddToFolder(course);
+    setTargetFolderId('academic');
+    setTargetSubfolderId('sem-1');
+  };
+
+  // Confirm adding course to folder
+  const handleSaveToFolder = (e) => {
+    e.preventDefault();
+    if (!courseToAddToFolder) return;
+
+    let currentFolders = [];
+    try {
+      const raw = localStorage.getItem(`learnopia_explorer_folders_v2_${userId}`);
+      if (raw) currentFolders = JSON.parse(raw);
+    } catch {}
+
+    if (!currentFolders || currentFolders.length === 0) {
+      // Default structure fallback
+      currentFolders = [
+        { id: 'academic', title: 'Academic', subfolders: [{ id: 'sem-1', title: 'Semester 1', items: [] }], items: [] },
+        { id: 'source', title: 'Source', subfolders: [], items: [] },
+        { id: 'links', title: 'Important Links', subfolders: [], items: [] },
+        { id: 'personal', title: 'Personal', subfolders: [], items: [] }
+      ];
     }
-    if (course.playlistId && enrollInPlaylist) {
-      enrollInPlaylist(course.playlistId);
-      setEnrollNotice(`Added "${course.title}" to your study track!`);
-      setTimeout(() => setEnrollNotice(null), 3000);
-    } else if (course.id && enrollInCourse) {
-      enrollInCourse(course.id);
-      setEnrollNotice(`Enrolled in "${course.title}"!`);
-      setTimeout(() => setEnrollNotice(null), 3000);
+
+    const ytPlaylistUrl = `https://www.youtube.com/playlist?list=${(courseToAddToFolder.playlistId || courseToAddToFolder.id).replace('pl-', '')}`;
+
+    const newItem = {
+      id: `item-${Date.now()}`,
+      title: courseToAddToFolder.title,
+      url: ytPlaylistUrl,
+      playlistId: courseToAddToFolder.playlistId,
+      type: 'playlist',
+      author: courseToAddToFolder.author || 'University Faculty',
+      count: `${courseToAddToFolder.lectureCount} Lectures`,
+      date: 'Added from Catalog'
+    };
+
+    // Update folder tree
+    const updated = currentFolders.map((root) => {
+      if (root.id !== targetFolderId) return root;
+
+      if (targetSubfolderId && root.subfolders?.length > 0) {
+        return {
+          ...root,
+          subfolders: root.subfolders.map((sf) => {
+            if (sf.id === targetSubfolderId) {
+              return {
+                ...sf,
+                items: [newItem, ...(sf.items || [])]
+              };
+            }
+            return sf;
+          })
+        };
+      }
+
+      return {
+        ...root,
+        items: [newItem, ...(root.items || [])]
+      };
+    });
+
+    try {
+      localStorage.setItem(`learnopia_explorer_folders_v2_${userId}`, JSON.stringify(updated));
+      setUserFolders(updated);
+    } catch {}
+
+    // Auto-enroll user in course
+    if (courseToAddToFolder.playlistId && enrollInPlaylist) {
+      enrollInPlaylist(courseToAddToFolder.playlistId);
+    } else if (courseToAddToFolder.id && enrollInCourse) {
+      enrollInCourse(courseToAddToFolder.id);
     }
+
+    const folderName =
+      targetFolderId === 'academic'
+        ? `Academic (${targetSubfolderId.toUpperCase()})`
+        : targetFolderId === 'source'
+        ? 'Source Code'
+        : targetFolderId === 'links'
+        ? 'Important Links'
+        : 'Personal';
+
+    setEnrollNotice(`Saved "${courseToAddToFolder.title}" to ${folderName}!`);
+    setTimeout(() => setEnrollNotice(null), 3000);
+    setCourseToAddToFolder(null);
   };
 
   const CATEGORIES = [
@@ -277,7 +402,7 @@ export default function CoursesDashboard({
       )}
 
       {/* =================================================================
-          1. TOP ENROLLED COURSES SLIDER (Open Horizon Carousel - No Box-in-Box)
+          1. TOP ENROLLED COURSES SLIDER (Spacious & Generous Length)
       ================================================================= */}
       {enrolledCoursesList.length > 0 && (
         <section className="space-y-3 pb-2">
@@ -308,37 +433,45 @@ export default function CoursesDashboard({
             </div>
           </div>
 
+          {/* Generous Length Horizontal Slider */}
           <div
             ref={sliderRef}
-            className="flex items-center gap-3.5 overflow-x-auto pb-2 scroll-smooth"
+            className="flex items-center gap-4 overflow-x-auto pb-2 scroll-smooth"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {enrolledCoursesList.map((course) => (
               <div
                 key={`slider-${course.id}`}
                 onClick={() => handleOpenCourse(course)}
-                className="w-72 sm:w-80 shrink-0 p-3 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover hover:border-border-strong transition-all cursor-pointer flex items-center gap-3.5 group shadow-xs"
+                className="w-[320px] sm:w-[420px] md:w-[460px] shrink-0 p-3.5 sm:p-4 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover hover:border-border-strong transition-all cursor-pointer flex items-center gap-4 group shadow-xs"
               >
-                <div className="relative w-24 sm:w-28 aspect-video rounded-lg overflow-hidden bg-black shrink-0">
+                <div className="relative w-32 sm:w-40 aspect-video rounded-lg overflow-hidden bg-black shrink-0 border border-border-subtle">
                   <img
                     src={course.thumbnailUrl}
                     alt={course.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90"
                   />
                   <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
-                    <div className="w-6 h-6 rounded-full bg-black/70 flex items-center justify-center text-white">
-                      <Play size={10} fill="#FFFFFF" className="ml-0.5" />
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/75 flex items-center justify-center text-white shadow-md">
+                      <Play size={11} fill="#FFFFFF" className="ml-0.5" />
                     </div>
                   </div>
+                  <span className="absolute bottom-1 right-1 px-1.5 py-0.2 rounded text-[9px] font-mono-tabular bg-black/85 text-white">
+                    {course.lectureCount} Lectures
+                  </span>
                 </div>
+
                 <div className="min-w-0 flex-1">
-                  <h4 className="text-xs sm:text-sm font-bold text-text-primary truncate group-hover:text-accent-forest transition-colors">
+                  <span className="text-[10px] font-mono-tabular font-bold text-accent-forest uppercase tracking-wider block truncate">
+                    {course.category}
+                  </span>
+                  <h4 className="text-xs sm:text-sm font-bold text-text-primary truncate mt-0.5 group-hover:text-accent-forest transition-colors">
                     {course.title}
                   </h4>
                   <p className="text-[11px] text-text-muted font-mono-tabular truncate mt-0.5">
-                    {course.category} • {course.lectureCount} Lectures
+                    {course.author}
                   </p>
-                  <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-accent-forest group-hover:translate-x-0.5 transition-transform">
+                  <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-accent-forest group-hover:translate-x-0.5 transition-transform">
                     <span>Resume Lecture</span>
                     <ArrowRight size={11} />
                   </span>
@@ -350,11 +483,11 @@ export default function CoursesDashboard({
       )}
 
       {/* =================================================================
-          2. COMPACT SEARCH BAR & CATEGORY FILTER CONTROLS
+          2. CLEAN SEARCH BAR & COMPACT FILTER BUTTON (No Crowded Pills)
       ================================================================= */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 border-b border-border-subtle pb-4">
+      <div className="flex items-center justify-between gap-3 border-b border-border-subtle pb-4">
         {/* Integrated Course Search Box */}
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1 max-w-lg">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
             type="text"
@@ -379,50 +512,93 @@ export default function CoursesDashboard({
           )}
         </div>
 
-        {/* Category Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
-          {CATEGORIES.map((cat) => {
-            const isSelected = selectedCategory === cat.id;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono-tabular transition-all shrink-0 cursor-pointer ${
-                  isSelected
-                    ? 'bg-accent-ink text-text-on-dark font-bold'
-                    : 'bg-surface border border-border-subtle text-text-secondary hover:text-text-primary hover:bg-surface-hover font-medium'
-                }`}
-              >
-                {cat.label}
-              </button>
-            );
-          })}
+        {/* Clean Filter Button with Dropdown Popover */}
+        <div className="relative" ref={filterMenuRef}>
+          <button
+            onClick={() => setShowFilterMenu(!showFilterMenu)}
+            className={`px-3 py-2 rounded-lg text-xs font-semibold border flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs ${
+              selectedCategory !== 'all'
+                ? 'bg-accent-ink text-text-on-dark border-transparent'
+                : 'bg-surface border-border-subtle text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+            }`}
+          >
+            <SlidersHorizontal size={14} />
+            <span>Filter</span>
+            {selectedCategory !== 'all' && (
+              <span className="w-1.5 h-1.5 rounded-full bg-accent-forest ml-0.5" />
+            )}
+          </button>
+
+          {/* Filter Popover Dropdown */}
+          {showFilterMenu && (
+            <div className="absolute right-0 mt-2 w-52 rounded-xl border border-border-strong bg-surface p-2 shadow-modal z-30 space-y-1 animate-fade-in">
+              <div className="px-2.5 py-1 text-[10px] font-mono-tabular font-bold uppercase tracking-wider text-text-muted">
+                Filter by Category
+              </div>
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => {
+                    setSelectedCategory(cat.id);
+                    setShowFilterMenu(false);
+                  }}
+                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between cursor-pointer ${
+                    selectedCategory === cat.id
+                      ? 'bg-subtle text-text-primary font-bold'
+                      : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+                  }`}
+                >
+                  <span>{cat.label}</span>
+                  {selectedCategory === cat.id && <Check size={12} className="text-accent-forest" />}
+                </button>
+              ))}
+              {selectedCategory !== 'all' && (
+                <div className="pt-1 border-t border-border-subtle">
+                  <button
+                    onClick={() => {
+                      setSelectedCategory('all');
+                      setShowFilterMenu(false);
+                    }}
+                    className="w-full text-left px-2.5 py-1 rounded text-[11px] text-text-muted hover:text-red-500 transition-colors cursor-pointer"
+                  >
+                    Reset to All Courses
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Results Status Line */}
       <div className="flex items-center justify-between text-xs text-text-muted font-mono-tabular">
         <span>
-          {query ? `SEARCH RESULTS FOR "${query.toUpperCase()}" (${filteredCourses.length})` : `SHOWING ${filteredCourses.length} COURSES & SUBJECTS • RANKED BY POPULARITY`}
+          {query
+            ? `SEARCH RESULTS FOR "${query.toUpperCase()}" (${filteredCourses.length})`
+            : `SHOWING ${filteredCourses.length} COURSES & SUBJECTS`}
         </span>
-        <span className="hidden sm:inline">100% FREE • DIRECT YOUTUBE SYNC</span>
+        <span className="hidden sm:inline">100% FREE ACADEMIC WORKSPACE</span>
       </div>
 
       {/* =================================================================
           3. RESPONSIVE GRID OF SUBJECT COURSES
+          - No buttons overflow or spill out
+          - Likes start strictly at 0
+          - Folder assignment button replaces repetitive "Enrolled" text
+          - YouTube button removed in favor of direct copy link
       ================================================================= */}
       {filteredCourses.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
           {filteredCourses.map((course) => {
             const isLiked = !!likedCourses[course.id];
-            const likeCount = (course.baseLikes || 28) + (isLiked ? 1 : 0);
-            const ytPlaylistUrl = `https://www.youtube.com/playlist?list=${(course.playlistId || course.id).replace('pl-', '')}`;
+            const likeCount = isLiked ? 1 : 0; // Strictly 0 baseline!
+            const isInFolder = !!isCourseInFolders[course.playlistId] || !!isCourseInFolders[course.id];
 
             return (
               <div
                 key={course.id}
                 onClick={() => handleOpenCourse(course)}
-                className="rounded-xl p-3.5 sm:p-4 border border-border-subtle bg-surface cursor-pointer transition-all hover:border-border-strong hover:shadow-md flex flex-col justify-between group"
+                className="rounded-xl p-3.5 sm:p-4 border border-border-subtle bg-surface cursor-pointer transition-all hover:border-border-strong hover:shadow-md flex flex-col justify-between group overflow-hidden"
               >
                 <div>
                   {/* Compact 16:9 Thumbnail Frame */}
@@ -457,61 +633,51 @@ export default function CoursesDashboard({
                   </p>
                 </div>
 
-                {/* Bottom Card Footer with YouTube, Share, Like, and Action Buttons */}
+                {/* Bottom Card Footer: Like, Copy Link, Folder, Watch (Guaranteed Fit) */}
                 <div className="mt-3 pt-2.5 border-t border-border-subtle flex items-center justify-between gap-1.5">
-                  {/* Left: Like, YouTube, Copy Link */}
-                  <div className="flex items-center gap-1">
+                  {/* Left: Like & Copy Link */}
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={(e) => toggleLike(course.id, e)}
-                      className={`p-1.5 rounded-lg border transition-all flex items-center gap-1 text-xs cursor-pointer ${
+                      className={`px-2 py-1 rounded-lg border transition-all flex items-center gap-1 text-xs cursor-pointer ${
                         isLiked
                           ? 'border-red-500/30 bg-red-500/10 text-red-500'
                           : 'border-border-subtle bg-surface hover:bg-surface-hover text-text-muted hover:text-red-500'
                       }`}
                       title={isLiked ? 'Liked! Click to unlike' : 'Like this course'}
                     >
-                      <Heart size={13} fill={isLiked ? 'currentColor' : 'none'} />
+                      <Heart size={12} fill={isLiked ? 'currentColor' : 'none'} />
                       <span className="text-[10px] font-mono-tabular font-semibold">{likeCount}</span>
                     </button>
 
-                    <a
-                      href={ytPlaylistUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="p-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-red-600 hover:text-red-500 transition-colors flex items-center justify-center cursor-pointer shadow-xs"
-                      title="Open YouTube playlist in new tab"
-                    >
-                      <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                      </svg>
-                    </a>
-
                     <button
                       onClick={(e) => handleCopyCourseLink(course, e)}
-                      className="p-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-text-muted hover:text-text-primary transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
-                      title="Copy YouTube Playlist Link"
+                      className="p-1 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-text-muted hover:text-text-primary transition-colors flex items-center cursor-pointer shadow-xs"
+                      title="Copy direct YouTube playlist link"
                     >
                       {copiedPlId === course.id ? (
-                        <Check size={13} className="text-accent-forest" />
+                        <Check size={12} className="text-accent-forest" />
                       ) : (
-                        <Copy size={13} />
+                        <Copy size={12} />
                       )}
                     </button>
                   </div>
 
-                  {/* Right: Enroll & Watch */}
-                  <div className="flex items-center gap-1.5">
+                  {/* Right: Save to Folder & Watch */}
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
-                      onClick={(e) => handleQuickEnroll(course, e)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                        course.isEnrolled
-                          ? 'pill-safe border'
+                      onClick={(e) => handleOpenAddToFolder(course, e)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-xs ${
+                        isInFolder
+                          ? 'border border-accent-forest/30 bg-accent-forest/10 text-accent-forest font-bold'
                           : 'border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary'
                       }`}
+                      title="Organize into Workspace Folder"
                     >
-                      {course.isEnrolled ? 'Enrolled' : 'Enroll'}
+                      {isInFolder ? <Check size={11} /> : <FolderPlus size={11} />}
+                      <span>{isInFolder ? 'Saved' : 'Folder'}</span>
                     </button>
+
                     <button
                       onClick={() => handleOpenCourse(course)}
                       className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark flex items-center gap-1 hover:opacity-95 cursor-pointer shadow-xs"
@@ -530,7 +696,7 @@ export default function CoursesDashboard({
           <BookOpen size={36} className="text-text-muted mx-auto" />
           <h3 className="text-base font-bold text-text-primary">No matching courses found</h3>
           <p className="text-xs text-text-secondary max-w-sm mx-auto">
-            Try adjusting your search query or reset the filter pills to browse all university offerings.
+            Try adjusting your search query or reset the filter to browse all university offerings.
           </p>
           <button
             onClick={() => {
@@ -542,6 +708,107 @@ export default function CoursesDashboard({
           >
             Reset Filters
           </button>
+        </div>
+      )}
+
+      {/* =================================================================
+          ADD COURSE TO STUDY FOLDER MODAL
+      ================================================================= */}
+      {courseToAddToFolder && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="w-full max-w-md rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal">
+            <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+              <div className="flex items-center gap-2">
+                <FolderPlus size={18} className="text-text-primary" />
+                <h3 className="text-base font-bold text-text-primary">Add to Study Folder</h3>
+              </div>
+              <button
+                onClick={() => setCourseToAddToFolder(null)}
+                className="p-1 text-text-muted hover:text-text-primary cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-3 rounded-xl border border-border-subtle bg-subtle space-y-1">
+              <span className="text-[10px] font-mono-tabular font-bold text-accent-forest uppercase">
+                {courseToAddToFolder.category}
+              </span>
+              <h4 className="text-xs sm:text-sm font-bold text-text-primary line-clamp-1">
+                {courseToAddToFolder.title}
+              </h4>
+              <p className="text-[11px] text-text-muted font-mono-tabular truncate">
+                {courseToAddToFolder.author} • {courseToAddToFolder.lectureCount} Lectures
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveToFolder} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-2">
+                  Select Workspace Folder
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'academic', title: 'Academic', icon: <GraduationCap size={15} /> },
+                    { id: 'source', title: 'Source', icon: <Code2 size={15} /> },
+                    { id: 'links', title: 'Important Links', icon: <Link2 size={15} /> },
+                    { id: 'personal', title: 'Personal', icon: <Lock size={15} /> }
+                  ].map((f) => (
+                    <button
+                      type="button"
+                      key={f.id}
+                      onClick={() => setTargetFolderId(f.id)}
+                      className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
+                        targetFolderId === f.id
+                          ? 'border-border-strong bg-accent-ink text-text-on-dark shadow-xs'
+                          : 'border-border-subtle bg-surface hover:bg-surface-hover text-text-primary'
+                      }`}
+                    >
+                      {f.icon}
+                      <span>{f.title}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Subfolder Picker if Academic */}
+              {targetFolderId === 'academic' && (
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary mb-1">
+                    Select Semester
+                  </label>
+                  <select
+                    value={targetSubfolderId}
+                    onChange={(e) => setTargetSubfolderId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border-strong text-xs bg-canvas text-text-primary focus:outline-none"
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+                      <option key={`sem-${sem}`} value={`sem-${sem}`}>
+                        Semester {sem}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-border-subtle">
+                <button
+                  type="button"
+                  onClick={() => setCourseToAddToFolder(null)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-secondary cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs flex items-center gap-1.5"
+                >
+                  <FolderPlus size={13} />
+                  <span>Save to Folder</span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
