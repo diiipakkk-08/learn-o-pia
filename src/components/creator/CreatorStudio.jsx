@@ -10,8 +10,15 @@ import { useDatabase, extractYoutubePlaylistId, fetchYoutubePlaylistVideos, getU
 import {
   Plus, BookOpen, Trash2, Film, FolderPlus, ChevronDown,
   Pencil, Check, X, Users, AlertCircle, ArrowUp, ArrowDown, Copy,
-  Video, Link
+  Video, Link, Tag, ShoppingBag, Globe, Lock, Clock, RotateCw, ExternalLink,
+  Sparkles, FileText, Share2, Layers, Play
 } from 'lucide-react';
+import {
+  getUserStudioListings,
+  addMarketplaceListing,
+  relistMarketplaceListing,
+  deleteMarketplaceListing
+} from '../../utils/marketplaceStorage';
 
 // ── Portal Dropdown ─────────────────────────────────────────────────────────
 // Renders the menu in document.body via portal so it escapes
@@ -140,7 +147,7 @@ function InlineEdit({ value, onSave, multiline = false, inputStyle = {} }) {
 }
 
 // ── Main Component ───────────────────────────────────────────────────────────
-export default function CreatorStudio() {
+export default function CreatorStudio({ setCurrentView, setSelectedPlaylistId }) {
   const {
     currentUser, courses, subjects, users,
     addCourse, editCourse, deleteCourse,
@@ -151,7 +158,8 @@ export default function CreatorStudio() {
     addSubjectMaterial, deleteSubjectMaterial,
     removeUserEnrollment, enrollInPlaylist,
     reorderSubject, reorderPlaylist, reorderVideo, reorderMaterialSection,
-    importVideosToExistingPlaylist, addStandaloneResource
+    importVideosToExistingPlaylist, addStandaloneResource,
+    standaloneResources, deleteStandaloneResource
   } = useDatabase();
 
   const [activeCourseId, setActiveCourseId] = useState(null);
@@ -159,6 +167,37 @@ export default function CreatorStudio() {
   const [activeSubjectId, setActiveSubjectId] = useState(null);
   const [activePlaylistId, setActivePlaylistId] = useState(null);
   const [studioTab, setStudioTab] = useState('content');
+
+  // Studio navigation mode: 'creations' (default) vs 'curriculum'
+  const [studioMode, setStudioMode] = useState('creations');
+  const [creationsSubTab, setCreationsSubTab] = useState('marketplace'); // 'marketplace' | 'courses' | 'resources'
+
+  // Marketplace Sell Form State
+  const [showSellForm, setShowSellForm] = useState(false);
+  const [mktTitle, setMktTitle] = useState('');
+  const [mktCategory, setMktCategory] = useState('Books & Notes');
+  const [mktPrice, setMktPrice] = useState('');
+  const [mktDesc, setMktDesc] = useState('');
+  const [mktKeywords, setMktKeywords] = useState('');
+  const [mktImageUrl, setMktImageUrl] = useState('');
+  const [mktContactMethod, setMktContactMethod] = useState('whatsapp');
+  const [mktContactDetail, setMktContactDetail] = useState('');
+  const [mktSellerName, setMktSellerName] = useState(currentUser?.name || '');
+  const [mktNotice, setMktNotice] = useState('');
+
+  // User Marketplace Listings (with 5-month active + 1-month grace period)
+  const [marketplaceListings, setMarketplaceListings] = useState(() => getUserStudioListings(currentUser));
+
+  useEffect(() => {
+    const refresh = () => setMarketplaceListings(getUserStudioListings(currentUser));
+    refresh();
+    window.addEventListener('learnopia_marketplace_updated', refresh);
+    return () => window.removeEventListener('learnopia_marketplace_updated', refresh);
+  }, [currentUser]);
+
+  // Public / Private visibility states (Default Public: true)
+  const [stIsPublic, setStIsPublic] = useState(true);
+  const [resIsPublic, setResIsPublic] = useState(true);
 
   // Standalone Resource Form State
   const [showStandaloneForm, setShowStandaloneForm] = useState(false);
@@ -180,16 +219,65 @@ export default function CreatorStudio() {
         type: resType,
         category: resCategory,
         description: resDesc.trim(),
-        author: getUserDesignation(currentUser)
+        author: getUserDesignation(currentUser),
+        isPublic: resIsPublic
       });
     }
 
     setResTitle('');
     setResUrl('');
     setResDesc('');
+    setResIsPublic(true);
     setShowStandaloneForm(false);
     setResSuccess('Standalone resource published to the Open Learning Feed!');
     setTimeout(() => setResSuccess(''), 3500);
+  };
+
+  const handlePublishMarketplaceListing = (e) => {
+    e.preventDefault();
+    if (!mktTitle.trim() || !mktPrice.trim()) return;
+
+    const formattedPrice = mktPrice.startsWith('₹') || mktPrice.toLowerCase().includes('free')
+      ? mktPrice
+      : `₹${mktPrice}`;
+
+    addMarketplaceListing({
+      title: mktTitle.trim(),
+      category: mktCategory,
+      price: formattedPrice,
+      author: mktSellerName.trim() || currentUser?.name || 'Campus Student',
+      sellerId: currentUser?.id || 'guest',
+      description: mktDesc.trim() || 'Verified student listing on campus exchange.',
+      tag: mktCategory,
+      keywords: mktKeywords.trim(),
+      contactMethod: mktContactMethod,
+      contactDetail: mktContactDetail.trim() || '9876543210',
+      imageUrl: mktImageUrl.trim() || null
+    });
+
+    setShowSellForm(false);
+    setMktTitle('');
+    setMktPrice('');
+    setMktDesc('');
+    setMktKeywords('');
+    setMktImageUrl('');
+    setMktContactDetail('');
+    setMktNotice('Listing published! It is now active on the Marketplace for 5 months (~150 days).');
+    setTimeout(() => setMktNotice(''), 4500);
+  };
+
+  const handleRelistMarketplace = (itemId) => {
+    relistMarketplaceListing(itemId);
+    setMktNotice('Listing renewed! It is now live on the Marketplace for another 5 months.');
+    setTimeout(() => setMktNotice(''), 4000);
+  };
+
+  const handleDeleteMarketplace = (itemId) => {
+    if (window.confirm('Are you sure you want to delete this listing from the database?')) {
+      deleteMarketplaceListing(itemId);
+      setMktNotice('Listing removed from database.');
+      setTimeout(() => setMktNotice(''), 3000);
+    }
   };
 
   // Edit Subject Details state
@@ -294,11 +382,35 @@ export default function CreatorStudio() {
       enrollInPlaylist(newPlId);
     }
 
-    setStTitle(''); setStDesc(''); setStAuthor(''); setStYtUrl(''); setStBannerUrl('');
+    setStTitle(''); setStDesc(''); setStAuthor(''); setStYtUrl('');
+    setStIsPublic(true);
     setShowStandalonePlaylistForm(false);
   };
 
   const isAdmin = currentUser.role === 'admin' || currentUser.role === 'owner';
+
+  const myPlaylists = useMemo(() => {
+    const list = [];
+    (subjects || []).forEach(sub => {
+      (sub.playlists || []).forEach(pl => {
+        const isAuthored = (pl.author && pl.author.toLowerCase() === (currentUser?.name || '').toLowerCase()) ||
+                           pl.author === 'Educator' ||
+                           pl.isUserCreated;
+        if (isAuthored || isAdmin) {
+          list.push({ ...pl, subjectTitle: sub.title });
+        }
+      });
+    });
+    return list;
+  }, [subjects, currentUser, isAdmin]);
+
+  const myResources = useMemo(() => {
+    return (standaloneResources || []).filter(r => {
+      return (r.author && r.author.toLowerCase() === (currentUser?.name || '').toLowerCase()) ||
+             r.isUserCreated ||
+             isAdmin;
+    });
+  }, [standaloneResources, currentUser, isAdmin]);
 
   const myCourses = courses.filter(c => isAdmin ? true : (c.creatorId === currentUser.id && !c.isDegree));
   const activeCourse = courses.find(c => c.id === activeCourseId);
@@ -512,22 +624,62 @@ export default function CreatorStudio() {
       <section style={styles.studioBanner} className="glass-panel">
         <div>
           <h2 style={{ fontSize: '1.8rem', marginBottom: '6px' }} className="primary-gradient-text">
-            Syllabus Studio Workspace
+            Studio Workspace
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            Build degree programs, design subjects, attach playlists, and upload reference materials.
+            Campus Academic & Marketplace Hub. Share course playlists, upload open study resources, and list items for sale.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button onClick={() => setShowStandalonePlaylistForm(!showStandalonePlaylistForm)} className="btn btn-primary" style={{ gap: '6px' }}>
-            <Plus size={16} /> Create Standalone Playlist
+          <button
+            onClick={() => {
+              setShowStandalonePlaylistForm(!showStandalonePlaylistForm);
+              setShowStandaloneForm(false);
+              setShowSellForm(false);
+              setShowCourseForm(false);
+            }}
+            className="btn btn-primary"
+            style={{ gap: '6px' }}
+          >
+            <Plus size={16} /> Share Course / Playlist Link
           </button>
-          <button onClick={() => setShowStandaloneForm(!showStandaloneForm)} className="btn btn-secondary" style={{ gap: '6px' }}>
-            <Plus size={16} /> Publish Open Resource
+          <button
+            onClick={() => {
+              setShowStandaloneForm(!showStandaloneForm);
+              setShowStandalonePlaylistForm(false);
+              setShowSellForm(false);
+              setShowCourseForm(false);
+            }}
+            className="btn btn-secondary"
+            style={{ gap: '6px' }}
+          >
+            <Plus size={16} /> Share Open Resource
+          </button>
+          <button
+            onClick={() => {
+              setShowSellForm(!showSellForm);
+              setShowStandalonePlaylistForm(false);
+              setShowStandaloneForm(false);
+              setShowCourseForm(false);
+            }}
+            className="btn btn-secondary"
+            style={{ gap: '6px' }}
+          >
+            <Tag size={16} /> Sell on Marketplace
           </button>
           {isAdmin && (
-            <button onClick={() => { setShowCourseForm(!showCourseForm); setActiveCourseId(null); }} className="btn btn-secondary" style={{ gap: '6px' }}>
-              <FolderPlus size={16} /> Create Program / Course
+            <button
+              onClick={() => {
+                setShowCourseForm(!showCourseForm);
+                setShowStandalonePlaylistForm(false);
+                setShowStandaloneForm(false);
+                setShowSellForm(false);
+                setStudioMode('curriculum');
+              }}
+              className="btn btn-secondary"
+              style={{ gap: '6px' }}
+            >
+              <FolderPlus size={16} /> Degree Program Architect
             </button>
           )}
         </div>
@@ -569,6 +721,56 @@ export default function CreatorStudio() {
           <div style={{ marginBottom: '14px' }}>
             <label className="form-label" style={{ fontSize: '0.78rem' }}>Playlist Description (optional)</label>
             <textarea className="form-input" rows={2} placeholder="Brief details about what this playlist series covers..." value={stDesc} onChange={(e) => setStDesc(e.target.value)} />
+          </div>
+
+          <div style={{ marginBottom: '14px' }}>
+            <label className="form-label" style={{ fontSize: '0.78rem' }}>Visibility & Academic Sharing</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setStIsPublic(true)}
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  border: stIsPublic ? '1px solid #10b981' : '1px solid var(--border-subtle)',
+                  background: stIsPublic ? 'rgba(16,185,129,0.1)' : 'transparent',
+                  color: stIsPublic ? 'var(--text-primary)' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  textAlign: 'left'
+                }}
+              >
+                <Globe size={15} color={stIsPublic ? '#10b981' : 'currentColor'} />
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.8rem' }}>Public (Default)</div>
+                  <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>Campus scholars can find this in Courses & Vault</div>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStIsPublic(false)}
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  border: !stIsPublic ? '1px solid var(--border-strong)' : '1px solid var(--border-subtle)',
+                  background: !stIsPublic ? 'rgba(255, 255, 255, 0.06)' : 'transparent',
+                  color: !stIsPublic ? 'var(--text-primary)' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  textAlign: 'left'
+                }}
+              >
+                <Lock size={15} />
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.8rem' }}>Private</div>
+                  <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>Only in your personal workspace</div>
+                </div>
+              </button>
+            </div>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
@@ -653,9 +855,200 @@ export default function CreatorStudio() {
             />
           </div>
 
+          <div style={{ marginBottom: '14px' }}>
+            <label className="form-label" style={{ fontSize: '0.78rem' }}>Visibility & Academic Sharing</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setResIsPublic(true)}
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  border: resIsPublic ? '1px solid #10b981' : '1px solid var(--border-subtle)',
+                  background: resIsPublic ? 'rgba(16,185,129,0.1)' : 'transparent',
+                  color: resIsPublic ? 'var(--text-primary)' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  textAlign: 'left'
+                }}
+              >
+                <Globe size={15} color={resIsPublic ? '#10b981' : 'currentColor'} />
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.8rem' }}>Public (Default)</div>
+                  <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>Campus scholars can find this in Academic Vault</div>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setResIsPublic(false)}
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  border: !resIsPublic ? '1px solid var(--border-strong)' : '1px solid var(--border-subtle)',
+                  background: !resIsPublic ? 'rgba(255, 255, 255, 0.06)' : 'transparent',
+                  color: !resIsPublic ? 'var(--text-primary)' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  textAlign: 'left'
+                }}
+              >
+                <Lock size={15} />
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.8rem' }}>Private</div>
+                  <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>Only in your personal workspace</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
             <button type="button" className="btn btn-secondary" onClick={() => setShowStandaloneForm(false)}>Cancel</button>
             <button type="submit" className="btn btn-primary">Publish Open Resource</button>
+          </div>
+        </form>
+      )}
+
+      {/* SELL ON MARKETPLACE FORM */}
+      {showSellForm && (
+        <form onSubmit={handlePublishMarketplaceListing} className="glass-panel animate-fade-in" style={{ padding: '22px', marginBottom: '22px', textAlign: 'left', borderRadius: '14px', border: '1px solid rgba(20, 20, 19, 0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <h3 style={{ fontSize: '1.2rem', margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Tag size={18} color="var(--primary)" /> Sell on Campus Marketplace
+            </h3>
+            <button type="button" onClick={() => setShowSellForm(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+              <X size={18} />
+            </button>
+          </div>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.5 }}>
+            List your textbooks, notes, lab kits, drawing drafters, or peer mentoring gear. Your item remains active on the Marketplace for <strong>5 months (~150 days)</strong>. After 5 months, it stays in your Studio for <strong>1 month grace period</strong> where you can relist or renew it anytime.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '14px' }}>
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>Item Title / Heading *</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="e.g. Omega Mini Drafter with Board, ESP32 Dev Kit..."
+                value={mktTitle}
+                onChange={(e) => setMktTitle(e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>Category *</label>
+              <select
+                className="form-input"
+                value={mktCategory}
+                onChange={(e) => setMktCategory(e.target.value)}
+              >
+                <option value="Books & Notes">Books & Notes</option>
+                <option value="Hardware Kits">Hardware Kits</option>
+                <option value="Tools & Gear">Tools & Gear</option>
+                <option value="Services">Services</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>Price (₹ or Free) *</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="e.g. 450 or Free"
+                value={mktPrice}
+                onChange={(e) => setMktPrice(e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>Your Display Name</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="e.g. Rahul (CSE, 3rd Year)"
+                value={mktSellerName}
+                onChange={(e) => setMktSellerName(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '14px' }}>
+            <label className="form-label" style={{ fontSize: '0.78rem' }}>Condition & Description *</label>
+            <textarea
+              className="form-input"
+              rows={3}
+              placeholder="Describe condition, semester used, included accessories or meetup location on campus..."
+              value={mktDesc}
+              onChange={(e) => setMktDesc(e.target.value)}
+              required
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '14px' }}>
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>Contact Channel *</label>
+              <select
+                className="form-input"
+                value={mktContactMethod}
+                onChange={(e) => setMktContactMethod(e.target.value)}
+              >
+                <option value="whatsapp">WhatsApp</option>
+                <option value="telegram">Telegram</option>
+                <option value="phone">Direct Phone Call</option>
+                <option value="linkedin">LinkedIn Profile</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>
+                {mktContactMethod === 'whatsapp' ? 'WhatsApp Number (10 digits) *' :
+                 mktContactMethod === 'telegram' ? 'Telegram Handle *' :
+                 mktContactMethod === 'phone' ? 'Phone Number *' : 'Profile Link *'}
+              </label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder={mktContactMethod === 'whatsapp' ? 'e.g. 9876543210' : 'Contact detail'}
+                value={mktContactDetail}
+                onChange={(e) => setMktContactDetail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>Keywords / Search Tags</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="e.g. drafter, mechanical, drawing (comma-separated)"
+                value={mktKeywords}
+                onChange={(e) => setMktKeywords(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="form-label" style={{ fontSize: '0.78rem' }}>Product Image URL (Optional)</label>
+              <input
+                type="url"
+                className="form-input"
+                placeholder="https://images.unsplash.com/..."
+                value={mktImageUrl}
+                onChange={(e) => setMktImageUrl(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowSellForm(false)}>Cancel</button>
+            <button type="submit" className="btn btn-primary" style={{ gap: '6px' }}>
+              <Tag size={15} /> Publish Listing (Active for 5 Months)
+            </button>
           </div>
         </form>
       )}
@@ -728,14 +1121,401 @@ export default function CreatorStudio() {
         </form>
       )}
 
+      {/* SUCCESS / NOTICE BANNERS */}
       {resSuccess && (
-        <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', color: '#34d399', marginBottom: '20px', textAlign: 'left', fontSize: '0.85rem' }}>
+        <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', color: '#34d399', marginBottom: '16px', textAlign: 'left', fontSize: '0.85rem' }}>
           ✔ {resSuccess}
         </div>
       )}
+      {mktNotice && (
+        <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', color: '#34d399', marginBottom: '16px', textAlign: 'left', fontSize: '0.85rem' }}>
+          ✔ {mktNotice}
+        </div>
+      )}
 
-      {/* Main Grid */}
-      <div className="studio-main-grid">
+      {/* STUDIO MODE SWITCHER TABS */}
+      <div className="flex items-center justify-between border-b border-border-subtle pb-3 mb-4 flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setStudioMode('creations')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              studioMode === 'creations'
+                ? 'bg-accent-ink text-text-on-dark shadow-sm'
+                : 'bg-surface text-text-secondary border border-border-subtle hover:bg-surface-hover hover:text-text-primary'
+            }`}
+          >
+            <Sparkles size={14} />
+            <span>My Studio Creations & Listings</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-accent-forest/20 text-accent-forest font-mono-tabular">
+              {marketplaceListings.length + myPlaylists.length + myResources.length}
+            </span>
+          </button>
+
+          {(isAdmin || activeCourse) && (
+            <button
+              onClick={() => setStudioMode('curriculum')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                studioMode === 'curriculum'
+                  ? 'bg-accent-ink text-text-on-dark shadow-sm'
+                  : 'bg-surface text-text-secondary border border-border-subtle hover:bg-surface-hover hover:text-text-primary'
+              }`}
+            >
+              <Layers size={14} />
+              <span>Degree Curriculum Architect</span>
+            </button>
+          )}
+        </div>
+
+        {studioMode === 'creations' && (
+          <div className="text-[11px] font-mono-tabular text-text-muted">
+            STUDIO CENTRAL DASHBOARD
+          </div>
+        )}
+      </div>
+
+      {/* =================================================================
+          STUDIO MODE 1: MY CREATIONS & LISTINGS DASHBOARD
+      ================================================================= */}
+      {studioMode === 'creations' && (
+        <div className="space-y-6 animate-fade-in text-left">
+          {/* Sub-tab Switcher Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <button
+              onClick={() => setCreationsSubTab('marketplace')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
+                creationsSubTab === 'marketplace'
+                  ? 'bg-accent-ink text-text-on-dark shadow-xs'
+                  : 'bg-surface border border-border-subtle text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+              }`}
+            >
+              <Tag size={13} />
+              <span>Marketplace Listings ({marketplaceListings.length})</span>
+            </button>
+
+            <button
+              onClick={() => setCreationsSubTab('courses')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
+                creationsSubTab === 'courses'
+                  ? 'bg-accent-ink text-text-on-dark shadow-xs'
+                  : 'bg-surface border border-border-subtle text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+              }`}
+            >
+              <Video size={13} />
+              <span>Courses & Playlists ({myPlaylists.length})</span>
+            </button>
+
+            <button
+              onClick={() => setCreationsSubTab('resources')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
+                creationsSubTab === 'resources'
+                  ? 'bg-accent-ink text-text-on-dark shadow-xs'
+                  : 'bg-surface border border-border-subtle text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+              }`}
+            >
+              <FileText size={13} />
+              <span>Open Study Resources ({myResources.length})</span>
+            </button>
+          </div>
+
+          {/* SUB-TAB 1: MARKETPLACE LISTINGS */}
+          {creationsSubTab === 'marketplace' && (
+            <div className="space-y-4">
+              <div className="p-4 rounded-xl border border-border-subtle bg-surface-sunken flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-xs font-bold text-text-primary uppercase tracking-wider font-mono-tabular">
+                    Marketplace Lifecycle Terms
+                  </h4>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    Items remain active on campus Marketplace for <strong>5 months (150 days)</strong>. After 5 months, items stay in your Studio for a <strong>1-month grace period</strong> where you can relist or renew anytime before permanent database deletion.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowSellForm(true)}
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-accent-ink text-text-on-dark flex items-center gap-1.5 shrink-0 hover:opacity-95 cursor-pointer shadow-xs"
+                >
+                  <Plus size={13} />
+                  <span>Sell Something</span>
+                </button>
+              </div>
+
+              {marketplaceListings.length === 0 ? (
+                <div className="text-center py-12 p-6 rounded-2xl border border-border-subtle bg-surface space-y-3">
+                  <ShoppingBag size={32} className="text-text-muted mx-auto" />
+                  <h4 className="text-sm font-bold text-text-primary">No Marketplace Items Listed Yet</h4>
+                  <p className="text-xs text-text-secondary max-w-sm mx-auto">
+                    Sell your used semester textbooks, drawing drafters, lab aprons, or offer 1-on-1 tutoring services to peers across campus.
+                  </p>
+                  <button
+                    onClick={() => setShowSellForm(true)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs inline-flex items-center gap-1.5"
+                  >
+                    <Plus size={13} />
+                    <span>List Item on Marketplace</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {marketplaceListings.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-2xl border border-border-subtle bg-surface hover:border-border-strong p-4 sm:p-5 flex flex-col justify-between space-y-3 shadow-xs transition-all"
+                    >
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between gap-2 pb-2 border-b border-border-subtle">
+                          <span className="text-[10px] font-mono-tabular font-bold px-2 py-0.5 rounded bg-subtle text-text-secondary">
+                            {item.category}
+                          </span>
+                          <span className="text-sm font-bold text-accent-forest font-mono-tabular">
+                            {item.price}
+                          </span>
+                        </div>
+
+                        {item.imageUrl && (
+                          <div className="aspect-video w-full rounded-xl overflow-hidden bg-black/5 border border-border-subtle">
+                            <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+                          </div>
+                        )}
+
+                        <div>
+                          <h4 className="text-sm font-bold text-text-primary line-clamp-1">
+                            {item.title}
+                          </h4>
+                          <p className="text-xs text-text-secondary line-clamp-2 mt-1 leading-relaxed">
+                            {item.description}
+                          </p>
+                        </div>
+
+                        {/* Lifecycle Status & Countdown */}
+                        <div className="p-2.5 rounded-xl border border-border-subtle bg-surface-sunken space-y-1">
+                          <div className="flex items-center justify-between text-[11px] font-mono-tabular">
+                            {item.isMarketplaceActive ? (
+                              <span className="text-emerald-500 font-bold flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                Live on Marketplace
+                              </span>
+                            ) : (
+                              <span className="text-amber-500 font-bold flex items-center gap-1.5">
+                                <Clock size={12} />
+                                In Studio Grace Period
+                              </span>
+                            )}
+                            <span className="text-text-muted font-bold">
+                              {item.isMarketplaceActive
+                                ? `${item.daysLeftOnMarketplace} days left`
+                                : `${item.daysLeftInGrace} days before purge`}
+                            </span>
+                          </div>
+                          <div className="w-full bg-border-subtle h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${item.isMarketplaceActive ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                              style={{
+                                width: item.isMarketplaceActive
+                                  ? `${Math.max(5, (item.daysLeftOnMarketplace / 150) * 100)}%`
+                                  : `${Math.max(5, (item.daysLeftInGrace / 30) * 100)}%`
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card Actions */}
+                      <div className="pt-2 flex items-center justify-between gap-2 border-t border-border-subtle">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleRelistMarketplace(item.id)}
+                            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-accent-forest/10 text-accent-forest hover:bg-accent-forest/20 flex items-center gap-1.5 cursor-pointer transition-colors"
+                            title="Renew or relist for another 5 months on Marketplace"
+                          >
+                            <RotateCw size={12} />
+                            <span>Relist 5 Mos</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMarketplace(item.id)}
+                            className="p-1.5 rounded-lg text-xs text-text-muted hover:text-red-500 cursor-pointer transition-colors"
+                            title="Delete listing permanently"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+
+                        {item.isMarketplaceActive && setCurrentView && (
+                          <button
+                            onClick={() => setCurrentView('marketplace')}
+                            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-secondary flex items-center gap-1 cursor-pointer transition-colors"
+                          >
+                            <span>Marketplace</span>
+                            <ExternalLink size={11} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SUB-TAB 2: COURSES & PLAYLISTS */}
+          {creationsSubTab === 'courses' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-1">
+                <span className="text-xs font-mono-tabular font-bold text-text-muted uppercase">
+                  My Authored & Uploaded Playlists ({myPlaylists.length})
+                </span>
+                <button
+                  onClick={() => setShowStandalonePlaylistForm(true)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-accent-ink text-text-on-dark flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <Plus size={13} />
+                  <span>Share New Playlist</span>
+                </button>
+              </div>
+
+              {myPlaylists.length === 0 ? (
+                <div className="text-center py-12 p-6 rounded-2xl border border-border-subtle bg-surface space-y-3">
+                  <Video size={32} className="text-text-muted mx-auto" />
+                  <h4 className="text-sm font-bold text-text-primary">No Playlists Shared Yet</h4>
+                  <p className="text-xs text-text-secondary max-w-sm mx-auto">
+                    Paste any YouTube playlist link to index a high-yield lecture series with chaptered playback.
+                  </p>
+                  <button
+                    onClick={() => setShowStandalonePlaylistForm(true)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs"
+                  >
+                    Share Playlist
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {myPlaylists.map((pl) => (
+                    <div
+                      key={pl.id}
+                      className="rounded-2xl border border-border-subtle bg-surface p-4 sm:p-5 flex flex-col justify-between space-y-3 shadow-xs"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono-tabular font-bold px-2 py-0.5 rounded bg-subtle text-text-secondary">
+                            {pl.subjectTitle || 'Course Playlist'}
+                          </span>
+                          <span className="text-[10px] font-mono-tabular text-accent-forest font-semibold">
+                            {pl.videos?.length || 0} Lectures
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-bold text-text-primary line-clamp-1">{pl.title}</h4>
+                        <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed">{pl.description || 'Curated academic video series.'}</p>
+                      </div>
+
+                      <div className="pt-2 flex items-center justify-between gap-2 border-t border-border-subtle">
+                        <span className="text-[10px] font-mono-tabular text-text-muted truncate max-w-[140px]">
+                          By {pl.author || 'Educator'}
+                        </span>
+                        {setSelectedPlaylistId && setCurrentView && (
+                          <button
+                            onClick={() => {
+                              setSelectedPlaylistId(pl.id);
+                              setCurrentView('learning-player');
+                            }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-accent-ink text-text-on-dark flex items-center gap-1.5 hover:opacity-95 cursor-pointer shadow-xs"
+                          >
+                            <Play size={11} fill="currentColor" />
+                            <span>Watch</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SUB-TAB 3: STUDY RESOURCES */}
+          {creationsSubTab === 'resources' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-1">
+                <span className="text-xs font-mono-tabular font-bold text-text-muted uppercase">
+                  My Shared Documents & Notes ({myResources.length})
+                </span>
+                <button
+                  onClick={() => setShowStandaloneForm(true)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-accent-ink text-text-on-dark flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <Plus size={13} />
+                  <span>Publish New Resource</span>
+                </button>
+              </div>
+
+              {myResources.length === 0 ? (
+                <div className="text-center py-12 p-6 rounded-2xl border border-border-subtle bg-surface space-y-3">
+                  <FileText size={32} className="text-text-muted mx-auto" />
+                  <h4 className="text-sm font-bold text-text-primary">No Study Resources Shared Yet</h4>
+                  <p className="text-xs text-text-secondary max-w-sm mx-auto">
+                    Upload or link semester formula sheets, handwritten notes, lab manuals, or PYQ solutions.
+                  </p>
+                  <button
+                    onClick={() => setShowStandaloneForm(true)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs"
+                  >
+                    Publish Resource
+                  </button>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-border-subtle bg-surface divide-y divide-border-subtle overflow-hidden">
+                  {myResources.map((res) => (
+                    <div key={res.id} className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-surface-hover/60 transition-colors">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[10px] font-mono-tabular font-bold px-1.5 py-0.2 rounded bg-subtle text-text-secondary">
+                            {res.category || 'Reference'}
+                          </span>
+                          <span className="text-[10px] font-mono-tabular text-text-muted uppercase">
+                            {res.type || 'PDF'}
+                          </span>
+                        </div>
+                        <h4 className="text-xs sm:text-sm font-bold text-text-primary truncate">{res.title}</h4>
+                        <p className="text-[11px] text-text-secondary truncate mt-0.5">{res.description || res.url}</p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                        {res.url && (
+                          <a
+                            href={res.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-primary flex items-center gap-1.5 transition-colors"
+                          >
+                            <span>Open</span>
+                            <ExternalLink size={11} />
+                          </a>
+                        )}
+                        {typeof deleteStandaloneResource === 'function' && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Delete resource "${res.title}"?`)) {
+                                deleteStandaloneResource(res.id);
+                              }
+                            }}
+                            className="p-1.5 rounded-lg text-text-muted hover:text-red-500 cursor-pointer transition-colors"
+                            title="Delete Resource"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* =================================================================
+          STUDIO MODE 2: DEGREE CURRICULUM ARCHITECT (Existing Engine)
+      ================================================================= */}
+      {studioMode === 'curriculum' && (
+        <div className="studio-main-grid animate-fade-in">
 
         {/* LEFT: Course List */}
         <div style={styles.leftColumn} className="glass-panel">
@@ -1463,6 +2243,7 @@ export default function CreatorStudio() {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }

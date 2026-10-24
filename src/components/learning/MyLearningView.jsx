@@ -29,6 +29,7 @@ import {
   Code2,
   GraduationCap,
   Lock,
+  Globe,
   Copy
 } from 'lucide-react';
 import { calculateAttendanceMetrics } from '../../utils/attendanceMath';
@@ -214,11 +215,12 @@ export default function MyLearningView({
   // Inline Add Form State ('subfolder' | 'item' | null)
   const [inlineAddType, setInlineAddType] = useState(null);
   const [newSubfolderName, setNewSubfolderName] = useState('');
+  const [subfolderIsPublic, setSubfolderIsPublic] = useState(true); // Default Public
   const [itemTitle, setItemTitle] = useState('');
   const [itemUrl, setItemUrl] = useState('');
   const [itemType, setItemType] = useState('playlist');
   const [itemAuthor, setItemAuthor] = useState('');
-  const [publishPublicly, setPublishPublicly] = useState(false);
+  const [publishPublicly, setPublishPublicly] = useState(true); // Default Public
   const [folderNotice, setFolderNotice] = useState('');
 
   const saveFolders = (newFolders) => {
@@ -300,6 +302,7 @@ export default function MyLearningView({
     const newSub = {
       id: `sub-${Date.now()}`,
       title: newSubfolderName.trim(),
+      isPublic: subfolderIsPublic,
       subfolders: [],
       items: []
     };
@@ -311,8 +314,9 @@ export default function MyLearningView({
 
     saveFolders(updated);
     setNewSubfolderName('');
+    setSubfolderIsPublic(true);
     setInlineAddType(null);
-    setFolderNotice(`Subfolder "${newSub.title}" created!`);
+    setFolderNotice(`Subfolder "${newSub.title}" created (${subfolderIsPublic ? 'Public' : 'Private'})!`);
     setTimeout(() => setFolderNotice(''), 3000);
   };
 
@@ -335,6 +339,7 @@ export default function MyLearningView({
       title: itemTitle.trim(),
       url: itemUrl.trim(),
       type: itemType,
+      isPublic: publishPublicly,
       author: itemAuthor.trim() || currentUser?.name || 'Scholar',
       count:
         itemType === 'playlist'
@@ -353,15 +358,15 @@ export default function MyLearningView({
       newItem.playlistId = listMatch[1];
     }
 
-    if (publishPublicly && typeof addStandaloneResource === 'function' && itemType === 'document') {
+    if (publishPublicly && typeof addStandaloneResource === 'function') {
       addStandaloneResource({
         title: itemTitle.trim(),
         url: itemUrl.trim(),
-        type: 'pdf',
-        category: 'Community Notes',
-        description: `Shared by ${currentUser?.name || 'Scholar'}`,
-        author: currentUser?.name || 'Scholar',
-        keywords: ['makaut', 'student notes', itemTitle.toLowerCase()]
+        type: itemType === 'document' ? 'pdf' : 'link',
+        category: activeRootFolderId === 'academic' ? 'Academic Vault Course Resource' : 'Community Shared Resource',
+        description: `Shared by ${currentUser?.name || 'Scholar'} from ${activeNode?.title || 'Academics'}`,
+        author: itemAuthor.trim() || currentUser?.name || 'Scholar',
+        keywords: ['campus', 'academic', itemTitle.toLowerCase()]
       });
     }
 
@@ -375,9 +380,9 @@ export default function MyLearningView({
     setItemUrl('');
     setItemAuthor('');
     setItemType('playlist');
-    setPublishPublicly(false);
+    setPublishPublicly(true);
     setInlineAddType(null);
-    setFolderNotice(`Added "${newItem.title}"!`);
+    setFolderNotice(`Added "${newItem.title}" (${publishPublicly ? 'Public' : 'Private'})!`);
     setTimeout(() => setFolderNotice(''), 3000);
   };
 
@@ -589,6 +594,38 @@ export default function MyLearningView({
                   />
                 </div>
 
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary mb-1">
+                    Folder Visibility
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSubfolderIsPublic(true)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs cursor-pointer transition-colors ${
+                        subfolderIsPublic
+                          ? 'border-accent-forest bg-accent-forest/10 text-accent-forest font-semibold'
+                          : 'border-border-subtle bg-canvas text-text-muted hover:text-text-primary'
+                      }`}
+                    >
+                      <Globe size={13} />
+                      <span className="text-left">Public (Campus)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSubfolderIsPublic(false)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs cursor-pointer transition-colors ${
+                        !subfolderIsPublic
+                          ? 'border-accent-ink bg-surface-hover text-text-primary font-semibold'
+                          : 'border-border-subtle bg-canvas text-text-muted hover:text-text-primary'
+                      }`}
+                    >
+                      <Lock size={13} />
+                      <span className="text-left">Private (Workspace)</span>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="pt-2 flex items-center justify-end gap-2 border-t border-border-subtle">
                   <button
                     type="button"
@@ -688,6 +725,45 @@ export default function MyLearningView({
                   </div>
                 </div>
 
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary mb-1">
+                    Visibility & Academic Sharing
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setPublishPublicly(true)}
+                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border text-xs cursor-pointer transition-colors ${
+                        publishPublicly
+                          ? 'border-accent-forest bg-accent-forest/10 text-accent-forest font-semibold'
+                          : 'border-border-subtle bg-canvas text-text-muted hover:text-text-primary'
+                      }`}
+                    >
+                      <Globe size={15} className="shrink-0 text-accent-forest" />
+                      <div className="text-left">
+                        <div className="font-semibold text-text-primary">Public (Default)</div>
+                        <div className="text-[10px] text-text-muted">Available to all scholars across campus</div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPublishPublicly(false)}
+                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border text-xs cursor-pointer transition-colors ${
+                        !publishPublicly
+                          ? 'border-accent-ink bg-surface-hover text-text-primary font-semibold'
+                          : 'border-border-subtle bg-canvas text-text-muted hover:text-text-primary'
+                      }`}
+                    >
+                      <Lock size={15} className="shrink-0 text-text-secondary" />
+                      <div className="text-left">
+                        <div className="font-semibold text-text-primary">Private</div>
+                        <div className="text-[10px] text-text-muted">Only visible in your personal folder</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="pt-2 flex items-center justify-end gap-2 border-t border-border-subtle">
                   <button
                     type="button"
@@ -753,9 +829,16 @@ export default function MyLearningView({
                       <h4 className="text-xs sm:text-sm font-bold text-text-primary group-hover:text-accent-forest transition-colors truncate">
                         {sf.title}
                       </h4>
-                      <span className="text-[10px] sm:text-[11px] font-mono-tabular text-text-muted mt-0.5 block">
-                        {(sf.subfolders?.length || 0)} subfolders • {(sf.items?.length || 0)} items
-                      </span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-[10px] sm:text-[11px] font-mono-tabular text-text-muted">
+                          {(sf.subfolders?.length || 0)} subfolders • {(sf.items?.length || 0)} items
+                        </span>
+                        {sf.isPublic === false ? (
+                          <span className="inline-flex items-center text-[9px] px-1 py-0.2 rounded bg-surface-hover text-text-muted border border-border-subtle" title="Private Subfolder">
+                            <Lock size={8} />
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -796,10 +879,19 @@ export default function MyLearningView({
                         <h4 className="text-xs sm:text-sm font-bold text-text-primary truncate">
                           {item.title}
                         </h4>
-                        <div className="flex items-center gap-2 text-[10px] sm:text-[11px] font-mono-tabular text-text-muted mt-0.5">
+                        <div className="flex items-center gap-2 text-[10px] sm:text-[11px] font-mono-tabular text-text-muted mt-0.5 flex-wrap">
                           <span>{item.author || 'University Resource'}</span>
                           <span>•</span>
                           <span>{item.count || (item.type === 'playlist' ? 'Video Series' : 'Resource')}</span>
+                          {item.isPublic === false ? (
+                            <span className="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded bg-surface-hover text-text-muted border border-border-subtle">
+                              <Lock size={9} /> Private
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded bg-accent-forest/10 text-accent-forest font-medium">
+                              <Globe size={9} /> Public
+                            </span>
+                          )}
                           {item.date && (
                             <>
                               <span>•</span>

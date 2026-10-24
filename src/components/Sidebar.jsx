@@ -34,7 +34,7 @@ export default function Sidebar({
     { id: 'attendance', label: 'Attendance Tracker', icon: Calendar },
     { id: 'resources', label: 'Resources View', icon: FileText },
     { id: 'marketplace', label: 'Marketplace', icon: ShoppingBag },
-    { id: 'studio', label: 'Creator Studio', icon: Users },
+    { id: 'studio', label: 'Studio', icon: Users },
   ];
 
   const isAdminOrOwner = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner');

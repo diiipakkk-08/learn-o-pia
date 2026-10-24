@@ -783,7 +783,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
                 style={styles.mobileNavItem}
               >
                 <Sparkles size={20} color="#a78bfa" />
-                <span>Creator Studio Workspace</span>
+                <span>Studio Workspace</span>
               </button>
             )}
             {(currentUser.role === 'admin' || currentUser.role === 'owner') && (

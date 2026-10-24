@@ -319,7 +319,7 @@ export default function Header({
                   className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover text-left transition-colors"
                 >
                   <Sparkles size={15} />
-                  <span>Creator Studio</span>
+                  <span>Studio</span>
                 </button>
 
                 {isAdmin && (

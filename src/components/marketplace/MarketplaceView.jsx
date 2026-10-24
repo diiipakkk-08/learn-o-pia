@@ -25,159 +25,20 @@ import {
   User,
   ArrowLeft
 } from 'lucide-react';
+import { getActiveMarketplaceItems, deleteMarketplaceListing } from '../../utils/marketplaceStorage';
 
-const SEEDED_MARKETPLACE_ITEMS = [
-  {
-    id: 'mkt-1',
-    title: 'MAKAUT 1st & 2nd Year B.Tech Complete Organizer & Solved PYQs',
-    category: 'Books & Notes',
-    price: '₹150',
-    author: 'Sneha Roy (CSE, 3rd Year)',
-    rating: 4.9,
-    reviews: 142,
-    badge: 'Verified Notes',
-    description: 'Complete physical semester organizers for Engineering Mathematics, Basic Electrical, Physics, and Data Structures with handwritten step-by-step solutions.',
-    tag: 'CSE & IT',
-    keywords: 'organizer, pyq, makaut, mathematics, physics',
-    contactMethod: 'whatsapp',
-    contactDetail: '9876543210',
-    imageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80',
-    createdAt: '2026-10-20'
-  },
-  {
-    id: 'mkt-2',
-    title: 'GATE CSE Comprehensive Handwritten Master Notebooks',
-    category: 'Books & Notes',
-    price: '₹299',
-    author: 'Arjun Banerjee (Topper)',
-    rating: 5.0,
-    reviews: 87,
-    badge: 'Staff Pick',
-    description: 'Color-coded handwritten notebooks covering Discrete Math, Algorithms, DBMS, OS, and CN with 15-year past question analysis.',
-    tag: 'GATE Exam',
-    keywords: 'gate, cse, algorithms, handwritten notes',
-    contactMethod: 'telegram',
-    contactDetail: 'arjun_gate_cse',
-    imageUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=600&q=80',
-    createdAt: '2026-10-21'
-  },
-  {
-    id: 'mkt-3',
-    title: 'ESP32-WROOM & STM32 Microcontroller IoT Lab Starter Kit',
-    category: 'Hardware Kits',
-    price: '₹1,199',
-    author: 'Robotics & Embedded Club',
-    rating: 4.8,
-    reviews: 64,
-    badge: 'Tested & Working',
-    description: 'Complete working kit with pre-soldered ESP32 development board, breadboard, OLED I2C display, DHT11, and ultrasonic distance sensors for college projects.',
-    tag: 'Electronics & IoT',
-    keywords: 'esp32, stm32, iot, breadboard, sensors, robotics',
-    contactMethod: 'whatsapp',
-    contactDetail: '9830123456',
-    imageUrl: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?auto=format&fit=crop&w=600&q=80',
-    createdAt: '2026-10-22'
-  },
-  {
-    id: 'mkt-4',
-    title: 'Microprocessor 8085 Physical Simulation Trainer Kit with Keypad',
-    category: 'Hardware Kits',
-    price: '₹2,450',
-    author: 'ECE Hardware Collective',
-    rating: 4.7,
-    reviews: 38,
-    badge: 'Lab Equipment',
-    description: 'Physical 8085 trainer kit with 8255 PPI interface, pre-programmed monitor ROM, and 7-segment display for college assembly language practicals.',
-    tag: 'ECE & EE',
-    keywords: '8085, microprocessor, assembly language, trainer kit',
-    contactMethod: 'whatsapp',
-    contactDetail: '9831987654',
-    imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=600&q=80',
-    createdAt: '2026-10-22'
-  },
-  {
-    id: 'mkt-5',
-    title: 'Omega Mini Drafter with Precision Compass & Pine Drawing Board',
-    category: 'Tools & Gear',
-    price: '₹450',
-    author: 'Subhashis Ghosh (Mechanical)',
-    rating: 4.9,
-    reviews: 95,
-    badge: 'Good Condition',
-    description: 'Pristine condition mini drafter with clamp, steel rule, and 24x36 inch pine-wood drawing board used for Engineering Graphics & Design.',
-    tag: 'Mechanical & Civil',
-    keywords: 'mini drafter, drawing board, engineering graphics, edg',
-    contactMethod: 'whatsapp',
-    contactDetail: '9874561230',
-    imageUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80',
-    createdAt: '2026-10-23'
-  },
-  {
-    id: 'mkt-6',
-    title: 'Standard White University Lab Coat & Safety Glasses (Size 40)',
-    category: 'Tools & Gear',
-    price: '₹180',
-    author: 'Debolina Paul (EE Dept)',
-    rating: 4.8,
-    reviews: 42,
-    badge: 'Clean & Washed',
-    description: '100% cotton laboratory apron required for Chemistry, Physics, and Electrical Workshop practicals. Clean, washed, no stains.',
-    tag: 'Workshop',
-    keywords: 'lab coat, apron, safety glasses, chemistry lab',
-    contactMethod: 'whatsapp',
-    contactDetail: '9832145678',
-    imageUrl: 'https://images.unsplash.com/photo-1584362917165-526a968579e8?auto=format&fit=crop&w=600&q=80',
-    createdAt: '2026-10-23'
-  },
-  {
-    id: 'mkt-7',
-    title: '1-on-1 DSA Problem-Solving & Technical Mock Interview Mentorship',
-    category: 'Services',
-    price: '₹199 / hr',
-    author: 'Rahul Sen (Adobe SDE Intern)',
-    rating: 4.95,
-    reviews: 58,
-    badge: 'Verified Mentor',
-    description: 'Personalized 45-minute live debugging, dynamic programming intuition, and mock technical interview practice session on Google Meet.',
-    tag: 'Mentorship',
-    keywords: 'dsa, interview, coding, mentorship, leetcode',
-    contactMethod: 'whatsapp',
-    contactDetail: '9876501234',
-    imageUrl: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=600&q=80',
-    createdAt: '2026-10-24'
-  },
-  {
-    id: 'mkt-8',
-    title: 'B.Tech Minor/Major Project Circuit Debugging & KiCad Review',
-    category: 'Services',
-    price: '₹350',
-    author: 'Tech Support Guild',
-    rating: 4.9,
-    reviews: 29,
-    badge: 'Project Support',
-    description: 'Hardware circuit troubleshooting, schematic review in KiCad, and debugging Arduino/ESP32 sensor code before final college semester presentations.',
-    tag: 'Project Guidance',
-    keywords: 'project, circuit, debugging, kicad, arduino',
-    contactMethod: 'whatsapp',
-    contactDetail: '9876512345',
-    imageUrl: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=600&q=80',
-    createdAt: '2026-10-24'
-  }
-];
-
-export default function MarketplaceView() {
+export default function MarketplaceView({ setCurrentView }) {
   const { currentUser, globalSearchQuery, setGlobalSearchQuery } = useDatabase();
 
-  const [items, setItems] = useState(() => {
-    try {
-      const saved = localStorage.getItem('learnopia_marketplace_items');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    return SEEDED_MARKETPLACE_ITEMS;
-  });
+  const [items, setItems] = useState(() => getActiveMarketplaceItems());
+
+  useEffect(() => {
+    const handleSync = () => {
+      setItems(getActiveMarketplaceItems());
+    };
+    window.addEventListener('learnopia_marketplace_updated', handleSync);
+    return () => window.removeEventListener('learnopia_marketplace_updated', handleSync);
+  }, []);
 
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [localSearch, setLocalSearch] = useState(globalSearchQuery || '');
@@ -185,20 +46,8 @@ export default function MarketplaceView() {
   const [toastNotice, setToastNotice] = useState(null);
 
   // Modal States
-  const [showSellModal, setShowSellModal] = useState(false);
   const [activeBuyItem, setActiveBuyItem] = useState(null);
   const [inquiryCopied, setInquiryCopied] = useState(false);
-
-  // New Listing Form State
-  const [newItemTitle, setNewItemTitle] = useState('');
-  const [newItemCategory, setNewItemCategory] = useState('Books & Notes');
-  const [newItemPrice, setNewItemPrice] = useState('');
-  const [newItemDesc, setNewItemDesc] = useState('');
-  const [newItemKeywords, setNewItemKeywords] = useState('');
-  const [newItemImageUrl, setNewItemImageUrl] = useState('');
-  const [newItemContactMethod, setNewItemContactMethod] = useState('whatsapp');
-  const [newItemContactDetail, setNewItemContactDetail] = useState('');
-  const [sellerName, setSellerName] = useState(currentUser?.name || '');
 
   // Synchronize global search query from navigation bar
   useEffect(() => {
@@ -287,308 +136,14 @@ export default function MarketplaceView() {
     return detail.startsWith('http') ? detail : `https://${detail}`;
   };
 
-  // Handle publishing new item
-  const handlePublishListing = (e) => {
-    e.preventDefault();
-    if (!newItemTitle.trim() || !newItemPrice.trim()) return;
-
-    const formattedPrice = newItemPrice.startsWith('₹') || newItemPrice.toLowerCase().includes('free')
-      ? newItemPrice
-      : `₹${newItemPrice}`;
-
-    const newListing = {
-      id: `mkt-user-${Date.now()}`,
-      title: newItemTitle.trim(),
-      category: newItemCategory,
-      price: formattedPrice,
-      author: sellerName.trim() || currentUser?.name || 'Campus Student',
-      sellerId: currentUser?.id || 'guest',
-      rating: 5.0,
-      reviews: 1,
-      badge: 'Student Listing',
-      description: newItemDesc.trim() || 'Verified student listing on campus exchange.',
-      tag: newItemCategory,
-      keywords: newItemKeywords.trim(),
-      contactMethod: newItemContactMethod,
-      contactDetail: newItemContactDetail.trim() || '9876543210',
-      imageUrl: newItemImageUrl.trim() || null,
-      isUserCreated: true,
-      createdAt: new Date().toISOString().split('T')[0]
-    };
-
-    const updated = [newListing, ...items];
-    setItems(updated);
-    try {
-      localStorage.setItem('learnopia_marketplace_items', JSON.stringify(updated));
-    } catch {}
-
-    showToast(`"${newItemTitle}" published to Marketplace!`);
-    setShowSellModal(false);
-
-    // Reset Form
-    setNewItemTitle('');
-    setNewItemPrice('');
-    setNewItemDesc('');
-    setNewItemKeywords('');
-    setNewItemImageUrl('');
-    setNewItemContactDetail('');
-  };
-
-  // Delete own listing
+  // Delete listing
   const handleDeleteListing = (itemId) => {
     if (!window.confirm('Are you sure you want to remove this listing?')) return;
-    const updated = items.filter((i) => i.id !== itemId);
-    setItems(updated);
-    try {
-      localStorage.setItem('learnopia_marketplace_items', JSON.stringify(updated));
-    } catch {}
+    deleteMarketplaceListing(itemId);
+    setItems(getActiveMarketplaceItems());
     showToast('Listing removed from Marketplace');
     if (activeBuyItem?.id === itemId) setActiveBuyItem(null);
   };
-
-  // Full-page Google Forms style listing creator when user wants to sell an item
-  if (showSellModal) {
-    return (
-      <div className="w-full min-h-screen bg-canvas text-text-primary pb-24 animate-fade-in">
-        {/* Sticky Header with Back Button */}
-        <div className="sticky top-0 z-30 px-4 sm:px-8 h-14 bg-canvas/95 backdrop-blur-md border-b border-border-subtle flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setShowSellModal(false)}
-            className="flex items-center gap-2 text-xs font-semibold text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
-          >
-            <ArrowLeft size={16} />
-            <span>Back to Marketplace</span>
-          </button>
-          <div className="text-xs font-mono-tabular font-bold text-text-muted uppercase">
-            Campus Marketplace • New Listing
-          </div>
-        </div>
-
-        {/* Centered Google Forms Container */}
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 space-y-6">
-          {/* Header Card */}
-          <div className="rounded-2xl border border-border-subtle bg-surface p-6 sm:p-8 space-y-2 shadow-xs border-t-4 border-t-accent-forest">
-            <span className="text-[11px] font-mono-tabular font-bold text-accent-forest uppercase tracking-wider">
-              Student Resale & Peer Exchange
-            </span>
-            <h1 className="font-editorial text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
-              List Gear, Notes, or Tools for Sale
-            </h1>
-            <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
-              Post physical engineering instruments, verified semester organizers, or lab hardware. Peer buyers will connect directly with you via your preferred messaging channel.
-            </p>
-          </div>
-
-          <form onSubmit={handlePublishListing} className="space-y-5">
-            {/* 1. Item Essentials Card */}
-            <div className="rounded-2xl border border-border-subtle bg-surface p-6 space-y-4 shadow-xs">
-              <div className="border-b border-border-subtle pb-2">
-                <h3 className="text-sm font-bold text-text-primary">
-                  1. Item Essentials
-                </h3>
-                <p className="text-xs text-text-muted">What are you listing on campus?</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">
-                  Item Title / Heading *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Omega Mini Drafter with Board, ESP32 Dev Kit, GATE Solved Notes..."
-                  value={newItemTitle}
-                  onChange={(e) => setNewItemTitle(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-border-strong text-xs sm:text-sm bg-canvas text-text-primary focus:outline-none focus:border-accent-forest"
-                  autoFocus
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary mb-1">
-                    Category *
-                  </label>
-                  <select
-                    value={newItemCategory}
-                    onChange={(e) => setNewItemCategory(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-border-strong text-xs sm:text-sm bg-canvas text-text-primary focus:outline-none focus:border-accent-forest"
-                  >
-                    <option value="Books & Notes">Books & Notes</option>
-                    <option value="Hardware Kits">Hardware Kits</option>
-                    <option value="Tools & Gear">Tools & Gear</option>
-                    <option value="Services">Services</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary mb-1">
-                    Price (₹ or Free) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 450 or Free / Open"
-                    value={newItemPrice}
-                    onChange={(e) => setNewItemPrice(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-border-strong text-xs sm:text-sm bg-canvas text-text-primary focus:outline-none focus:border-accent-forest font-mono-tabular"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">
-                  Condition & Description *
-                </label>
-                <textarea
-                  rows={4}
-                  required
-                  placeholder="Describe the condition, semester used, included accessories or cables..."
-                  value={newItemDesc}
-                  onChange={(e) => setNewItemDesc(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-border-strong text-xs sm:text-sm bg-canvas text-text-primary focus:outline-none focus:border-accent-forest resize-none leading-relaxed"
-                />
-              </div>
-            </div>
-
-            {/* 2. Media & Tags Card */}
-            <div className="rounded-2xl border border-border-subtle bg-surface p-6 space-y-4 shadow-xs">
-              <div className="border-b border-border-subtle pb-2">
-                <h3 className="text-sm font-bold text-text-primary">
-                  2. Photo & Search Discoverability
-                </h3>
-                <p className="text-xs text-text-muted">Help peers find and inspect your item</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">
-                  Image Web Link (Optional)
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://images.unsplash.com/... or image URL"
-                  value={newItemImageUrl}
-                  onChange={(e) => setNewItemImageUrl(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-border-strong text-xs sm:text-sm bg-canvas text-text-primary focus:outline-none focus:border-accent-forest"
-                />
-                <p className="text-[11px] text-text-muted mt-1">
-                  Leave empty to use a curated category cover image automatically.
-                </p>
-              </div>
-
-              {newItemImageUrl && (
-                <div className="w-full max-w-xs aspect-video rounded-xl overflow-hidden border border-border-subtle bg-black">
-                  <img src={newItemImageUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">
-                  Keywords & Search Tags (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. drafter, mechanical, drawing, first year (comma-separated)"
-                  value={newItemKeywords}
-                  onChange={(e) => setNewItemKeywords(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-border-strong text-xs sm:text-sm bg-canvas text-text-primary focus:outline-none focus:border-accent-forest"
-                />
-              </div>
-            </div>
-
-            {/* 3. Contact & Delivery Card */}
-            <div className="rounded-2xl border border-border-subtle bg-surface p-6 space-y-4 shadow-xs">
-              <div className="border-b border-border-subtle pb-2">
-                <h3 className="text-sm font-bold text-text-primary">
-                  3. Contact & Handover Details
-                </h3>
-                <p className="text-xs text-text-muted">How should interested students reach you?</p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary mb-1">
-                    Your Display Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Subhashis (ME, 2nd Year)"
-                    value={sellerName}
-                    onChange={(e) => setSellerName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-border-strong text-xs sm:text-sm bg-canvas text-text-primary focus:outline-none focus:border-accent-forest"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary mb-1">
-                    Contact Channel *
-                  </label>
-                  <select
-                    value={newItemContactMethod}
-                    onChange={(e) => setNewItemContactMethod(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-border-strong text-xs sm:text-sm bg-canvas text-text-primary focus:outline-none focus:border-accent-forest"
-                  >
-                    <option value="whatsapp">WhatsApp</option>
-                    <option value="telegram">Telegram</option>
-                    <option value="phone">Direct Phone Call</option>
-                    <option value="linkedin">LinkedIn / Profile Link</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-text-secondary mb-1">
-                  {newItemContactMethod === 'whatsapp'
-                    ? 'WhatsApp Number (10 digits) *'
-                    : newItemContactMethod === 'telegram'
-                    ? 'Telegram Username or Link *'
-                    : newItemContactMethod === 'phone'
-                    ? 'Phone Number *'
-                    : 'Profile / Contact Web Link *'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder={
-                    newItemContactMethod === 'whatsapp'
-                      ? 'e.g. 9876543210'
-                      : newItemContactMethod === 'telegram'
-                      ? 'e.g. @username or t.me/username'
-                      : newItemContactMethod === 'phone'
-                      ? 'e.g. 9876543210'
-                      : 'e.g. linkedin.com/in/username'
-                  }
-                  value={newItemContactDetail}
-                  onChange={(e) => setNewItemContactDetail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-border-strong text-xs sm:text-sm bg-canvas text-text-primary focus:outline-none focus:border-accent-forest font-mono-tabular"
-                />
-              </div>
-            </div>
-
-            {/* Submission Actions */}
-            <div className="flex items-center justify-between pt-2">
-              <button
-                type="button"
-                onClick={() => setShowSellModal(false)}
-                className="px-5 py-2.5 rounded-xl text-xs font-semibold border border-border-strong bg-surface hover:bg-surface-hover text-text-secondary cursor-pointer transition-colors"
-              >
-                Cancel & Discard
-              </button>
-              <button
-                type="submit"
-                className="px-6 py-2.5 rounded-xl text-xs font-bold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-sm flex items-center gap-2 transition-transform hover:scale-[1.01] active:scale-[0.99]"
-              >
-                <Tag size={14} />
-                <span>Publish Listing to Marketplace</span>
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-16 space-y-6 animate-fade-in">
@@ -619,14 +174,16 @@ export default function MarketplaceView() {
           </p>
         </div>
 
-        {/* Action: Sell Something Button */}
+        {/* Action: Sell in Studio Button */}
         <div className="flex items-center gap-2.5 shrink-0">
           <button
-            onClick={() => setShowSellModal(true)}
+            onClick={() => {
+              if (setCurrentView) setCurrentView('studio');
+            }}
             className="px-4 py-2 rounded-xl text-xs font-bold bg-accent-ink text-text-on-dark hover:opacity-95 transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
           >
             <Plus size={15} />
-            <span>Sell Something</span>
+            <span>List an Item in Studio</span>
           </button>
         </div>
       </div>
@@ -838,10 +395,12 @@ export default function MarketplaceView() {
               Reset Filters
             </button>
             <button
-              onClick={() => setShowSellModal(true)}
+              onClick={() => {
+                if (setCurrentView) setCurrentView('studio');
+              }}
               className="px-4 py-2 rounded-xl text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer"
             >
-              List an Item
+              List an Item in Studio
             </button>
           </div>
         </div>
