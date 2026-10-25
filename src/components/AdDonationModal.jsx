@@ -54,9 +54,9 @@ export default function AdDonationModal({ isOpen, onClose }) {
       onClick={(e) => {
         if (e.target === e.currentTarget && canSkip) onClose?.();
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-black/60 backdrop-blur-md animate-fade-in"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-8 sm:pt-12 p-4 overflow-y-auto bg-black/60 animate-fade-in"
     >
-      <div className="w-full max-w-lg my-auto rounded-xl border border-border-subtle bg-surface p-6 shadow-modal space-y-4">
+      <div className="w-full max-w-lg mb-8 rounded-xl border border-border-subtle bg-surface p-6 shadow-modal space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
           <div className="flex items-center gap-2">

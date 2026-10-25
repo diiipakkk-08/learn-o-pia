@@ -476,11 +476,11 @@ export default function ResourcesView() {
       ================================================================= */}
       {resourceToAddToFolder && (
         <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+          className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center pt-8 sm:pt-12 p-4 overflow-y-auto animate-fade-in"
           onClick={() => setResourceToAddToFolder(null)}
         >
           <div
-            className="w-full max-w-md rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal my-auto"
+            className="w-full max-w-md rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal mb-8 text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-2 border-b border-border-subtle">

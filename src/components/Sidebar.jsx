@@ -14,7 +14,8 @@ import {
   Pin,
   ShieldAlert,
   PanelLeftClose,
-  Info
+  Info,
+  X
 } from 'lucide-react';
 import { useDatabase } from '../context/DatabaseContext';
 
@@ -48,38 +49,41 @@ export default function Sidebar({
     : 'DS';
 
   return (
-    <aside
-      className={`hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 select-none z-40 transition-all duration-300 ease-in-out bg-sidebar border-r border-border-subtle ${
-        isCollapsed ? '-translate-x-full pointer-events-none' : 'translate-x-0'
-      }`}
-    >
-      {/* Brand Wordmark & Collapse Button */}
-      <div className="px-5 pt-6 pb-4 flex items-center justify-between">
-        <button
-          onClick={() => setCurrentView('my-learning')}
-          className="flex items-center gap-2.5 text-left group focus:outline-none cursor-pointer"
-        >
-          <img src="/logo.svg" alt="Learn-O-Pia" className="w-8 h-8 object-contain shrink-0" />
-          <div>
-            <span className="font-editorial text-2xl tracking-tight block leading-none transition-colors text-text-primary">
-              Learn-O-Pia
+    <>
+      {/* Mobile Backdrop when menu is open */}
+      {!isCollapsed && (
+        <div
+          className="fixed inset-0 top-14 bg-black/40 z-20 lg:hidden animate-fade-in"
+          onClick={() => setIsCollapsed(true)}
+        />
+      )}
+
+      <aside
+        className={`w-64 flex flex-col fixed top-14 bottom-0 left-0 select-none z-30 transition-all duration-300 ease-in-out bg-sidebar border-r border-border-subtle shadow-md lg:shadow-none ${
+          isCollapsed ? '-translate-x-full pointer-events-none' : 'translate-x-0'
+        }`}
+      >
+        {/* Menu Header with Cut / Collapse Button on Top Right Corner */}
+        <div className="px-4 py-3 flex items-center justify-between border-b border-border-subtle bg-surface/50">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold tracking-wider uppercase font-mono-tabular text-text-primary">
+              Menu Navigation
             </span>
-            <span className="text-[10px] font-medium tracking-wider uppercase mt-1 block font-mono-tabular text-text-muted">
-              Academic OS • 2026
+            <span className="text-[10px] font-mono-tabular text-text-muted px-1.5 py-0.5 rounded bg-subtle">
+              OS • 2026
             </span>
           </div>
-        </button>
 
-        {/* Hide / Collapse Sidebar Button */}
-        <button
-          onClick={() => setIsCollapsed(true)}
-          className="p-1.5 rounded-lg transition-colors hover:bg-surface-hover active:scale-95 text-text-secondary hover:text-text-primary"
-          title="Collapse sidebar (Ctrl + \)"
-          aria-label="Collapse sidebar"
-        >
-          <PanelLeftClose size={18} strokeWidth={1.75} />
-        </button>
-      </div>
+          {/* Cut / Close Button on Top Right Corner */}
+          <button
+            onClick={() => setIsCollapsed(true)}
+            className="p-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover active:scale-95 text-text-secondary hover:text-text-primary transition-all cursor-pointer shadow-xs"
+            title="Close navigation menu"
+            aria-label="Close menu"
+          >
+            <X size={15} strokeWidth={2} />
+          </button>
+        </div>
 
       {/* Primary Navigation Links */}
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
@@ -177,5 +181,6 @@ export default function Sidebar({
         </div>
       )}
     </aside>
+  </>
   );
 }

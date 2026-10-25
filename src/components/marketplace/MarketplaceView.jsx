@@ -70,17 +70,27 @@ export default function MarketplaceView({ setCurrentView }) {
 
   const CATEGORIES = [
     { id: 'all', label: 'All Items', icon: <ShoppingBag size={14} /> },
-    { id: 'Books & Notes', label: 'Books & Notes', icon: <BookOpen size={14} /> },
+    { id: 'Study Material', label: 'Study Material', icon: <BookOpen size={14} /> },
     { id: 'Hardware Kits', label: 'Hardware Kits', icon: <Cpu size={14} /> },
     { id: 'Tools & Gear', label: 'Tools & Gear', icon: <Wrench size={14} /> },
-    { id: 'Services', label: 'Services', icon: <Sparkles size={14} /> }
+    { id: 'Services', label: 'Services', icon: <Sparkles size={14} /> },
+    { id: 'Others', label: 'Others', icon: <Tag size={14} /> }
   ];
 
   const query = (localSearch || '').trim().toLowerCase();
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      const matchCat = selectedCategory === 'all' || item.category === selectedCategory;
+      let matchCat = false;
+      if (selectedCategory === 'all') {
+        matchCat = true;
+      } else if (selectedCategory === 'Study Material') {
+        matchCat = item.category === 'Study Material' || item.category === 'Books & Notes';
+      } else if (selectedCategory === 'Others') {
+        matchCat = item.category === 'Others' || !['Study Material', 'Books & Notes', 'Hardware Kits', 'Tools & Gear', 'Services'].includes(item.category);
+      } else {
+        matchCat = item.category === selectedCategory;
+      }
       const matchSearch =
         !query ||
         item.title.toLowerCase().includes(query) ||
@@ -380,11 +390,11 @@ export default function MarketplaceView({ setCurrentView }) {
       {activeBuyItem &&
         createPortal(
           <div
-            className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md overflow-y-auto animate-in fade-in duration-150"
+            className="fixed inset-0 z-[99999] flex items-start justify-center pt-8 sm:pt-12 p-4 sm:p-6 bg-black/75 overflow-y-auto animate-in fade-in duration-150"
             onClick={() => setActiveBuyItem(null)}
           >
             <div
-              className="w-full max-w-md max-h-[90vh] bg-surface border border-border-strong rounded-2xl shadow-2xl p-5 sm:p-6 relative my-auto overflow-y-auto space-y-4"
+              className="w-full max-w-md max-h-[90vh] bg-surface border border-border-strong rounded-2xl shadow-2xl p-5 sm:p-6 relative mb-8 overflow-y-auto space-y-4"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between pb-3 border-b border-border-subtle">

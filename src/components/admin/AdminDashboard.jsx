@@ -491,16 +491,14 @@ export default function AdminDashboard() {
                   position: 'fixed',
                   top: 0, left: 0, right: 0, bottom: 0,
                   background: 'rgba(0, 0, 0, 0.88)',
-                  backdropFilter: 'blur(10px)',
-                  WebkitBackdropFilter: 'blur(10px)',
                   display: 'flex',
-                  alignItems: 'center',
+                  alignItems: 'flex-start',
                   justifyContent: 'center',
                   zIndex: 10000,
-                  padding: '20px',
+                  padding: '40px 20px',
                   overflowY: 'auto'
                 }} className="animate-fade-in">
-                  <div className="glass-panel" style={{ maxWidth: '720px', width: '100%', padding: '26px', borderRadius: '24px', textAlign: 'left', maxHeight: '90vh', overflowY: 'auto', margin: 'auto' }}>
+                  <div className="glass-panel" style={{ maxWidth: '720px', width: '100%', padding: '26px', borderRadius: '24px', textAlign: 'left', maxHeight: '90vh', overflowY: 'auto', margin: '0 auto 40px auto' }}>
                     
                     {/* Modal Header */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '14px' }}>

@@ -23,7 +23,7 @@ import NotFound404 from './components/NotFound404';
 import OnboardingModal from './components/OnboardingModal';
 import AdDonationModal from './components/AdDonationModal';
 
-import { ShieldAlert, ArrowLeft, PanelLeftOpen } from 'lucide-react';
+import { ShieldAlert, ArrowLeft } from 'lucide-react';
 
 function AccessDenied({ requiredRole, setCurrentView }) {
   return (
@@ -172,47 +172,37 @@ function AppContent() {
 
   return (
     <div
-      className="min-h-screen flex flex-col lg:flex-row transition-colors duration-200 bg-canvas text-text-primary"
+      className="min-h-screen flex flex-col transition-colors duration-200 bg-canvas text-text-primary"
       data-theme={cinemaMode ? 'cinema' : 'default'}
     >
-      {/* Desktop Left Sidebar */}
-      <Sidebar
+      {/* Sticky Top Header Nav - Always Stays across the entire screen */}
+      <Header
         currentView={currentView}
         setCurrentView={setCurrentView}
-        isCollapsed={isSidebarCollapsed}
-        setIsCollapsed={setIsSidebarCollapsed}
-        onOpenProfile={() => setCurrentView('profile')}
+        onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        cinemaMode={cinemaMode}
+        setCinemaMode={setCinemaMode}
       />
 
-      {/* Main Column Wrapper */}
-      <div
-        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
-          isSidebarCollapsed ? 'lg:pl-0' : 'lg:pl-64'
-        }`}
-      >
-        {/* Sticky Top Header Nav */}
-        <Header
+      {/* Main Workspace Body with Collapsing Menu Below Header */}
+      <div className="flex-1 flex flex-row relative min-w-0">
+        {/* Left Collapsing Sidebar Menu below Header */}
+        <Sidebar
           currentView={currentView}
           setCurrentView={setCurrentView}
-          onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          cinemaMode={cinemaMode}
-          setCinemaMode={setCinemaMode}
+          isCollapsed={isSidebarCollapsed}
+          setIsCollapsed={setIsSidebarCollapsed}
+          onOpenProfile={() => setCurrentView('profile')}
         />
 
-        {/* Floating Quick Restore Access Bar Button (Desktop Only, Hidden on Mobile) */}
-        {isSidebarCollapsed && (
-          <button
-            onClick={() => setIsSidebarCollapsed(false)}
-            className="hidden lg:flex fixed bottom-6 left-6 z-40 items-center gap-2.5 px-4 py-2.5 rounded-xl border border-border-strong bg-surface shadow-xl text-xs font-bold text-text-primary hover:bg-surface-hover hover:border-accent-forest transition-all hover:scale-105 active:scale-95 font-mono-tabular group cursor-pointer"
-            title="Expand Navigation Access Bar [Ctrl + \]"
-          >
-            <PanelLeftOpen size={16} className="text-accent-forest group-hover:scale-110 transition-transform" />
-            <span>SHOW NAVIGATION</span>
-          </button>
-        )}
-
-        {/* Main View Container */}
-        <main className="flex-1 w-full pb-20 lg:pb-8">
+        {/* Main Column Wrapper */}
+        <div
+          className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
+            isSidebarCollapsed ? 'lg:pl-0' : 'lg:pl-64'
+          }`}
+        >
+          {/* Main View Container */}
+          <main className="flex-1 w-full pb-20 lg:pb-8">
           {/* Unauthenticated Wall for Protected Views */}
           {!currentUser && !['about', 'learning', 'marketplace'].includes(currentView) ? (
             <div className="max-w-md mx-auto my-16 p-8 rounded-xl border border-border-subtle bg-surface text-center space-y-4 shadow-modal">
@@ -319,6 +309,7 @@ function AppContent() {
           )}
         </main>
       </div>
+    </div>
 
       {/* Mobile Bottom Navigation Bar (< 1024px) */}
       <MobileBottomNav currentView={currentView} setCurrentView={setCurrentView} />

@@ -516,9 +516,9 @@ export default function Auth({ setCurrentView }) {
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowForgotModal(false);
           }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-black/60 backdrop-blur-md animate-fade-in"
+          className="fixed inset-0 z-50 flex items-start justify-center pt-8 sm:pt-12 p-4 overflow-y-auto bg-black/60 animate-fade-in"
         >
-          <div className="w-full max-w-md my-auto rounded-2xl border border-border-subtle bg-surface p-6 sm:p-8 shadow-modal space-y-4">
+          <div className="w-full max-w-md mb-8 rounded-2xl border border-border-subtle bg-surface p-6 sm:p-8 shadow-modal space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
               <div>
                 <span className="font-editorial text-2xl font-bold tracking-tight block">

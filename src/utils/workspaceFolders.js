@@ -465,16 +465,64 @@ export function getWorkspaceFolders(userId = 'guest') {
 
   // Fallback to fresh defaults
   const fresh = JSON.parse(JSON.stringify(DEFAULT_WORKSPACE_FOLDERS));
-  try {
-    localStorage.setItem(key, JSON.stringify(fresh));
-  } catch {}
   return fresh;
+}
+
+export function foldersToProfilePayload(folders) {
+  if (!Array.isArray(folders)) return {};
+  const academic = folders.find(f => f.id === 'academic') || null;
+  const document = folders.find(f => f.id === 'document') || null;
+  const links = folders.find(f => f.id === 'links') || null;
+  const personal = folders.find(f => f.id === 'personal') || null;
+
+  return {
+    folder_academic: academic ? (academic.subfolders || []) : [],
+    folder_document: document ? (document.subfolders || []) : [],
+    folder_links: links ? (links.subfolders || []) : [],
+    folder_personal: personal ? (personal.subfolders || []) : []
+  };
+}
+
+export function profilePayloadToFolders(profile) {
+  if (!profile) return null;
+  const fAcad = profile.folder_academic || profile.folderAcademic;
+  const fDoc = profile.folder_document || profile.folderDocument;
+  const fLinks = profile.folder_links || profile.folderLinks;
+  const fPers = profile.folder_personal || profile.folderPersonal;
+
+  if (!fAcad && !fDoc && !fLinks && !fPers) return null;
+
+  const base = JSON.parse(JSON.stringify(DEFAULT_WORKSPACE_FOLDERS));
+
+  if (fAcad && Array.isArray(fAcad)) {
+    const acadRoot = base.find(f => f.id === 'academic');
+    if (acadRoot && fAcad.length > 0) acadRoot.subfolders = fAcad;
+  }
+  if (fDoc && Array.isArray(fDoc)) {
+    const docRoot = base.find(f => f.id === 'document');
+    if (docRoot && fDoc.length > 0) docRoot.subfolders = fDoc;
+  }
+  if (fLinks && Array.isArray(fLinks)) {
+    const linksRoot = base.find(f => f.id === 'links');
+    if (linksRoot && fLinks.length > 0) linksRoot.subfolders = fLinks;
+  }
+  if (fPers && Array.isArray(fPers)) {
+    const persRoot = base.find(f => f.id === 'personal');
+    if (persRoot && fPers.length > 0) persRoot.subfolders = fPers;
+  }
+
+  return base;
 }
 
 export function saveWorkspaceFolders(userId = 'guest', folders) {
   const key = `learnopia_explorer_folders_v2_${userId}`;
   try {
     localStorage.setItem(key, JSON.stringify(folders));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('learnopia_workspace_folders_updated', {
+        detail: { userId, folders }
+      }));
+    }
   } catch (err) {
     console.error('Failed to save workspace folders:', err);
   }

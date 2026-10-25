@@ -9,6 +9,8 @@
  * 4. If the seller does not relist it within that 1 month (180 days total), it is permanently purged/deleted from the database.
  */
 
+import { supabase, isSupabaseLive } from '../lib/supabaseClient';
+
 export const MARKETPLACE_ACTIVE_MS = 150 * 24 * 60 * 60 * 1000; // 5 months (~150 days)
 export const STUDIO_GRACE_MS = 30 * 24 * 60 * 60 * 1000;        // 1 month (~30 days)
 export const PURGE_THRESHOLD_MS = MARKETPLACE_ACTIVE_MS + STUDIO_GRACE_MS; // 180 days total
@@ -17,7 +19,7 @@ export const SEEDED_MARKETPLACE_ITEMS = [
   {
     id: 'mkt-1',
     title: 'MAKAUT 1st & 2nd Year B.Tech Complete Organizer & Solved PYQs',
-    category: 'Books & Notes',
+    category: 'Study Material',
     price: '₹150',
     author: 'Sneha Roy (CSE, 3rd Year)',
     sellerId: 'user-sneha',
@@ -36,7 +38,7 @@ export const SEEDED_MARKETPLACE_ITEMS = [
   {
     id: 'mkt-2',
     title: 'GATE CSE Comprehensive Handwritten Master Notebooks',
-    category: 'Books & Notes',
+    category: 'Study Material',
     price: '₹299',
     author: 'Arjun Banerjee (Topper)',
     sellerId: 'user-arjun',
@@ -326,6 +328,28 @@ export function addMarketplaceListing(itemData) {
 
   const updated = [newListing, ...all];
   saveAllMarketplaceItems(updated);
+
+  if (isSupabaseLive) {
+    try {
+      supabase.from('marketplace_items').insert([{
+        id: newListing.id,
+        title: newListing.title,
+        category: newListing.category,
+        price: newListing.price,
+        description: newListing.description || '',
+        author: newListing.author,
+        seller_id: newListing.sellerId || null,
+        contact_method: newListing.contactMethod || 'whatsapp',
+        contact_detail: newListing.contactDetail,
+        image_url: newListing.imageUrl || null,
+        keywords: Array.isArray(newListing.keywords) ? newListing.keywords.join(', ') : (newListing.keywords || ''),
+        status: 'active'
+      }]).then(() => {}).catch(err => console.warn('Supabase marketplace sync error:', err));
+    } catch (e) {
+      console.warn('Supabase marketplace sync warn:', e);
+    }
+  }
+
   return newListing;
 }
 
@@ -346,6 +370,16 @@ export function relistMarketplaceListing(itemId) {
     return item;
   });
   saveAllMarketplaceItems(updated);
+
+  if (isSupabaseLive) {
+    try {
+      supabase.from('marketplace_items').update({
+        status: 'active',
+        listed_at: new Date(now).toISOString(),
+        expires_at: new Date(now + MARKETPLACE_ACTIVE_MS).toISOString()
+      }).eq('id', itemId).then(() => {}).catch(err => console.warn('Supabase relist err:', err));
+    } catch (e) {}
+  }
 }
 
 /**
@@ -355,4 +389,11 @@ export function deleteMarketplaceListing(itemId) {
   const all = getAllMarketplaceItems();
   const updated = all.filter(item => item.id !== itemId);
   saveAllMarketplaceItems(updated);
+
+  if (isSupabaseLive) {
+    try {
+      supabase.from('marketplace_items').delete().eq('id', itemId)
+        .then(() => {}).catch(err => console.warn('Supabase delete item err:', err));
+    } catch (e) {}
+  }
 }

@@ -412,6 +412,26 @@ export default function AttendanceTracker() {
 
   const [tempStartDateInput, setTempStartDateInput] = useState(semesterStartDate);
 
+  // Setting: Should unmarked past classes count as absent? Default is FALSE (everything unchanged unless explicitly marked)
+  const [autoMarkAbsent, setAutoMarkAbsent] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`learnopia_auto_mark_absent_${userId}`);
+      return saved === 'true'; // Default is false!
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleAutoMarkAbsent = () => {
+    setAutoMarkAbsent((prev) => {
+      const nextVal = !prev;
+      try {
+        localStorage.setItem(`learnopia_auto_mark_absent_${userId}`, String(nextVal));
+      } catch {}
+      return nextVal;
+    });
+  };
+
   // Timetable Routine State
   const [routine, setRoutine] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -867,14 +887,14 @@ export default function AttendanceTracker() {
               statsMap[cls.subject].totalConductedCount += 1;
               statsMap[cls.subject].massbunkPoints += pts;
               statsMap[cls.subject].totalConductedPoints += pts;
-            } else if (status === 'absent' || (!status && isPast)) {
-              // UNMARKED PASSED DAYS ONLY -> DEFAULT ABSENT
+            } else if (status === 'absent' || (autoMarkAbsent && !status && isPast)) {
+              // Counted as absent if explicitly marked 'absent', or if user opted into auto-marking unmarked past classes
               statsMap[cls.subject].absentCount += 1;
               statsMap[cls.subject].totalConductedCount += 1;
               statsMap[cls.subject].absentPoints += pts;
               statsMap[cls.subject].totalConductedPoints += pts;
             }
-            // Unmarked TODAY or FUTURE days remain pending and do NOT penalize attendance!
+            // By default (autoMarkAbsent === false), unmarked classes are UNCHANGED and do NOT penalize attendance!
           }
         });
       }
@@ -960,7 +980,7 @@ export default function AttendanceTracker() {
         isAlert: pct < item.target
       };
     });
-  }, [activeRoutine, logs, semesterStartDate, selectedDate, todayStr]);
+  }, [activeRoutine, logs, semesterStartDate, selectedDate, todayStr, autoMarkAbsent]);
 
   // Analytics Category Counts & Filtered List
   const theorySubjectsCount = useMemo(() => subjectAnalytics.filter((s) => !s.isLab).length, [subjectAnalytics]);
@@ -1250,6 +1270,25 @@ export default function AttendanceTracker() {
             </button>
           </div>
           <button
+            className={`btn btn-sm ${autoMarkAbsent ? 'btn-danger' : 'btn-secondary'}`}
+            onClick={toggleAutoMarkAbsent}
+            style={{
+              fontSize: isMobile ? '0.68rem' : '0.74rem',
+              padding: isMobile ? '4px 6px' : '5px 10px',
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
+              gap: '4px'
+            }}
+            title={autoMarkAbsent
+              ? 'Unmarked past classes count as absent (penalizes attendance %). Click to switch to Unchanged mode.'
+              : 'Default: Unmarked classes leave your percentage unchanged. Click to switch to auto-mark as absent.'}
+          >
+            <span>Unmarked:</span>
+            <strong style={{ color: autoMarkAbsent ? '#f87171' : '#10b981' }}>
+              {autoMarkAbsent ? 'Count Absent' : 'Unchanged'}
+            </strong>
+          </button>
+          <button
             className="btn btn-secondary btn-sm"
             onClick={() => { setTempStartDateInput(formatLocalDate(new Date())); setShowEndSemModal(true); }}
             style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', padding: isMobile ? '4px 8px' : '5px 10px', flexShrink: 0, whiteSpace: 'nowrap', gap: '4px' }}
@@ -1394,14 +1433,11 @@ export default function AttendanceTracker() {
                         <span style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {cls.startTime} - {cls.endTime} ({cls.durationText || `${cls.duration || 60}m`}) · {cls.room}
                         </span>
-                        {!rawStatus && isSelectedPastDay && (
+                        {!rawStatus && (
                           <span style={{ fontSize: isMobile ? '0.65rem' : '0.7rem', color: 'var(--text-muted)', display: 'block', fontWeight: 500, marginTop: 2 }}>
-                            (Unmarked past class · Defaults to absent in percentage)
-                          </span>
-                        )}
-                        {!rawStatus && !isSelectedPastDay && (
-                          <span style={{ fontSize: isMobile ? '0.65rem' : '0.7rem', color: '#a78bfa', display: 'block', fontWeight: 500, marginTop: 2 }}>
-                            (Select Attendance Status)
+                            {autoMarkAbsent && isSelectedPastDay
+                              ? '(Unmarked past class · Counted as absent in %)'
+                              : '(Unmarked · Attendance % remains unchanged)'}
                           </span>
                         )}
                       </div>
@@ -2393,10 +2429,8 @@ export default function AttendanceTracker() {
           right: 0,
           bottom: 0,
           background: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
           display: 'flex',
-          alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px', overflowY: 'auto'
+          alignItems: 'flex-start', justifyContent: 'center', zIndex: 10000, padding: '40px 16px', overflowY: 'auto'
         }} className="animate-fade-in">
           <div className="glass-panel" style={{
             maxWidth: '500px',
@@ -2407,7 +2441,7 @@ export default function AttendanceTracker() {
             border: '1px solid rgba(239, 68, 68, 0.4)',
             background: 'rgba(18, 14, 24, 0.95)',
             textAlign: 'left',
-            margin: 'auto'
+            margin: '0 auto 40px auto'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
               <div style={{ background: 'rgba(239, 68, 68, 0.2)', padding: '10px', borderRadius: '14px' }}>
@@ -2484,17 +2518,15 @@ export default function AttendanceTracker() {
           right: 0,
           bottom: 0,
           background: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
           display: 'flex',
-          alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px', overflowY: 'auto'
+          alignItems: 'flex-start', justifyContent: 'center', zIndex: 10000, padding: '40px 16px', overflowY: 'auto'
         }} className="animate-fade-in">
-          <div className="glass-panel modal-card" style={{ maxWidth: '420px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left', margin: 'auto' }}>
+          <div className="glass-panel modal-card" style={{ maxWidth: '440px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left', margin: '0 auto 40px auto' }}>
             <h3 style={{ fontSize: '1.1rem', margin: '0 0 10px 0', color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <CalendarCheck size={18} color="var(--primary)" /> Update Semester Start Date
+              <CalendarCheck size={18} color="var(--primary)" /> Attendance & Semester Settings
             </h3>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '16px' }}>
-              Total conducted classes and attendance percentages are calculated from this start date up to today.
+              Classes conducted and attendance percentages are calculated from this semester start date.
             </p>
 
             <form onSubmit={handleUpdateStartDateOnly} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -2509,9 +2541,27 @@ export default function AttendanceTracker() {
                 />
               </div>
 
+              {/* Unmarked Attendance Behavior Setting */}
+              <div style={{ padding: '10px 12px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', fontSize: '0.78rem', color: '#ffffff' }}>
+                  <input
+                    type="checkbox"
+                    checked={autoMarkAbsent}
+                    onChange={toggleAutoMarkAbsent}
+                    style={{ marginTop: '2px', cursor: 'pointer' }}
+                  />
+                  <span>
+                    <strong>Auto-mark past unmarked classes as absent</strong>
+                    <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      Default: OFF. Leave unchecked so unmarked classes remain unchanged and do not drop your percentage.
+                    </span>
+                  </span>
+                </label>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowStartDateModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Update Start Date</button>
+                <button type="submit" className="btn btn-primary">Save Settings</button>
               </div>
             </form>
           </div>
@@ -2524,12 +2574,10 @@ export default function AttendanceTracker() {
           position: 'fixed',
           top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
           display: 'flex',
-          alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px', overflowY: 'auto'
+          alignItems: 'flex-start', justifyContent: 'center', zIndex: 10000, padding: '40px 16px', overflowY: 'auto'
         }} className="animate-fade-in">
-          <div className="glass-panel modal-card" style={{ maxWidth: '440px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left', margin: 'auto' }}>
+          <div className="glass-panel modal-card" style={{ maxWidth: '440px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left', margin: '0 auto 40px auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
               <h3 style={{ fontSize: '1.15rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Share2 size={18} color="var(--primary)" /> Share Routine ID
@@ -2575,12 +2623,10 @@ export default function AttendanceTracker() {
           position: 'fixed',
           top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
           display: 'flex',
-          alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px', overflowY: 'auto'
+          alignItems: 'flex-start', justifyContent: 'center', zIndex: 10000, padding: '40px 16px', overflowY: 'auto'
         }} className="animate-fade-in">
-          <div className="glass-panel modal-card" style={{ maxWidth: '440px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left', margin: 'auto' }}>
+          <div className="glass-panel modal-card" style={{ maxWidth: '440px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left', margin: '0 auto 40px auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
               <h3 style={{ fontSize: '1.15rem', margin: 0, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Download size={18} color="#10b981" /> Import Routine by ID
@@ -2631,12 +2677,10 @@ export default function AttendanceTracker() {
           position: 'fixed',
           top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0, 0, 0, 0.88)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
           display: 'flex',
-          alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px', overflowY: 'auto'
+          alignItems: 'flex-start', justifyContent: 'center', zIndex: 10000, padding: '40px 16px', overflowY: 'auto'
         }} className="animate-fade-in">
-          <div className="glass-panel modal-card" style={{ maxWidth: '620px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left', maxHeight: '90vh', overflowY: 'auto', margin: 'auto' }}>
+          <div className="glass-panel modal-card" style={{ maxWidth: '620px', width: '100%', padding: '24px', borderRadius: '20px', textAlign: 'left', maxHeight: '90vh', overflowY: 'auto', margin: '0 auto 40px auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Code size={18} color="var(--primary)" />

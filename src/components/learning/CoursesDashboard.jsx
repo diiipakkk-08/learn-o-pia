@@ -259,12 +259,12 @@ function CoursesDashboardInner({
         list.push({
           id: c.id,
           subjectId: c.id,
-          playlistId: c.id,
+          playlistId: c.youtubePlaylistId || c.id,
           title: c.title,
           description: c.description || 'Comprehensive university subject course.',
           category: c.department || 'Computer Science',
           department: c.department || 'Computer Science',
-          author: c.creatorName || 'Instructor',
+          author: c.author || c.creatorName || 'Instructor',
           lectureCount: 24,
           thumbnailUrl:
             c.bannerUrl ||
@@ -840,11 +840,11 @@ function CoursesDashboardInner({
       ================================================================= */}
       {courseToAddToFolder && (
         <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+          className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center pt-8 sm:pt-12 p-4 overflow-y-auto animate-fade-in"
           onClick={() => setCourseToAddToFolder(null)}
         >
           <div
-            className="w-full max-w-md rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal my-auto"
+            className="w-full max-w-md rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal mb-8 text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
@@ -959,11 +959,11 @@ function CoursesDashboardInner({
       ================================================================= */}
       {deleteConfirmItem && (
         <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+          className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center pt-8 sm:pt-12 p-4 overflow-y-auto animate-fade-in"
           onClick={() => setDeleteConfirmItem(null)}
         >
           <div
-            className="w-full max-w-md rounded-2xl border border-red-500/30 bg-surface p-6 space-y-4 shadow-modal my-auto text-left"
+            className="w-full max-w-md rounded-2xl border border-red-500/30 bg-surface p-6 space-y-4 shadow-modal mb-8 text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3 pb-2 border-b border-border-subtle">

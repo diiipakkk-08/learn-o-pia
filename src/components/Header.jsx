@@ -121,7 +121,7 @@ export default function Header({
 
   return (
     <header
-      className="sticky top-0 z-30 px-3 sm:px-6 lg:px-8 h-14 flex items-center justify-between border-b backdrop-blur-md transition-colors gap-3"
+      className="sticky top-0 z-40 px-3 sm:px-6 lg:px-8 h-14 flex items-center justify-between border-b backdrop-blur-md transition-colors gap-3"
       style={{
         backgroundColor: cinemaMode
           ? 'rgba(20, 20, 19, 0.94)'
@@ -132,13 +132,21 @@ export default function Header({
       {/* Left: Brand Wordmark (Clean Logo & Typography - Fully Responsive) */}
       <div className="flex items-center gap-2 sm:gap-2.5">
         <button
-          onClick={() => setCurrentView(currentUser ? 'my-learning' : 'landing')}
-          className="text-left focus:outline-none flex items-center gap-1.5 sm:gap-2.5 transition-opacity hover:opacity-85 cursor-pointer"
+          onClick={() => {
+            if (onToggleSidebar) {
+              onToggleSidebar();
+            } else {
+              setCurrentView(currentUser ? 'my-learning' : 'landing');
+            }
+          }}
+          title="Toggle Navigation Menu"
+          aria-label="Toggle Navigation Menu"
+          className="text-left focus:outline-none flex items-center gap-1.5 sm:gap-2.5 transition-opacity hover:opacity-85 cursor-pointer group"
         >
           <img
             src="/logo.svg"
             alt="Learn-O-Pia"
-            className="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0"
+            className="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0 group-hover:scale-105 transition-transform"
           />
           <span
             className="font-editorial text-lg sm:text-2xl lg:text-[26px] tracking-tight block leading-none font-bold"

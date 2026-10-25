@@ -210,6 +210,8 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
   const [courseAuthor, setCourseAuthor] = useState('');
   const [courseDesc, setCourseDesc] = useState('');
   const [courseCategory, setCourseCategory] = useState('Computer Science & IT');
+  const [courseCustomCategory, setCourseCustomCategory] = useState('');
+  const [courseKeywords, setCourseKeywords] = useState('');
   const [courseBanner, setCourseBanner] = useState('');
   const [courseIsPublic, setCourseIsPublic] = useState(true);
   const [isCuratingYt, setIsCuratingYt] = useState(false);
@@ -245,27 +247,37 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
     e.preventDefault();
     setCourseError('');
     if (!courseTitle.trim() || !courseYtUrl.trim()) {
-      setCourseError('Please provide a course title and a YouTube playlist URL.');
+      setCourseError('Please provide a course title and a YouTube playlist or video link.');
       return;
     }
 
-    const cleanPlId = extractYoutubePlaylistId(courseYtUrl);
+    let cleanPlId = extractYoutubePlaylistId(courseYtUrl);
     if (!cleanPlId) {
-      setCourseError('Please provide a valid YouTube playlist URL (containing ?list=...).');
+      // Also accept direct YouTube video link
+      const vidMatch = courseYtUrl.match(/(?:watch\?v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{11})/);
+      if (vidMatch && vidMatch[1]) {
+        cleanPlId = vidMatch[1];
+      }
+    }
+
+    if (!cleanPlId) {
+      setCourseError('Please provide a valid YouTube playlist URL (?list=...) or lecture video link.');
       return;
     }
 
     try {
+      const finalCategory = courseCategory === 'Others' ? (courseCustomCategory.trim() || 'Others') : courseCategory;
       if (createCourseWithPlaylist) {
         const res = await createCourseWithPlaylist({
           title: courseTitle.trim(),
           author: courseAuthor.trim() || currentUser?.name || 'Faculty Educator',
           description: courseDesc.trim() || `Complete lecture series for ${courseTitle.trim()}.`,
-          category: courseCategory,
-          department: courseCategory,
+          category: finalCategory,
+          department: finalCategory,
           youtubePlaylistUrl: courseYtUrl.trim(),
           isPublic: courseIsPublic,
-          bannerUrl: courseBanner.trim() || ''
+          bannerUrl: courseBanner.trim() || '',
+          keywords: courseKeywords.trim()
         });
 
         if (res?.playlistId && typeof enrollInPlaylist === 'function') {
@@ -279,6 +291,8 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
       setCourseDesc('');
       setCourseYtUrl('');
       setCourseBanner('');
+      setCourseCustomCategory('');
+      setCourseKeywords('');
       setCourseIsPublic(true);
       setShowCourseModal(false);
       setTimeout(() => setCourseToast(''), 4000);
@@ -343,12 +357,14 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
       if (!seen.has(c.id)) {
         seen.add(c.id);
         const isAuthored = (c.author && c.author.toLowerCase() === (currentUser?.name || '').toLowerCase()) ||
-                           c.creatorId === currentUser?.id ||
+                           (c.creatorName && c.creatorName.toLowerCase() === (currentUser?.name || '').toLowerCase()) ||
+                           (c.creatorId && c.creatorId === currentUser?.id) ||
+                           (!currentUser && (c.creatorId === 'admin' || c.creatorId === 'guest' || !c.creatorId)) ||
                            isAdmin;
         if (isAuthored) {
           list.push({
             id: c.id,
-            playlistId: c.id,
+            playlistId: c.youtubePlaylistId || c.id,
             courseId: c.id,
             title: c.title,
             author: c.author || c.creatorName || 'Instructor',
@@ -357,7 +373,8 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
             lectureCount: 24,
             isPublic: c.isPublic !== false && c.is_public !== false,
             youtubePlaylistId: c.youtubePlaylistId || '',
-            bannerUrl: c.bannerUrl || ''
+            bannerUrl: c.bannerUrl || '',
+            keywords: c.keywords || ''
           });
         }
       }
@@ -372,6 +389,8 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
   const [resUrl, setResUrl] = useState('');
   const [resType, setResType] = useState('pdf');
   const [resCategory, setResCategory] = useState('Formula Sheet & Quick Reference');
+  const [resCustomCategory, setResCustomCategory] = useState('');
+  const [resKeywords, setResKeywords] = useState('');
   const [resDesc, setResDesc] = useState('');
   const [resIsPublic, setResIsPublic] = useState(true);
   const [resToast, setResToast] = useState('');
@@ -380,21 +399,25 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
     e.preventDefault();
     if (!resTitle.trim() || !resUrl.trim()) return;
 
+    const finalCategory = resCategory === 'Others' ? (resCustomCategory.trim() || 'Others') : resCategory;
     if (typeof addStandaloneResource === 'function') {
       addStandaloneResource({
         title: resTitle.trim(),
         url: resUrl.trim(),
         type: resType,
-        category: resCategory,
+        category: finalCategory,
         description: resDesc.trim(),
         author: currentUser?.name || 'Educator',
-        isPublic: resIsPublic
+        isPublic: resIsPublic,
+        keywords: resKeywords.trim()
       });
     }
 
     setResTitle('');
     setResUrl('');
     setResDesc('');
+    setResCustomCategory('');
+    setResKeywords('');
     setResIsPublic(true);
     setShowResourceModal(false);
     setResToast('Study resource published to Academic Vault!');
@@ -417,6 +440,7 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
   const [annResourceTitle, setAnnResourceTitle] = useState('');
   const [annResourceUrl, setAnnResourceUrl] = useState('');
   const [annCategory, setAnnCategory] = useState('Campus Notice');
+  const [annKeywords, setAnnKeywords] = useState('');
   const [annToast, setAnnToast] = useState('');
 
   const handleSendBroadcast = async (e) => {
@@ -431,7 +455,8 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
         resourceTitle: annResourceTitle.trim(),
         resourceUrl: annResourceUrl.trim(),
         link: annResourceUrl.trim(),
-        category: annCategory
+        category: annCategory,
+        keywords: annKeywords.trim()
       });
 
       setAnnToast('Announcement broadcasted to all students!');
@@ -439,6 +464,7 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
       setAnnMessage('');
       setAnnResourceTitle('');
       setAnnResourceUrl('');
+      setAnnKeywords('');
       setShowBroadcastModal(false);
       setTimeout(() => setAnnToast(''), 4000);
     }
@@ -447,7 +473,8 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
   // ── MARKETPLACE STATE ──────────────────────────────────────────────────────
   const [showSellModal, setShowSellModal] = useState(false);
   const [mktTitle, setMktTitle] = useState('');
-  const [mktCategory, setMktCategory] = useState('Books & Notes');
+  const [mktCategory, setMktCategory] = useState('Study Material');
+  const [mktCustomCategory, setMktCustomCategory] = useState('');
   const [mktPrice, setMktPrice] = useState('');
   const [mktDesc, setMktDesc] = useState('');
   const [mktKeywords, setMktKeywords] = useState('');
@@ -474,14 +501,16 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
       ? mktPrice
       : `₹${mktPrice}`;
 
+    const finalMktCat = mktCategory === 'Others' ? (mktCustomCategory.trim() || 'Others') : mktCategory;
+
     addMarketplaceListing({
       title: mktTitle.trim(),
-      category: mktCategory,
+      category: finalMktCat,
       price: formattedPrice,
       author: mktSellerName.trim() || currentUser?.name || 'Campus Student',
       sellerId: currentUser?.id || 'guest',
       description: mktDesc.trim() || 'Verified student listing on campus exchange.',
-      tag: mktCategory,
+      tag: finalMktCat,
       keywords: mktKeywords.trim(),
       contactMethod: mktContactMethod,
       contactDetail: mktContactDetail.trim() || '9876543210',
@@ -492,6 +521,7 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
     setMktTitle('');
     setMktPrice('');
     setMktDesc('');
+    setMktCustomCategory('');
     setMktKeywords('');
     setMktImageUrl('');
     setMktContactDetail('');
@@ -1011,11 +1041,11 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
       ================================================================= */}
       {showCourseModal && (
         <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+          className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center pt-8 sm:pt-12 p-4 overflow-y-auto animate-fade-in"
           onClick={() => setShowCourseModal(false)}
         >
           <div
-            className="w-full max-w-lg rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal my-auto text-left"
+            className="w-full max-w-lg rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal mb-8 text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
@@ -1115,6 +1145,7 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
                     <option value="Mechanical & Civil">Mechanical & Civil</option>
                     <option value="Web & Fullstack">Web & Fullstack</option>
                     <option value="Core Engineering">Core Engineering</option>
+                    <option value="Others">Others (Custom Category)</option>
                   </select>
                 </div>
 
@@ -1149,6 +1180,40 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
                     </button>
                   </div>
                 </div>
+              </div>
+
+              {/* Custom Category Input if Others */}
+              {courseCategory === 'Others' && (
+                <div>
+                  <label className="text-xs font-semibold text-text-primary block mb-1">
+                    Specify Custom Category *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Bio-Technology or Robotics"
+                    value={courseCustomCategory}
+                    onChange={(e) => setCourseCustomCategory(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
+                    required
+                  />
+                </div>
+              )}
+
+              {/* Keywords / Tags */}
+              <div>
+                <label className="text-xs font-semibold text-text-primary block mb-1">
+                  Keywords / Tags (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. physics, mechanics, oscillations, sem1"
+                  value={courseKeywords}
+                  onChange={(e) => setCourseKeywords(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
+                />
+                <p className="text-[10px] text-text-muted mt-0.5 font-mono-tabular">
+                  Comma-separated keywords help students find this course in search.
+                </p>
               </div>
 
               {/* Description */}
@@ -1192,11 +1257,11 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
       ================================================================= */}
       {showResourceModal && (
         <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+          className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center pt-8 sm:pt-12 p-4 overflow-y-auto animate-fade-in"
           onClick={() => setShowResourceModal(false)}
         >
           <div
-            className="w-full max-w-lg rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal my-auto text-left"
+            className="w-full max-w-lg rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal mb-8 text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
@@ -1257,6 +1322,7 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
                     <option value="Semester Organizer & PYQ">Semester Organizer & PYQ</option>
                     <option value="Handwritten Lecture Notes">Handwritten Lecture Notes</option>
                     <option value="Lab Manual & Viva Code">Lab Manual & Viva Code</option>
+                    <option value="Others">Others (Custom Category)</option>
                   </select>
                 </div>
 
@@ -1291,6 +1357,37 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
                     </button>
                   </div>
                 </div>
+              </div>
+
+              {/* Custom Category input if Others */}
+              {resCategory === 'Others' && (
+                <div>
+                  <label className="text-xs font-semibold text-text-primary block mb-1">
+                    Specify Custom Category *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Project Reports or Case Studies"
+                    value={resCustomCategory}
+                    onChange={(e) => setResCustomCategory(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
+                    required
+                  />
+                </div>
+              )}
+
+              {/* Keywords / Tags */}
+              <div>
+                <label className="text-xs font-semibold text-text-primary block mb-1">
+                  Keywords / Tags (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. formulas, pyq, solved papers, unit 1"
+                  value={resKeywords}
+                  onChange={(e) => setResKeywords(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
+                />
               </div>
 
               <div>
@@ -1332,11 +1429,11 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
       ================================================================= */}
       {showBroadcastModal && isAdmin && (
         <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+          className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center pt-8 sm:pt-12 p-4 overflow-y-auto animate-fade-in"
           onClick={() => setShowBroadcastModal(false)}
         >
           <div
-            className="w-full max-w-lg rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal my-auto text-left"
+            className="w-full max-w-lg rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal mb-8 text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
@@ -1427,6 +1524,19 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
                 </div>
               </div>
 
+              <div>
+                <label className="text-xs font-semibold text-text-primary block mb-1">
+                  Keywords / Tags (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. routine, exam, notices, semester"
+                  value={annKeywords}
+                  onChange={(e) => setAnnKeywords(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
+                />
+              </div>
+
               <div className="pt-2 flex items-center justify-end gap-2 border-t border-border-subtle">
                 <button
                   type="button"
@@ -1453,11 +1563,11 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
       ================================================================= */}
       {showSellModal && (
         <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+          className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center pt-8 sm:pt-12 p-4 overflow-y-auto animate-fade-in"
           onClick={() => setShowSellModal(false)}
         >
           <div
-            className="w-full max-w-lg rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal my-auto text-left"
+            className="w-full max-w-lg rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal mb-8 text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
@@ -1516,10 +1626,11 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
                     onChange={(e) => setMktCategory(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
                   >
-                    <option value="Books & Notes">Books & Notes</option>
+                    <option value="Study Material">Study Material</option>
                     <option value="Hardware Kits">Hardware Kits</option>
                     <option value="Tools & Gear">Tools & Gear</option>
                     <option value="Services">Services</option>
+                    <option value="Others">Others (Custom Category)</option>
                   </select>
                 </div>
 
@@ -1536,6 +1647,37 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
                     required
                   />
                 </div>
+              </div>
+
+              {/* Custom Category Input if Others */}
+              {mktCategory === 'Others' && (
+                <div>
+                  <label className="text-xs font-semibold text-text-primary block mb-1">
+                    Specify Custom Category *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Musical Instruments or Sports Gear"
+                    value={mktCustomCategory}
+                    onChange={(e) => setMktCustomCategory(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
+                    required
+                  />
+                </div>
+              )}
+
+              {/* Keywords / Tags */}
+              <div>
+                <label className="text-xs font-semibold text-text-primary block mb-1">
+                  Keywords / Tags (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. drafter, engineering, first-year, graphics"
+                  value={mktKeywords}
+                  onChange={(e) => setMktKeywords(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
+                />
               </div>
 
               <div>

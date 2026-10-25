@@ -46,7 +46,8 @@ export default function MyLearningView({
     subjects,
     lastPlayed,
     routine,
-    addStandaloneResource
+    addStandaloneResource,
+    saveUserFoldersToDb
   } = useDatabase();
 
   const userId = currentUser?.id || 'guest';
@@ -241,6 +242,9 @@ export default function MyLearningView({
   const saveFolders = (newFolders) => {
     setFolders(newFolders);
     saveWorkspaceFolders(userId, newFolders);
+    if (saveUserFoldersToDb && userId && userId !== 'guest') {
+      saveUserFoldersToDb(userId, newFolders);
+    }
   };
 
   // Helper: recursively update a node at given subfolderPath
@@ -313,6 +317,8 @@ export default function MyLearningView({
   const handleCreateSubfolder = (e) => {
     e.preventDefault();
     if (!newSubfolderName.trim() || !activeRootFolderId) return;
+    // Private/Personal folder allows subfolders at root level, but no nested subfolders below that
+    if (activeRootFolderId === 'personal' && subfolderPath.length >= 1) return;
 
     const newSub = {
       id: `sub-${Date.now()}`,
@@ -456,22 +462,6 @@ export default function MyLearningView({
           <div className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border-subtle">
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <button
-                  onClick={() => {
-                    if (subfolderPath.length > 0) {
-                      setSubfolderPath(prev => prev.slice(0, -1));
-                    } else {
-                      setActiveRootFolderId(null);
-                    }
-                  }}
-                  className="px-3 py-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold flex items-center gap-1.5 text-text-secondary hover:text-text-primary transition-colors cursor-pointer shadow-xs"
-                >
-                  <ArrowLeft size={13} />
-                  <span>{subfolderPath.length > 0 ? 'Up One Level' : 'Back to Workspace'}</span>
-                </button>
-
-                <div className="h-4 w-px bg-border-subtle hidden sm:block" />
-
                 {/* Breadcrumb Navigation Trail */}
                 <nav className="flex items-center gap-1.5 text-xs font-mono-tabular overflow-x-auto py-1">
                   <button
@@ -548,18 +538,21 @@ export default function MyLearningView({
 
               {/* Action Buttons: Inline Toggle for Subfolder / Item */}
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setInlineAddType(prev => prev === 'subfolder' ? null : 'subfolder')}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors ${
-                    inlineAddType === 'subfolder'
-                      ? 'bg-accent-ink text-text-on-dark border-accent-ink'
-                      : 'border-border-subtle bg-surface hover:bg-surface-hover text-text-primary'
-                  }`}
-                  title="Create new subfolder in this section"
-                >
-                  <FolderPlus size={13} />
-                  <span>+ Subfolder</span>
-                </button>
+                {/* Private / Personal folder allows subfolders, but no nested subfolders beneath them */}
+                {!(activeRootFolder.id === 'personal' && subfolderPath.length >= 1) && (
+                  <button
+                    onClick={() => setInlineAddType(prev => prev === 'subfolder' ? null : 'subfolder')}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors ${
+                      inlineAddType === 'subfolder'
+                        ? 'bg-accent-ink text-text-on-dark border-accent-ink'
+                        : 'border-border-subtle bg-surface hover:bg-surface-hover text-text-primary'
+                    }`}
+                    title="Create new subfolder in this section"
+                  >
+                    <FolderPlus size={13} />
+                    <span>+ Subfolder</span>
+                  </button>
+                )}
 
                 <button
                   onClick={() => setInlineAddType(prev => prev === 'item' ? null : 'item')}
@@ -1001,23 +994,6 @@ export default function MyLearningView({
             VIEW CONDITION 2: HOME DASHBOARD VIEW
         ================================================================= */
         <div className="w-full space-y-5">
-          {/* Editorial Workspace Header */}
-          <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-border-subtle pb-3.5">
-            <div>
-              <h1 className="text-xl sm:text-2xl lg:text-[26px] font-bold tracking-tight font-editorial text-text-primary">
-                Study Workspace
-              </h1>
-              <p className="text-xs text-text-secondary mt-0.5">
-                Welcome back, {currentUser?.name ? currentUser.name.split(' ')[0] : 'Scholar'}. Track your courses, attendance, and study materials.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 self-start sm:self-auto">
-              <span className="text-[11px] font-mono-tabular text-text-muted bg-subtle px-2.5 py-1 rounded-md border border-border-subtle">
-                {currentUser?.semester ? `SEM ${currentUser.semester}` : 'ACTIVE TERM'} • 75% MINIMUM TARGET
-              </span>
-            </div>
-          </div>
-
           {/* TOP HERO: COMPACT CONTINUE LEARNING BAR */}
           <div
             onClick={handleResumeHero}

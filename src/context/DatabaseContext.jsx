@@ -9,6 +9,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { supabase, isSupabaseLive } from '../lib/supabaseClient';
+import { foldersToProfilePayload, profilePayloadToFolders, saveWorkspaceFolders } from '../utils/workspaceFolders';
 
 const DatabaseContext = createContext();
 
@@ -411,7 +412,11 @@ const mapProfile = (dbProfile) => {
     status: dbProfile.status || 'active',
     creatorStatus: dbProfile.creator_status || dbProfile.creatorStatus || null,
     enrolledCourses: dbProfile.enrolled_courses || dbProfile.enrolledCourses || [],
-    enrolledPlaylists: dbProfile.enrolled_playlists || dbProfile.enrolledPlaylists || ['pl-1']
+    enrolledPlaylists: dbProfile.enrolled_playlists || dbProfile.enrolledPlaylists || ['pl-1'],
+    folderAcademic: dbProfile.folder_academic || dbProfile.folderAcademic || null,
+    folderDocument: dbProfile.folder_document || dbProfile.folderDocument || null,
+    folderLinks: dbProfile.folder_links || dbProfile.folderLinks || null,
+    folderPersonal: dbProfile.folder_personal || dbProfile.folderPersonal || null
   };
 };
 
@@ -906,18 +911,9 @@ export function DatabaseProvider({ children }) {
       setAuthLoading(false);
     }
 
-    // ── STEP 2: Load all remaining data in PARALLEL in the background ─────────
+    // ── STEP 2: Load all remaining data in PARALLEL with Promise.allSettled ───
     try {
-      const [
-        { data: profiles },
-        { data: coursesData },
-        { data: subs },
-        { data: playlists },
-        { data: materials },
-        { data: marketplaceData },
-        { data: logs },
-        { data: announcementsData }
-      ] = await Promise.all([
+      const results = await Promise.allSettled([
         supabase.from('profiles').select('*'),
         supabase.from('courses').select('*'),
         supabase.from('subjects').select('*'),
@@ -925,8 +921,19 @@ export function DatabaseProvider({ children }) {
         supabase.from('materials').select('*'),
         supabase.from('marketplace_items').select('*').eq('status', 'active'),
         supabase.from('activity_logs').select('*').order('timestamp', { ascending: false }),
-        supabase.from('announcements').select('*').order('created_at', { ascending: false })
+        supabase.from('announcements').select('*').order('created_at', { ascending: false }),
+        supabase.from('standalone_resources').select('*')
       ]);
+
+      const profiles = results[0]?.status === 'fulfilled' ? results[0].value?.data : null;
+      const coursesData = results[1]?.status === 'fulfilled' ? results[1].value?.data : null;
+      const subs = results[2]?.status === 'fulfilled' ? results[2].value?.data : null;
+      const playlists = results[3]?.status === 'fulfilled' ? results[3].value?.data : null;
+      const materials = results[4]?.status === 'fulfilled' ? results[4].value?.data : null;
+      const marketplaceData = results[5]?.status === 'fulfilled' ? results[5].value?.data : null;
+      const logs = results[6]?.status === 'fulfilled' ? results[6].value?.data : null;
+      const announcementsData = results[7]?.status === 'fulfilled' ? results[7].value?.data : null;
+      const standaloneResData = results[8]?.status === 'fulfilled' ? results[8].value?.data : null;
 
       // Gracefully check if videos table is present in Supabase for backward compatibility
       let existingVideos = [];
@@ -941,6 +948,35 @@ export function DatabaseProvider({ children }) {
         const mappedUsers = profiles.map(mapProfile);
         setUsers(mappedUsers);
         localStorage.setItem('learnopia_users_stable', JSON.stringify(mappedUsers));
+
+        // If current user is logged in, sync their 4 folders from profile if available
+        if (currentUser?.id) {
+          const userProfile = profiles.find(p => p.id === currentUser.id);
+          if (userProfile) {
+            const remoteFolders = profilePayloadToFolders(userProfile);
+            if (remoteFolders) {
+              saveWorkspaceFolders(currentUser.id, remoteFolders);
+            }
+          }
+        }
+      }
+
+      if (standaloneResData && Array.isArray(standaloneResData) && standaloneResData.length > 0) {
+        const mappedRes = standaloneResData.map(r => ({
+          id: r.id,
+          title: r.title,
+          url: r.url,
+          type: r.type || 'pdf',
+          category: r.category || 'Formula Sheet & Quick Reference',
+          description: r.description || '',
+          author: r.author || '',
+          uploaderId: r.uploader_id || '',
+          keywords: r.keywords || '',
+          isPublic: r.is_public !== false,
+          createdAt: r.created_at ? new Date(r.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+        }));
+        setStandaloneResources(mappedRes);
+        localStorage.setItem('learnopia_standalone_resources', JSON.stringify(mappedRes));
       }
 
       if (coursesData && Array.isArray(coursesData)) {
@@ -952,14 +988,23 @@ export function DatabaseProvider({ children }) {
           price: c.price,
           creatorId: c.creator_id,
           creatorName: c.creator_name,
-          isDegree: c.is_degree,
+          isDegree: c.is_degree === true,
           author: c.author || c.creator_name,
           isPublic: c.is_public !== false,
           youtubePlaylistId: c.youtube_playlist_id || c.youtubePlaylistId || '',
-          bannerUrl: c.banner_url || c.bannerUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800&auto=format&fit=crop'
+          bannerUrl: c.banner_url || c.bannerUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800&auto=format&fit=crop',
+          keywords: c.keywords || ''
         }));
-        setCourses(mappedCourses);
-        localStorage.setItem('learnopia_courses_stable', JSON.stringify(mappedCourses));
+
+        setCourses(prev => {
+          const remoteIds = new Set(mappedCourses.map(c => c.id));
+          const localOnly = prev.filter(c => !remoteIds.has(c.id));
+          const merged = [...mappedCourses, ...localOnly];
+          try {
+            localStorage.setItem('learnopia_courses_stable', JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
       }
 
       if (subs && Array.isArray(subs)) {
@@ -1069,17 +1114,40 @@ export function DatabaseProvider({ children }) {
         localStorage.setItem('learnopia_activity_logs', JSON.stringify(logs));
       }
 
-      // Load platform / global ad settings from Supabase
+      // Load platform / global ad settings from dedicated Supabase 'ads' table
       try {
-        const { data: adRow } = await supabase
-          .from('platform_settings')
-          .select('settings_json')
+        const { data: adsTableData } = await supabase
+          .from('ads')
+          .select('*')
           .eq('id', 'global_ad_settings')
           .maybeSingle();
 
-        if (adRow && adRow.settings_json) {
-          setAdSettings(adRow.settings_json);
-          localStorage.setItem('learnopia_ad_settings_stable', JSON.stringify(adRow.settings_json));
+        if (adsTableData) {
+          const parsed = {
+            enabled: adsTableData.enabled !== false,
+            intervalMinutes: adsTableData.interval_minutes || 15,
+            skipDelaySeconds: adsTableData.skip_delay_seconds || 10,
+            youtubeUrl: adsTableData.youtube_url || '',
+            title: adsTableData.title || '',
+            message: adsTableData.message || '',
+            targetUrl: adsTableData.target_url || '',
+            bannerLink: adsTableData.banner_link || '',
+            ...(adsTableData.settings_json || {})
+          };
+          setAdSettings(parsed);
+          localStorage.setItem('learnopia_ad_settings_stable', JSON.stringify(parsed));
+        } else {
+          // Fallback to platform_settings
+          const { data: adRow } = await supabase
+            .from('platform_settings')
+            .select('settings_json')
+            .eq('id', 'global_ad_settings')
+            .maybeSingle();
+
+          if (adRow && adRow.settings_json) {
+            setAdSettings(adRow.settings_json);
+            localStorage.setItem('learnopia_ad_settings_stable', JSON.stringify(adRow.settings_json));
+          }
         }
       } catch (adLoadErr) {
         console.warn('Ad settings remote load warn:', adLoadErr);
@@ -1915,36 +1983,44 @@ export function DatabaseProvider({ children }) {
   const addCourse = async (title, department, description, price = 0, isDegree = false, author = '', bannerUrl = '', keywords = '') => {
     if (!currentUser) return;
     const finalBanner = bannerUrl.trim() || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800&auto=format&fit=crop';
+    const courseId = 'c-' + Date.now();
+    const finalKeywords = Array.isArray(keywords) ? keywords.join(', ') : (keywords || '');
+
+    const newCourse = {
+      id: courseId,
+      title,
+      department,
+      description,
+      price: parseFloat(price) || 0,
+      creatorId: currentUser.id,
+      creatorName: currentUser.name,
+      isDegree,
+      author: author || currentUser.name,
+      bannerUrl: finalBanner,
+      keywords: finalKeywords
+    };
+    setCourses(prev => [newCourse, ...prev]);
+    addLog(`Course created: "${title}"`);
+
     if (isSupabaseLive) {
-      await supabase.from('courses').insert([{
-        title,
-        department,
-        description,
-        price: parseFloat(price) || 0,
-        creator_id: currentUser.id,
-        creator_name: currentUser.name,
-        is_degree: isDegree,
-        author: author || currentUser.name,
-        banner_url: finalBanner
-      }]);
-      addLog(`Course created: "${title}"`);
-      syncSupabase();
-    } else {
-      const newCourse = {
-        id: 'c-' + (courses.length + 1),
-        title,
-        department,
-        description,
-        price: parseFloat(price) || 0,
-        creatorId: currentUser.id,
-        creatorName: currentUser.name,
-        isDegree,
-        author: author || currentUser.name,
-        bannerUrl: finalBanner,
-        keywords: Array.isArray(keywords) ? keywords : String(keywords || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
-      };
-      setCourses(prev => [...prev, newCourse]);
-      addLog(`Course created: "${title}"`);
+      try {
+        await supabase.from('courses').insert([{
+          id: courseId,
+          title,
+          department,
+          description,
+          price: parseFloat(price) || 0,
+          creator_id: currentUser.id,
+          creator_name: currentUser.name,
+          is_degree: isDegree,
+          author: author || currentUser.name,
+          banner_url: finalBanner,
+          keywords: finalKeywords
+        }]);
+        syncSupabase();
+      } catch (err) {
+        console.warn('Course insert into Supabase warning:', err);
+      }
     }
   };
 
@@ -2216,57 +2292,108 @@ export function DatabaseProvider({ children }) {
     department,
     youtubePlaylistUrl,
     isPublic = true,
-    bannerUrl = ''
+    bannerUrl = '',
+    keywords = ''
   }) => {
     const ytId = extractYoutubePlaylistId(youtubePlaylistUrl) || '';
-    const courseId = 'c-' + Date.now();
-    const subjectId = 'sub-' + Date.now();
-    const playlistId = 'pl-' + Date.now();
+    
+    // Generate valid RFC4122 v4 UUIDs for PostgreSQL compatibility
+    const generateUUID = () => {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        try { return crypto.randomUUID(); } catch {}
+      }
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+    };
+    const isUUID = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(str || ''));
+
+    const courseId = generateUUID();
+    const subjectId = generateUUID();
+    const playlistId = generateUUID();
+    const validCreatorId = isUUID(currentUser?.id) ? currentUser.id : null;
+
     const finalAuthor = author || currentUser?.name || 'Faculty Educator';
     const finalDept = department || category || 'Core Engineering';
     const finalDesc = description || `Comprehensive academic lecture series for ${title}.`;
     const finalBanner = bannerUrl || (ytId && !ytId.startsWith('PL') ? `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg` : '');
+    const finalKeywords = Array.isArray(keywords) ? keywords.join(', ') : (keywords || '');
 
     if (isSupabaseLive) {
       try {
-        // 1. Insert into courses
-        await supabase.from('courses').insert([{
+        // 1. Insert into courses (primary table) with modern schema and fallback
+        const fullCoursePayload = {
           id: courseId,
           title: title.trim(),
           department: finalDept,
           description: finalDesc,
           price: 0,
-          creator_id: currentUser?.id || 'admin',
+          creator_id: validCreatorId,
           creator_name: finalAuthor,
           author: finalAuthor,
           banner_url: finalBanner,
           is_public: isPublic,
-          youtube_playlist_id: ytId
-        }]);
+          youtube_playlist_id: ytId,
+          keywords: finalKeywords
+        };
 
-        // 2. Insert into subjects
-        await supabase.from('subjects').insert([{
-          id: subjectId,
-          course_id: courseId,
-          title: title.trim(),
-          semester: 1,
-          position: 0,
-          is_public: isPublic,
-          youtube_playlist_id: ytId
-        }]);
+        const { error: insertErr } = await supabase.from('courses').insert([fullCoursePayload]);
+        if (insertErr) {
+          console.warn("Full courses insert warn:", insertErr.message);
+          // Fallback if columns like is_public or keywords don't exist yet in Supabase
+          const fallbackCoursePayload = {
+            id: courseId,
+            title: title.trim(),
+            department: finalDept,
+            description: finalDesc,
+            price: 0,
+            creator_id: validCreatorId,
+            creator_name: finalAuthor,
+            author: finalAuthor,
+            banner_url: finalBanner,
+            is_degree: false,
+            likes: 0
+          };
+          const fallbackRes = await supabase.from('courses').insert([fallbackCoursePayload]);
+          if (fallbackRes.error) {
+            console.warn("Fallback courses insert warn:", fallbackRes.error.message);
+          }
+        }
+
+        // 2. Insert into subjects (optional sub-classification)
+        try {
+          await supabase.from('subjects').insert([{
+            id: subjectId,
+            course_id: courseId,
+            title: title.trim(),
+            semester: 1,
+            position: 0,
+            is_public: isPublic,
+            youtube_playlist_id: ytId
+          }]);
+        } catch (sErr) {
+          console.warn("Subjects table insert fallback:", sErr);
+        }
 
         // 3. Insert into playlists
-        await supabase.from('playlists').insert([{
-          id: playlistId,
-          subject_id: subjectId,
-          title: title.trim(),
-          description: finalDesc,
-          author: finalAuthor,
-          youtube_playlist_id: ytId,
-          is_public: isPublic,
-          position: 0,
-          likes: []
-        }]);
+        try {
+          await supabase.from('playlists').insert([{
+            id: playlistId,
+            subject_id: subjectId,
+            title: title.trim(),
+            description: finalDesc,
+            author: finalAuthor,
+            youtube_playlist_id: ytId,
+            is_public: isPublic,
+            position: 0,
+            likes: [],
+            keywords: finalKeywords
+          }]);
+        } catch (pErr) {
+          console.warn("Playlists table insert fallback:", pErr);
+        }
 
         addLog(`Published new course and playlist: "${title.trim()}"`);
         syncSupabase();
@@ -2282,12 +2409,13 @@ export function DatabaseProvider({ children }) {
       department: finalDept,
       description: finalDesc,
       price: 0,
-      creatorId: currentUser?.id || 'admin',
+      creatorId: validCreatorId || currentUser?.id || 'admin',
       creatorName: finalAuthor,
       author: finalAuthor,
       bannerUrl: finalBanner,
       isPublic,
-      youtubePlaylistId: ytId
+      youtubePlaylistId: ytId,
+      keywords: finalKeywords
     };
 
     const newPlaylist = {
@@ -2315,8 +2443,14 @@ export function DatabaseProvider({ children }) {
       materials: []
     };
 
-    setCourses(prev => [newCourse, ...prev]);
-    setSubjects(prev => [newSubject, ...prev]);
+    setCourses(prev => {
+      const updated = [newCourse, ...prev.filter(c => c.id !== courseId)];
+      try {
+        localStorage.setItem('learnopia_courses_stable', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    setSubjects(prev => [newSubject, ...prev.filter(s => s.id !== subjectId)]);
 
     return { courseId, subjectId, playlistId };
   };
@@ -3320,6 +3454,26 @@ export function DatabaseProvider({ children }) {
 
     if (isSupabaseLive) {
       try {
+        await supabase
+          .from('ads')
+          .upsert([{
+            id: 'global_ad_settings',
+            title: merged.title || '',
+            message: merged.message || '',
+            target_url: merged.targetUrl || '',
+            youtube_url: merged.youtubeUrl || '',
+            banner_link: merged.bannerLink || null,
+            enabled: merged.enabled !== false,
+            interval_minutes: parseInt(merged.intervalMinutes) || 15,
+            skip_delay_seconds: parseInt(merged.skipDelaySeconds) || 10,
+            settings_json: merged,
+            updated_at: new Date().toISOString()
+          }], { onConflict: 'id' });
+      } catch (eAds) {
+        console.warn('Dedicated ads table sync fallback:', eAds);
+      }
+
+      try {
         const { data: existing } = await supabase
           .from('platform_settings')
           .select('id')
@@ -3351,6 +3505,30 @@ export function DatabaseProvider({ children }) {
 
     addLog(`Admin updated Community Ad parameters (Status: ${merged.enabled ? 'Enabled' : 'Disabled'}, Interval: ${merged.intervalMinutes}m, Skip Delay: ${merged.skipDelaySeconds}s)`);
   };
+
+  const saveUserFoldersToDb = async (userId, folders) => {
+    if (!isSupabaseLive || !userId || userId === 'guest') return;
+    try {
+      const payload = foldersToProfilePayload(folders);
+      await supabase.from('profiles').update({
+        ...payload,
+        updated_at: new Date().toISOString()
+      }).eq('id', userId);
+    } catch (err) {
+      console.warn('Failed to sync workspace folders to Supabase profile:', err);
+    }
+  };
+
+  useEffect(() => {
+    const handleFoldersUpdated = (e) => {
+      const { userId, folders } = e.detail || {};
+      if (userId && folders) {
+        saveUserFoldersToDb(userId, folders);
+      }
+    };
+    window.addEventListener('learnopia_workspace_folders_updated', handleFoldersUpdated);
+    return () => window.removeEventListener('learnopia_workspace_folders_updated', handleFoldersUpdated);
+  }, []);
 
   return (
     <DatabaseContext.Provider value={{
@@ -3436,6 +3614,7 @@ export function DatabaseProvider({ children }) {
       saveDiscussionThreadsToDb,
       getDiscussionThreadsFromDb,
       deleteUserAccount,
+      saveUserFoldersToDb,
       isSupabaseLive
     }}>
       {children}
