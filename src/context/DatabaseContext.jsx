@@ -644,10 +644,38 @@ export function DatabaseProvider({ children }) {
   });
 
   const [savedResourceIds, setSavedResourceIds] = useState(() => {
-    if (typeof window === 'undefined') return ['res-1'];
-    const saved = localStorage.getItem('learnopia_saved_resource_ids');
-    return saved ? JSON.parse(saved) : ['res-1'];
+    if (typeof window === 'undefined') return [];
+    try {
+      const userRaw = localStorage.getItem('learnopia_current_user_stable');
+      const uid = userRaw ? JSON.parse(userRaw)?.id : 'guest';
+      const key = `learnopia_saved_resource_ids_${uid || 'guest'}`;
+      const saved = localStorage.getItem(key);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
+
+  // Keep saved resource IDs isolated to the currently logged in user account
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const uid = currentUser?.id || 'guest';
+    const key = `learnopia_saved_resource_ids_${uid}`;
+    try {
+      const saved = localStorage.getItem(key);
+      setSavedResourceIds(saved ? JSON.parse(saved) : []);
+    } catch {
+      setSavedResourceIds([]);
+    }
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const uid = currentUser?.id || 'guest';
+      const key = `learnopia_saved_resource_ids_${uid}`;
+      localStorage.setItem(key, JSON.stringify(savedResourceIds));
+    }
+  }, [savedResourceIds, currentUser?.id]);
 
   const [lastPlayed, setLastPlayed] = useState(() => {
     if (typeof window === 'undefined') return null;
@@ -681,12 +709,6 @@ export function DatabaseProvider({ children }) {
       window.dispatchEvent(new CustomEvent('learnopia_last_played_updated', { detail: payload }));
     }
   };
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('learnopia_saved_resource_ids', JSON.stringify(savedResourceIds));
-    }
-  }, [savedResourceIds]);
 
   const toggleSaveResource = (resId) => {
     if (!resId) return;

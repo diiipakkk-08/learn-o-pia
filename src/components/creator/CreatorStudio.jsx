@@ -21,7 +21,7 @@ import {
 import {
   Plus, BookOpen, Trash2, ChevronDown, Check, X, Copy,
   Video, Tag, ShoppingBag, Globe, Lock, Clock, RotateCw, ExternalLink,
-  Sparkles, FileText, Megaphone, Loader2, Play, AlertCircle
+  Sparkles, FileText, Megaphone, Loader2, Play, AlertCircle, ArrowLeft
 } from 'lucide-react';
 import {
   getUserStudioListings,
@@ -192,15 +192,12 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
     enrollInPlaylist,
     standaloneResources,
     addStandaloneResource,
-    deleteStandaloneResource,
-    announcements,
-    broadcastAnnouncement,
-    deleteAnnouncement
+    deleteStandaloneResource
   } = useDatabase();
 
   const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner' || currentUser.isAdmin);
 
-  // Active Studio Tab: 'courses' | 'resources' | 'broadcasts' | 'marketplace'
+  // Active Studio Tab: 'courses' | 'resources' | 'marketplace'
   const [activeTab, setActiveTab] = useState('courses');
 
   // ── COURSES & PLAYLISTS STATE ──────────────────────────────────────────────
@@ -432,44 +429,6 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
     });
   }, [standaloneResources, currentUser, isAdmin]);
 
-  // ── CAMPUS BROADCASTS STATE ────────────────────────────────────────────────
-  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
-  const [annTitle, setAnnTitle] = useState('');
-  const [annAuthor, setAnnAuthor] = useState(currentUser?.name || 'Admin Team');
-  const [annMessage, setAnnMessage] = useState('');
-  const [annResourceTitle, setAnnResourceTitle] = useState('');
-  const [annResourceUrl, setAnnResourceUrl] = useState('');
-  const [annCategory, setAnnCategory] = useState('Campus Notice');
-  const [annKeywords, setAnnKeywords] = useState('');
-  const [annToast, setAnnToast] = useState('');
-
-  const handleSendBroadcast = async (e) => {
-    e.preventDefault();
-    if (!annTitle.trim() || !annMessage.trim()) return;
-
-    if (broadcastAnnouncement) {
-      await broadcastAnnouncement({
-        title: annTitle.trim(),
-        author: annAuthor.trim() || currentUser?.name || 'Admin Team',
-        message: annMessage.trim(),
-        resourceTitle: annResourceTitle.trim(),
-        resourceUrl: annResourceUrl.trim(),
-        link: annResourceUrl.trim(),
-        category: annCategory,
-        keywords: annKeywords.trim()
-      });
-
-      setAnnToast('Announcement broadcasted to all students!');
-      setAnnTitle('');
-      setAnnMessage('');
-      setAnnResourceTitle('');
-      setAnnResourceUrl('');
-      setAnnKeywords('');
-      setShowBroadcastModal(false);
-      setTimeout(() => setAnnToast(''), 4000);
-    }
-  };
-
   // ── MARKETPLACE STATE ──────────────────────────────────────────────────────
   const [showSellModal, setShowSellModal] = useState(false);
   const [mktTitle, setMktTitle] = useState('');
@@ -559,23 +518,28 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
             )}
           </div>
           <p className="text-xs text-text-secondary mt-1">
-            Curate YouTube video series, share open study materials, broadcast campus notices, and manage marketplace listings.
+            Curate YouTube video series, share open study materials, and manage student marketplace listings.
           </p>
         </div>
 
         {/* Global Toast Alerts */}
-        {(courseToast || resToast || annToast || mktToast) && (
+        {(courseToast || resToast || mktToast) && (
           <div className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-accent-forest/10 border border-accent-forest/20 text-accent-forest animate-fade-in flex items-center gap-2">
             <Check size={14} />
-            <span>{courseToast || resToast || annToast || mktToast}</span>
+            <span>{courseToast || resToast || mktToast}</span>
           </div>
         )}
       </div>
 
-      {/* 4 Focused Studio Tabs */}
+      {/* 3 Focused Studio Tabs */}
       <div className="flex items-center gap-2 border-b border-border-subtle pb-3 overflow-x-auto">
         <button
-          onClick={() => setActiveTab('courses')}
+          onClick={() => {
+            setActiveTab('courses');
+            setShowCourseModal(false);
+            setShowResourceModal(false);
+            setShowSellModal(false);
+          }}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === 'courses'
               ? 'bg-accent-ink text-text-on-dark shadow-sm'
@@ -583,11 +547,16 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
           }`}
         >
           <Video size={14} />
-          <span>Courses & Playlists ({allStudioCourses.length})</span>
+          <span>Courses ({allStudioCourses.length})</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('resources')}
+          onClick={() => {
+            setActiveTab('resources');
+            setShowCourseModal(false);
+            setShowResourceModal(false);
+            setShowSellModal(false);
+          }}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === 'resources'
               ? 'bg-accent-ink text-text-on-dark shadow-sm'
@@ -595,25 +564,16 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
           }`}
         >
           <FileText size={14} />
-          <span>Study Vault ({myVaultResources.length})</span>
+          <span>Resources ({myVaultResources.length})</span>
         </button>
 
-        {isAdmin && (
-          <button
-            onClick={() => setActiveTab('broadcasts')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
-              activeTab === 'broadcasts'
-                ? 'bg-accent-ink text-text-on-dark shadow-sm'
-                : 'bg-surface text-text-secondary border border-border-subtle hover:bg-surface-hover hover:text-text-primary'
-            }`}
-          >
-            <Megaphone size={14} />
-            <span>Academic Broadcasts ({announcements?.length || 0})</span>
-          </button>
-        )}
-
         <button
-          onClick={() => setActiveTab('marketplace')}
+          onClick={() => {
+            setActiveTab('marketplace');
+            setShowCourseModal(false);
+            setShowResourceModal(false);
+            setShowSellModal(false);
+          }}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === 'marketplace'
               ? 'bg-accent-ink text-text-on-dark shadow-sm'
@@ -621,7 +581,7 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
           }`}
         >
           <ShoppingBag size={14} />
-          <span>Marketplace Listings ({marketplaceListings.length})</span>
+          <span>Sell ({marketplaceListings.length})</span>
         </button>
       </div>
 
@@ -629,7 +589,216 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
           TAB 1: COURSES & PLAYLISTS
       ================================================================= */}
       {activeTab === 'courses' && (
-        <div className="space-y-4 animate-fade-in">
+        showCourseModal ? (
+          <div className="rounded-2xl border border-border-subtle bg-surface p-6 space-y-5 animate-fade-in max-w-3xl">
+            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+              <button
+                type="button"
+                onClick={() => setShowCourseModal(false)}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary flex items-center gap-2 cursor-pointer transition-colors"
+              >
+                <ArrowLeft size={14} />
+                <span>Back to Courses</span>
+              </button>
+              <span className="text-[11px] font-mono-tabular text-text-muted">CURATE YOUTUBE PLAYLIST</span>
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-text-primary">Curate YouTube Course / Playlist</h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Paste a YouTube playlist URL or lecture video. Learnopia automatically imports lecture chapters, titles, and syllabus structure.
+              </p>
+            </div>
+
+            {courseError && (
+              <div className="px-3.5 py-2.5 rounded-xl text-xs bg-red-500/10 border border-red-500/20 text-red-500 font-semibold">
+                {courseError}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateCourseSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-text-primary block mb-1">
+                  YouTube Playlist or Video Link *
+                </label>
+                <div className="relative">
+                  <input
+                    type="url"
+                    placeholder="https://www.youtube.com/playlist?list=PL... or video link"
+                    value={courseYtUrl}
+                    onChange={(e) => handleYoutubeUrlChange(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular pr-24"
+                    required
+                  />
+                  {isCuratingYt && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs text-accent-forest font-semibold">
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Fetching...</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-text-primary block mb-1">
+                    Course / Playlist Title *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Data Structures and Algorithms in C++"
+                    value={courseTitle}
+                    onChange={(e) => setCourseTitle(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-text-primary block mb-1">
+                    Instructor / Channel Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. MIT OpenCourseWare or Channel Name"
+                    value={courseAuthor}
+                    onChange={(e) => setCourseAuthor(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-text-primary block mb-1">
+                    Category / Department
+                  </label>
+                  <select
+                    value={courseCategory}
+                    onChange={(e) => setCourseCategory(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
+                  >
+                    <option value="Computer Science & IT">Computer Science & IT</option>
+                    <option value="Electronics & Communication">Electronics & Communication</option>
+                    <option value="Mechanical Engineering">Mechanical Engineering</option>
+                    <option value="Electrical Engineering">Electrical Engineering</option>
+                    <option value="Civil Engineering">Civil Engineering</option>
+                    <option value="Applied Sciences & Maths">Applied Sciences & Maths</option>
+                    <option value="General & Foundational">General & Foundational</option>
+                    <option value="Others">Others (Custom Category)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-text-primary block mb-1">
+                    Visibility
+                  </label>
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setCourseIsPublic(true)}
+                      className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
+                        courseIsPublic
+                          ? 'border-accent-forest bg-accent-forest/15 text-accent-forest font-bold'
+                          : 'border-border-subtle bg-canvas text-text-secondary'
+                      }`}
+                    >
+                      <Globe size={13} />
+                      <span>Public</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCourseIsPublic(false)}
+                      className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
+                        !courseIsPublic
+                          ? 'border-accent-ink bg-accent-ink text-text-on-dark font-bold'
+                          : 'border-border-subtle bg-canvas text-text-secondary'
+                      }`}
+                    >
+                      <Lock size={13} />
+                      <span>Private</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {courseCategory === 'Others' && (
+                <div>
+                  <label className="text-xs font-semibold text-text-primary block mb-1">
+                    Specify Custom Category *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Artificial Intelligence or Chemical Engineering"
+                    value={courseCustomCategory}
+                    onChange={(e) => setCourseCustomCategory(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-text-primary block mb-1">
+                    Keywords / Tags (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. c++, trees, graphs, sorting"
+                    value={courseKeywords}
+                    onChange={(e) => setCourseKeywords(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-text-primary block mb-1">
+                    Custom Thumbnail URL (Optional)
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://... (auto-fetched from YouTube by default)"
+                    value={courseBanner}
+                    onChange={(e) => setCourseBanner(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-text-primary block mb-1">
+                  Course Description / Syllabus
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Overview of syllabus, prerequisites, and key topics covered..."
+                  value={courseDesc}
+                  onChange={(e) => setCourseDesc(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong resize-vertical"
+                />
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-3 border-t border-border-subtle">
+                <button
+                  type="button"
+                  onClick={() => setShowCourseModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-secondary cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs flex items-center gap-1.5"
+                >
+                  <Plus size={14} />
+                  <span>Publish Course</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
+          <div className="space-y-4 animate-fade-in">
           <div className="flex items-center justify-between pb-1 flex-wrap gap-2">
             <div>
               <h3 className="text-sm font-bold text-text-primary">Curated Courses & Lecture Series</h3>
@@ -720,13 +889,176 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
             </div>
           )}
         </div>
+        )
       )}
 
       {/* =================================================================
           TAB 2: OPEN STUDY VAULT
       ================================================================= */}
       {activeTab === 'resources' && (
-        <div className="space-y-4 animate-fade-in">
+        showResourceModal ? (
+          <div className="rounded-2xl border border-border-subtle bg-surface p-6 space-y-5 animate-fade-in max-w-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+              <button
+                type="button"
+                onClick={() => setShowResourceModal(false)}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary flex items-center gap-2 cursor-pointer transition-colors"
+              >
+                <ArrowLeft size={14} />
+                <span>Back to Resources</span>
+              </button>
+              <span className="text-[11px] font-mono-tabular text-text-muted">PUBLISH STUDY DOCUMENT</span>
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-text-primary">Publish Study Vault Document</h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Share high-yield formula sheets, handwritten lecture summaries, or semester PYQ packs with the campus.
+              </p>
+            </div>
+
+            <form onSubmit={handlePublishResource} className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-text-primary block mb-1">
+                  Document Title *
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Engineering Mathematics 1-Page Formula Sheet"
+                  value={resTitle}
+                  onChange={(e) => setResTitle(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-text-primary block mb-1">
+                  File URL or Link *
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://drive.google.com/... or https://example.com/notes.pdf"
+                  value={resUrl}
+                  onChange={(e) => setResUrl(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-text-primary block mb-1">
+                    Document Category
+                  </label>
+                  <select
+                    value={resCategory}
+                    onChange={(e) => setResCategory(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
+                  >
+                    <option value="Formula Sheet & Quick Reference">Formula Sheet & Quick Reference</option>
+                    <option value="Semester Organizer & PYQ">Semester Organizer & PYQ</option>
+                    <option value="Handwritten Lecture Notes">Handwritten Lecture Notes</option>
+                    <option value="Lab Manual & Viva Code">Lab Manual & Viva Code</option>
+                    <option value="Others">Others (Custom Category)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-text-primary block mb-1">
+                    Visibility
+                  </label>
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setResIsPublic(true)}
+                      className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
+                        resIsPublic
+                          ? 'border-accent-forest bg-accent-forest/15 text-accent-forest font-bold'
+                          : 'border-border-subtle bg-canvas text-text-secondary'
+                      }`}
+                    >
+                      <Globe size={13} />
+                      <span>Public</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setResIsPublic(false)}
+                      className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold border flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
+                        !resIsPublic
+                          ? 'border-accent-ink bg-accent-ink text-text-on-dark font-bold'
+                          : 'border-border-subtle bg-canvas text-text-secondary'
+                      }`}
+                    >
+                      <Lock size={13} />
+                      <span>Private</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {resCategory === 'Others' && (
+                <div>
+                  <label className="text-xs font-semibold text-text-primary block mb-1">
+                    Specify Custom Category *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Project Reports or Case Studies"
+                    value={resCustomCategory}
+                    onChange={(e) => setResCustomCategory(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
+                    required
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-semibold text-text-primary block mb-1">
+                  Keywords / Tags (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. formulas, pyq, solved papers, unit 1"
+                  value={resKeywords}
+                  onChange={(e) => setResKeywords(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-text-primary block mb-1">
+                  Description / Topic Summary
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Summary of what chapters or theorems are in this document..."
+                  value={resDesc}
+                  onChange={(e) => setResDesc(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong resize-vertical"
+                />
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-3 border-t border-border-subtle">
+                <button
+                  type="button"
+                  onClick={() => setShowResourceModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-secondary cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs flex items-center gap-1.5"
+                >
+                  <Plus size={14} />
+                  <span>Publish to Vault</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
+          <div className="space-y-4 animate-fade-in">
           <div className="flex items-center justify-between pb-1 flex-wrap gap-2">
             <div>
               <h3 className="text-sm font-bold text-text-primary">Shared Academic Vault Documents</h3>
@@ -811,99 +1143,175 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
             </div>
           )}
         </div>
+        )
       )}
 
       {/* =================================================================
-          TAB 3: CAMPUS BROADCASTS
-      ================================================================= */}
-      {activeTab === 'broadcasts' && isAdmin && (
-        <div className="space-y-4 animate-fade-in">
-          <div className="flex items-center justify-between pb-1 flex-wrap gap-2">
-            <div>
-              <h3 className="text-sm font-bold text-text-primary">Campus Broadcasts & Platform Notices</h3>
-              <p className="text-xs text-text-muted mt-0.5 font-mono-tabular">
-                OFFICIAL NOTICES ARE PERSISTED TO DATABASE & DISPLAYED UNDER TOP NOTIFICATION BELL
-              </p>
-            </div>
-            <button
-              onClick={() => setShowBroadcastModal(true)}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-accent-ink text-text-on-dark flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-95"
-            >
-              <Megaphone size={14} />
-              <span>Send New Broadcast</span>
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            {(!announcements || announcements.length === 0) ? (
-              <div className="text-center py-12 p-6 rounded-2xl border border-border-subtle bg-surface space-y-2">
-                <Megaphone size={32} className="text-text-muted mx-auto opacity-50" />
-                <h4 className="text-sm font-bold text-text-primary">No Broadcast Notices Sent</h4>
-                <p className="text-xs text-text-secondary">Send your first campus announcement using the button above.</p>
-              </div>
-            ) : (
-              announcements.map((ann) => (
-                <div
-                  key={ann.id}
-                  className="p-4 rounded-xl border border-border-subtle bg-surface flex flex-col sm:flex-row sm:items-start justify-between gap-3 shadow-xs"
-                >
-                  <div className="space-y-1.5 min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <h4 className="text-sm font-bold text-text-primary">{ann.title}</h4>
-                      <span className="text-[11px] font-mono-tabular text-text-muted">
-                        {ann.createdAt ? new Date(ann.createdAt).toLocaleDateString() : 'Recent'}
-                      </span>
-                    </div>
-
-                    <div className="text-[11px] font-mono-tabular text-text-secondary">
-                      Sender: <strong className="text-text-primary">{ann.author || ann.createdBy || 'Campus Admin'}</strong>
-                      {ann.category && <span> • {ann.category}</span>}
-                    </div>
-
-                    <p className="text-xs text-text-secondary leading-relaxed pt-0.5">
-                      {ann.message}
-                    </p>
-
-                    {(ann.resourceUrl || ann.link) && (
-                      <div className="pt-1.5">
-                        <a
-                          href={ann.resourceUrl || ann.link}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-accent-forest/10 text-accent-forest hover:bg-accent-forest/20 transition-colors shadow-xs"
-                        >
-                          <span>{ann.resourceTitle || 'Open Attached Resource'}</span>
-                          <ExternalLink size={11} />
-                        </a>
-                      </div>
-                    )}
-                  </div>
-
-                  {deleteAnnouncement && (
-                    <button
-                      onClick={() => {
-                        if (window.confirm(`Delete broadcast "${ann.title}"?`)) {
-                          deleteAnnouncement(ann.id);
-                        }
-                      }}
-                      className="p-1.5 rounded-lg text-text-muted hover:text-red-500 cursor-pointer transition-colors self-end sm:self-start"
-                      title="Delete Announcement"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* =================================================================
-          TAB 4: MARKETPLACE HUB
+          TAB 3: MARKETPLACE / SELL
       ================================================================= */}
       {activeTab === 'marketplace' && (
-        <div className="space-y-4 animate-fade-in">
+        showSellModal ? (
+          <div className="rounded-2xl border border-border-subtle bg-surface p-6 space-y-5 animate-fade-in max-w-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+              <button
+                type="button"
+                onClick={() => setShowSellModal(false)}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary flex items-center gap-2 cursor-pointer transition-colors"
+              >
+                <ArrowLeft size={14} />
+                <span>Back to Sell Listings</span>
+              </button>
+              <span className="text-[11px] font-mono-tabular text-text-muted">5-MONTH CAMPUS LISTING</span>
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-text-primary">Sell on Student Marketplace</h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Listings remain active on campus for 5 months (150 days) with 1-click renewal.
+              </p>
+            </div>
+
+            <form onSubmit={handlePublishMarketplace} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-text-primary block mb-1">
+                    Item Title *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Mini Drafter & Pine Drawing Board"
+                    value={mktTitle}
+                    onChange={(e) => setMktTitle(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-text-primary block mb-1">
+                    Price (INR) *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. ₹450 or Free"
+                    value={mktPrice}
+                    onChange={(e) => setMktPrice(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-text-primary block mb-1">
+                    Category
+                  </label>
+                  <select
+                    value={mktCategory}
+                    onChange={(e) => setMktCategory(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
+                  >
+                    <option value="Study Material">Study Material</option>
+                    <option value="Hardware Kits">Hardware Kits</option>
+                    <option value="Tools & Gear">Tools & Gear</option>
+                    <option value="Services">Services</option>
+                    <option value="Others">Others (Custom Category)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-text-primary block mb-1">
+                    Contact Phone / WhatsApp *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 9876543210"
+                    value={mktContactDetail}
+                    onChange={(e) => setMktContactDetail(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
+                    required
+                  />
+                </div>
+              </div>
+
+              {mktCategory === 'Others' && (
+                <div>
+                  <label className="text-xs font-semibold text-text-primary block mb-1">
+                    Specify Custom Category *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Musical Instruments or Sports Gear"
+                    value={mktCustomCategory}
+                    onChange={(e) => setMktCustomCategory(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-text-primary block mb-1">
+                    Keywords / Tags (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. drafter, engineering, first-year, graphics"
+                    value={mktKeywords}
+                    onChange={(e) => setMktKeywords(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-text-primary block mb-1">
+                    Item Photo URL (Optional)
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://images.unsplash.com/..."
+                    value={mktImageUrl}
+                    onChange={(e) => setMktImageUrl(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-text-primary block mb-1">
+                  Description & Condition
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Describe condition, semester used, or pickup location..."
+                  value={mktDesc}
+                  onChange={(e) => setMktDesc(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong resize-vertical"
+                />
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-3 border-t border-border-subtle">
+                <button
+                  type="button"
+                  onClick={() => setShowSellModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-secondary cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs flex items-center gap-1.5"
+                >
+                  <ShoppingBag size={14} />
+                  <span>Publish Item</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
+          <div className="space-y-4 animate-fade-in">
           <div className="p-4 rounded-xl border border-border-subtle bg-surface-sunken flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h4 className="text-xs font-bold text-text-primary uppercase tracking-wider font-mono-tabular">
@@ -1034,698 +1442,9 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
             </div>
           )}
         </div>
+        )
       )}
 
-      {/* =================================================================
-          MODAL 1: CURATE COURSE & PLAYLIST (With Auto YouTube Curation)
-      ================================================================= */}
-      {showCourseModal && (
-        <div
-          className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center pt-8 sm:pt-12 p-4 overflow-y-auto animate-fade-in"
-          onClick={() => setShowCourseModal(false)}
-        >
-          <div
-            className="w-full max-w-lg rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal mb-8 text-left"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-              <div>
-                <h3 className="text-base font-bold text-text-primary">Curate YouTube Course</h3>
-                <p className="text-[11px] text-text-muted font-mono-tabular">
-                  AUTO-CURATES TITLE, AUTHOR CREDITS, AND LECTURES VIA YOUTUBE
-                </p>
-              </div>
-              <button
-                onClick={() => setShowCourseModal(false)}
-                className="p-1 rounded text-text-muted hover:text-text-primary cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {courseError && (
-              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs flex items-center gap-2">
-                <AlertCircle size={14} className="shrink-0" />
-                <span>{courseError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleCreateCourseSubmit} className="space-y-3.5">
-              {/* YouTube Link with Auto-Fetch Badge */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-text-primary">
-                    YouTube Playlist or Video URL *
-                  </label>
-                  {isCuratingYt && (
-                    <span className="text-[11px] font-mono-tabular text-accent-forest flex items-center gap-1 animate-pulse">
-                      <Loader2 size={11} className="animate-spin" />
-                      <span>Curating details...</span>
-                    </span>
-                  )}
-                </div>
-                <input
-                  type="url"
-                  placeholder="https://www.youtube.com/playlist?list=PLu0W_9lII9agq5TrH99GD8hOOx4PEhU3_"
-                  value={courseYtUrl}
-                  onChange={(e) => handleYoutubeUrlChange(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
-                  required
-                />
-                <p className="text-[10px] text-text-muted mt-1 font-mono-tabular">
-                  Paste any YouTube playlist link — titles, channel name, and description populate automatically!
-                </p>
-              </div>
-
-              {/* Title & Author Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-text-primary block mb-1">
-                    Course / Playlist Title *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Complete Engineering Physics"
-                    value={courseTitle}
-                    onChange={(e) => setCourseTitle(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-text-primary block mb-1">
-                    Author / Channel Credits *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. CodeWithHarry or NPTEL"
-                    value={courseAuthor}
-                    onChange={(e) => setCourseAuthor(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Department & Visibility */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-text-primary block mb-1">
-                    Department / Category
-                  </label>
-                  <select
-                    value={courseCategory}
-                    onChange={(e) => setCourseCategory(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
-                  >
-                    <option value="Computer Science & IT">Computer Science & IT</option>
-                    <option value="Physics & Mathematics">Physics & Mathematics</option>
-                    <option value="Electrical & Electronics">Electrical & Electronics</option>
-                    <option value="Mechanical & Civil">Mechanical & Civil</option>
-                    <option value="Web & Fullstack">Web & Fullstack</option>
-                    <option value="Core Engineering">Core Engineering</option>
-                    <option value="Others">Others (Custom Category)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-text-primary block mb-1">
-                    Catalog Visibility
-                  </label>
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setCourseIsPublic(true)}
-                      className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border flex items-center justify-center gap-1 cursor-pointer transition-colors ${
-                        courseIsPublic
-                          ? 'border-accent-forest bg-accent-forest/15 text-accent-forest'
-                          : 'border-border-subtle bg-canvas text-text-secondary'
-                      }`}
-                    >
-                      <Globe size={12} />
-                      <span>Public</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCourseIsPublic(false)}
-                      className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border flex items-center justify-center gap-1 cursor-pointer transition-colors ${
-                        !courseIsPublic
-                          ? 'border-accent-ink bg-accent-ink text-text-on-dark'
-                          : 'border-border-subtle bg-canvas text-text-secondary'
-                      }`}
-                    >
-                      <Lock size={12} />
-                      <span>Private</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Custom Category Input if Others */}
-              {courseCategory === 'Others' && (
-                <div>
-                  <label className="text-xs font-semibold text-text-primary block mb-1">
-                    Specify Custom Category *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Bio-Technology or Robotics"
-                    value={courseCustomCategory}
-                    onChange={(e) => setCourseCustomCategory(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
-                    required
-                  />
-                </div>
-              )}
-
-              {/* Keywords / Tags */}
-              <div>
-                <label className="text-xs font-semibold text-text-primary block mb-1">
-                  Keywords / Tags (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. physics, mechanics, oscillations, sem1"
-                  value={courseKeywords}
-                  onChange={(e) => setCourseKeywords(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
-                />
-                <p className="text-[10px] text-text-muted mt-0.5 font-mono-tabular">
-                  Comma-separated keywords help students find this course in search.
-                </p>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="text-xs font-semibold text-text-primary block mb-1">
-                  Course Description
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Summary of modules covered in this playlist..."
-                  value={courseDesc}
-                  onChange={(e) => setCourseDesc(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong resize-none"
-                />
-              </div>
-
-              {/* Submit Buttons */}
-              <div className="pt-2 flex items-center justify-end gap-2 border-t border-border-subtle">
-                <button
-                  type="button"
-                  onClick={() => setShowCourseModal(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-secondary cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs flex items-center gap-1.5"
-                >
-                  <Plus size={13} />
-                  <span>Publish to Catalog</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* =================================================================
-          MODAL 2: UPLOAD STUDY VAULT DOCUMENT
-      ================================================================= */}
-      {showResourceModal && (
-        <div
-          className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center pt-8 sm:pt-12 p-4 overflow-y-auto animate-fade-in"
-          onClick={() => setShowResourceModal(false)}
-        >
-          <div
-            className="w-full max-w-lg rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal mb-8 text-left"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-              <div>
-                <h3 className="text-base font-bold text-text-primary">Publish Study Document</h3>
-                <p className="text-[11px] text-text-muted font-mono-tabular">
-                  SHARE HIGH-YIELD PDFS, ORGANIZERS, AND NOTES
-                </p>
-              </div>
-              <button
-                onClick={() => setShowResourceModal(false)}
-                className="p-1 rounded text-text-muted hover:text-text-primary cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handlePublishResource} className="space-y-3.5">
-              <div>
-                <label className="text-xs font-semibold text-text-primary block mb-1">
-                  Document Title *
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Engineering Mathematics 1-Page Formula Sheet"
-                  value={resTitle}
-                  onChange={(e) => setResTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-text-primary block mb-1">
-                  File URL or Link *
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://drive.google.com/... or https://example.com/notes.pdf"
-                  value={resUrl}
-                  onChange={(e) => setResUrl(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-text-primary block mb-1">
-                    Document Category
-                  </label>
-                  <select
-                    value={resCategory}
-                    onChange={(e) => setResCategory(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
-                  >
-                    <option value="Formula Sheet & Quick Reference">Formula Sheet & Quick Reference</option>
-                    <option value="Semester Organizer & PYQ">Semester Organizer & PYQ</option>
-                    <option value="Handwritten Lecture Notes">Handwritten Lecture Notes</option>
-                    <option value="Lab Manual & Viva Code">Lab Manual & Viva Code</option>
-                    <option value="Others">Others (Custom Category)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-text-primary block mb-1">
-                    Visibility
-                  </label>
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setResIsPublic(true)}
-                      className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border flex items-center justify-center gap-1 cursor-pointer transition-colors ${
-                        resIsPublic
-                          ? 'border-accent-forest bg-accent-forest/15 text-accent-forest'
-                          : 'border-border-subtle bg-canvas text-text-secondary'
-                      }`}
-                    >
-                      <Globe size={12} />
-                      <span>Public</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setResIsPublic(false)}
-                      className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border flex items-center justify-center gap-1 cursor-pointer transition-colors ${
-                        !resIsPublic
-                          ? 'border-accent-ink bg-accent-ink text-text-on-dark'
-                          : 'border-border-subtle bg-canvas text-text-secondary'
-                      }`}
-                    >
-                      <Lock size={12} />
-                      <span>Private</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Custom Category input if Others */}
-              {resCategory === 'Others' && (
-                <div>
-                  <label className="text-xs font-semibold text-text-primary block mb-1">
-                    Specify Custom Category *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Project Reports or Case Studies"
-                    value={resCustomCategory}
-                    onChange={(e) => setResCustomCategory(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
-                    required
-                  />
-                </div>
-              )}
-
-              {/* Keywords / Tags */}
-              <div>
-                <label className="text-xs font-semibold text-text-primary block mb-1">
-                  Keywords / Tags (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. formulas, pyq, solved papers, unit 1"
-                  value={resKeywords}
-                  onChange={(e) => setResKeywords(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-text-primary block mb-1">
-                  Description / Topic Summary
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Summary of what chapters or theorems are in this document..."
-                  value={resDesc}
-                  onChange={(e) => setResDesc(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong resize-none"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2 border-t border-border-subtle">
-                <button
-                  type="button"
-                  onClick={() => setShowResourceModal(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-secondary cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs flex items-center gap-1.5"
-                >
-                  <Plus size={13} />
-                  <span>Publish to Vault</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* =================================================================
-          MODAL 3: SEND CAMPUS BROADCAST (Admin Only)
-      ================================================================= */}
-      {showBroadcastModal && isAdmin && (
-        <div
-          className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center pt-8 sm:pt-12 p-4 overflow-y-auto animate-fade-in"
-          onClick={() => setShowBroadcastModal(false)}
-        >
-          <div
-            className="w-full max-w-lg rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal mb-8 text-left"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-              <div>
-                <h3 className="text-base font-bold text-text-primary">Send Academic Broadcast</h3>
-                <p className="text-[11px] text-text-muted font-mono-tabular">
-                  BROADCASTS APPEAR IN THE TOP NOTIFICATION BELL FOR ALL LEARNERS
-                </p>
-              </div>
-              <button
-                onClick={() => setShowBroadcastModal(false)}
-                className="p-1 rounded text-text-muted hover:text-text-primary cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSendBroadcast} className="space-y-3.5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-text-primary block mb-1">
-                    Announcement Headline *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Semester Exam Schedule & PYQ Released"
-                    value={annTitle}
-                    onChange={(e) => setAnnTitle(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-text-primary block mb-1">
-                    Author / Sender Name *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Admin Team or Your Name"
-                    value={annAuthor}
-                    onChange={(e) => setAnnAuthor(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-text-primary block mb-1">
-                  Announcement Message *
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Details of the announcement, timetable change, or university alert..."
-                  value={annMessage}
-                  onChange={(e) => setAnnMessage(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong resize-vertical"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-text-primary block mb-1">
-                    Attached Resource Title (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Official Routine PDF"
-                    value={annResourceTitle}
-                    onChange={(e) => setAnnResourceTitle(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-text-primary block mb-1">
-                    Attached Resource Link / URL (Optional)
-                  </label>
-                  <input
-                    type="url"
-                    placeholder="https://example.com/routine.pdf"
-                    value={annResourceUrl}
-                    onChange={(e) => setAnnResourceUrl(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-text-primary block mb-1">
-                  Keywords / Tags (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. routine, exam, notices, semester"
-                  value={annKeywords}
-                  onChange={(e) => setAnnKeywords(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2 border-t border-border-subtle">
-                <button
-                  type="button"
-                  onClick={() => setShowBroadcastModal(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-secondary cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs flex items-center gap-1.5"
-                >
-                  <Megaphone size={13} />
-                  <span>Send Broadcast</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* =================================================================
-          MODAL 4: SELL SOMETHING ON MARKETPLACE
-      ================================================================= */}
-      {showSellModal && (
-        <div
-          className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center pt-8 sm:pt-12 p-4 overflow-y-auto animate-fade-in"
-          onClick={() => setShowSellModal(false)}
-        >
-          <div
-            className="w-full max-w-lg rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal mb-8 text-left"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-              <div>
-                <h3 className="text-base font-bold text-text-primary">Sell on Student Marketplace</h3>
-                <p className="text-[11px] text-text-muted font-mono-tabular">
-                  ACTIVE ON CAMPUS FOR 5 MONTHS WITH 1-CLICK RENEWAL
-                </p>
-              </div>
-              <button
-                onClick={() => setShowSellModal(false)}
-                className="p-1 rounded text-text-muted hover:text-text-primary cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handlePublishMarketplace} className="space-y-3.5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-text-primary block mb-1">
-                    Item Title *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Mini Drafter & Pine Drawing Board"
-                    value={mktTitle}
-                    onChange={(e) => setMktTitle(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-text-primary block mb-1">
-                    Price (INR) *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. ₹450 or Free"
-                    value={mktPrice}
-                    onChange={(e) => setMktPrice(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-text-primary block mb-1">
-                    Category
-                  </label>
-                  <select
-                    value={mktCategory}
-                    onChange={(e) => setMktCategory(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
-                  >
-                    <option value="Study Material">Study Material</option>
-                    <option value="Hardware Kits">Hardware Kits</option>
-                    <option value="Tools & Gear">Tools & Gear</option>
-                    <option value="Services">Services</option>
-                    <option value="Others">Others (Custom Category)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-text-primary block mb-1">
-                    Contact Phone / WhatsApp *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 9876543210"
-                    value={mktContactDetail}
-                    onChange={(e) => setMktContactDetail(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Custom Category Input if Others */}
-              {mktCategory === 'Others' && (
-                <div>
-                  <label className="text-xs font-semibold text-text-primary block mb-1">
-                    Specify Custom Category *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Musical Instruments or Sports Gear"
-                    value={mktCustomCategory}
-                    onChange={(e) => setMktCustomCategory(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong"
-                    required
-                  />
-                </div>
-              )}
-
-              {/* Keywords / Tags */}
-              <div>
-                <label className="text-xs font-semibold text-text-primary block mb-1">
-                  Keywords / Tags (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. drafter, engineering, first-year, graphics"
-                  value={mktKeywords}
-                  onChange={(e) => setMktKeywords(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-text-primary block mb-1">
-                  Item Photo URL (Optional)
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://images.unsplash.com/..."
-                  value={mktImageUrl}
-                  onChange={(e) => setMktImageUrl(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-text-primary block mb-1">
-                  Description & Condition
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Describe condition, semester used, or pickup location..."
-                  value={mktDesc}
-                  onChange={(e) => setMktDesc(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong resize-none"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2 border-t border-border-subtle">
-                <button
-                  type="button"
-                  onClick={() => setShowSellModal(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-secondary cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs flex items-center gap-1.5"
-                >
-                  <ShoppingBag size={13} />
-                  <span>Publish Item</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

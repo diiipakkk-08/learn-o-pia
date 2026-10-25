@@ -167,7 +167,21 @@ function AppContent() {
     return <Auth setCurrentView={setCurrentView} />;
   }
 
-  const showOnboardingModal = !!currentUser && !currentUser.onboardingCompleted && !onboardingDone;
+  // Standalone Full-Page Onboarding for New Accounts
+  const showOnboardingPage = !!currentUser && !currentUser.onboardingCompleted && !onboardingDone;
+  if (showOnboardingPage) {
+    return (
+      <div data-theme={cinemaMode ? 'cinema' : 'default'} className="min-h-screen bg-canvas text-text-primary">
+        <OnboardingModal
+          user={currentUser}
+          onComplete={() => setOnboardingDone(true)}
+          cinemaMode={cinemaMode}
+          onToggleTheme={() => setCinemaMode(!cinemaMode)}
+        />
+      </div>
+    );
+  }
+
   const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner');
 
   return (
@@ -327,14 +341,6 @@ function AppContent() {
 
       {/* Mobile Bottom Navigation Bar (< 1024px) */}
       <MobileBottomNav currentView={currentView} setCurrentView={setCurrentView} />
-
-      {/* Onboarding Questionnaire Modal */}
-      {showOnboardingModal && (
-        <OnboardingModal
-          user={currentUser}
-          onComplete={() => setOnboardingDone(true)}
-        />
-      )}
 
       {/* Community Ad & Server Free Pledge Modal */}
       {showAdModal && (

@@ -51,6 +51,22 @@ export default function ResourcesView() {
   // Explorer workspace folders
   const [userFolders, setUserFolders] = useState(() => getWorkspaceFolders(userId));
 
+  // Sync user folders whenever the active user account changes
+  useEffect(() => {
+    setUserFolders(getWorkspaceFolders(userId));
+  }, [userId]);
+
+  // Listen for folder updates across components
+  useEffect(() => {
+    const handleFoldersUpdated = (e) => {
+      if (!e.detail?.userId || e.detail.userId === userId) {
+        setUserFolders(getWorkspaceFolders(userId));
+      }
+    };
+    window.addEventListener('learnopia_workspace_folders_updated', handleFoldersUpdated);
+    return () => window.removeEventListener('learnopia_workspace_folders_updated', handleFoldersUpdated);
+  }, [userId]);
+
   useEffect(() => {
     if (resourceToAddToFolder) {
       setUserFolders(getWorkspaceFolders(userId));
