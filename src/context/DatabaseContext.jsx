@@ -574,21 +574,26 @@ export function DatabaseProvider({ children }) {
     if (!item) return;
     const payload = {
       playlistId: item.playlistId || null,
-      playlistTitle: item.playlistTitle || 'Lecture Series',
+      playlistTitle: item.playlistTitle || item.courseTitle || 'Lecture Series',
+      courseTitle: item.courseTitle || item.playlistTitle || 'Lecture Series',
       videoId: item.videoId || null,
       videoTitle: item.videoTitle || 'Lecture Video',
       courseId: item.courseId || null,
       bannerUrl: item.bannerUrl || null,
-      videoThumbnail: item.videoThumbnail || item.bannerUrl || null,
+      videoThumbnail: item.thumbnail || item.videoThumbnail || item.bannerUrl || null,
+      thumbnail: item.thumbnail || item.videoThumbnail || item.bannerUrl || null,
       youtubeId: item.youtubeId || null,
       videoIndex: item.videoIndex !== undefined ? item.videoIndex : 0,
       subjectId: item.subjectId || null,
       semester: item.semester || 1,
+      progress: item.progress !== undefined ? item.progress : 25,
+      duration: item.duration || 'Lecture Track',
       timestamp: new Date().toISOString()
     };
     setLastPlayed(payload);
     if (typeof window !== 'undefined') {
       localStorage.setItem('learnopia_last_played', JSON.stringify(payload));
+      window.dispatchEvent(new CustomEvent('learnopia_last_played_updated', { detail: payload }));
     }
   };
 

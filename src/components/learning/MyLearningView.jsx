@@ -106,19 +106,36 @@ export default function MyLearningView({
     return list;
   }, [subjects, courses, currentUser]);
 
+  const [lastPlayedState, setLastPlayedState] = useState(lastPlayed);
+
+  useEffect(() => {
+    setLastPlayedState(lastPlayed);
+  }, [lastPlayed]);
+
+  useEffect(() => {
+    const handleLastPlayed = (e) => {
+      if (e && e.detail) {
+        setLastPlayedState(e.detail);
+      }
+    };
+    window.addEventListener('learnopia_last_played_updated', handleLastPlayed);
+    return () => window.removeEventListener('learnopia_last_played_updated', handleLastPlayed);
+  }, []);
+
   // Continue Learning Hero Item
   const activeHero = useMemo(() => {
-    if (lastPlayed && (lastPlayed.playlistId || lastPlayed.courseId)) {
+    if (lastPlayedState && (lastPlayedState.playlistId || lastPlayedState.courseId)) {
       return {
-        id: lastPlayed.playlistId || lastPlayed.courseId,
-        title: lastPlayed.playlistTitle || lastPlayed.courseTitle || 'University Study Track',
-        moduleTitle: lastPlayed.videoTitle || 'Lecture 1: Core Fundamentals',
-        videoIndex: lastPlayed.videoIndex || 0,
+        id: lastPlayedState.playlistId || lastPlayedState.courseId,
+        title: lastPlayedState.playlistTitle || lastPlayedState.courseTitle || 'University Study Track',
+        moduleTitle: lastPlayedState.videoTitle || 'Lecture 1: Core Fundamentals',
+        videoIndex: lastPlayedState.videoIndex || 0,
         thumbnail:
-          lastPlayed.thumbnail ||
+          lastPlayedState.thumbnail ||
+          lastPlayedState.videoThumbnail ||
           'https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&w=900&q=80',
-        progress: lastPlayed.progress || 35,
-        duration: lastPlayed.duration || '42m'
+        progress: lastPlayedState.progress || 35,
+        duration: lastPlayedState.duration || '42m'
       };
     }
 
@@ -316,7 +333,7 @@ export default function MyLearningView({
   // Explorer Handlers
   const handleCreateSubfolder = (e) => {
     e.preventDefault();
-    if (!newSubfolderName.trim() || !activeRootFolderId) return;
+    if (!newSubfolderName.trim() || !activeRootFolderId || activeRootFolderId === 'personal') return;
     // Subfolders can only be created at root level of any folder (strict 1-level depth)
     if (subfolderPath.length >= 1) return;
 
@@ -525,7 +542,9 @@ export default function MyLearningView({
                     {activeNode?.title}
                   </h2>
                   <span className="text-[11px] font-mono-tabular text-text-muted">
-                    {subfolderPath.length === 0
+                    {activeRootFolder.id === 'personal'
+                      ? `${filteredItems.length} Personal Items`
+                      : subfolderPath.length === 0
                       ? `${filteredSubfolders.length} Subfolders • ${filteredItems.length} Items`
                       : `${filteredItems.length} Items`}
                   </span>
@@ -534,8 +553,8 @@ export default function MyLearningView({
 
               {/* Action Buttons: Inline Toggle for Subfolder / Item */}
               <div className="flex items-center gap-2">
-                {/* Subfolders can only be created at root level (max 1 level depth) */}
-                {subfolderPath.length === 0 && (
+                {/* Subfolders can only be created at root level (max 1 level depth) and NOT in Personal */}
+                {subfolderPath.length === 0 && activeRootFolder.id !== 'personal' && (
                   <button
                     onClick={() => setInlineAddType(prev => prev === 'subfolder' ? null : 'subfolder')}
                     className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors ${
@@ -566,8 +585,8 @@ export default function MyLearningView({
             </div>
           </div>
 
-          {/* INLINE SECTION: CREATE NEW SUBFOLDER (Only allowed at root level) */}
-          {inlineAddType === 'subfolder' && subfolderPath.length === 0 && (
+          {/* INLINE SECTION: CREATE NEW SUBFOLDER (Only allowed at root level of non-personal folders) */}
+          {inlineAddType === 'subfolder' && subfolderPath.length === 0 && activeRootFolder.id !== 'personal' && (
             <div className="rounded-xl border border-border-strong bg-surface p-4 sm:p-5 shadow-sm space-y-3 animate-fade-in">
               <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
                 <div className="flex items-center gap-2 font-bold text-xs text-text-primary">
@@ -792,8 +811,8 @@ export default function MyLearningView({
             </div>
           )}
 
-          {/* Section 1: Subfolders Grid (if any) */}
-          {filteredSubfolders.length > 0 && (
+          {/* Section 1: Subfolders Grid (if any, not in personal) */}
+          {filteredSubfolders.length > 0 && activeRootFolder.id !== 'personal' && (
             <div className="space-y-3">
               <div className="flex items-center justify-between pb-1">
                 <h3 className="text-xs font-mono-tabular font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">

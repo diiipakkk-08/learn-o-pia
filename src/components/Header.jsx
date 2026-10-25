@@ -136,7 +136,7 @@ export default function Header({
         {isSidebarCollapsed && (
           <button
             onClick={() => onToggleSidebar && onToggleSidebar()}
-            className="p-1.5 sm:p-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary transition-all cursor-pointer shadow-xs flex items-center justify-center hover:scale-105 active:scale-95"
+            className="hidden lg:flex p-1.5 sm:p-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary transition-all cursor-pointer shadow-xs items-center justify-center hover:scale-105 active:scale-95"
             title="Open navigation menu [Ctrl + \]"
             aria-label="Open navigation menu"
           >
@@ -155,12 +155,17 @@ export default function Header({
             alt="Learnopia"
             className="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0 group-hover:scale-105 transition-transform"
           />
-          <span
-            className="font-editorial text-lg sm:text-2xl lg:text-[26px] tracking-tight block leading-none font-bold"
-            style={{ color: cinemaMode ? '#F2EFE9' : '#141413' }}
-          >
-            Learnopia
-          </span>
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span
+              className="font-editorial text-lg sm:text-2xl lg:text-[26px] tracking-tight block leading-none font-bold"
+              style={{ color: cinemaMode ? '#F2EFE9' : '#141413' }}
+            >
+              Learnopia
+            </span>
+            <span className="text-[10px] sm:text-[11px] font-mono-tabular uppercase tracking-wider text-text-muted hidden sm:inline-block">
+              / Workspace
+            </span>
+          </div>
         </button>
       </div>
 

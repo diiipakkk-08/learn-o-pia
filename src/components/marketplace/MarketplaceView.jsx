@@ -272,7 +272,9 @@ export default function MarketplaceView({ setCurrentView }) {
       {filteredItems.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {filteredItems.map((item) => {
+            const isAdminOrOwner = currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner' || currentUser.isAdmin);
             const isOwner = item.isUserCreated || (currentUser && item.sellerId === currentUser.id);
+            const canDelete = isOwner || isAdminOrOwner || !item.sellerId || Boolean(currentUser);
 
             return (
               <div
@@ -338,11 +340,11 @@ export default function MarketplaceView({ setCurrentView }) {
                       )}
                     </button>
 
-                    {isOwner && (
+                    {canDelete && (
                       <button
                         onClick={() => handleDeleteListing(item.id)}
                         className="p-1.5 rounded-lg border border-border-subtle hover:bg-red-50 hover:text-red-600 text-text-muted transition-colors cursor-pointer"
-                        title="Remove My Listing"
+                        title="Delete Listing"
                       >
                         <Trash2 size={13} />
                       </button>

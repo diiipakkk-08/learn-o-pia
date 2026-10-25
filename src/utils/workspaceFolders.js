@@ -43,10 +43,7 @@ export const DEFAULT_WORKSPACE_FOLDERS = [
     id: 'personal',
     title: 'Personal',
     isSystem: true,
-    subfolders: [
-      { id: 'pers-notes', title: 'Personal Study Notes', subfolders: [], items: [] },
-      { id: 'pers-prep', title: 'Interview & Placement Prep', subfolders: [], items: [] }
-    ],
+    subfolders: [],
     items: []
   }
 ];
@@ -149,12 +146,31 @@ export function getWorkspaceFolders(userId = 'guest') {
           changed = true;
         }
 
-        // 7. Ensure Personal has default subfolders if empty
+        // 7. Ensure Personal has NO subfolders and strictly flat items
         const persFolder = folders.find((f) => f.id === 'personal');
-        if (persFolder && (!persFolder.subfolders || persFolder.subfolders.length === 0)) {
-          persFolder.subfolders = JSON.parse(JSON.stringify(DEFAULT_WORKSPACE_FOLDERS[3].subfolders));
-          changed = true;
+        if (persFolder) {
+          if (Array.isArray(persFolder.subfolders) && persFolder.subfolders.length > 0) {
+            const extracted = [];
+            persFolder.subfolders.forEach((sf) => {
+              if (Array.isArray(sf.items)) extracted.push(...sf.items);
+            });
+            persFolder.items = [...(persFolder.items || []), ...extracted];
+            persFolder.subfolders = [];
+            changed = true;
+          }
+          if (!Array.isArray(persFolder.items)) {
+            persFolder.items = [];
+            changed = true;
+          }
         }
+
+        // 8. Ensure all root folders have an items array
+        folders.forEach((f) => {
+          if (!Array.isArray(f.items)) {
+            f.items = [];
+            changed = true;
+          }
+        });
 
         if (changed) {
           localStorage.setItem(key, JSON.stringify(folders));
@@ -180,10 +196,10 @@ export function foldersToProfilePayload(folders) {
   const personal = folders.find(f => f.id === 'personal') || null;
 
   return {
-    folder_academic: academic ? (academic.subfolders || []) : [],
-    folder_document: document ? (document.subfolders || []) : [],
-    folder_links: links ? (links.subfolders || []) : [],
-    folder_personal: personal ? (personal.subfolders || []) : []
+    folder_academic: academic ? { subfolders: academic.subfolders || [], items: academic.items || [] } : { subfolders: [], items: [] },
+    folder_document: document ? { subfolders: document.subfolders || [], items: document.items || [] } : { subfolders: [], items: [] },
+    folder_links: links ? { subfolders: links.subfolders || [], items: links.items || [] } : { subfolders: [], items: [] },
+    folder_personal: personal ? (personal.items || []) : []
   };
 }
 
@@ -198,21 +214,38 @@ export function profilePayloadToFolders(profile) {
 
   const base = JSON.parse(JSON.stringify(DEFAULT_WORKSPACE_FOLDERS));
 
-  if (fAcad && Array.isArray(fAcad)) {
-    const acadRoot = base.find(f => f.id === 'academic');
-    if (acadRoot && fAcad.length > 0) acadRoot.subfolders = fAcad;
-  }
-  if (fDoc && Array.isArray(fDoc)) {
-    const docRoot = base.find(f => f.id === 'document');
-    if (docRoot && fDoc.length > 0) docRoot.subfolders = fDoc;
-  }
-  if (fLinks && Array.isArray(fLinks)) {
-    const linksRoot = base.find(f => f.id === 'links');
-    if (linksRoot && fLinks.length > 0) linksRoot.subfolders = fLinks;
-  }
-  if (fPers && Array.isArray(fPers)) {
-    const persRoot = base.find(f => f.id === 'personal');
-    if (persRoot && fPers.length > 0) persRoot.subfolders = fPers;
+  const applyNode = (rootId, data) => {
+    const root = base.find(f => f.id === rootId);
+    if (!root || !data) return;
+    if (Array.isArray(data)) {
+      root.subfolders = data;
+    } else if (typeof data === 'object') {
+      if (Array.isArray(data.subfolders)) root.subfolders = data.subfolders;
+      if (Array.isArray(data.items)) root.items = data.items;
+    }
+  };
+
+  applyNode('academic', fAcad);
+  applyNode('document', fDoc);
+  applyNode('links', fLinks);
+
+  // Personal is strictly flat items only
+  const persRoot = base.find(f => f.id === 'personal');
+  if (persRoot && fPers) {
+    persRoot.subfolders = [];
+    if (Array.isArray(fPers)) {
+      const extracted = [];
+      fPers.forEach(entry => {
+        if (entry && Array.isArray(entry.items)) {
+          extracted.push(...entry.items);
+        } else if (entry && (entry.url || entry.title || entry.id)) {
+          extracted.push(entry);
+        }
+      });
+      persRoot.items = extracted;
+    } else if (typeof fPers === 'object' && Array.isArray(fPers.items)) {
+      persRoot.items = fPers.items;
+    }
   }
 
   return base;

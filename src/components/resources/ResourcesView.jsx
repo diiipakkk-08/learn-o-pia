@@ -31,7 +31,8 @@ export default function ResourcesView() {
     globalSearchQuery,
     setGlobalSearchQuery,
     savedResourceIds,
-    toggleSaveResource
+    toggleSaveResource,
+    saveUserFoldersToDb
   } = useDatabase();
 
   const userId = currentUser?.id || 'guest';
@@ -235,6 +236,9 @@ export default function ResourcesView() {
 
     try {
       saveWorkspaceFolders(userId, updated);
+      if (saveUserFoldersToDb && userId && userId !== 'guest') {
+        saveUserFoldersToDb(userId, updated);
+      }
       setUserFolders(updated);
     } catch {}
 

@@ -260,8 +260,8 @@ export default function LearningPlayer({
               {cleanYtPlaylistId ? (
                 <iframe
                   src={
-                    currentVideo?.youtubeId
-                      ? `https://www.youtube-nocookie.com/embed/${currentVideo.youtubeId}?list=${cleanYtPlaylistId}&autoplay=1&rel=0&modestbranding=1`
+                    currentIndex > 0 && currentVideo?.youtubeId
+                      ? `https://www.youtube-nocookie.com/embed/${currentVideo.youtubeId}?list=${cleanYtPlaylistId}&index=${currentIndex}&autoplay=1&rel=0&modestbranding=1`
                       : `https://www.youtube-nocookie.com/embed/videoseries?list=${cleanYtPlaylistId}&autoplay=1&rel=0&modestbranding=1`
                   }
                   title={currentVideo?.title || playlist.title}
@@ -379,10 +379,9 @@ export default function LearningPlayer({
                   <p className="leading-relaxed whitespace-pre-line">
                     {currentVideo.description || playlist.description || `Lecture series for ${foundSubject ? foundSubject.title : playlist.title}.`}
                   </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono-tabular pt-1 text-text-muted">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] font-mono-tabular pt-1 text-text-muted">
                     <div><span className="text-text-primary font-bold">Subject:</span> {foundSubject?.title || playlist.title}</div>
                     <div><span className="text-text-primary font-bold">Instructor:</span> {playlist.author || 'Faculty'}</div>
-                    <div><span className="text-text-primary font-bold">Lectures:</span> {videos.length} videos</div>
                     <div><span className="text-text-primary font-bold">Video ID:</span> {currentVideo.youtubeId || 'Stream'}</div>
                   </div>
                 </div>

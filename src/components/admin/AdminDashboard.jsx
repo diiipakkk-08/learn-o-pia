@@ -31,6 +31,7 @@ export default function AdminDashboard() {
     getAllSharedRoutines,
     deleteSharedRoutine,
     broadcastAnnouncement,
+    deleteAnnouncement,
     announcements
   } = useDatabase();
   const [activeTab, setActiveTab] = useState('verification');
@@ -1365,9 +1366,23 @@ export default function AdminDashboard() {
                       <div key={ann.id} style={{ padding: '14px 16px', borderRadius: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                           <strong style={{ color: 'var(--text-primary)', fontSize: '0.9rem' }}>{ann.title}</strong>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                            {new Date(ann.createdAt).toLocaleDateString()}
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                              {new Date(ann.createdAt).toLocaleDateString()}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(`Delete broadcast announcement "${ann.title}"?`)) {
+                                  deleteAnnouncement(ann.id);
+                                }
+                              }}
+                              className="p-1 rounded text-text-muted hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
+                              title="Delete Announcement"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         </div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '6px' }}>
                           Posted by: <strong>{ann.author || ann.createdBy || 'Campus Admin'}</strong>

@@ -4,6 +4,8 @@
  */
 
 import React, { useState } from 'react';
+import { useDatabase } from '../context/DatabaseContext';
+import GeminiDottedCanvas from './common/GeminiDottedCanvas';
 import {
   Play,
   ArrowRight,
@@ -25,6 +27,7 @@ export default function LandingPage({
   cinemaMode = false,
   onToggleTheme
 }) {
+  const { currentUser } = useDatabase();
   const [activePreviewTab, setActivePreviewTab] = useState('player'); // 'player' | 'attendance' | 'vault'
   const [previewAttendance, setPreviewAttendance] = useState({ attended: 18, total: 22 });
   const [demoChecked, setDemoChecked] = useState([true, true, false, false]);
@@ -71,7 +74,11 @@ export default function LandingPage({
       ================================================================= */}
       <header className="sticky top-0 z-40 px-4 sm:px-8 h-16 flex items-center justify-between border-b border-border-subtle bg-canvas/90 backdrop-blur-md">
         <div className="flex items-center gap-8">
-          <button onClick={enterApp} className="flex items-center gap-2 sm:gap-2.5 text-left group focus:outline-none cursor-pointer">
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="flex items-center gap-2 sm:gap-2.5 text-left group focus:outline-none cursor-pointer"
+            title="Learnopia Workspace"
+          >
             <img src="/logo.svg" alt="Learnopia" className="w-6 h-6 sm:w-8 sm:h-8 object-contain shrink-0" />
             <span className="font-editorial text-xl sm:text-3xl tracking-tight block leading-none font-bold">
               Learnopia
@@ -118,27 +125,41 @@ export default function LandingPage({
             </button>
           )}
 
-          {/* Prominent Sign In Button */}
-          <button
-            onClick={openAuth}
-            className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark transition-all hover:opacity-95 active:scale-[0.98] shadow-xs cursor-pointer"
-          >
-            Sign In
-          </button>
+          {/* Context-aware Workspace or Sign In CTA */}
+          {currentUser ? (
+            <button
+              onClick={enterApp}
+              className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark transition-all hover:opacity-95 active:scale-[0.98] shadow-xs cursor-pointer flex items-center gap-1.5"
+            >
+              <span>Open Workspace</span>
+              <ArrowRight size={13} />
+            </button>
+          ) : (
+            <button
+              onClick={openAuth}
+              className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark transition-all hover:opacity-95 active:scale-[0.98] shadow-xs cursor-pointer"
+            >
+              Sign In
+            </button>
+          )}
         </div>
       </header>
 
       {/* =================================================================
           SECTION 01: HERO (FIRST SCREEN ONLY - PURE VIEWPORT EXPERIENCE)
+          - Interactive Gemini dotted physics canvas background
           - Fills the exact first screen: nothing below peeks or crowds!
           - Centered headline, generous typography, calm breathing room
       ================================================================= */}
       <section
         id="hero"
-        className="relative min-h-[calc(100vh-4rem)] flex flex-col justify-between items-center px-4 sm:px-8 py-8 sm:py-12 text-center"
+        className="relative min-h-[calc(100vh-4rem)] overflow-hidden flex flex-col justify-between items-center px-4 sm:px-8 py-8 sm:py-12 text-center"
       >
+        {/* Interactive Gemini physics canvas */}
+        <GeminiDottedCanvas cinemaMode={cinemaMode} />
+
         {/* Top Spacer Badge with Logo */}
-        <div className="w-full flex justify-center pt-2">
+        <div className="w-full flex justify-center pt-2 relative z-10">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border-subtle bg-surface text-text-primary text-xs font-mono-tabular shadow-xs">
             <img src="/logo.svg" alt="Logo" className="w-4 h-4 object-contain shrink-0" />
             <span className="font-semibold text-text-primary">Learnopia Academic OS</span>
@@ -148,7 +169,7 @@ export default function LandingPage({
         </div>
 
         {/* Center Main Headline & CTA */}
-        <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 my-auto py-3 sm:py-4">
+        <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 my-auto py-6 sm:py-8 relative z-10">
           <h1 className="font-editorial text-2xl sm:text-4xl md:text-5xl lg:text-6xl leading-[1.18] sm:leading-[1.12] tracking-tight max-w-3xl mx-auto text-text-primary px-2">
             Turn chaotic YouTube playlists into a quiet, structured study desk.
           </h1>
@@ -174,18 +195,8 @@ export default function LandingPage({
           </div>
         </div>
 
-        {/* Bottom Scroll Prompt (Points smoothly to Section 2) */}
-        <div className="w-full flex flex-col items-center pt-4 pb-2">
-          <button
-            onClick={() => scrollToSection('showcase')}
-            className="flex flex-col items-center gap-1.5 text-xs font-mono-tabular tracking-wider text-text-muted hover:text-text-primary transition-colors cursor-pointer group select-none"
-          >
-            <span className="text-[11px] uppercase tracking-widest font-semibold">Scroll to Explore Suite</span>
-            <div className="w-7 h-7 rounded-full border border-border-subtle bg-surface flex items-center justify-center group-hover:border-border-strong transition-colors shadow-2xs">
-              <ArrowDown size={14} className="animate-bounce text-text-secondary group-hover:text-text-primary" />
-            </div>
-          </button>
-        </div>
+        {/* Minimal Bottom Spacer */}
+        <div className="w-full py-2 relative z-10" />
       </section>
 
       {/* =================================================================
@@ -258,9 +269,9 @@ export default function LandingPage({
 
             {/* Interactive Screen 1: Course Player */}
             {activePreviewTab === 'player' && (
-              <div className="p-3.5 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-start bg-canvas">
+              <div className="min-h-[460px] p-3.5 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-center bg-canvas">
                 <div className="lg:col-span-8 space-y-2.5">
-                  <div className="relative aspect-video max-h-[260px] sm:max-h-[300px] w-full rounded-xl overflow-hidden bg-[#141413] border border-border-subtle group shadow-xs">
+                  <div className="relative aspect-video max-h-[280px] sm:max-h-[320px] w-full rounded-xl overflow-hidden bg-[#141413] border border-border-subtle group shadow-xs">
                     <img
                       src="https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&w=1200&q=80"
                       alt="Course Preview"
@@ -327,56 +338,67 @@ export default function LandingPage({
               </div>
             )}
 
-            {/* Interactive Screen 2: Attendance Math */}
+            {/* Interactive Screen 2: Attendance Math (Fixed matching height to eliminate layout shift) */}
             {activePreviewTab === 'attendance' && (
-              <div className="p-5 sm:p-8 bg-canvas space-y-4">
-                <div className="max-w-lg mx-auto rounded-xl border border-border-subtle bg-surface p-5 sm:p-6 space-y-4 shadow-xs">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm sm:text-base font-bold">Interactive Attendance Sandbox</h3>
-                      <p className="text-[11px] text-text-secondary mt-0.5">
-                        Target requirement: <strong className="font-mono-tabular text-accent-forest">75.0% Minimum</strong>
-                      </p>
+              <div className="min-h-[460px] p-5 sm:p-8 bg-canvas flex flex-col justify-center space-y-4">
+                <div className="max-w-lg mx-auto w-full space-y-3.5">
+                  <div className="rounded-xl border border-border-subtle bg-surface p-5 sm:p-6 space-y-4 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm sm:text-base font-bold">Interactive Attendance Sandbox</h3>
+                        <p className="text-[11px] text-text-secondary mt-0.5">
+                          Target requirement: <strong className="font-mono-tabular text-accent-forest">75.0% Minimum</strong>
+                        </p>
+                      </div>
+                      <span className="font-mono-tabular text-2xl sm:text-3xl font-extrabold text-text-primary">
+                        {previewPct}%
+                      </span>
                     </div>
-                    <span className="font-mono-tabular text-2xl sm:text-3xl font-extrabold text-text-primary">
-                      {previewPct}%
-                    </span>
+
+                    {/* Status Pill */}
+                    <div
+                      className={`p-2.5 rounded-lg border text-xs font-semibold flex items-center justify-between ${
+                        previewRatio >= 0.75
+                          ? 'bg-accent-forest-bg border-[#C2DEC9] text-accent-forest'
+                          : 'bg-accent-amber-bg border-[#F5DCB7] text-accent-amber'
+                      }`}
+                    >
+                      <span>
+                        {previewRatio >= 0.75
+                          ? `SAFE ZONE: You can safely miss ${previewCanMiss} classes.`
+                          : `SHORTAGE: Attend next ${previewNeedAttend} in a row.`}
+                      </span>
+                      <span className="font-mono-tabular font-bold">
+                        {previewAttendance.attended} / {previewAttendance.total}
+                      </span>
+                    </div>
+
+                    {/* Tactile Adjusters */}
+                    <div className="flex items-center gap-2.5 pt-1">
+                      <button
+                        onClick={handlePreviewPlus}
+                        className="flex-1 py-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                      >
+                        <Plus size={13} />
+                        <span>Mark Present (+1)</span>
+                      </button>
+                      <button
+                        onClick={handlePreviewMinus}
+                        className="flex-1 py-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                      >
+                        <Minus size={13} />
+                        <span>Mark Absent (Skip)</span>
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Status Pill */}
-                  <div
-                    className={`p-2.5 rounded-lg border text-xs font-semibold flex items-center justify-between ${
-                      previewRatio >= 0.75
-                        ? 'bg-accent-forest-bg border-[#C2DEC9] text-accent-forest'
-                        : 'bg-accent-amber-bg border-[#F5DCB7] text-accent-amber'
-                    }`}
-                  >
-                    <span>
-                      {previewRatio >= 0.75
-                        ? `SAFE ZONE: You can safely miss ${previewCanMiss} classes.`
-                        : `SHORTAGE: Attend next ${previewNeedAttend} in a row.`}
-                    </span>
-                    <span className="font-mono-tabular font-bold">
-                      {previewAttendance.attended} / {previewAttendance.total}
-                    </span>
-                  </div>
-
-                  {/* Tactile Adjusters */}
-                  <div className="flex items-center gap-2.5 pt-1">
-                    <button
-                      onClick={handlePreviewPlus}
-                      className="flex-1 py-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
-                    >
-                      <Plus size={13} />
-                      <span>Mark Present (+1)</span>
-                    </button>
-                    <button
-                      onClick={handlePreviewMinus}
-                      className="flex-1 py-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
-                    >
-                      <Minus size={13} />
-                      <span>Mark Absent (Skip)</span>
-                    </button>
+                  {/* Complementary Live Timetable Projected Status */}
+                  <div className="rounded-xl border border-border-subtle bg-surface/80 p-3 flex items-center justify-between text-xs font-mono-tabular text-text-muted shadow-2xs">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-accent-forest animate-pulse" />
+                      <span>Semester Attendance Ledger</span>
+                    </div>
+                    <span className="font-semibold text-text-secondary">Official Threshold: 75% Fixed</span>
                   </div>
                 </div>
               </div>
@@ -384,8 +406,8 @@ export default function LandingPage({
 
             {/* Interactive Screen 3: Resource Vault */}
             {activePreviewTab === 'vault' && (
-              <div className="p-5 sm:p-8 bg-canvas">
-                <div className="rounded-xl border border-border-subtle bg-surface overflow-hidden shadow-xs max-w-2xl mx-auto">
+              <div className="min-h-[460px] p-5 sm:p-8 bg-canvas flex flex-col justify-center">
+                <div className="rounded-xl border border-border-subtle bg-surface overflow-hidden shadow-xs max-w-2xl mx-auto w-full">
                   <div className="px-4 py-2.5 border-b border-border-subtle bg-subtle/50 flex items-center justify-between">
                     <span className="text-xs font-bold uppercase tracking-wider text-text-secondary font-mono-tabular">
                       Semester Academic Vault
@@ -420,17 +442,6 @@ export default function LandingPage({
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Section 2 Bottom Scroll to Section 3 */}
-          <div className="w-full flex justify-center pt-1">
-            <button
-              onClick={() => scrollToSection('architecture')}
-              className="flex items-center gap-1.5 text-xs font-mono-tabular text-text-muted hover:text-text-primary transition-colors cursor-pointer"
-            >
-              <span>Explore High-Focus Architecture</span>
-              <ArrowDown size={13} className="animate-bounce" />
-            </button>
           </div>
         </div>
       </section>

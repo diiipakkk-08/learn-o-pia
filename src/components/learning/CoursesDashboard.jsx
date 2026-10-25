@@ -91,7 +91,8 @@ function CoursesDashboardInner({
     setGlobalSearchQuery,
     deleteCourseCatalogItem,
     deleteSubject,
-    deleteCourse
+    deleteCourse,
+    saveUserFoldersToDb
   } = useDatabase();
 
   const userId = currentUser?.id || 'guest';
@@ -453,6 +454,9 @@ function CoursesDashboardInner({
     });
 
     saveWorkspaceFolders(userId, updated);
+    if (saveUserFoldersToDb && userId && userId !== 'guest') {
+      saveUserFoldersToDb(userId, updated);
+    }
     setUserFolders(updated);
 
     // Auto-enroll user in course

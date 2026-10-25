@@ -196,16 +196,16 @@ function AppContent() {
           onOpenProfile={() => setCurrentView('profile')}
         />
 
-        {/* Floating Quick Restore Menu Button (when sidebar is collapsed) */}
+        {/* Floating Quick Restore Menu Button (Desktop Only, when sidebar is collapsed) */}
         {isSidebarCollapsed && (
           <button
             onClick={() => setIsSidebarCollapsed(false)}
-            className="fixed bottom-6 left-6 z-40 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-border-strong bg-surface shadow-xl text-xs font-bold text-text-primary hover:bg-surface-hover hover:border-accent-forest transition-all hover:scale-105 active:scale-95 font-mono-tabular group cursor-pointer"
+            className="hidden lg:flex fixed bottom-6 left-6 z-40 items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-border-strong bg-surface shadow-xl text-xs font-bold text-text-primary hover:bg-surface-hover hover:border-accent-forest transition-all hover:scale-105 active:scale-95 font-mono-tabular group cursor-pointer"
             title="Expand Navigation Menu [Ctrl + \]"
             aria-label="Expand Navigation Menu"
           >
             <PanelLeftOpen size={16} className="text-accent-forest group-hover:scale-110 transition-transform" />
-            <span className="hidden sm:inline">MENU</span>
+            <span>MENU</span>
           </button>
         )}
 

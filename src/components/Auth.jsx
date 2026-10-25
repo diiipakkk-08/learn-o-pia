@@ -203,12 +203,12 @@ export default function Auth({ setCurrentView }) {
       {/* =========================================================================
           LEFT PANEL: Sleek Authentication Form (Full-width mobile, 45-50% desktop)
       ========================================================================= */}
-      <div className="w-full lg:w-[48%] xl:w-[44%] flex flex-col justify-between p-6 sm:p-8 lg:p-10 h-full overflow-y-auto bg-canvas">
+      <div className="w-full lg:w-[48%] xl:w-[44%] flex flex-col justify-between p-4 sm:p-6 lg:p-7 h-full bg-canvas">
         {/* Top Header: Logo & Return Action */}
-        <div className="flex items-center justify-between pb-3">
-          <div className="flex items-center gap-2.5">
-            <img src="/logo.svg" alt="Learnopia" className="w-8 h-8 object-contain shrink-0" />
-            <span className="font-editorial text-xl font-bold tracking-tight text-text-primary">
+        <div className="flex items-center justify-between pb-2">
+          <div className="flex items-center gap-2">
+            <img src="/logo.svg" alt="Learnopia" className="w-7 h-7 object-contain shrink-0" />
+            <span className="font-editorial text-lg sm:text-xl font-bold tracking-tight text-text-primary">
               Learnopia
             </span>
           </div>
@@ -217,19 +217,19 @@ export default function Auth({ setCurrentView }) {
             onClick={() => setCurrentView && setCurrentView('landing')}
             className="text-xs font-semibold text-text-secondary hover:text-text-primary flex items-center gap-1.5 transition-colors cursor-pointer"
           >
-            <ArrowLeft size={14} />
+            <ArrowLeft size={13} />
             <span>Back to Home</span>
           </button>
         </div>
 
         {/* Center Auth Card Box */}
-        <div className="w-full max-w-md mx-auto my-auto space-y-6">
+        <div className="w-full max-w-md mx-auto my-auto space-y-3 sm:space-y-3.5">
           {/* Headline & Subhead */}
-          <div className="space-y-1.5">
-            <h1 className="font-editorial text-2xl sm:text-3xl font-bold text-text-primary tracking-tight">
+          <div className="space-y-1">
+            <h1 className="font-editorial text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
               {isLogin ? 'Sign in to workspace' : 'Create your student account'}
             </h1>
-            <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
+            <p className="text-xs text-text-secondary leading-relaxed">
               {isLogin
                 ? 'Access your course syllabus, attendance ledger, and semester notes.'
                 : 'Join peers and organize your entire academic schedule in one place.'}
@@ -237,7 +237,7 @@ export default function Auth({ setCurrentView }) {
           </div>
 
           {/* Mode Switcher Tabs */}
-          <div className="flex rounded-xl bg-surface border border-border-subtle p-1 shadow-xs">
+          <div className="flex rounded-lg bg-surface border border-border-subtle p-0.5 shadow-xs">
             <button
               type="button"
               onClick={() => {
@@ -245,7 +245,7 @@ export default function Auth({ setCurrentView }) {
                 setError(null);
                 setSuccess(null);
               }}
-              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
                 isLogin
                   ? 'bg-accent-ink text-text-on-dark shadow-xs'
                   : 'text-text-muted hover:text-text-primary'
@@ -260,7 +260,7 @@ export default function Auth({ setCurrentView }) {
                 setError(null);
                 setSuccess(null);
               }}
-              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
                 !isLogin
                   ? 'bg-accent-ink text-text-on-dark shadow-xs'
                   : 'text-text-muted hover:text-text-primary'
@@ -272,59 +272,70 @@ export default function Auth({ setCurrentView }) {
 
           {/* Notifications */}
           {error && (
-            <div className="p-3 rounded-lg border border-[#F8C8C8] bg-accent-danger-bg text-accent-danger text-xs flex items-start gap-2 animate-fade-in">
-              <AlertCircle size={15} className="shrink-0 mt-0.5" />
+            <div className="p-2.5 rounded-lg border border-[#F8C8C8] bg-accent-danger-bg text-accent-danger text-xs flex items-start gap-2 animate-fade-in">
+              <AlertCircle size={14} className="shrink-0 mt-0.5" />
               <span className="leading-snug">{error}</span>
             </div>
           )}
 
           {success && (
-            <div className="p-3 rounded-lg border border-[#C2DEC9] bg-accent-forest-bg text-accent-forest text-xs flex items-start gap-2 animate-fade-in">
-              <CheckCircle size={15} className="shrink-0 mt-0.5" />
+            <div className="p-2.5 rounded-lg border border-[#C2DEC9] bg-accent-forest-bg text-accent-forest text-xs flex items-start gap-2 animate-fade-in">
+              <CheckCircle size={14} className="shrink-0 mt-0.5" />
               <span className="leading-snug">{success}</span>
             </div>
           )}
 
-          {/* Google OAuth Button */}
-          <button
-            type="button"
-            onClick={async () => {
-              setError(null);
-              setSuccess(null);
-              setGoogleLoading(true);
-              try {
-                if (isSupabaseLive) {
-                  await loginWithGoogle();
-                } else {
-                  googleLogin();
+          {/* Quick Access Actions: Google OAuth & Guest Explorer */}
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={async () => {
+                setError(null);
+                setSuccess(null);
+                setGoogleLoading(true);
+                try {
+                  if (isSupabaseLive) {
+                    await loginWithGoogle();
+                  } else {
+                    googleLogin();
+                  }
+                } catch (err) {
+                  console.error('[Google Login Error]', err);
+                  setError(err?.message || 'Google Sign-In is unavailable. Please use email/password.');
+                } finally {
+                  setGoogleLoading(false);
                 }
-              } catch (err) {
-                console.error('[Google Login Error]', err);
-                setError(err?.message || 'Google Sign-In is unavailable. Please use email/password.');
-              } finally {
-                setGoogleLoading(false);
-              }
-            }}
-            disabled={googleLoading}
-            className="w-full py-2.5 px-4 rounded-xl border border-border-strong bg-surface hover:bg-surface-hover text-xs font-semibold text-text-primary flex items-center justify-center gap-2.5 transition-colors shadow-xs cursor-pointer"
-          >
-            <GoogleIcon />
-            <span>{googleLoading ? 'Connecting...' : isLogin ? 'Sign in with Google' : 'Sign up with Google'}</span>
-          </button>
+              }}
+              disabled={googleLoading}
+              className="w-full py-2 px-3 rounded-lg border border-border-strong bg-surface hover:bg-surface-hover text-xs font-semibold text-text-primary flex items-center justify-center gap-2 transition-colors shadow-xs cursor-pointer"
+            >
+              <GoogleIcon />
+              <span>{googleLoading ? 'Connecting...' : isLogin ? 'Sign in with Google' : 'Sign up with Google'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowGuestModal(true)}
+              className="w-full py-2 px-3 rounded-lg border border-dashed border-border-strong bg-surface hover:bg-surface-hover text-xs font-semibold text-text-secondary hover:text-text-primary flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs group"
+            >
+              <Sparkles size={13} className="text-accent-forest group-hover:scale-110 transition-transform shrink-0" />
+              <span>Explore as Guest / Recruiter (Instant Preview)</span>
+            </button>
+          </div>
 
           {/* Divider */}
-          <div className="relative flex items-center justify-center my-1">
+          <div className="relative flex items-center justify-center my-0.5">
             <div className="border-t border-border-subtle w-full" />
-            <span className="bg-canvas px-3 text-[10px] uppercase font-mono-tabular text-text-muted absolute">
+            <span className="bg-canvas px-2 text-[10px] uppercase font-mono-tabular text-text-muted absolute">
               OR USE EMAIL & PASSWORD
             </span>
           </div>
 
           {/* Credentials Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-2.5">
             {!isLogin && (
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-1.5 font-mono-tabular">
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-text-secondary mb-1 font-mono-tabular">
                   Full Name
                 </label>
                 <input
@@ -332,14 +343,14 @@ export default function Auth({ setCurrentView }) {
                   placeholder="Deepak Sharma"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-border-strong text-xs sm:text-sm bg-surface focus:outline-none focus:ring-1 focus:ring-accent-ink"
+                  className="w-full px-3 py-2 rounded-lg border border-border-strong text-xs sm:text-sm bg-surface focus:outline-none focus:ring-1 focus:ring-accent-ink"
                   required
                 />
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary mb-1.5 font-mono-tabular">
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-text-secondary mb-1 font-mono-tabular">
                 Student Email
               </label>
               <input
@@ -347,14 +358,14 @@ export default function Auth({ setCurrentView }) {
                 placeholder="you@university.edu"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-border-strong text-xs sm:text-sm bg-surface focus:outline-none focus:ring-1 focus:ring-accent-ink"
+                className="w-full px-3 py-2 rounded-lg border border-border-strong text-xs sm:text-sm bg-surface focus:outline-none focus:ring-1 focus:ring-accent-ink"
                 required
               />
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-text-secondary font-mono-tabular">
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-text-secondary font-mono-tabular">
                   Password
                 </label>
                 {isLogin && (
@@ -364,7 +375,7 @@ export default function Auth({ setCurrentView }) {
                       setShowForgotModal(true);
                       setResetStep(1);
                     }}
-                    className="text-xs text-text-muted hover:text-text-primary font-medium transition-colors cursor-pointer"
+                    className="text-[11px] text-text-muted hover:text-text-primary font-medium transition-colors cursor-pointer"
                   >
                     Forgot password?
                   </button>
@@ -376,22 +387,22 @@ export default function Auth({ setCurrentView }) {
                   placeholder="••••••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-border-strong text-xs sm:text-sm bg-surface focus:outline-none focus:ring-1 focus:ring-accent-ink font-mono-tabular"
+                  className="w-full px-3 py-2 pr-9 rounded-lg border border-border-strong text-xs sm:text-sm bg-surface focus:outline-none focus:ring-1 focus:ring-accent-ink font-mono-tabular"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary cursor-pointer"
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
             </div>
 
             {/* Remember Me / Terms Checkboxes */}
-            <div className="flex items-center justify-between text-xs pt-1">
-              <label className="flex items-center gap-2 cursor-pointer text-text-secondary select-none">
+            <div className="flex items-center justify-between text-xs pt-0.5">
+              <label className="flex items-center gap-1.5 cursor-pointer text-text-secondary select-none text-[11px]">
                 <input
                   type="checkbox"
                   checked={rememberMe}
@@ -402,7 +413,7 @@ export default function Auth({ setCurrentView }) {
               </label>
 
               {!isLogin && (
-                <div className="flex items-center gap-1.5 text-text-secondary">
+                <div className="flex items-center gap-1.5 text-text-secondary text-[11px]">
                   <input
                     type="checkbox"
                     id="agreeTerms"
@@ -427,14 +438,14 @@ export default function Auth({ setCurrentView }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl text-xs sm:text-sm font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 disabled:opacity-50 transition-all shadow-sm cursor-pointer"
+              className="w-full py-2.5 rounded-lg text-xs sm:text-sm font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 disabled:opacity-50 transition-all shadow-sm cursor-pointer"
             >
               {loading ? 'Authenticating...' : isLogin ? 'Sign In to Workspace' : 'Create Free Student Account'}
             </button>
           </form>
 
           {/* Toggle Sign In / Sign Up Link */}
-          <div className="text-center pt-3 border-t border-border-subtle text-xs text-text-secondary">
+          <div className="text-center pt-2 border-t border-border-subtle text-xs text-text-secondary">
             {isLogin ? "Don't have an account yet?" : 'Already registered?'}
             <button
               type="button"
@@ -448,25 +459,10 @@ export default function Auth({ setCurrentView }) {
               {isLogin ? 'Create one now' : 'Sign in here'}
             </button>
           </div>
-
-          {/* Guest / Recruiter Explorer Mode Action */}
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={() => setShowGuestModal(true)}
-              className="w-full py-2.5 px-3.5 rounded-xl border border-dashed border-border-strong bg-surface/70 hover:bg-surface-hover text-xs font-semibold text-text-secondary hover:text-text-primary flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs group"
-            >
-              <Sparkles size={14} className="text-accent-forest group-hover:scale-110 transition-transform shrink-0" />
-              <span>Explore as Guest / Recruiter (Static Mode)</span>
-            </button>
-            <p className="text-[10px] text-center text-text-muted mt-1 font-mono-tabular">
-              Instant evaluation • No registration required • Read-only
-            </p>
-          </div>
         </div>
 
         {/* Minimal Footer */}
-        <div className="pt-8 text-center sm:text-left text-[11px] text-text-muted flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-border-subtle">
+        <div className="pt-3 text-center sm:text-left text-[11px] text-text-muted flex flex-col sm:flex-row items-center justify-between gap-1.5 border-t border-border-subtle">
           <span>© 2026 Learnopia Academic OS</span>
           <button
             onClick={() => setShowTermsModal(true)}

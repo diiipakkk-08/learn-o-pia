@@ -49,22 +49,13 @@ export default function Sidebar({
     : 'DS';
 
   return (
-    <>
-      {/* Mobile Backdrop when menu is open */}
-      {!isCollapsed && (
-        <div
-          className="fixed inset-0 top-14 bg-black/40 z-20 lg:hidden animate-fade-in"
-          onClick={() => setIsCollapsed(true)}
-        />
-      )}
-
-      <aside
-        className={`w-64 flex flex-col fixed top-14 bottom-0 left-0 select-none z-30 transition-all duration-300 ease-in-out bg-sidebar border-r border-border-subtle shadow-md lg:shadow-none ${
-          isCollapsed ? '-translate-x-full pointer-events-none' : 'translate-x-0'
-        }`}
-      >
-        {/* Primary Navigation Links */}
-        <nav className="flex-1 px-3 space-y-1 overflow-y-auto pt-3">
+    <aside
+      className={`w-64 hidden lg:flex flex-col fixed top-14 bottom-0 left-0 select-none z-30 transition-all duration-300 ease-in-out bg-sidebar border-r border-border-subtle ${
+        isCollapsed ? '-translate-x-full pointer-events-none' : 'translate-x-0'
+      }`}
+    >
+      {/* Primary Navigation Links */}
+      <nav className="flex-1 px-3 space-y-1 overflow-y-auto pt-3">
           <div className="space-y-1">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
@@ -177,6 +168,5 @@ export default function Sidebar({
         </div>
       )}
     </aside>
-  </>
   );
 }
