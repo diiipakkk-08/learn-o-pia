@@ -57,6 +57,13 @@ export default function Auth({ setCurrentView }) {
   const [agreeTerms, setAgreeTerms] = useState(true);
   const [showTermsModal, setShowTermsModal] = useState(false);
 
+  const isDark = typeof document !== 'undefined' && (
+    document.documentElement.getAttribute('data-theme') === 'dark' ||
+    document.body.classList.contains('cinema-mode') ||
+    document.documentElement.classList.contains('dark') ||
+    localStorage.getItem('learnopia_cinema_mode') === 'true'
+  );
+
   // Tactile Student Motivational Quotes
   const [currentQuote, setCurrentQuote] = useState(() => getRandomCuratedQuote());
   const [quoteLoading, setQuoteLoading] = useState(false);
@@ -207,7 +214,11 @@ export default function Auth({ setCurrentView }) {
         {/* Top Header: Logo & Return Action */}
         <div className="flex items-center justify-between pb-2">
           <div className="flex items-center gap-2">
-            <img src="/logo.svg" alt="Learnopia" className="w-7 h-7 object-contain shrink-0" />
+            <img
+              src={isDark ? '/learnopia-logo-dark-on.svg' : '/learnopia-logo-light-off.svg'}
+              alt="Learnopia"
+              className="w-7 h-7 object-contain shrink-0"
+            />
             <span className="font-editorial text-lg sm:text-xl font-bold tracking-tight text-text-primary">
               Learnopia
             </span>

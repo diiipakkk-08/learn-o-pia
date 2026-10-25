@@ -3,10 +3,10 @@ import { LayoutGrid, BookOpen, Calendar, FileText, ShoppingBag } from 'lucide-re
 
 export default function MobileBottomNav({ currentView, setCurrentView }) {
   const TABS = [
-    { id: 'my-learning', label: 'Dashboard', icon: LayoutGrid },
+    { id: 'my-learning', label: 'Home', icon: LayoutGrid },
     { id: 'learning', label: 'Courses', icon: BookOpen },
     { id: 'attendance', label: 'Attendance', icon: Calendar },
-    { id: 'resources', label: 'Vault', icon: FileText },
+    { id: 'resources', label: 'Resources', icon: FileText },
     { id: 'marketplace', label: 'Marketplace', icon: ShoppingBag }
   ];
 

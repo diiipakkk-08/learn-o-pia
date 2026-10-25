@@ -1,0 +1,17 @@
+{
+  "name": "Learnopia — Student Study Studio & Academic OS",
+  "short_name": "Learnopia",
+  "description": "Distraction-free lecture player, syllabus vaults, and 75% attendance tracking.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F5F0",
+  "theme_color": "#141413",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "64x64 128x128 256x256 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

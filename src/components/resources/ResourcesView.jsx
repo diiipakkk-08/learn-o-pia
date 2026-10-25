@@ -5,7 +5,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
-import { getWorkspaceFolders, saveWorkspaceFolders } from '../../utils/workspaceFolders';
+import { getWorkspaceFolders, saveWorkspaceFolders, getPinnedSemester } from '../../utils/workspaceFolders';
 import {
   Search,
   FileText,
@@ -55,13 +55,17 @@ export default function ResourcesView() {
     if (resourceToAddToFolder) {
       setUserFolders(getWorkspaceFolders(userId));
       setTargetFolderId('academic');
-      setTargetSubfolderId('');
+      setTargetSubfolderId(getPinnedSemester(userId));
     }
   }, [resourceToAddToFolder, userId]);
 
   const handleSelectFolder = (folderId) => {
     setTargetFolderId(folderId);
-    setTargetSubfolderId('');
+    if (folderId === 'academic') {
+      setTargetSubfolderId(getPinnedSemester(userId));
+    } else {
+      setTargetSubfolderId('');
+    }
   };
 
   useEffect(() => {
@@ -178,27 +182,14 @@ export default function ResourcesView() {
     setUserFolders(getWorkspaceFolders(userId));
     setResourceToAddToFolder(res);
     setTargetFolderId('academic');
-    setTargetSubfolderId('');
+    setTargetSubfolderId(getPinnedSemester(userId));
   };
 
   const handleSaveToFolder = (e) => {
     e.preventDefault();
     if (!resourceToAddToFolder) return;
 
-    let currentFolders = [];
-    try {
-      const raw = localStorage.getItem(`learnopia_explorer_folders_v2_${userId}`);
-      if (raw) currentFolders = JSON.parse(raw);
-    } catch {}
-
-    if (!currentFolders || currentFolders.length === 0) {
-      currentFolders = [
-        { id: 'academic', title: 'Academic', subfolders: [{ id: 'sem-1', title: 'Semester 1', items: [] }], items: [] },
-        { id: 'source', title: 'Source', subfolders: [], items: [] },
-        { id: 'links', title: 'Important Links', subfolders: [], items: [] },
-        { id: 'personal', title: 'Personal', subfolders: [], items: [] }
-      ];
-    }
+    const currentFolders = getWorkspaceFolders(userId);
 
     const newItem = {
       id: `item-${Date.now()}`,
@@ -207,17 +198,22 @@ export default function ResourcesView() {
       type: 'document',
       author: resourceToAddToFolder.author || 'University Vault',
       count: resourceToAddToFolder.type ? resourceToAddToFolder.type.toUpperCase() : 'PDF Document',
-      date: 'Added from Vault'
+      date: 'Added from Resources'
     };
+
+    // For Academic, items must always reside in a semester
+    const effectiveSubfolderId = (targetFolderId === 'academic' && !targetSubfolderId)
+      ? getPinnedSemester(userId)
+      : targetSubfolderId;
 
     const updated = currentFolders.map((root) => {
       if (root.id !== targetFolderId) return root;
 
-      if (targetSubfolderId && root.subfolders?.length > 0) {
+      if (effectiveSubfolderId && root.subfolders?.length > 0) {
         return {
           ...root,
           subfolders: root.subfolders.map((sf) => {
-            if (sf.id === targetSubfolderId) {
+            if (sf.id === effectiveSubfolderId) {
               return {
                 ...sf,
                 items: [newItem, ...(sf.items || [])]
@@ -247,14 +243,11 @@ export default function ResourcesView() {
       toggleSaveResource(resourceToAddToFolder.id);
     }
 
-    const folderName =
-      targetFolderId === 'academic'
-        ? `Academic (${targetSubfolderId.toUpperCase()})`
-        : targetFolderId === 'source'
-        ? 'Source'
-        : targetFolderId === 'links'
-        ? 'Important Links'
-        : 'Personal';
+    const activeRootObj = updated.find(f => f.id === targetFolderId);
+    const activeSubfolderObj = effectiveSubfolderId ? activeRootObj?.subfolders?.find(sf => sf.id === effectiveSubfolderId) : null;
+    const folderName = activeSubfolderObj
+      ? `${activeRootObj?.title || 'Academic'} / ${activeSubfolderObj.title}`
+      : (activeRootObj?.title || 'Academic');
 
     setToastNotice(`Saved "${resourceToAddToFolder.title}" to ${folderName}!`);
     setTimeout(() => setToastNotice(null), 3000);
@@ -520,8 +513,8 @@ export default function ResourcesView() {
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { id: 'academic', title: 'Academic', icon: <GraduationCap size={15} /> },
-                    { id: 'document', title: 'Document', icon: <FileText size={15} /> },
-                    { id: 'links', title: 'Important Links', icon: <Link2 size={15} /> },
+                    { id: 'document', title: 'Docs', icon: <FileText size={15} /> },
+                    { id: 'links', title: 'Links', icon: <Link2 size={15} /> },
                     { id: 'personal', title: 'Personal', icon: <Lock size={15} /> }
                   ].map((f) => (
                     <button
@@ -544,11 +537,29 @@ export default function ResourcesView() {
               {/* Dynamic Subfolder Picker */}
               <div>
                 <label className="block text-xs font-semibold text-text-secondary mb-1">
-                  Subfolder
+                  {targetFolderId === 'academic' ? 'Select Semester' : 'Subfolder'}
                 </label>
                 {(() => {
                   const activeRoot = userFolders.find(f => f.id === targetFolderId);
                   const availableSubfolders = activeRoot?.subfolders || [];
+                  const pinnedSem = getPinnedSemester(userId);
+
+                  if (targetFolderId === 'academic') {
+                    return (
+                      <select
+                        value={targetSubfolderId || pinnedSem}
+                        onChange={(e) => setTargetSubfolderId(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-border-strong text-xs bg-canvas text-text-primary focus:outline-none"
+                      >
+                        {availableSubfolders.map((sf) => (
+                          <option key={sf.id} value={sf.id}>
+                            {sf.title} {sf.id === pinnedSem ? '⭐ (Current Semester)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    );
+                  }
+
                   if (availableSubfolders.length > 0) {
                     return (
                       <select
@@ -565,9 +576,10 @@ export default function ResourcesView() {
                       </select>
                     );
                   }
+
                   return (
                     <div className="text-[11px] text-text-muted bg-surface-sunken p-2.5 rounded-lg border border-border-subtle flex items-center justify-between">
-                      <span>Directly saves inside <strong>{activeRoot?.title || 'Root'}</strong></span>
+                      <span>Directly saves inside <strong>{targetFolderId === 'links' ? 'Links' : (activeRoot?.title || 'Root')}</strong></span>
                       <span className="text-[10px] text-text-tertiary font-mono-tabular">No subfolders</span>
                     </div>
                   );

@@ -29,10 +29,10 @@ export default function Sidebar({
   const { currentUser } = useDatabase();
 
   const NAV_ITEMS = [
-    { id: 'my-learning', label: 'Dashboard', icon: LayoutGrid },
+    { id: 'my-learning', label: 'Home', icon: LayoutGrid },
     { id: 'learning', label: 'Courses', icon: BookOpen },
-    { id: 'attendance', label: 'Attendance Tracker', icon: Calendar },
-    { id: 'resources', label: 'Resources View', icon: FileText },
+    { id: 'attendance', label: 'Attendance', icon: Calendar },
+    { id: 'resources', label: 'Resources', icon: FileText },
     { id: 'marketplace', label: 'Marketplace', icon: ShoppingBag },
     { id: 'studio', label: 'Studio', icon: Users },
   ];
@@ -101,7 +101,7 @@ export default function Sidebar({
             }`}
           >
             <Info size={15} strokeWidth={1.75} />
-            <span>About Learnopia</span>
+            <span>About</span>
           </button>
 
           {/* Admin Moderation Button (Only for Admins) */}
@@ -116,7 +116,7 @@ export default function Sidebar({
             >
               <div className="flex items-center gap-3">
                 <ShieldAlert size={15} strokeWidth={1.75} />
-                <span>Admin Panel</span>
+                <span>Admin Settings</span>
               </div>
               <span className="text-[10px] font-mono-tabular font-bold px-1.5 py-0.5 rounded bg-accent-forest/10 text-accent-forest border border-accent-forest/20">
                 STAFF

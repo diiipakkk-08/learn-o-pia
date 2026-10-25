@@ -30,10 +30,18 @@ import {
   GraduationCap,
   Lock,
   Globe,
-  Copy
+  Copy,
+  Pin,
+  Star
 } from 'lucide-react';
 import { calculateAttendanceMetrics, getLiveAttendanceSummary } from '../../utils/attendanceMath';
-import { getWorkspaceFolders, saveWorkspaceFolders } from '../../utils/workspaceFolders';
+import {
+  getWorkspaceFolders,
+  saveWorkspaceFolders,
+  getPinnedSemester,
+  setPinnedSemester,
+  setAcademicSemestersCount
+} from '../../utils/workspaceFolders';
 
 export default function MyLearningView({
   setCurrentView,
@@ -234,13 +242,25 @@ export default function MyLearningView({
   }, [routine]);
 
   // =================================================================
-  // 4 FIXED ROOT FOLDERS SYSTEM: Academic, Document, Important Links, Personal
+  // 4 FIXED ROOT FOLDERS SYSTEM: Academic, Docs, Links, Personal
   // =================================================================
   const [folders, setFolders] = useState(() => getWorkspaceFolders(userId));
+  const [pinnedSemesterState, setPinnedSemesterState] = useState(() => getPinnedSemester(userId));
 
   useEffect(() => {
     setFolders(getWorkspaceFolders(userId));
+    setPinnedSemesterState(getPinnedSemester(userId));
   }, [userId]);
+
+  useEffect(() => {
+    const handlePinned = (e) => {
+      if (e?.detail?.pinnedSemester) {
+        setPinnedSemesterState(e.detail.pinnedSemester);
+      }
+    };
+    window.addEventListener('learnopia_pinned_semester_updated', handlePinned);
+    return () => window.removeEventListener('learnopia_pinned_semester_updated', handlePinned);
+  }, []);
 
   // Explorer Navigation State
   const [activeRootFolderId, setActiveRootFolderId] = useState(null); // 'academic' | 'document' | 'links' | 'personal' | null
@@ -331,10 +351,30 @@ export default function MyLearningView({
   }, [activeNode]);
 
   // Explorer Handlers
+  const handleSemesterCountChange = (e) => {
+    const newCount = parseInt(e.target.value, 10);
+    const updated = setAcademicSemestersCount(userId, newCount);
+    setFolders(updated);
+    if (saveUserFoldersToDb && userId && userId !== 'guest') {
+      saveUserFoldersToDb(userId, updated);
+    }
+    setFolderNotice(`Academic program set to ${newCount} Semesters.`);
+    setTimeout(() => setFolderNotice(''), 3000);
+  };
+
+  const handlePinSemester = (semId, semTitle) => {
+    setPinnedSemester(userId, semId);
+    setPinnedSemesterState(semId);
+    setFolderNotice(`Pinned ${semTitle} as your Current Semester!`);
+    setTimeout(() => setFolderNotice(''), 3000);
+  };
+
   const handleCreateSubfolder = (e) => {
     e.preventDefault();
-    if (!newSubfolderName.trim() || !activeRootFolderId || activeRootFolderId === 'personal') return;
-    // Subfolders can only be created at root level of any folder (strict 1-level depth)
+    if (!newSubfolderName.trim() || !activeRootFolderId) return;
+    // Subfolders are ONLY allowed at root level of Docs and Personal (max 1 level depth)
+    // Academic uses fixed semesters; Links is strictly flat.
+    if (activeRootFolderId === 'academic' || activeRootFolderId === 'links') return;
     if (subfolderPath.length >= 1) return;
 
     const newSub = {
@@ -359,6 +399,9 @@ export default function MyLearningView({
   };
 
   const handleDeleteSubfolder = (subfolderId) => {
+    // Semesters in Academic cannot be deleted manually
+    if (activeRootFolderId === 'academic') return;
+
     const updated = updateFolderNode(folders, activeRootFolderId, subfolderPath, (node) => ({
       ...node,
       subfolders: (node.subfolders || []).filter(sf => sf.id !== subfolderId)
@@ -371,6 +414,12 @@ export default function MyLearningView({
   const handleAddItemToFolder = (e) => {
     e.preventDefault();
     if (!itemTitle.trim() || !itemUrl.trim() || !activeRootFolderId) return;
+    // Direct root items not allowed in Academic — must be inside a semester
+    if (activeRootFolderId === 'academic' && subfolderPath.length === 0) {
+      setFolderNotice('Please open a Semester folder first to add academic materials.');
+      setTimeout(() => setFolderNotice(''), 3500);
+      return;
+    }
 
     const newItem = {
       id: `item-${Date.now()}`,
@@ -542,8 +591,10 @@ export default function MyLearningView({
                     {activeNode?.title}
                   </h2>
                   <span className="text-[11px] font-mono-tabular text-text-muted">
-                    {activeRootFolder.id === 'personal'
-                      ? `${filteredItems.length} Personal Items`
+                    {activeRootFolder.id === 'links'
+                      ? `${filteredItems.length} Saved Links`
+                      : activeRootFolder.id === 'academic' && subfolderPath.length === 0
+                      ? `${filteredSubfolders.length} Semesters`
                       : subfolderPath.length === 0
                       ? `${filteredSubfolders.length} Subfolders • ${filteredItems.length} Items`
                       : `${filteredItems.length} Items`}
@@ -551,10 +602,29 @@ export default function MyLearningView({
                 </div>
               </div>
 
-              {/* Action Buttons: Inline Toggle for Subfolder / Item */}
+              {/* Action Buttons: Semesters Count / Subfolder / Item */}
               <div className="flex items-center gap-2">
-                {/* Subfolders can only be created at root level (max 1 level depth) and NOT in Personal */}
-                {subfolderPath.length === 0 && activeRootFolder.id !== 'personal' && (
+                {/* Academic Root: Degree Semesters Count Selector */}
+                {activeRootFolder.id === 'academic' && subfolderPath.length === 0 && (
+                  <div className="flex items-center gap-1.5 bg-subtle px-2.5 py-1.5 rounded-lg border border-border-subtle">
+                    <span className="text-xs font-medium text-text-muted">Semesters:</span>
+                    <select
+                      value={filteredSubfolders.length || 8}
+                      onChange={handleSemesterCountChange}
+                      className="bg-transparent text-xs font-bold text-text-primary focus:outline-none cursor-pointer"
+                      title="Set number of semesters in your degree program"
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(num => (
+                        <option key={num} value={num} className="bg-surface text-text-primary">
+                          {num} Semesters
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Subfolders can only be created at root level of Docs and Personal (max 1 level depth) */}
+                {subfolderPath.length === 0 && (activeRootFolder.id === 'document' || activeRootFolder.id === 'personal') && (
                   <button
                     onClick={() => setInlineAddType(prev => prev === 'subfolder' ? null : 'subfolder')}
                     className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors ${
@@ -565,28 +635,31 @@ export default function MyLearningView({
                     title="Create new subfolder in this section"
                   >
                     <FolderPlus size={13} />
-                    <span>+ Subfolder</span>
+                    <span>Subfolder</span>
                   </button>
                 )}
 
-                <button
-                  onClick={() => setInlineAddType(prev => prev === 'item' ? null : 'item')}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors ${
-                    inlineAddType === 'item'
-                      ? 'bg-accent-ink text-text-on-dark border-accent-ink'
-                      : 'bg-accent-ink text-text-on-dark hover:opacity-95'
-                  }`}
-                  title="Add course or item in this section"
-                >
-                  <Plus size={13} />
-                  <span>+ Item</span>
-                </button>
+                {/* Items can be added anywhere EXCEPT root of Academic (must save into a Semester) */}
+                {!(activeRootFolder.id === 'academic' && subfolderPath.length === 0) && (
+                  <button
+                    onClick={() => setInlineAddType(prev => prev === 'item' ? null : 'item')}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors ${
+                      inlineAddType === 'item'
+                        ? 'bg-accent-ink text-text-on-dark border-accent-ink'
+                        : 'bg-accent-ink text-text-on-dark hover:opacity-95'
+                    }`}
+                    title="Add resource in this section"
+                  >
+                    <Plus size={13} />
+                    <span>{activeRootFolder.id === 'links' ? 'Add Link' : 'Item'}</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
 
-          {/* INLINE SECTION: CREATE NEW SUBFOLDER (Only allowed at root level of non-personal folders) */}
-          {inlineAddType === 'subfolder' && subfolderPath.length === 0 && activeRootFolder.id !== 'personal' && (
+          {/* INLINE SECTION: CREATE NEW SUBFOLDER (Only allowed at root level of Docs and Personal) */}
+          {inlineAddType === 'subfolder' && subfolderPath.length === 0 && (activeRootFolder.id === 'document' || activeRootFolder.id === 'personal') && (
             <div className="rounded-xl border border-border-strong bg-surface p-4 sm:p-5 shadow-sm space-y-3 animate-fade-in">
               <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
                 <div className="flex items-center gap-2 font-bold text-xs text-text-primary">
@@ -811,61 +884,102 @@ export default function MyLearningView({
             </div>
           )}
 
-          {/* Section 1: Subfolders Grid (if any, not in personal) */}
-          {filteredSubfolders.length > 0 && activeRootFolder.id !== 'personal' && (
+          {/* Section 1: Subfolders Grid (Academic Semesters, Docs Subfolders, Personal Subfolders) */}
+          {filteredSubfolders.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center justify-between pb-1">
                 <h3 className="text-xs font-mono-tabular font-bold uppercase tracking-wider text-text-secondary flex items-center gap-1.5">
                   <FolderOpen size={14} className="text-text-primary" />
-                  <span>Subfolders ({filteredSubfolders.length})</span>
+                  <span>
+                    {activeRootFolder.id === 'academic' && subfolderPath.length === 0
+                      ? `Semesters (${filteredSubfolders.length})`
+                      : `Subfolders (${filteredSubfolders.length})`}
+                  </span>
                 </h3>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-                {filteredSubfolders.map((sf) => (
-                  <div
-                    key={sf.id}
-                    onClick={() => {
-                      setInlineAddType(null);
-                      setSubfolderPath(prev => [...prev, sf.id]);
-                    }}
-                    className="p-3.5 sm:p-4 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover/80 hover:border-border-strong transition-all cursor-pointer flex flex-col justify-between group shadow-xs space-y-2.5 active:scale-[0.99]"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="w-8 h-8 rounded-lg bg-subtle flex items-center justify-center text-text-primary group-hover:bg-accent-ink group-hover:text-text-on-dark transition-colors">
-                        <Folder size={16} />
-                      </div>
-                      {!sf.isSystem && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteSubfolder(sf.id);
-                          }}
-                          className="p-1 text-text-muted hover:text-red-500 cursor-pointer transition-colors"
-                          title="Delete subfolder"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      )}
-                    </div>
+                {filteredSubfolders.map((sf) => {
+                  const isAcademic = activeRootFolder.id === 'academic';
+                  const isPinned = isAcademic && sf.id === pinnedSemesterState;
 
-                    <div>
-                      <h4 className="text-xs sm:text-sm font-bold text-text-primary group-hover:text-accent-forest transition-colors truncate">
-                        {sf.title}
-                      </h4>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[10px] sm:text-[11px] font-mono-tabular text-text-muted">
-                          {(sf.subfolders?.length || 0)} subfolders • {(sf.items?.length || 0)} items
-                        </span>
-                        {sf.isPublic === false ? (
-                          <span className="inline-flex items-center text-[9px] px-1 py-0.2 rounded bg-surface-hover text-text-muted border border-border-subtle" title="Private Subfolder">
-                            <Lock size={8} />
+                  return (
+                    <div
+                      key={sf.id}
+                      onClick={() => {
+                        setInlineAddType(null);
+                        setSubfolderPath(prev => [...prev, sf.id]);
+                      }}
+                      className={`p-3.5 sm:p-4 rounded-xl border bg-surface hover:bg-surface-hover/80 hover:border-border-strong transition-all cursor-pointer flex flex-col justify-between group shadow-xs space-y-2.5 active:scale-[0.99] relative ${
+                        isPinned
+                          ? 'border-amber-500/50 bg-amber-500/[0.03] ring-1 ring-amber-500/30'
+                          : 'border-border-subtle'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="w-8 h-8 rounded-lg bg-subtle flex items-center justify-center text-text-primary group-hover:bg-accent-ink group-hover:text-text-on-dark transition-colors">
+                          <Folder size={16} />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {/* Pin / Star Button for Academic Semesters */}
+                          {isAcademic && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePinSemester(sf.id, sf.title);
+                              }}
+                              className={`p-1.5 rounded-md cursor-pointer transition-colors ${
+                                isPinned
+                                  ? 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'
+                                  : 'text-text-muted hover:text-text-primary hover:bg-subtle'
+                              }`}
+                              title={isPinned ? 'Current pinned semester' : 'Pin as current semester'}
+                            >
+                              <Pin size={13} className={isPinned ? 'fill-amber-500' : ''} />
+                            </button>
+                          )}
+
+                          {/* Delete button: strictly disallowed on Academic semesters and system folders */}
+                          {!sf.isSystem && !isAcademic && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteSubfolder(sf.id);
+                              }}
+                              className="p-1 text-text-muted hover:text-red-500 cursor-pointer transition-colors"
+                              title="Delete subfolder"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="text-xs sm:text-sm font-bold text-text-primary group-hover:text-accent-forest transition-colors truncate">
+                            {sf.title}
+                          </h4>
+                          {isPinned && (
+                            <span className="shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-0.5">
+                              <Star size={8} className="fill-amber-500" /> Current
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[10px] sm:text-[11px] font-mono-tabular text-text-muted">
+                            {(sf.items?.length || 0)} items
                           </span>
-                        ) : null}
+                          {sf.isPublic === false ? (
+                            <span className="inline-flex items-center text-[9px] px-1 py-0.2 rounded bg-surface-hover text-text-muted border border-border-subtle" title="Private Subfolder">
+                              <Lock size={8} />
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -989,22 +1103,24 @@ export default function MyLearningView({
                 </p>
               </div>
               <div className="flex items-center justify-center gap-2 pt-2">
-                {subfolderPath.length === 0 && (
+                {subfolderPath.length === 0 && (activeRootFolder?.id === 'document' || activeRootFolder?.id === 'personal') && (
                   <button
                     onClick={() => setInlineAddType('subfolder')}
                     className="px-3.5 py-2 rounded-lg text-xs font-semibold border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary flex items-center gap-1.5 cursor-pointer shadow-xs"
                   >
                     <FolderPlus size={13} />
-                    <span>+ Subfolder</span>
+                    <span>Subfolder</span>
                   </button>
                 )}
-                <button
-                  onClick={() => setInlineAddType('item')}
-                  className="px-3.5 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark flex items-center gap-1.5 hover:opacity-95 cursor-pointer shadow-xs"
-                >
-                  <Plus size={13} />
-                  <span>+ Item</span>
-                </button>
+                {!(activeRootFolder?.id === 'academic' && subfolderPath.length === 0) && (
+                  <button
+                    onClick={() => setInlineAddType('item')}
+                    className="px-3.5 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark flex items-center gap-1.5 hover:opacity-95 cursor-pointer shadow-xs"
+                  >
+                    <Plus size={13} />
+                    <span>{activeRootFolder?.id === 'links' ? 'Add Link' : 'Item'}</span>
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -1123,7 +1239,7 @@ export default function MyLearningView({
                           {icon}
                         </div>
                         <h3 className="text-xs sm:text-sm font-bold text-text-primary group-hover:text-accent-forest transition-colors truncate w-full">
-                          {folder.title}
+                          {folder.id === 'document' ? 'Docs' : folder.id === 'links' ? 'Links' : folder.title}
                         </h3>
                       </div>
                     );

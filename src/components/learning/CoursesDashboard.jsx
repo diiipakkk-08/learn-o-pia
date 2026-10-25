@@ -5,7 +5,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useDatabase } from '../../context/DatabaseContext';
-import { getWorkspaceFolders, saveWorkspaceFolders } from '../../utils/workspaceFolders';
+import { getWorkspaceFolders, saveWorkspaceFolders, getPinnedSemester } from '../../utils/workspaceFolders';
 import {
   FileText,
   Search,
@@ -127,7 +127,11 @@ function CoursesDashboardInner({
 
   const handleSelectFolder = (folderId) => {
     setTargetFolderId(folderId);
-    setTargetSubfolderId('');
+    if (folderId === 'academic') {
+      setTargetSubfolderId(getPinnedSemester(userId));
+    } else {
+      setTargetSubfolderId('');
+    }
   };
 
   // Persistent user course likes (all values start at 0!)
@@ -400,7 +404,7 @@ function CoursesDashboardInner({
     setUserFolders(getWorkspaceFolders(userId));
     setCourseToAddToFolder(course);
     setTargetFolderId('academic');
-    setTargetSubfolderId('');
+    setTargetSubfolderId(getPinnedSemester(userId));
   };
 
   // Confirm adding course to folder
@@ -422,14 +426,19 @@ function CoursesDashboardInner({
       date: 'Added from Catalog'
     };
 
+    // For Academic, items must always reside in a semester
+    const effectiveSubfolderId = (targetFolderId === 'academic' && !targetSubfolderId)
+      ? getPinnedSemester(userId)
+      : targetSubfolderId;
+
     // Update folder tree
     const updated = currentFolders.map((root) => {
       if (root.id !== targetFolderId) return root;
 
-      if (targetSubfolderId && root.subfolders?.length > 0) {
+      if (effectiveSubfolderId && root.subfolders?.length > 0) {
         let matched = false;
         const newSubfolders = root.subfolders.map((sf) => {
-          if (sf.id === targetSubfolderId) {
+          if (sf.id === effectiveSubfolderId) {
             matched = true;
             return {
               ...sf,
@@ -884,8 +893,8 @@ function CoursesDashboardInner({
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { id: 'academic', title: 'Academic', icon: <GraduationCap size={15} /> },
-                    { id: 'document', title: 'Document', icon: <FileText size={15} /> },
-                    { id: 'links', title: 'Important Links', icon: <Link2 size={15} /> },
+                    { id: 'document', title: 'Docs', icon: <FileText size={15} /> },
+                    { id: 'links', title: 'Links', icon: <Link2 size={15} /> },
                     { id: 'personal', title: 'Personal', icon: <Lock size={15} /> }
                   ].map((f) => (
                     <button
@@ -908,11 +917,29 @@ function CoursesDashboardInner({
               {/* Dynamic Subfolder Picker */}
               <div>
                 <label className="block text-xs font-semibold text-text-secondary mb-1">
-                  Subfolder
+                  {targetFolderId === 'academic' ? 'Select Semester' : 'Subfolder'}
                 </label>
                 {(() => {
                   const activeRoot = userFolders.find(f => f.id === targetFolderId);
                   const availableSubfolders = activeRoot?.subfolders || [];
+                  const pinnedSem = getPinnedSemester(userId);
+
+                  if (targetFolderId === 'academic') {
+                    return (
+                      <select
+                        value={targetSubfolderId || pinnedSem}
+                        onChange={(e) => setTargetSubfolderId(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-border-strong text-xs bg-canvas text-text-primary focus:outline-none"
+                      >
+                        {availableSubfolders.map((sf) => (
+                          <option key={sf.id} value={sf.id}>
+                            {sf.title} {sf.id === pinnedSem ? '⭐ (Current Semester)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    );
+                  }
+
                   if (availableSubfolders.length > 0) {
                     return (
                       <select
@@ -929,9 +956,10 @@ function CoursesDashboardInner({
                       </select>
                     );
                   }
+
                   return (
                     <div className="text-[11px] text-text-muted bg-surface-sunken p-2.5 rounded-lg border border-border-subtle flex items-center justify-between">
-                      <span>Directly saves inside <strong>{activeRoot?.title || 'Root'}</strong></span>
+                      <span>Directly saves inside <strong>{targetFolderId === 'links' ? 'Links' : (activeRoot?.title || 'Root')}</strong></span>
                       <span className="text-[10px] text-text-tertiary font-mono-tabular">No subfolders</span>
                     </div>
                   );

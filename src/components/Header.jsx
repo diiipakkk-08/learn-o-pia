@@ -131,19 +131,8 @@ export default function Header({
         borderColor: cinemaMode ? '#2E2E2B' : '#E4E0D8'
       }}
     >
-      {/* Left: Menu Open Trigger & Brand Wordmark */}
+      {/* Left: Brand Wordmark */}
       <div className="flex items-center gap-2 sm:gap-2.5">
-        {isSidebarCollapsed && (
-          <button
-            onClick={() => onToggleSidebar && onToggleSidebar()}
-            className="hidden lg:flex p-1.5 sm:p-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary transition-all cursor-pointer shadow-xs items-center justify-center hover:scale-105 active:scale-95"
-            title="Open navigation menu [Ctrl + \]"
-            aria-label="Open navigation menu"
-          >
-            <PanelLeft size={18} strokeWidth={1.75} />
-          </button>
-        )}
-
         <button
           onClick={() => setCurrentView && setCurrentView('landing')}
           title="Learnopia Home"
@@ -151,21 +140,16 @@ export default function Header({
           className="text-left focus:outline-none flex items-center gap-1.5 sm:gap-2.5 transition-opacity hover:opacity-85 cursor-pointer group"
         >
           <img
-            src="/logo.svg"
+            src={cinemaMode ? '/learnopia-logo-dark-on.svg' : '/learnopia-logo-light-off.svg'}
             alt="Learnopia"
             className="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0 group-hover:scale-105 transition-transform"
           />
-          <div className="flex items-baseline gap-1.5 sm:gap-2">
-            <span
-              className="font-editorial text-lg sm:text-2xl lg:text-[26px] tracking-tight block leading-none font-bold"
-              style={{ color: cinemaMode ? '#F2EFE9' : '#141413' }}
-            >
-              Learnopia
-            </span>
-            <span className="text-[10px] sm:text-[11px] font-mono-tabular uppercase tracking-wider text-text-muted hidden sm:inline-block">
-              / Workspace
-            </span>
-          </div>
+          <span
+            className="font-editorial text-lg sm:text-2xl lg:text-[26px] tracking-tight block leading-none font-bold"
+            style={{ color: cinemaMode ? '#F2EFE9' : '#141413' }}
+          >
+            Learnopia
+          </span>
         </button>
       </div>
 
@@ -349,7 +333,7 @@ export default function Header({
                   className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover text-left transition-colors"
                 >
                   <User size={15} />
-                  <span>Profile & Academic Settings</span>
+                  <span>Profile</span>
                 </button>
 
                 <button
@@ -372,7 +356,7 @@ export default function Header({
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover text-left transition-colors"
                   >
                     <ShieldAlert size={15} />
-                    <span>Admin Moderation Panel</span>
+                    <span>Admin Settings</span>
                   </button>
                 )}
 
@@ -384,7 +368,7 @@ export default function Header({
                   className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover text-left transition-colors"
                 >
                   <Info size={15} />
-                  <span>About & Mission</span>
+                  <span>About</span>
                 </button>
 
                 <div className="border-t border-border-subtle my-1" />

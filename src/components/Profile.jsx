@@ -10,7 +10,7 @@ import {
   User, Mail, Shield, CheckCircle2, Clock, LogOut, Play, BookOpen,
   Edit3, Link as LinkIcon, Phone, Building, Sparkles, Check, AlertCircle,
   KeyRound, Scale, Trash2, AlertTriangle, GraduationCap, Calendar,
-  ExternalLink, MessageSquare, XCircle
+  ExternalLink, MessageSquare, XCircle, Download, Smartphone, Monitor, Share2, X
 } from 'lucide-react';
 import TermsModal from './TermsModal';
 
@@ -45,6 +45,50 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
   const [showUnverifyConfirmModal, setShowUnverifyConfirmModal] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
+
+  // PWA App Installation State
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const [isAppInstalled, setIsAppInstalled] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+        setIsAppInstalled(true);
+      }
+
+      const handleBeforeInstall = (e) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+      };
+
+      const handleAppInstalled = () => {
+        setIsAppInstalled(true);
+        setDeferredPrompt(null);
+      };
+
+      window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.addEventListener('appinstalled', handleAppInstalled);
+
+      return () => {
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+        window.removeEventListener('appinstalled', handleAppInstalled);
+      };
+    }
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      if (choice?.outcome === 'accepted') {
+        setIsAppInstalled(true);
+      }
+      setDeferredPrompt(null);
+    } else {
+      setShowInstallModal(true);
+    }
+  };
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -234,6 +278,9 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
         </div>
 
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary" onClick={handleInstallClick} title="Install Learnopia App on your device">
+            <Download size={15} color="var(--primary)" /> {isAppInstalled ? 'App Installed' : 'Install App'}
+          </button>
           <button className="btn btn-secondary" onClick={() => setIsEditing(!isEditing)}>
             <Edit3 size={15} /> {isEditing ? 'Cancel Edit' : 'Edit Profile'}
           </button>
@@ -250,6 +297,79 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
       </div>
 
       <TermsModal isOpen={showTermsModal} onClose={() => setShowTermsModal(false)} />
+
+      {/* PWA INSTALLATION GUIDE MODAL */}
+      {showInstallModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setShowInstallModal(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-border-subtle bg-surface p-6 space-y-4 shadow-modal text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-accent-forest/10 text-accent-forest flex items-center justify-center">
+                  <Download size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-text-primary">Install Learnopia App</h3>
+                  <p className="text-[11px] text-text-muted">Fast standalone desktop & mobile access</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowInstallModal(false)}
+                className="p-1 rounded-lg text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs text-text-secondary">
+              <div className="p-3 rounded-xl border border-border-subtle bg-subtle space-y-1">
+                <div className="flex items-center gap-2 font-bold text-text-primary">
+                  <Smartphone size={14} className="text-accent-forest" />
+                  <span>Android (Chrome / Edge / Brave)</span>
+                </div>
+                <p className="text-[11px] text-text-muted">
+                  Tap the three dots menu (⋮) in the top-right corner of your browser and select <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl border border-border-subtle bg-subtle space-y-1">
+                <div className="flex items-center gap-2 font-bold text-text-primary">
+                  <Share2 size={14} className="text-accent-forest" />
+                  <span>iPhone / iPad (Safari)</span>
+                </div>
+                <p className="text-[11px] text-text-muted">
+                  Tap the <strong>Share</strong> button at the bottom of Safari, scroll down, and tap <strong>"Add to Home Screen"</strong>.
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl border border-border-subtle bg-subtle space-y-1">
+                <div className="flex items-center gap-2 font-bold text-text-primary">
+                  <Monitor size={14} className="text-accent-forest" />
+                  <span>Windows / macOS / ChromeOS</span>
+                </div>
+                <p className="text-[11px] text-text-muted">
+                  Click the <strong>Install icon</strong> in your browser's address bar (or Menu ⋮ &rarr; "Install Learnopia") to run it as a lightweight native desktop app.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowInstallModal(false)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs"
+              >
+                Got It
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {currentUser.verificationStatus === 'rejected' && !currentUser.isVerified && (
         <div style={{ padding: '14px 18px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '14px', color: '#f87171', marginBottom: '20px', textAlign: 'left', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 12 }}>

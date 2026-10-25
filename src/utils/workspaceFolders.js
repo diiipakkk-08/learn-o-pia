@@ -1,5 +1,5 @@
-// Unified workspace folders utility for Learn-O-Pia
-// Manages the 4 core folders: Academic, Document, Important Links, Personal
+// Unified workspace folders utility for Learnopia
+// Manages the 4 core folders: Academic, Docs, Links, Personal
 
 export const DEFAULT_WORKSPACE_FOLDERS = [
   {
@@ -20,7 +20,7 @@ export const DEFAULT_WORKSPACE_FOLDERS = [
   },
   {
     id: 'document',
-    title: 'Document',
+    title: 'Docs',
     isSystem: true,
     subfolders: [
       { id: 'doc-dsa', title: 'Algorithms & LeetCode Solutions', subfolders: [], items: [] },
@@ -31,19 +31,19 @@ export const DEFAULT_WORKSPACE_FOLDERS = [
   },
   {
     id: 'links',
-    title: 'Important Links',
+    title: 'Links',
     isSystem: true,
-    subfolders: [
-      { id: 'links-university', title: 'MAKAUT & Examination Portals', subfolders: [], items: [] },
-      { id: 'links-resources', title: 'Digital Libraries & National Portals', subfolders: [], items: [] }
-    ],
+    subfolders: [],
     items: []
   },
   {
     id: 'personal',
     title: 'Personal',
     isSystem: true,
-    subfolders: [],
+    subfolders: [
+      { id: 'pers-notes', title: 'Personal Study Notes', subfolders: [], items: [] },
+      { id: 'pers-prep', title: 'Interview & Placement Prep', subfolders: [], items: [] }
+    ],
     items: []
   }
 ];
@@ -65,11 +65,14 @@ export function getWorkspaceFolders(userId = 'guest') {
       if (Array.isArray(folders) && folders.length > 0) {
         let changed = false;
 
-        // 1. Rename any legacy 'source' root folder to 'document'
+        // 1. Rename any legacy 'source' root folder to 'document' and update titles
         folders = folders.map((f) => {
-          if (f.id === 'source') {
+          if (f.id === 'source' || f.id === 'document') {
             changed = true;
-            return { ...f, id: 'document', title: 'Document' };
+            return { ...f, id: 'document', title: 'Docs' };
+          }
+          if (f.id === 'links') {
+            return { ...f, title: 'Links' };
           }
           return f;
         });
@@ -107,54 +110,62 @@ export function getWorkspaceFolders(userId = 'guest') {
           }
         });
 
-        // 4. Ensure Academic has all 8 Semesters
+        // 4. Ensure Academic has Semesters and NO root items
         const academicFolder = folders.find((f) => f.id === 'academic');
         if (academicFolder) {
           if (!academicFolder.subfolders || academicFolder.subfolders.length === 0) {
             academicFolder.subfolders = JSON.parse(JSON.stringify(DEFAULT_WORKSPACE_FOLDERS[0].subfolders));
             changed = true;
-          } else {
-            // Check if semesters 1 through 8 are present; if any are missing, add them
-            for (let sem = 1; sem <= 8; sem++) {
-              const semId = `sem-${sem}`;
-              const exists = academicFolder.subfolders.some((sf) => sf.id === semId);
-              if (!exists) {
-                const defaultSem = DEFAULT_WORKSPACE_FOLDERS[0].subfolders.find((s) => s.id === semId) || {
-                  id: semId,
-                  title: `Semester ${sem}`,
-                  subfolders: [],
-                  items: []
-                };
-                academicFolder.subfolders.push(JSON.parse(JSON.stringify(defaultSem)));
-                changed = true;
-              }
+          }
+          // Move any root items into semester 1
+          if (Array.isArray(academicFolder.items) && academicFolder.items.length > 0) {
+            const sem1 = academicFolder.subfolders[0];
+            if (sem1) {
+              sem1.items = [...(sem1.items || []), ...academicFolder.items];
             }
+            academicFolder.items = [];
+            changed = true;
           }
         }
 
-        // 5. Ensure Document has default subfolders if empty
+        // 5. Ensure Docs has default structure
         const docFolder = folders.find((f) => f.id === 'document');
-        if (docFolder && (!docFolder.subfolders || docFolder.subfolders.length === 0)) {
-          docFolder.subfolders = JSON.parse(JSON.stringify(DEFAULT_WORKSPACE_FOLDERS[1].subfolders));
-          changed = true;
+        if (docFolder) {
+          docFolder.title = 'Docs';
+          if (!Array.isArray(docFolder.subfolders)) {
+            docFolder.subfolders = [];
+            changed = true;
+          }
+          if (!Array.isArray(docFolder.items)) {
+            docFolder.items = [];
+            changed = true;
+          }
         }
 
-        // 6. Ensure Links has default subfolders if empty
+        // 6. Ensure Links has NO subfolders and strictly flat items
         const linksFolder = folders.find((f) => f.id === 'links');
-        if (linksFolder && (!linksFolder.subfolders || linksFolder.subfolders.length === 0)) {
-          linksFolder.subfolders = JSON.parse(JSON.stringify(DEFAULT_WORKSPACE_FOLDERS[2].subfolders));
-          changed = true;
-        }
-
-        // 7. Ensure Personal has NO subfolders and strictly flat items
-        const persFolder = folders.find((f) => f.id === 'personal');
-        if (persFolder) {
-          if (Array.isArray(persFolder.subfolders) && persFolder.subfolders.length > 0) {
+        if (linksFolder) {
+          linksFolder.title = 'Links';
+          if (Array.isArray(linksFolder.subfolders) && linksFolder.subfolders.length > 0) {
             const extracted = [];
-            persFolder.subfolders.forEach((sf) => {
+            linksFolder.subfolders.forEach((sf) => {
               if (Array.isArray(sf.items)) extracted.push(...sf.items);
             });
-            persFolder.items = [...(persFolder.items || []), ...extracted];
+            linksFolder.items = [...(linksFolder.items || []), ...extracted];
+            linksFolder.subfolders = [];
+            changed = true;
+          }
+          if (!Array.isArray(linksFolder.items)) {
+            linksFolder.items = [];
+            changed = true;
+          }
+        }
+
+        // 7. Ensure Personal can have subfolders and items
+        const persFolder = folders.find((f) => f.id === 'personal');
+        if (persFolder) {
+          persFolder.title = 'Personal';
+          if (!Array.isArray(persFolder.subfolders)) {
             persFolder.subfolders = [];
             changed = true;
           }
@@ -188,6 +199,56 @@ export function getWorkspaceFolders(userId = 'guest') {
   return fresh;
 }
 
+export function getPinnedSemester(userId = 'guest') {
+  try {
+    const val = localStorage.getItem(`learnopia_pinned_semester_${userId}`);
+    return val || 'sem-1';
+  } catch {
+    return 'sem-1';
+  }
+}
+
+export function setPinnedSemester(userId = 'guest', semId) {
+  try {
+    localStorage.setItem(`learnopia_pinned_semester_${userId}`, semId);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('learnopia_pinned_semester_updated', {
+        detail: { userId, pinnedSemester: semId }
+      }));
+    }
+  } catch (err) {
+    console.error('Failed to set pinned semester:', err);
+  }
+}
+
+export function setAcademicSemestersCount(userId = 'guest', count = 8) {
+  const folders = getWorkspaceFolders(userId);
+  const academic = folders.find(f => f.id === 'academic');
+  if (!academic) return folders;
+
+  const currentSubs = academic.subfolders || [];
+  const newSubs = [];
+
+  for (let i = 1; i <= count; i++) {
+    const semId = `sem-${i}`;
+    const existing = currentSubs.find(s => s.id === semId);
+    if (existing) {
+      newSubs.push(existing);
+    } else {
+      newSubs.push({
+        id: semId,
+        title: `Semester ${i}`,
+        subfolders: [],
+        items: []
+      });
+    }
+  }
+
+  academic.subfolders = newSubs;
+  saveWorkspaceFolders(userId, folders);
+  return folders;
+}
+
 export function foldersToProfilePayload(folders) {
   if (!Array.isArray(folders)) return {};
   const academic = folders.find(f => f.id === 'academic') || null;
@@ -196,10 +257,10 @@ export function foldersToProfilePayload(folders) {
   const personal = folders.find(f => f.id === 'personal') || null;
 
   return {
-    folder_academic: academic ? { subfolders: academic.subfolders || [], items: academic.items || [] } : { subfolders: [], items: [] },
+    folder_academic: academic ? (academic.subfolders || []) : [],
     folder_document: document ? { subfolders: document.subfolders || [], items: document.items || [] } : { subfolders: [], items: [] },
-    folder_links: links ? { subfolders: links.subfolders || [], items: links.items || [] } : { subfolders: [], items: [] },
-    folder_personal: personal ? (personal.items || []) : []
+    folder_links: links ? (links.items || []) : [],
+    folder_personal: personal ? { subfolders: personal.subfolders || [], items: personal.items || [] } : { subfolders: [], items: [] }
   };
 }
 
@@ -214,37 +275,61 @@ export function profilePayloadToFolders(profile) {
 
   const base = JSON.parse(JSON.stringify(DEFAULT_WORKSPACE_FOLDERS));
 
-  const applyNode = (rootId, data) => {
-    const root = base.find(f => f.id === rootId);
-    if (!root || !data) return;
-    if (Array.isArray(data)) {
-      root.subfolders = data;
-    } else if (typeof data === 'object') {
-      if (Array.isArray(data.subfolders)) root.subfolders = data.subfolders;
-      if (Array.isArray(data.items)) root.items = data.items;
+  // Academic: subfolders are semesters
+  const acadRoot = base.find(f => f.id === 'academic');
+  if (acadRoot && fAcad) {
+    if (Array.isArray(fAcad)) {
+      acadRoot.subfolders = fAcad;
+    } else if (typeof fAcad === 'object' && Array.isArray(fAcad.subfolders)) {
+      acadRoot.subfolders = fAcad.subfolders;
     }
-  };
+    acadRoot.items = []; // Academic items only inside semesters
+  }
 
-  applyNode('academic', fAcad);
-  applyNode('document', fDoc);
-  applyNode('links', fLinks);
+  // Docs: subfolders + root items
+  const docRoot = base.find(f => f.id === 'document');
+  if (docRoot && fDoc) {
+    if (Array.isArray(fDoc)) {
+      docRoot.subfolders = fDoc;
+    } else if (typeof fDoc === 'object') {
+      if (Array.isArray(fDoc.subfolders)) docRoot.subfolders = fDoc.subfolders;
+      if (Array.isArray(fDoc.items)) docRoot.items = fDoc.items;
+    }
+  }
 
-  // Personal is strictly flat items only
-  const persRoot = base.find(f => f.id === 'personal');
-  if (persRoot && fPers) {
-    persRoot.subfolders = [];
-    if (Array.isArray(fPers)) {
+  // Links: flat items only
+  const linksRoot = base.find(f => f.id === 'links');
+  if (linksRoot && fLinks) {
+    linksRoot.subfolders = [];
+    if (Array.isArray(fLinks)) {
       const extracted = [];
-      fPers.forEach(entry => {
+      fLinks.forEach(entry => {
         if (entry && Array.isArray(entry.items)) {
           extracted.push(...entry.items);
         } else if (entry && (entry.url || entry.title || entry.id)) {
           extracted.push(entry);
         }
       });
-      persRoot.items = extracted;
-    } else if (typeof fPers === 'object' && Array.isArray(fPers.items)) {
-      persRoot.items = fPers.items;
+      linksRoot.items = extracted;
+    } else if (typeof fLinks === 'object' && Array.isArray(fLinks.items)) {
+      linksRoot.items = fLinks.items;
+    }
+  }
+
+  // Personal: subfolders + root items
+  const persRoot = base.find(f => f.id === 'personal');
+  if (persRoot && fPers) {
+    if (Array.isArray(fPers)) {
+      // Check if it's subfolders array or items array
+      const hasSubfolders = fPers.some(entry => entry && Array.isArray(entry.items) && !entry.url);
+      if (hasSubfolders) {
+        persRoot.subfolders = fPers;
+      } else {
+        persRoot.items = fPers;
+      }
+    } else if (typeof fPers === 'object') {
+      if (Array.isArray(fPers.subfolders)) persRoot.subfolders = fPers.subfolders;
+      if (Array.isArray(fPers.items)) persRoot.items = fPers.items;
     }
   }
 

@@ -1,0 +1,59 @@
+<svg class="studio-lamp-svg lamp-off" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 1. ARTICULATED STUDIO ARMS (Lower Arm from Stand -> Elbow -> Upper Arm -> Shade Neck) -->
+  <path
+    class="lamp-ink-stroke"
+    d="M 19 46.5 L 12 28 L 28 13"
+    stroke="#141413"
+    stroke-width="3.4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- 2. WEIGHTED LAMP STAND (Clearly ABOVE the plain desk line by 5.5px) -->
+  <rect
+    class="lamp-ink-stroke"
+    x="11"
+    y="46.5"
+    width="17"
+    height="4"
+    rx="2"
+    fill="#141413"
+  />
+
+  <!-- 3. ELBOW & NECK ARTICULATION PIVOT JOINTS -->
+  <circle
+    class="lamp-ink-stroke"
+    cx="12"
+    cy="28"
+    r="3"
+    fill="#F7F5F0"
+    stroke="#141413"
+    stroke-width="2.6"
+  />
+  <circle
+    class="lamp-ink-stroke"
+    cx="28"
+    cy="13"
+    r="2.4"
+    fill="#141413"
+  />
+
+  <!-- 4. ANGLED CONICAL STUDIO SHADE (Pointing diagonally down-right toward desk) -->
+  <path
+    class="lamp-ink-stroke"
+    d="M 28 13 L 33.5 9.5 L 41.5 15.5 L 29.5 22.5 Z"
+    fill="#141413"
+    stroke="#141413"
+    stroke-width="2.2"
+    stroke-linejoin="round"
+  />
+
+  <!-- 5. PLAIN HORIZONTAL DESKTOP LINE AT BOTTOM (y=56) -->
+  <path
+    class="lamp-ink-stroke"
+    d="M 8 56 L 56 56"
+    stroke="#141413"
+    stroke-width="3.6"
+    stroke-linecap="round"
+  />
+</svg>

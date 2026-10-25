@@ -1,0 +1,90 @@
+<svg class="studio-lamp-svg lamp-on" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="warmBeam-export" x1="33" y1="18" x2="43" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FEF08A" stop-opacity="0.92"/>
+      <stop offset="55%" stop-color="#FDE047" stop-opacity="0.46"/>
+      <stop offset="100%" stop-color="#F59E0B" stop-opacity="0.06"/>
+    </linearGradient>
+    <radialGradient id="bulbGlow-export" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFBEB" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#FACC15" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- 1. WARM YELLOW LIGHT CONE (Visible in Dark Mode, projects onto plain desk) -->
+  <polygon
+    class="lamp-beam-cone"
+    points="31.5,19.5 23,54.5 55,54.5 37.5,15.5"
+    fill="url(#warmBeam-export)"
+  />
+
+  <!-- 2. WARM BULB FILAMENT GLOW AT SHADE OPENING -->
+  <circle class="lamp-bulb-glow" cx="34.5" cy="18" r="4.2" fill="url(#bulbGlow-export)" />
+
+  <!-- 3. ARTICULATED STUDIO ARMS (Lower Arm from Stand -> Elbow -> Upper Arm -> Shade Neck) -->
+  <path
+    class="lamp-ink-stroke"
+    d="M 19 46.5 L 12 28 L 28 13"
+    stroke="#F7F5F0"
+    stroke-width="3.4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- 4. WEIGHTED LAMP STAND (Clearly ABOVE the plain desk line by 5.5px) -->
+  <rect
+    class="lamp-ink-stroke"
+    x="11"
+    y="46.5"
+    width="17"
+    height="4"
+    rx="2"
+    fill="#F7F5F0"
+  />
+
+  <!-- 5. ELBOW & NECK ARTICULATION PIVOT JOINTS -->
+  <circle
+    class="lamp-ink-stroke"
+    cx="12"
+    cy="28"
+    r="3"
+    fill="#121211"
+    stroke="#F7F5F0"
+    stroke-width="2.6"
+  />
+  <circle
+    class="lamp-ink-stroke"
+    cx="28"
+    cy="13"
+    r="2.4"
+    fill="#F7F5F0"
+  />
+
+  <!-- 6. ANGLED CONICAL STUDIO SHADE (Pointing diagonally down-right toward desk) -->
+  <path
+    class="lamp-ink-stroke"
+    d="M 28 13 L 33.5 9.5 L 41.5 15.5 L 29.5 22.5 Z"
+    fill="#F7F5F0"
+    stroke="#F7F5F0"
+    stroke-width="2.2"
+    stroke-linejoin="round"
+  />
+
+  <!-- 7. PLAIN HORIZONTAL DESKTOP LINE AT BOTTOM (y=56) -->
+  <path
+    class="lamp-ink-stroke"
+    d="M 8 56 L 56 56"
+    stroke="#F7F5F0"
+    stroke-width="3.6"
+    stroke-linecap="round"
+  />
+
+  <!-- 8. SUBTLE WARM DESK REFLECTION LINE IN DARK MODE -->
+  <path
+    class="desk-light-pool"
+    d="M 24 56 L 54 56"
+    stroke="#FDE047"
+    stroke-width="2.4"
+    stroke-linecap="round"
+  />
+</svg>

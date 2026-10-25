@@ -79,7 +79,11 @@ export default function LandingPage({
             className="flex items-center gap-2 sm:gap-2.5 text-left group focus:outline-none cursor-pointer"
             title="Learnopia Workspace"
           >
-            <img src="/logo.svg" alt="Learnopia" className="w-6 h-6 sm:w-8 sm:h-8 object-contain shrink-0" />
+            <img
+              src={cinemaMode ? '/learnopia-logo-dark-on.svg' : '/learnopia-logo-light-off.svg'}
+              alt="Learnopia"
+              className="w-6 h-6 sm:w-8 sm:h-8 object-contain shrink-0"
+            />
             <span className="font-editorial text-xl sm:text-3xl tracking-tight block leading-none font-bold">
               Learnopia
             </span>
@@ -161,7 +165,11 @@ export default function LandingPage({
         {/* Top Spacer Badge with Logo */}
         <div className="w-full flex justify-center pt-2 relative z-10">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border-subtle bg-surface text-text-primary text-xs font-mono-tabular shadow-xs">
-            <img src="/logo.svg" alt="Logo" className="w-4 h-4 object-contain shrink-0" />
+            <img
+              src={cinemaMode ? '/learnopia-logo-dark-on.svg' : '/learnopia-logo-light-off.svg'}
+              alt="Logo"
+              className="w-4 h-4 object-contain shrink-0"
+            />
             <span className="font-semibold text-text-primary">Learnopia Academic OS</span>
             <span className="text-text-muted">•</span>
             <span className="text-text-secondary">Distraction-Free</span>

@@ -205,7 +205,7 @@ function AppContent() {
             aria-label="Expand Navigation Menu"
           >
             <PanelLeftOpen size={16} className="text-accent-forest group-hover:scale-110 transition-transform" />
-            <span>MENU</span>
+            <span>Show Navigation</span>
           </button>
         )}
 

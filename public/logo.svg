@@ -1,12 +1,50 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-          <!-- Lamp Shade (Classic Green Library Shade) -->
-          <path d="M18 22C18 15.3726 23.3726 10 30 10H38C44.6274 10 50 15.3726 50 22H18Z" fill="#1E5631" stroke="#141413" stroke-width="3"/>
-          <!-- Light Cone / Focus Beam -->
-          <path d="M23 24H45L53 48H15L23 24Z" fill="#1E5631" fill-opacity="0.18"/>
-          <!-- Play Triangle inside the Light Beam -->
-          <path d="M31 31L40 36.5L31 42V31Z" fill="#141413"/>
-          <!-- Desk Base Line -->
-          <path d="M10 50H54" stroke="#141413" stroke-width="4" stroke-linecap="round"/>
-          <!-- Lamp Neck Accent -->
-          <circle cx="34" cy="10" r="2.5" fill="#141413"/>
-        </svg>
+<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Full-Bleed High-Visibility Warm Yellow Circle -->
+  <circle cx="32" cy="32" r="31" fill="#FBBF24" />
+
+  <!-- Subtle Inner Warm Spotlight Cone -->
+  <polygon
+    points="33,21 25,47.5 50,47.5 38.5,17.5"
+    fill="#FEF08A"
+    fill-opacity="0.65"
+  />
+
+  <!-- Articulated Studio Lamp Arms -->
+  <path
+    d="M 21 39.3 L 15 28.5 L 29.5 15"
+    stroke="#141413"
+    stroke-width="4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Weighted Lamp Stand (Clearly Above Desk Line) -->
+  <rect
+    x="13.5"
+    y="39.3"
+    width="16.5"
+    height="4.2"
+    rx="2.1"
+    fill="#141413"
+  />
+
+  <!-- Pivot Joint -->
+  <circle cx="15" cy="28.5" r="3.2" fill="#FBBF24" stroke="#141413" stroke-width="3" />
+
+  <!-- Angled Studio Lamp Shade -->
+  <path
+    d="M 29.5 15 L 34.5 11.5 L 42.5 17.5 L 31 24 Z"
+    fill="#141413"
+    stroke="#141413"
+    stroke-width="2.4"
+    stroke-linejoin="round"
+  />
+
+  <!-- Plain Desktop Line at Bottom -->
+  <path
+    d="M 12 49 L 52 49"
+    stroke="#141413"
+    stroke-width="4.2"
+    stroke-linecap="round"
+  />
+</svg>
