@@ -18,7 +18,7 @@ export default function AdProgressBar({ onTriggerAd, onOpenModal, cinemaMode = f
         backgroundColor: cinemaMode && isPlayerView ? '#222220' : '#FAF8F5',
         borderColor: cinemaMode && isPlayerView ? '#2E2E2B' : '#E4E0D8'
       }}
-      title="Click to learn about how Learn-O-Pia stays 100% free"
+      title="Click to learn about how Learnopia stays 100% free"
     >
       <div className="flex items-center justify-between text-xs mb-1.5">
         <div className="flex items-center gap-1.5 font-semibold text-[11px] text-text-primary">

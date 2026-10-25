@@ -488,7 +488,7 @@ const SEED_STANDALONE_RESOURCES = [
 const SEED_ANNOUNCEMENTS = [
   {
     id: 'ann-1',
-    title: '📢 Welcome to Learn-O-Pia Announcements',
+    title: '📢 Welcome to Learnopia Announcements',
     message: 'Stay updated with important platform notices, exam schedules, and new study resources shared directly by your admins.',
     resourceTitle: '',
     resourceUrl: '',
@@ -3319,7 +3319,7 @@ export function DatabaseProvider({ children }) {
     const shareCode = `RT-${codeBody}`;
     const id = `shared-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
     const creatorId = currentUser?.id || 'guest';
-    const creatorName = currentUser?.name || 'Learn-o-pia Learner';
+    const creatorName = currentUser?.name || 'Learnopia Learner';
 
     const record = {
       id,
@@ -3451,8 +3451,8 @@ export function DatabaseProvider({ children }) {
     enabled: true,
     intervalMinutes: 15,
     skipDelaySeconds: 10,
-    title: "Support Learn-o-pia's Open Education Infrastructure",
-    message: "Learn-o-pia is built by students, for students. Help us keep all engineering degree curricula, attendance algorithms, and YouTube lecture sync servers fast, open, and free for everyone!",
+    title: "Support Learnopia's Open Education Infrastructure",
+    message: "Learnopia is built by students, for students. Help us keep all engineering degree curricula, attendance algorithms, and YouTube lecture sync servers fast, open, and free for everyone!",
     targetUrl: "https://github.com/diiipakkk-08/learn-o-pia",
     youtubeUrl: ""
   };

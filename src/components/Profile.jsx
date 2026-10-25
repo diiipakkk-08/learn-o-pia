@@ -800,7 +800,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
               style={styles.mobileNavItem}
             >
               <ExternalLink size={20} color="var(--text-muted)" />
-              <span>About Learn-O-Pia</span>
+              <span>About Learnopia</span>
             </button>
             <button
               onClick={logout}

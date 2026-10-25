@@ -66,7 +66,7 @@ export default function AdDonationModal({ isOpen, onClose }) {
                 Community Server Support
               </span>
               <span className="text-[10px] text-text-muted font-mono-tabular uppercase mt-0.5 block">
-                KEEPING LEARN-O-PIA 100% FREE FOR STUDENTS
+                KEEPING LEARNOPIA 100% FREE FOR STUDENTS
               </span>
             </div>
           </div>
@@ -96,7 +96,7 @@ export default function AdDonationModal({ isOpen, onClose }) {
             <ShieldCheck size={32} className="text-accent-forest mx-auto" />
             <h3 className="text-sm font-bold">100% Community Supported</h3>
             <p className="text-xs text-text-secondary leading-relaxed max-w-sm mx-auto">
-              Learn-O-Pia has zero investor backing and zero subscription paywalls. Viewing our educational partner sponsors funds the database infrastructure.
+              Learnopia has zero investor backing and zero subscription paywalls. Viewing our educational partner sponsors funds the database infrastructure.
             </p>
           </div>
         )}

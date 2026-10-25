@@ -72,9 +72,9 @@ export default function LandingPage({
       <header className="sticky top-0 z-40 px-4 sm:px-8 h-16 flex items-center justify-between border-b border-border-subtle bg-canvas/90 backdrop-blur-md">
         <div className="flex items-center gap-8">
           <button onClick={enterApp} className="flex items-center gap-2 sm:gap-2.5 text-left group focus:outline-none cursor-pointer">
-            <img src="/logo.svg" alt="Learn-O-Pia" className="w-6 h-6 sm:w-8 sm:h-8 object-contain shrink-0" />
+            <img src="/logo.svg" alt="Learnopia" className="w-6 h-6 sm:w-8 sm:h-8 object-contain shrink-0" />
             <span className="font-editorial text-xl sm:text-3xl tracking-tight block leading-none font-bold">
-              Learn-O-Pia
+              Learnopia
             </span>
           </button>
           <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-text-secondary">
@@ -141,7 +141,7 @@ export default function LandingPage({
         <div className="w-full flex justify-center pt-2">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border-subtle bg-surface text-text-primary text-xs font-mono-tabular shadow-xs">
             <img src="/logo.svg" alt="Logo" className="w-4 h-4 object-contain shrink-0" />
-            <span className="font-semibold text-text-primary">Learn-O-Pia Academic OS</span>
+            <span className="font-semibold text-text-primary">Learnopia Academic OS</span>
             <span className="text-text-muted">•</span>
             <span className="text-text-secondary">Distraction-Free</span>
           </div>
@@ -451,7 +451,7 @@ export default function LandingPage({
               Engineered for high-focus university study.
             </h2>
             <p className="text-xs sm:text-sm text-text-secondary leading-relaxed">
-              Traditional social media platforms are optimized for algorithmic engagement and dopamine loops. Learn-O-Pia strips away recommendation noise so you master your curriculum.
+              Traditional social media platforms are optimized for algorithmic engagement and dopamine loops. Learnopia strips away recommendation noise so you master your curriculum.
             </p>
           </div>
 
@@ -519,7 +519,7 @@ export default function LandingPage({
           4. MINIMAL FOOTER
       ================================================================= */}
       <footer className="border-t border-border-subtle py-8 px-4 text-center text-xs text-text-muted space-y-1.5">
-        <div className="font-editorial text-xl font-bold text-text-primary">Learn-O-Pia</div>
+        <div className="font-editorial text-xl font-bold text-text-primary">Learnopia</div>
         <p className="text-text-secondary">A quiet, distraction-free study studio for college students worldwide.</p>
         <p className="font-mono-tabular text-[11px] text-[#A8A59E]">
           Free and Open Platform • Built with Craft for University Students

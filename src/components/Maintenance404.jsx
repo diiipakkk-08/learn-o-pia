@@ -19,7 +19,7 @@ export default function Maintenance404({ onRefresh, onAdminClick }) {
             Scheduled Maintenance
           </span>
           <p className="text-sm text-text-secondary max-w-md mx-auto leading-relaxed">
-            The Learn-O-Pia database infrastructure is currently undergoing scheduled optimization. All student routines and course progress are securely preserved.
+            The Learnopia database infrastructure is currently undergoing scheduled optimization. All student routines and course progress are securely preserved.
           </p>
         </div>
 

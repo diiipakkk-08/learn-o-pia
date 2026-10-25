@@ -177,8 +177,8 @@ CREATE POLICY "Anyone can manage announcements" ON public.announcements
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.ads (
     id TEXT PRIMARY KEY DEFAULT 'global_ad_settings',
-    title TEXT NOT NULL DEFAULT 'Support Learn-o-pia''s Open Education Infrastructure',
-    message TEXT DEFAULT 'Learn-o-pia is built by students, for students. Help us keep all engineering degree curricula, attendance algorithms, and YouTube lecture sync servers fast, open, and free for everyone!',
+    title TEXT NOT NULL DEFAULT 'Support Learnopia''s Open Education Infrastructure',
+    message TEXT DEFAULT 'Learnopia is built by students, for students. Help us keep all engineering degree curricula, attendance algorithms, and YouTube lecture sync servers fast, open, and free for everyone!',
     target_url TEXT DEFAULT 'https://github.com/diiipakkk-08/learn-o-pia',
     youtube_url TEXT DEFAULT '',
     banner_link TEXT,
@@ -194,8 +194,8 @@ CREATE TABLE IF NOT EXISTS public.ads (
 INSERT INTO public.ads (id, title, message, target_url, enabled, interval_minutes, skip_delay_seconds)
 VALUES (
     'global_ad_settings',
-    'Support Learn-o-pia''s Open Education Infrastructure',
-    'Learn-o-pia is built by students, for students. Help us keep all engineering degree curricula, attendance algorithms, and YouTube lecture sync servers fast, open, and free for everyone!',
+    'Support Learnopia''s Open Education Infrastructure',
+    'Learnopia is built by students, for students. Help us keep all engineering degree curricula, attendance algorithms, and YouTube lecture sync servers fast, open, and free for everyone!',
     'https://github.com/diiipakkk-08/learn-o-pia',
     TRUE,
     15,

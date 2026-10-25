@@ -207,9 +207,9 @@ export default function Auth({ setCurrentView }) {
         {/* Top Header: Logo & Return Action */}
         <div className="flex items-center justify-between pb-3">
           <div className="flex items-center gap-2.5">
-            <img src="/logo.svg" alt="Learn-O-Pia" className="w-8 h-8 object-contain shrink-0" />
+            <img src="/logo.svg" alt="Learnopia" className="w-8 h-8 object-contain shrink-0" />
             <span className="font-editorial text-xl font-bold tracking-tight text-text-primary">
-              Learn-O-Pia
+              Learnopia
             </span>
           </div>
 
@@ -467,7 +467,7 @@ export default function Auth({ setCurrentView }) {
 
         {/* Minimal Footer */}
         <div className="pt-8 text-center sm:text-left text-[11px] text-text-muted flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-border-subtle">
-          <span>© 2026 Learn-O-Pia Academic OS</span>
+          <span>© 2026 Learnopia Academic OS</span>
           <button
             onClick={() => setShowTermsModal(true)}
             className="hover:text-text-primary underline cursor-pointer"
@@ -668,7 +668,7 @@ export default function Auth({ setCurrentView }) {
 
             <div className="space-y-2.5 text-xs text-text-secondary leading-relaxed bg-subtle/50 p-3.5 rounded-xl border border-border-subtle">
               <p className="font-medium text-text-primary">
-                Explore Learn-O-Pia Academic OS without registering:
+                Explore Learnopia Academic OS without registering:
               </p>
               <ul className="space-y-1.5 list-disc list-inside text-text-muted text-[11.5px]">
                 <li><strong className="text-text-primary">Interactive Preview:</strong> Browse full degree curricula, semester vaults, attendance ledger, and campus marketplace.</li>

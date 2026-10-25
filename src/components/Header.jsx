@@ -16,12 +16,14 @@ import {
   ShieldAlert,
   Info,
   X,
-  ExternalLink
+  ExternalLink,
+  PanelLeft
 } from 'lucide-react';
 
 export default function Header({
   currentView,
   setCurrentView,
+  isSidebarCollapsed,
   onToggleSidebar,
   cinemaMode,
   setCinemaMode
@@ -98,7 +100,7 @@ export default function Header({
       ? 'Search textbooks, lab kits, drafters, services...'
       : currentView === 'learning'
       ? 'Search courses & university subjects...'
-      : 'Search Learn-O-Pia...';
+      : 'Search Learnopia...';
 
   const handleSearchChange = (e) => {
     const val = e.target.value;
@@ -129,30 +131,35 @@ export default function Header({
         borderColor: cinemaMode ? '#2E2E2B' : '#E4E0D8'
       }}
     >
-      {/* Left: Brand Wordmark (Clean Logo & Typography - Fully Responsive) */}
+      {/* Left: Menu Open Trigger & Brand Wordmark */}
       <div className="flex items-center gap-2 sm:gap-2.5">
+        {isSidebarCollapsed && (
+          <button
+            onClick={() => onToggleSidebar && onToggleSidebar()}
+            className="p-1.5 sm:p-2 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary transition-all cursor-pointer shadow-xs flex items-center justify-center hover:scale-105 active:scale-95"
+            title="Open navigation menu [Ctrl + \]"
+            aria-label="Open navigation menu"
+          >
+            <PanelLeft size={18} strokeWidth={1.75} />
+          </button>
+        )}
+
         <button
-          onClick={() => {
-            if (onToggleSidebar) {
-              onToggleSidebar();
-            } else {
-              setCurrentView(currentUser ? 'my-learning' : 'landing');
-            }
-          }}
-          title="Toggle Navigation Menu"
-          aria-label="Toggle Navigation Menu"
+          onClick={() => setCurrentView && setCurrentView('landing')}
+          title="Learnopia Home"
+          aria-label="Learnopia Home"
           className="text-left focus:outline-none flex items-center gap-1.5 sm:gap-2.5 transition-opacity hover:opacity-85 cursor-pointer group"
         >
           <img
             src="/logo.svg"
-            alt="Learn-O-Pia"
+            alt="Learnopia"
             className="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0 group-hover:scale-105 transition-transform"
           />
           <span
             className="font-editorial text-lg sm:text-2xl lg:text-[26px] tracking-tight block leading-none font-bold"
             style={{ color: cinemaMode ? '#F2EFE9' : '#141413' }}
           >
-            Learn-O-Pia
+            Learnopia
           </span>
         </button>
       </div>

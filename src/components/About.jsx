@@ -41,7 +41,7 @@ export default function About({ setCurrentView }) {
         </h1>
 
         <p className="text-sm sm:text-base text-text-secondary max-w-xl mx-auto leading-relaxed">
-          Learn-O-Pia is an open educational workspace engineered by students, for students. We turn chaotic YouTube playlists into quiet lecture desks with syllabus tracking and predictive attendance calculation.
+          Learnopia is an open educational workspace engineered by students, for students. We turn chaotic YouTube playlists into quiet lecture desks with syllabus tracking and predictive attendance calculation.
         </p>
       </div>
 
@@ -53,7 +53,7 @@ export default function About({ setCurrentView }) {
           </div>
           <h3 className="text-base font-bold">Zero Algorithmic Chaos</h3>
           <p className="text-xs text-text-secondary leading-relaxed">
-            YouTube's recommendation algorithm is designed for entertainment retention, not academic focus. Learn-O-Pia removes clickbait sidebars and comment sections.
+            YouTube's recommendation algorithm is designed for entertainment retention, not academic focus. Learnopia removes clickbait sidebars and comment sections.
           </p>
         </div>
 

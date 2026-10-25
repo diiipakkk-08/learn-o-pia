@@ -63,31 +63,9 @@ export default function Sidebar({
           isCollapsed ? '-translate-x-full pointer-events-none' : 'translate-x-0'
         }`}
       >
-        {/* Menu Header with Cut / Collapse Button on Top Right Corner */}
-        <div className="px-4 py-3 flex items-center justify-between border-b border-border-subtle bg-surface/50">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold tracking-wider uppercase font-mono-tabular text-text-primary">
-              Menu Navigation
-            </span>
-            <span className="text-[10px] font-mono-tabular text-text-muted px-1.5 py-0.5 rounded bg-subtle">
-              OS • 2026
-            </span>
-          </div>
-
-          {/* Cut / Close Button on Top Right Corner */}
-          <button
-            onClick={() => setIsCollapsed(true)}
-            className="p-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover active:scale-95 text-text-secondary hover:text-text-primary transition-all cursor-pointer shadow-xs"
-            title="Close navigation menu"
-            aria-label="Close menu"
-          >
-            <X size={15} strokeWidth={2} />
-          </button>
-        </div>
-
-      {/* Primary Navigation Links */}
-      <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
-        <div className="space-y-1">
+        {/* Primary Navigation Links */}
+        <nav className="flex-1 px-3 space-y-1 overflow-y-auto pt-3">
+          <div className="space-y-1">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -132,7 +110,7 @@ export default function Sidebar({
             }`}
           >
             <Info size={15} strokeWidth={1.75} />
-            <span>About Learn-O-Pia</span>
+            <span>About Learnopia</span>
           </button>
 
           {/* Admin Moderation Button (Only for Admins) */}
@@ -156,6 +134,24 @@ export default function Sidebar({
           )}
         </div>
       </nav>
+
+      {/* Collapse Sidebar Button at Bottom of Menu, Above Account */}
+      <div className="px-3 py-2 border-t border-border-subtle">
+        <button
+          onClick={() => setIsCollapsed(true)}
+          className="w-full flex items-center justify-between px-3.5 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors cursor-pointer group"
+          title="Collapse sidebar navigation [Ctrl + \]"
+          aria-label="Collapse sidebar navigation"
+        >
+          <div className="flex items-center gap-2.5">
+            <PanelLeftClose size={16} strokeWidth={1.75} className="group-hover:text-text-primary" />
+            <span>Collapse menu</span>
+          </div>
+          <span className="text-[10px] font-mono-tabular text-text-muted bg-subtle px-1.5 py-0.5 rounded border border-border-subtle">
+            Ctrl + \
+          </span>
+        </button>
+      </div>
 
       {/* Pinned Student Profile Card */}
       {currentUser && (
