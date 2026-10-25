@@ -15,8 +15,8 @@ export default function AdProgressBar({ onTriggerAd, onOpenModal, cinemaMode = f
       onClick={trigger}
       className="p-3 mx-2 my-2 rounded-lg border cursor-pointer transition-all hover:opacity-90 group select-none"
       style={{
-        backgroundColor: cinemaMode && isPlayerView ? '#222220' : '#FAF8F5',
-        borderColor: cinemaMode && isPlayerView ? '#2E2E2B' : '#E4E0D8'
+        backgroundColor: cinemaMode ? '#121212' : '#FAF8F5',
+        borderColor: cinemaMode ? '#262626' : '#E4E0D8'
       }}
       title="Click to learn about how Learnopia stays 100% free"
     >
@@ -31,7 +31,7 @@ export default function AdProgressBar({ onTriggerAd, onOpenModal, cinemaMode = f
       </div>
 
       {/* Progress Track */}
-      <div className="w-full h-1.5 rounded-full overflow-hidden bg-[#E6E2DA]">
+      <div className="w-full h-1.5 rounded-full overflow-hidden bg-subtle">
         <div
           className="h-full rounded-full transition-all duration-500 bg-accent-forest"
           style={{ width: `${pct}%` }}

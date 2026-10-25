@@ -59,7 +59,7 @@ export default function GeminiDottedCanvas({ cinemaMode = false, className = '' 
       ctx.clearRect(0, 0, width, height);
 
       const dotColor = cinemaMode
-        ? 'rgba(255, 255, 255, 0.12)'
+        ? 'rgba(250, 204, 21, 0.16)'
         : 'rgba(20, 20, 19, 0.10)';
 
       ctx.fillStyle = dotColor;

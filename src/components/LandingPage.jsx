@@ -125,7 +125,7 @@ export default function LandingPage({
               title={cinemaMode ? 'Switch to Light Mode' : 'Switch to Dim Mode'}
               aria-label="Toggle theme mode"
             >
-              {cinemaMode ? <Sun size={15} className="text-[#E2A04B]" /> : <Moon size={15} className="text-text-secondary" />}
+              {cinemaMode ? <Sun size={15} className="text-[#FACC15]" /> : <Moon size={15} className="text-text-secondary" />}
             </button>
           )}
 
@@ -279,7 +279,7 @@ export default function LandingPage({
             {activePreviewTab === 'player' && (
               <div className="min-h-[460px] p-3.5 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-center bg-canvas">
                 <div className="lg:col-span-8 space-y-2.5">
-                  <div className="relative aspect-video max-h-[280px] sm:max-h-[320px] w-full rounded-xl overflow-hidden bg-[#141413] border border-border-subtle group shadow-xs">
+                  <div className="relative aspect-video max-h-[280px] sm:max-h-[320px] w-full rounded-xl overflow-hidden bg-black border border-border-subtle group shadow-xs">
                     <img
                       src="https://images.unsplash.com/photo-1516116216624-53e697fedbea?auto=format&fit=crop&w=1200&q=80"
                       alt="Course Preview"
@@ -287,7 +287,7 @@ export default function LandingPage({
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                       <div className="w-12 h-12 rounded-full bg-surface/90 text-text-primary flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-                        <Play size={20} fill="#141413" className="ml-0.5" />
+                        <Play size={20} fill="currentColor" className="ml-0.5 text-text-primary" />
                       </div>
                     </div>
                     <div className="absolute bottom-2.5 left-2.5 px-2.5 py-0.5 rounded-md bg-black/75 text-white text-[11px] font-mono-tabular">

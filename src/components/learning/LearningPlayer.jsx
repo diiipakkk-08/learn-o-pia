@@ -282,8 +282,8 @@ export default function LearningPlayer({
       className="min-h-screen transition-colors duration-200"
       data-theme={cinemaMode ? 'cinema' : 'default'}
       style={{
-        backgroundColor: cinemaMode ? '#141413' : '#F7F5F0',
-        color: cinemaMode ? '#F2EFE9' : '#141413'
+        backgroundColor: cinemaMode ? '#000000' : '#F7F5F0',
+        color: cinemaMode ? '#FFFFFF' : '#141413'
       }}
     >
       <main className="w-full max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-2 sm:pt-4 pb-12 space-y-4 animate-fade-in">

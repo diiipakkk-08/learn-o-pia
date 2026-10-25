@@ -88,9 +88,11 @@ export default function Auth({ setCurrentView }) {
 
   const isDark = typeof document !== 'undefined' && (
     document.documentElement.getAttribute('data-theme') === 'dark' ||
+    document.documentElement.getAttribute('data-theme') === 'cinema' ||
     document.body.classList.contains('cinema-mode') ||
     document.documentElement.classList.contains('dark') ||
-    localStorage.getItem('learnopia_cinema_mode') === 'true'
+    localStorage.getItem('learnopia_cinema_mode') === 'true' ||
+    localStorage.getItem('learnopia_theme') === 'cinema'
   );
 
   // Tactile Student Motivational Quotes
@@ -566,22 +568,34 @@ export default function Auth({ setCurrentView }) {
       {/* =========================================================================
           RIGHT PANEL: Minimalist Lined Copy-Page Notebook with Single Quote
       ========================================================================= */}
-      <div className="hidden lg:flex flex-1 bg-[#ECE7DC] text-[#2C261E] h-full overflow-hidden flex-col justify-center items-center p-8 xl:p-14 relative select-none border-l border-[#DCD5C5]">
+      <div className={`hidden lg:flex flex-1 ${
+        isDark ? 'bg-black text-text-primary border-border-subtle' : 'bg-[#ECE7DC] text-[#2C261E] border-[#DCD5C5]'
+      } h-full overflow-hidden flex-col justify-center items-center p-8 xl:p-14 relative select-none border-l`}>
         {/* Subtle warm ambient lighting */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-100/50 rounded-full blur-3xl pointer-events-none" />
+        <div className={`absolute top-1/4 left-1/4 w-96 h-96 ${
+          isDark ? 'bg-yellow-400/10' : 'bg-amber-100/50'
+        } rounded-full blur-3xl pointer-events-none`} />
 
         {/* Clean Lined Notebook Copy-Page */}
         <div
-          className="w-full max-w-lg rounded-xl overflow-hidden relative shadow-xl border border-[#DFD8C8]"
+          className={`w-full max-w-lg rounded-xl overflow-hidden relative shadow-xl border ${
+            isDark ? 'border-border-subtle' : 'border-[#DFD8C8]'
+          }`}
           style={{
-            backgroundColor: '#FAF7F0',
-            backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 31px, rgba(175, 190, 205, 0.35) 32px)',
-            boxShadow: '0 20px 40px -15px rgba(44, 38, 28, 0.2), 0 0 0 1px rgba(60, 50, 35, 0.06)'
+            backgroundColor: isDark ? '#0D0D0E' : '#FAF7F0',
+            backgroundImage: isDark
+              ? 'repeating-linear-gradient(to bottom, transparent, transparent 31px, rgba(250, 204, 21, 0.1) 32px)'
+              : 'repeating-linear-gradient(to bottom, transparent, transparent 31px, rgba(175, 190, 205, 0.35) 32px)',
+            boxShadow: isDark
+              ? '0 20px 40px -15px rgba(0, 0, 0, 0.9), 0 0 0 1px #262626'
+              : '0 20px 40px -15px rgba(44, 38, 28, 0.2), 0 0 0 1px rgba(60, 50, 35, 0.06)'
           }}
         >
-          {/* Classic Red Margin Line */}
+          {/* Classic Margin Line */}
           <div
-            className="absolute top-0 bottom-0 w-[2px] bg-red-400/50 pointer-events-none z-10"
+            className={`absolute top-0 bottom-0 w-[2px] pointer-events-none z-10 ${
+              isDark ? 'bg-yellow-400/60' : 'bg-red-400/50'
+            }`}
             style={{ left: '56px' }}
           />
 
@@ -590,7 +604,9 @@ export default function Auth({ setCurrentView }) {
             type="button"
             onClick={handleCycleQuote}
             disabled={quoteLoading}
-            className="absolute top-3 right-3 p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-colors cursor-pointer z-20"
+            className={`absolute top-3 right-3 p-1.5 rounded-lg transition-colors cursor-pointer z-20 ${
+              isDark ? 'text-zinc-500 hover:text-white hover:bg-zinc-800' : 'text-stone-400 hover:text-stone-700 hover:bg-stone-200/50'
+            }`}
             title="Refresh quote"
           >
             <RotateCw size={13} className={quoteLoading ? 'animate-spin' : ''} />
@@ -598,13 +614,17 @@ export default function Auth({ setCurrentView }) {
 
           {/* Simple Quote & Author on Lined Paper */}
           <div className="pl-20 pr-8 py-14 sm:py-16 space-y-4">
-            <blockquote className="font-editorial text-2xl xl:text-3xl font-normal text-[#2C261E] leading-[1.38] tracking-tight italic">
+            <blockquote className={`font-editorial text-2xl xl:text-3xl font-normal leading-[1.38] tracking-tight italic ${
+              isDark ? 'text-white' : 'text-[#2C261E]'
+            }`}>
               “{currentQuote?.quote}”
             </blockquote>
 
             <div className="pt-2 flex items-center gap-3">
-              <div className="w-8 h-[1.5px] bg-stone-400" />
-              <div className="text-sm font-semibold text-[#1C1917] font-sans">
+              <div className={`w-8 h-[1.5px] ${isDark ? 'bg-[#FACC15]' : 'bg-stone-400'}`} />
+              <div className={`text-sm font-semibold font-sans ${
+                isDark ? 'text-[#FACC15]' : 'text-[#1C1917]'
+              }`}>
                 {currentQuote?.author}
               </div>
             </div>

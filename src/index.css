@@ -9,6 +9,7 @@
   --bg-surface: #FFFFFF;         /* Elevated cards, modals, table rows - Crisp Index Card */
   --bg-surface-hover: #FAF8F5;   /* Subtle interactive hover state */
   --bg-subtle: #E6E2DA;          /* Inactive pills, progress bar tracks, kbd tags */
+  --bg-surface-sunken: #F3EFE8;  /* Sunken inner containers & wells */
 
   /* 2. Typography (Fountain Pen Ink & Graphite) */
   --text-primary: #141413;       /* Main headings & active labels - Deep Charcoal Ink */
@@ -56,44 +57,60 @@
   --error: #A62626;
 }
 
-/* Professional Warm Editorial Obsidian Mode (Dim / Cinema / Dark) */
+/* Professional High-Contrast Pure Black & Electric Yellow OLED Mode (Dark / Cinema) */
 [data-theme="cinema"],
 [data-theme="dark"],
 html[data-theme="cinema"],
-html[data-theme="dark"] {
-  --bg-canvas: #141413;
-  --bg-sidebar: #1C1C1A;
-  --bg-surface: #222220;
-  --bg-surface-hover: #2A2A27;
-  --bg-subtle: #2E2E2B;
+html[data-theme="dark"],
+body.cinema-mode,
+.dark {
+  /* 1. Surfaces (OLED True Black Architecture) */
+  --bg-canvas: #000000;          /* 100% Pure True Black - zero haze, infinite contrast */
+  --bg-sidebar: #0A0A0A;         /* Deepest obsidian black for navigation sidebars */
+  --bg-surface: #121212;         /* Elevated cards, modals, table rows, dialogs */
+  --bg-surface-hover: #1C1C1C;   /* Subtle interactive hover state */
+  --bg-subtle: #222222;          /* Inactive pills, progress bar tracks, kbd tags */
+  --bg-surface-sunken: #050505;  /* Sunken wells, code blocks, terminal backgrounds */
 
-  --text-primary: #F2EFE9;
-  --text-secondary: #A8A59E;
-  --text-muted: #73716B;
-  --text-on-dark: #141413;
+  /* 2. Typography (Crisp Pure White & Electric Yellow Hierarchy) */
+  --text-primary: #FFFFFF;       /* Main headings, active labels, titles - 100% Pure White (21:1 contrast) */
+  --text-secondary: #D4D4D8;     /* Zinc-300 cool silver - body copy, comfortable reading */
+  --text-muted: #8E8E93;         /* Timestamps, metadata, placeholders - WCAG AA accessible */
+  --text-on-dark: #000000;       /* Bold black text on electric yellow CTA buttons */
 
-  --border-subtle: #2E2E2B;
-  --border-strong: #3D3B36;
+  /* 3. Borders & Precision Hairlines */
+  --border-subtle: #262626;      /* Default 1px card boundary against pure black */
+  --border-strong: #3E3E3E;      /* Active outline & hover border */
+  --border-focus: #FACC15;       /* Electric yellow focus ring */
 
-  --accent-ink: #F2EFE9;
-  --accent-forest: #5CB87A;
-  --accent-forest-bg: #1A3322;
-  --border-pill-safe: #2A4D35;
+  /* 4. Brand Accents: Electric Yellow & Semantic Highlights */
+  --accent-ink: #FACC15;         /* Electric Gold CTA ("Resume", "Sign In", "Mark Present") */
+  --accent-forest: #FACC15;      /* Active navigation indicator, safe attendance, checks */
+  --accent-forest-bg: rgba(250, 204, 21, 0.12); /* Soft electric gold pill background */
+  --border-pill-safe: rgba(250, 204, 21, 0.35); /* Subtle glowing yellow border */
 
-  --accent-amber: #E2A04B;
-  --accent-amber-bg: #38240F;
-  --border-pill-alert: #5A3A19;
+  --accent-amber: #FBBF24;       /* Amber gold warning */
+  --accent-amber-bg: rgba(251, 191, 36, 0.12);
+  --border-pill-alert: rgba(251, 191, 36, 0.35);
 
-  --accent-danger: #F06868;
-  --accent-danger-bg: #381515;
-  --border-pill-danger: #5A2222;
+  --accent-danger: #F87171;      /* Destructive or critical shortage alert */
+  --accent-danger-bg: rgba(248, 113, 113, 0.14);
+  --border-pill-danger: rgba(248, 113, 113, 0.35);
 
-  --bg-base: #141413;
-  --bg-surface-solid: #222220;
-  --border-color: #2E2E2B;
-  --border-focus: #F2EFE9;
-  --primary: #F2EFE9;
-  --primary-hover: #FAF8F5;
+  /* Compatibility & Glow Tokens */
+  --bg-base: #000000;
+  --bg-surface-solid: #121212;
+  --border-color: #262626;
+  --primary: #FACC15;
+  --primary-hover: #FDE047;
+  --primary-glow: rgba(250, 204, 21, 0.28);
+  --secondary: #FACC15;
+  --secondary-glow: rgba(250, 204, 21, 0.2);
+  --success: #FACC15;
+  --success-glow: rgba(250, 204, 21, 0.2);
+  --warning: #FBBF24;
+  --error: #F87171;
+  --shadow-modal: 0 16px 40px -8px rgba(0, 0, 0, 0.9), 0 0 0 1px #262626;
 }
 
 body {
@@ -153,9 +170,12 @@ body {
   background-color: var(--accent-ink);
   color: var(--text-on-dark);
   border-color: var(--accent-ink);
+  font-weight: 700;
 }
 .btn-primary:hover {
-  opacity: 0.92;
+  background-color: var(--primary-hover, var(--accent-ink));
+  opacity: 0.95;
+  box-shadow: 0 0 16px rgba(250, 204, 21, 0.28);
 }
 .btn-secondary {
   background-color: var(--bg-surface);
@@ -171,7 +191,7 @@ body {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  box-shadow: 0 1px 3px rgba(20, 20, 19, 0.03);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   transition: border-color 0.15s ease;
 }
 
@@ -188,11 +208,12 @@ select, option {
   padding: 0.625rem 0.875rem;
   color: var(--text-primary);
   font-size: 0.875rem;
-  transition: border-color 0.15s ease;
+  transition: all 0.15s ease;
   outline: none;
 }
 .form-input:focus, .form-select:focus, textarea.form-input:focus {
-  border-color: var(--text-primary);
+  border-color: var(--border-focus, var(--text-primary));
+  box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.2);
 }
 
 .badge {

@@ -1065,7 +1065,8 @@ const styles = {
     width: '60px',
     height: '60px',
     borderRadius: '50%',
-    background: '#141413',
+    background: 'var(--accent-ink)',
+    color: 'var(--text-on-dark)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center'

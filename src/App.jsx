@@ -73,6 +73,8 @@ function AppContent() {
       localStorage.setItem('learnopia_theme', cinemaMode ? 'cinema' : 'default');
       if (typeof document !== 'undefined') {
         document.documentElement.setAttribute('data-theme', cinemaMode ? 'cinema' : 'default');
+        document.documentElement.classList.toggle('dark', cinemaMode);
+        document.body.classList.toggle('cinema-mode', cinemaMode);
       }
     } catch {}
   }, [cinemaMode]);

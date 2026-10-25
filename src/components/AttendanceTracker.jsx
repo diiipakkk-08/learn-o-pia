@@ -1635,7 +1635,7 @@ export default function AttendanceTracker() {
                     <button type="button" onClick={() => setShowExtraClassForm(false)} className="btn btn-secondary btn-sm" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>
                       Cancel
                     </button>
-                    <button type="submit" className="btn btn-primary btn-sm" style={{ padding: '6px 14px', fontSize: '0.75rem', background: '#141413' }}>
+                    <button type="submit" className="btn btn-primary btn-sm" style={{ padding: '6px 14px', fontSize: '0.75rem' }}>
                       Save Extra Class
                     </button>
                   </div>

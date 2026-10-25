@@ -11,6 +11,7 @@ export default {
         sidebar: 'var(--bg-sidebar)',
         surface: 'var(--bg-surface)',
         'surface-hover': 'var(--bg-surface-hover)',
+        'surface-sunken': 'var(--bg-surface-sunken)',
         subtle: 'var(--bg-subtle)',
         'text-primary': 'var(--text-primary)',
         'text-secondary': 'var(--text-secondary)',

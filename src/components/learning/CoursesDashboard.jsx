@@ -746,21 +746,21 @@ function CoursesDashboardInner({
               >
                 <div>
                   {/* Compact 16:9 Thumbnail Frame */}
-                  <div className="relative aspect-video rounded-lg overflow-hidden border border-border-subtle mb-2.5 bg-[#141413]">
+                  <div className="relative aspect-video rounded-lg overflow-hidden border border-border-subtle mb-2.5 bg-black">
                     <img
                       src={course.thumbnailUrl}
                       alt={course.title}
                       className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300 opacity-90"
                     />
                     <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#141413]/85 text-white opacity-0 group-hover:opacity-100 transition-opacity scale-90 group-hover:scale-100 shadow-md">
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center bg-black/85 text-white opacity-0 group-hover:opacity-100 transition-opacity scale-90 group-hover:scale-100 shadow-md">
                         <Play size={15} fill="#FFFFFF" className="ml-0.5" />
                       </div>
                     </div>
-                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-mono-tabular font-bold bg-[#141413]/85 text-[#F7F5F0]">
+                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-mono-tabular font-bold bg-black/85 text-white">
                       {course.category}
                     </span>
-                    <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded text-[10px] font-mono-tabular font-medium bg-[#141413]/85 text-[#F7F5F0]">
+                    <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded text-[10px] font-mono-tabular font-medium bg-black/85 text-white">
                       {course.lectureCount} Lectures
                     </span>
                   </div>

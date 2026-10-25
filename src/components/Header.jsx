@@ -154,9 +154,9 @@ export default function Header({
       className="sticky top-0 z-40 px-3 sm:px-6 lg:px-8 h-14 flex items-center justify-between border-b backdrop-blur-md transition-colors gap-3"
       style={{
         backgroundColor: cinemaMode
-          ? 'rgba(20, 20, 19, 0.94)'
+          ? 'rgba(0, 0, 0, 0.92)'
           : 'rgba(247, 245, 240, 0.94)',
-        borderColor: cinemaMode ? '#2E2E2B' : '#E4E0D8'
+        borderColor: cinemaMode ? '#262626' : '#E4E0D8'
       }}
     >
       {/* Left: Brand Wordmark */}
@@ -174,7 +174,7 @@ export default function Header({
           />
           <span
             className="font-editorial text-lg sm:text-2xl lg:text-[26px] tracking-tight block leading-none font-bold"
-            style={{ color: cinemaMode ? '#F2EFE9' : '#141413' }}
+            style={{ color: cinemaMode ? '#FFFFFF' : '#141413' }}
           >
             Learnopia
           </span>
@@ -186,11 +186,11 @@ export default function Header({
         <div
           className="w-full flex items-center gap-2.5 px-3.5 py-1.5 rounded-lg border text-sm transition-all"
           style={{
-            backgroundColor: cinemaMode ? '#222220' : '#EFECE6',
-            borderColor: cinemaMode ? '#2E2E2B' : '#E2DDD3'
+            backgroundColor: cinemaMode ? '#121212' : '#EFECE6',
+            borderColor: cinemaMode ? '#262626' : '#E2DDD3'
           }}
         >
-          <Search size={15} style={{ color: '#8A8780' }} />
+          <Search size={15} style={{ color: cinemaMode ? '#FACC15' : '#8A8780' }} />
           <input
             ref={searchInputRef}
             type="text"
@@ -198,7 +198,7 @@ export default function Header({
             value={globalSearchQuery || ''}
             onChange={handleSearchChange}
             className="w-full bg-transparent border-none text-xs sm:text-sm focus:outline-none placeholder:text-text-muted"
-            style={{ color: cinemaMode ? '#F2EFE9' : '#141413' }}
+            style={{ color: cinemaMode ? '#FFFFFF' : '#141413' }}
           />
           {globalSearchQuery && (
             <button
@@ -211,9 +211,9 @@ export default function Header({
           <kbd
             className="hidden md:inline-block px-1.5 py-0.5 text-[10px] font-mono-tabular font-medium rounded border"
             style={{
-              backgroundColor: cinemaMode ? '#1C1C1A' : '#E6E2DA',
-              borderColor: cinemaMode ? '#2E2E2B' : '#CFCAC0',
-              color: '#8A8780'
+              backgroundColor: cinemaMode ? '#1C1C1C' : '#E6E2DA',
+              borderColor: cinemaMode ? '#262626' : '#CFCAC0',
+              color: cinemaMode ? '#D4D4D8' : '#8A8780'
             }}
           >
             /
@@ -232,7 +232,7 @@ export default function Header({
             aria-label="Toggle theme mode"
           >
             {cinemaMode ? (
-              <Sun size={18} strokeWidth={1.75} className="text-accent-amber" />
+              <Sun size={18} strokeWidth={1.75} className="text-[#FACC15]" />
             ) : (
               <Moon size={18} strokeWidth={1.75} className="text-text-secondary hover:text-text-primary" />
             )}
