@@ -317,8 +317,8 @@ export default function MyLearningView({
   const handleCreateSubfolder = (e) => {
     e.preventDefault();
     if (!newSubfolderName.trim() || !activeRootFolderId) return;
-    // Private/Personal folder allows subfolders at root level, but no nested subfolders below that
-    if (activeRootFolderId === 'personal' && subfolderPath.length >= 1) return;
+    // Subfolders can only be created at root level of any folder (strict 1-level depth)
+    if (subfolderPath.length >= 1) return;
 
     const newSub = {
       id: `sub-${Date.now()}`,
@@ -504,12 +504,6 @@ export default function MyLearningView({
                   ))}
                 </nav>
               </div>
-
-              {folderNotice && (
-                <div className="text-[11px] font-mono-tabular text-accent-forest font-bold shrink-0 animate-fade-in">
-                  ✓ {folderNotice}
-                </div>
-              )}
             </div>
 
             {/* Current Folder Heading Banner with Action Buttons */}
@@ -531,15 +525,17 @@ export default function MyLearningView({
                     {activeNode?.title}
                   </h2>
                   <span className="text-[11px] font-mono-tabular text-text-muted">
-                    {filteredSubfolders.length} Subfolders • {filteredItems.length} Items
+                    {subfolderPath.length === 0
+                      ? `${filteredSubfolders.length} Subfolders • ${filteredItems.length} Items`
+                      : `${filteredItems.length} Items`}
                   </span>
                 </div>
               </div>
 
               {/* Action Buttons: Inline Toggle for Subfolder / Item */}
               <div className="flex items-center gap-2">
-                {/* Private / Personal folder allows subfolders, but no nested subfolders beneath them */}
-                {!(activeRootFolder.id === 'personal' && subfolderPath.length >= 1) && (
+                {/* Subfolders can only be created at root level (max 1 level depth) */}
+                {subfolderPath.length === 0 && (
                   <button
                     onClick={() => setInlineAddType(prev => prev === 'subfolder' ? null : 'subfolder')}
                     className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors ${
@@ -570,8 +566,8 @@ export default function MyLearningView({
             </div>
           </div>
 
-          {/* INLINE SECTION: CREATE NEW SUBFOLDER */}
-          {inlineAddType === 'subfolder' && (
+          {/* INLINE SECTION: CREATE NEW SUBFOLDER (Only allowed at root level) */}
+          {inlineAddType === 'subfolder' && subfolderPath.length === 0 && (
             <div className="rounded-xl border border-border-strong bg-surface p-4 sm:p-5 shadow-sm space-y-3 animate-fade-in">
               <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
                 <div className="flex items-center gap-2 font-bold text-xs text-text-primary">
@@ -811,6 +807,7 @@ export default function MyLearningView({
                   <div
                     key={sf.id}
                     onClick={() => {
+                      setInlineAddType(null);
                       setSubfolderPath(prev => [...prev, sf.id]);
                     }}
                     className="p-3.5 sm:p-4 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover/80 hover:border-border-strong transition-all cursor-pointer flex flex-col justify-between group shadow-xs space-y-2.5 active:scale-[0.99]"
@@ -964,20 +961,24 @@ export default function MyLearningView({
               </div>
               <div className="max-w-md mx-auto space-y-1">
                 <h4 className="text-sm font-bold text-text-primary">
-                  This folder is currently empty
+                  {subfolderPath.length === 0 ? 'This folder is currently empty' : `No items in ${activeNode?.title || 'this section'}`}
                 </h4>
                 <p className="text-xs text-text-secondary">
-                  Add subfolders, lecture playlists, syllabus PDFs, or documents to this folder.
+                  {subfolderPath.length === 0
+                    ? 'Organize your subjects by creating subfolders, or add resources directly.'
+                    : 'Add lecture playlists, course syllabus PDFs, or study notes to this subfolder.'}
                 </p>
               </div>
               <div className="flex items-center justify-center gap-2 pt-2">
-                <button
-                  onClick={() => setInlineAddType('subfolder')}
-                  className="px-3.5 py-2 rounded-lg text-xs font-semibold border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <FolderPlus size={13} />
-                  <span>+ Subfolder</span>
-                </button>
+                {subfolderPath.length === 0 && (
+                  <button
+                    onClick={() => setInlineAddType('subfolder')}
+                    className="px-3.5 py-2 rounded-lg text-xs font-semibold border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <FolderPlus size={13} />
+                    <span>+ Subfolder</span>
+                  </button>
+                )}
                 <button
                   onClick={() => setInlineAddType('item')}
                   className="px-3.5 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark flex items-center gap-1.5 hover:opacity-95 cursor-pointer shadow-xs"

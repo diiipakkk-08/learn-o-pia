@@ -36,12 +36,88 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 );
 
 -- Ensure the 4 dedicated folder columns exist on existing profiles table
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS folder_academic JSONB DEFAULT '[]'::jsonb;
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS folder_document JSONB DEFAULT '[]'::jsonb;
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS folder_links JSONB DEFAULT '[]'::jsonb;
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS folder_personal JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS folder_academic JSONB;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS folder_document JSONB;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS folder_links JSONB;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS folder_personal JSONB;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS enrolled_courses JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS workspace_stats JSONB DEFAULT '{}'::jsonb;
+
+-- Pre-seed column defaults with 8 Semesters and clean default subfolders (items: [])
+ALTER TABLE public.profiles 
+  ALTER COLUMN folder_academic SET DEFAULT '[
+    {"id": "sem-1", "title": "Semester 1", "subfolders": [], "items": []},
+    {"id": "sem-2", "title": "Semester 2", "subfolders": [], "items": []},
+    {"id": "sem-3", "title": "Semester 3", "subfolders": [], "items": []},
+    {"id": "sem-4", "title": "Semester 4", "subfolders": [], "items": []},
+    {"id": "sem-5", "title": "Semester 5", "subfolders": [], "items": []},
+    {"id": "sem-6", "title": "Semester 6", "subfolders": [], "items": []},
+    {"id": "sem-7", "title": "Semester 7", "subfolders": [], "items": []},
+    {"id": "sem-8", "title": "Semester 8", "subfolders": [], "items": []}
+  ]'::jsonb;
+
+ALTER TABLE public.profiles 
+  ALTER COLUMN folder_document SET DEFAULT '[
+    {"id": "doc-dsa", "title": "Algorithms & LeetCode Solutions", "subfolders": [], "items": []},
+    {"id": "doc-labs", "title": "University Lab Code & Manuals", "subfolders": [], "items": []},
+    {"id": "doc-guides", "title": "Course Notes & Reference Guides", "subfolders": [], "items": []}
+  ]'::jsonb;
+
+ALTER TABLE public.profiles 
+  ALTER COLUMN folder_links SET DEFAULT '[
+    {"id": "links-university", "title": "MAKAUT & Examination Portals", "subfolders": [], "items": []},
+    {"id": "links-resources", "title": "Digital Libraries & National Portals", "subfolders": [], "items": []}
+  ]'::jsonb;
+
+ALTER TABLE public.profiles 
+  ALTER COLUMN folder_personal SET DEFAULT '[
+    {"id": "pers-notes", "title": "Personal Study Notes", "subfolders": [], "items": []},
+    {"id": "pers-prep", "title": "Interview & Placement Prep", "subfolders": [], "items": []}
+  ]'::jsonb;
+
+-- Pre-seed existing user profiles where columns are NULL, empty, or unpopulated
+UPDATE public.profiles
+SET folder_academic = '[
+    {"id": "sem-1", "title": "Semester 1", "subfolders": [], "items": []},
+    {"id": "sem-2", "title": "Semester 2", "subfolders": [], "items": []},
+    {"id": "sem-3", "title": "Semester 3", "subfolders": [], "items": []},
+    {"id": "sem-4", "title": "Semester 4", "subfolders": [], "items": []},
+    {"id": "sem-5", "title": "Semester 5", "subfolders": [], "items": []},
+    {"id": "sem-6", "title": "Semester 6", "subfolders": [], "items": []},
+    {"id": "sem-7", "title": "Semester 7", "subfolders": [], "items": []},
+    {"id": "sem-8", "title": "Semester 8", "subfolders": [], "items": []}
+  ]'::jsonb
+WHERE folder_academic IS NULL 
+   OR folder_academic = '[]'::jsonb 
+   OR jsonb_array_length(folder_academic) = 0;
+
+UPDATE public.profiles
+SET folder_document = '[
+    {"id": "doc-dsa", "title": "Algorithms & LeetCode Solutions", "subfolders": [], "items": []},
+    {"id": "doc-labs", "title": "University Lab Code & Manuals", "subfolders": [], "items": []},
+    {"id": "doc-guides", "title": "Course Notes & Reference Guides", "subfolders": [], "items": []}
+  ]'::jsonb
+WHERE folder_document IS NULL 
+   OR folder_document = '[]'::jsonb 
+   OR jsonb_array_length(folder_document) = 0;
+
+UPDATE public.profiles
+SET folder_links = '[
+    {"id": "links-university", "title": "MAKAUT & Examination Portals", "subfolders": [], "items": []},
+    {"id": "links-resources", "title": "Digital Libraries & National Portals", "subfolders": [], "items": []}
+  ]'::jsonb
+WHERE folder_links IS NULL 
+   OR folder_links = '[]'::jsonb 
+   OR jsonb_array_length(folder_links) = 0;
+
+UPDATE public.profiles
+SET folder_personal = '[
+    {"id": "pers-notes", "title": "Personal Study Notes", "subfolders": [], "items": []},
+    {"id": "pers-prep", "title": "Interview & Placement Prep", "subfolders": [], "items": []}
+  ]'::jsonb
+WHERE folder_personal IS NULL 
+   OR folder_personal = '[]'::jsonb 
+   OR jsonb_array_length(folder_personal) = 0;
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 

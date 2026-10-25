@@ -25,7 +25,7 @@ const formatAuthError = (err) => {
 };
 
 export default function Auth({ setCurrentView }) {
-  const { users, login, loginWithGoogle, registerUser, setPasswordForUser, isSupabaseLive } = useDatabase();
+  const { users, login, loginAsGuest, loginWithGoogle, registerUser, setPasswordForUser, isSupabaseLive } = useDatabase();
 
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -37,6 +37,9 @@ export default function Auth({ setCurrentView }) {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+
+  // Guest / Recruiter Mode State
+  const [showGuestModal, setShowGuestModal] = useState(false);
 
   // Secure Password Reset Modal State
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -445,6 +448,21 @@ export default function Auth({ setCurrentView }) {
               {isLogin ? 'Create one now' : 'Sign in here'}
             </button>
           </div>
+
+          {/* Guest / Recruiter Explorer Mode Action */}
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => setShowGuestModal(true)}
+              className="w-full py-2.5 px-3.5 rounded-xl border border-dashed border-border-strong bg-surface/70 hover:bg-surface-hover text-xs font-semibold text-text-secondary hover:text-text-primary flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs group"
+            >
+              <Sparkles size={14} className="text-accent-forest group-hover:scale-110 transition-transform shrink-0" />
+              <span>Explore as Guest / Recruiter (Static Mode)</span>
+            </button>
+            <p className="text-[10px] text-center text-text-muted mt-1 font-mono-tabular">
+              Instant evaluation • No registration required • Read-only
+            </p>
+          </div>
         </div>
 
         {/* Minimal Footer */}
@@ -618,6 +636,68 @@ export default function Auth({ setCurrentView }) {
                 </button>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Guest / Recruiter Mode Confirmation Modal */}
+      {showGuestModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center pt-8 sm:pt-14 p-4 animate-fade-in">
+          <div className="w-full max-w-md rounded-2xl border border-border-strong bg-surface p-6 shadow-modal space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-accent-forest/10 text-accent-forest flex items-center justify-center shrink-0">
+                  <Sparkles size={16} />
+                </div>
+                <div>
+                  <h3 className="font-editorial text-base sm:text-lg font-bold text-text-primary">
+                    Guest & Recruiter Explorer
+                  </h3>
+                  <p className="text-[11px] font-mono-tabular text-text-muted">
+                    Static Demonstration & System Preview
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowGuestModal(false)}
+                className="p-1.5 rounded-lg text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-2.5 text-xs text-text-secondary leading-relaxed bg-subtle/50 p-3.5 rounded-xl border border-border-subtle">
+              <p className="font-medium text-text-primary">
+                Explore Learn-O-Pia Academic OS without registering:
+              </p>
+              <ul className="space-y-1.5 list-disc list-inside text-text-muted text-[11.5px]">
+                <li><strong className="text-text-primary">Interactive Preview:</strong> Browse full degree curricula, semester vaults, attendance ledger, and campus marketplace.</li>
+                <li><strong className="text-text-primary">Read-Only Static Mode:</strong> Modifying folders or uploading local files will <span className="underline decoration-accent-danger text-accent-danger font-semibold">not</span> be written to the live Supabase database.</li>
+                <li><strong className="text-text-primary">Recruiter Ready:</strong> Tailored for evaluation, technical interviews, and visiting faculty demonstrations.</li>
+              </ul>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-border-subtle">
+              <button
+                type="button"
+                onClick={() => setShowGuestModal(false)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold border border-border-subtle hover:bg-surface-hover text-text-secondary cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowGuestModal(false);
+                  if (loginAsGuest) loginAsGuest();
+                  if (setCurrentView) setCurrentView('my-learning');
+                }}
+                className="px-4 py-2 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs flex items-center gap-1.5"
+              >
+                <span>Enter Workspace as Guest</span>
+                <Sparkles size={13} />
+              </button>
+            </div>
           </div>
         </div>
       )}

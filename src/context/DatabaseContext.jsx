@@ -1395,6 +1395,28 @@ export function DatabaseProvider({ children }) {
     }
   };
 
+  const loginAsGuest = () => {
+    const guestUser = {
+      id: 'guest',
+      name: 'Guest Explorer',
+      email: 'guest@learnopia.edu',
+      role: 'guest',
+      isGuest: true,
+      department: 'Open Scholar',
+      semester: 'All Semesters',
+      college: 'Community Campus',
+      enrolledCourses: [],
+      folderAcademic: [],
+      folderDocument: [],
+      folderLinks: [],
+      folderPersonal: []
+    };
+    setCurrentUser(guestUser);
+    localStorage.setItem('learnopia_current_user_stable', JSON.stringify(guestUser));
+    addLog('Guest Explorer session initiated (Read-Only Preview Mode)');
+    return guestUser;
+  };
+
   const loginWithGoogle = async (googleUser = null) => {
     if (supabase) {
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -3554,6 +3576,7 @@ export function DatabaseProvider({ children }) {
       setPasswordForUser,
       resetPasswordByEmail,
       login,
+      loginAsGuest,
       loginWithGoogle,
       registerUser,
       logout,
