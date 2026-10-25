@@ -610,6 +610,47 @@ const SEED_SUBJECTS = [
   }
 ];
 
+// ── Desktop & In-App Web Notification Trigger ─────────────────────────────
+export const triggerWebNotification = (announcement) => {
+  if (typeof window === 'undefined' || !announcement) return;
+
+  // 1. In-app real-time event for floating toast
+  try {
+    window.dispatchEvent(new CustomEvent('learnopia_broadcast_received', { detail: announcement }));
+  } catch {}
+
+  // 2. Browser native desktop Notification API (if supported and user permitted)
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      const n = new Notification(`📢 Campus Notice: ${announcement.title || 'New Broadcast'}`, {
+        body: announcement.message || 'Check the notification bell for full details.',
+        icon: '/learnopia-logo-dark-on.svg',
+        badge: '/learnopia-logo-dark-on.svg',
+        tag: announcement.id || 'learnopia-broadcast',
+        renotify: true
+      });
+      n.onclick = () => {
+        window.focus();
+        window.dispatchEvent(new CustomEvent('learnopia_open_announcements'));
+      };
+    } catch (err) {
+      console.warn('[Web Notification API notice]', err);
+    }
+  }
+};
+
+export const requestNotificationPermission = async () => {
+  if (typeof window !== 'undefined' && 'Notification' in window) {
+    try {
+      const res = await Notification.requestPermission();
+      return res;
+    } catch (e) {
+      console.warn('Notification permission request error:', e);
+    }
+  }
+  return 'unsupported';
+};
+
 export function DatabaseProvider({ children }) {
   const [users, setUsers] = useState(() => {
     if (typeof window === 'undefined') return SEED_USERS;
@@ -837,6 +878,16 @@ export function DatabaseProvider({ children }) {
     if (typeof addLog === 'function') {
       addLog(`Admin broadcasted announcement: "${title.trim()}"`);
     }
+
+    // 1. Sync across tabs
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('learnopia_last_broadcast', JSON.stringify({ ...newAnn, _ts: Date.now() }));
+      } catch {}
+    }
+
+    // 2. Trigger notification in current window
+    triggerWebNotification(newAnn);
 
     return newAnn;
   };
@@ -1390,6 +1441,80 @@ export function DatabaseProvider({ children }) {
       localStorage.setItem('learnopia_activity_logs', JSON.stringify(activityLogs));
     }
   }, [activityLogs, isSupabaseLive]);
+
+  // ── Realtime Broadcast & Announcement Listener ────────────────────────────
+  useEffect(() => {
+    // 1. Cross-tab sync via storage events
+    const handleStorage = (e) => {
+      if (e.key === 'learnopia_last_broadcast' && e.newValue) {
+        try {
+          const ann = JSON.parse(e.newValue);
+          if (ann && ann.id) {
+            setAnnouncements(prev => {
+              if (prev.some(a => a.id === ann.id)) return prev;
+              const next = [ann, ...prev];
+              try {
+                localStorage.setItem('learnopia_announcements', JSON.stringify(next));
+              } catch {}
+              return next;
+            });
+            triggerWebNotification(ann);
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    // 2. Supabase Realtime channel for announcements table
+    let subChannel = null;
+    if (isSupabaseLive && supabase) {
+      try {
+        subChannel = supabase
+          .channel('public:announcements')
+          .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'announcements' },
+            (payload) => {
+              const raw = payload.new;
+              if (!raw || !raw.id) return;
+              const newAnn = {
+                id: raw.id,
+                title: raw.title,
+                message: raw.message,
+                author: raw.author || raw.created_by || 'Academic Admin',
+                resourceTitle: raw.resource_title || '',
+                resourceUrl: raw.resource_url || raw.link || '',
+                link: raw.link || raw.resource_url || '',
+                category: raw.category || 'Campus Notice',
+                createdAt: raw.created_at || new Date().toISOString(),
+                createdBy: raw.created_by || raw.author
+              };
+
+              setAnnouncements(prev => {
+                if (prev.some(a => a.id === newAnn.id)) return prev;
+                const next = [newAnn, ...prev];
+                try {
+                  localStorage.setItem('learnopia_announcements', JSON.stringify(next));
+                } catch {}
+                return next;
+              });
+
+              triggerWebNotification(newAnn);
+            }
+          )
+          .subscribe();
+      } catch (err) {
+        console.warn('Realtime announcements subscription notice:', err);
+      }
+    }
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      if (subChannel && supabase) {
+        supabase.removeChannel(subChannel);
+      }
+    };
+  }, [isSupabaseLive]);
 
   // Log Helper
   const addLog = async (event) => {
@@ -3741,6 +3866,8 @@ export function DatabaseProvider({ children }) {
       deleteAnnouncement,
       markAnnouncementsRead,
       unreadAnnouncementsCount,
+      triggerWebNotification,
+      requestNotificationPermission,
       adSettings,
       updateAdSettings,
       createSharedRoutine,

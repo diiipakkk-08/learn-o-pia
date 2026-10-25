@@ -17,7 +17,8 @@ import {
   Info,
   X,
   ExternalLink,
-  PanelLeft
+  PanelLeft,
+  BellRing
 } from 'lucide-react';
 
 export default function Header({
@@ -43,6 +44,33 @@ export default function Header({
   const [showAnnouncementsDropdown, setShowAnnouncementsDropdown] = useState(false);
   const profileMenuRef = useRef(null);
   const announcementsRef = useRef(null);
+
+  const [notificationPermission, setNotificationPermission] = useState(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      return Notification.permission;
+    }
+    return 'unsupported';
+  });
+
+  const handleEnableNotifications = async () => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      try {
+        const perm = await Notification.requestPermission();
+        setNotificationPermission(perm);
+      } catch (err) {
+        console.warn('Request notification permission error:', err);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleOpen = () => {
+      setShowAnnouncementsDropdown(true);
+      if (markAnnouncementsRead) markAnnouncementsRead();
+    };
+    window.addEventListener('learnopia_open_announcements', handleOpen);
+    return () => window.removeEventListener('learnopia_open_announcements', handleOpen);
+  }, [markAnnouncementsRead]);
 
   // Keyboard shortcut '/' to focus search
   useEffect(() => {
@@ -248,6 +276,21 @@ export default function Header({
                     <X size={15} />
                   </button>
                 </div>
+
+                {notificationPermission === 'default' && (
+                  <div className="p-2.5 rounded-lg border border-accent-forest/30 bg-accent-forest/10 flex items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-1.5 text-accent-forest">
+                      <BellRing size={13} className="shrink-0" />
+                      <span className="font-semibold text-[11px]">Enable desktop notifications</span>
+                    </div>
+                    <button
+                      onClick={handleEnableNotifications}
+                      className="px-2 py-0.5 rounded text-[10px] font-bold bg-accent-forest text-white hover:opacity-90 transition-opacity cursor-pointer shadow-xs shrink-0"
+                    >
+                      Enable
+                    </button>
+                  </div>
+                )}
 
                 <div className="max-h-72 overflow-y-auto space-y-2.5 pr-0.5">
                   {announcements && announcements.length > 0 ? (

@@ -22,6 +22,7 @@ import Auth from './components/Auth';
 import NotFound404 from './components/NotFound404';
 import OnboardingModal from './components/OnboardingModal';
 import AdDonationModal from './components/AdDonationModal';
+import BroadcastToast from './components/BroadcastToast';
 
 import { ShieldAlert, ArrowLeft, PanelLeftOpen } from 'lucide-react';
 
@@ -164,6 +165,7 @@ function AppContent() {
   if (currentView === 'landing') {
     return (
       <div data-theme={cinemaMode ? 'cinema' : 'default'} className="min-h-screen bg-canvas text-text-primary">
+        <BroadcastToast />
         <LandingPage
           setCurrentView={setCurrentView}
           onEnterApp={() => setCurrentView(currentUser ? 'my-learning' : 'auth')}
@@ -178,7 +180,12 @@ function AppContent() {
 
   // Standalone Auth Page
   if (currentView === 'auth') {
-    return <Auth setCurrentView={setCurrentView} />;
+    return (
+      <>
+        <BroadcastToast />
+        <Auth setCurrentView={setCurrentView} />
+      </>
+    );
   }
 
   // Standalone Full-Page Onboarding for New Accounts
@@ -186,6 +193,7 @@ function AppContent() {
   if (showOnboardingPage) {
     return (
       <div data-theme={cinemaMode ? 'cinema' : 'default'} className="min-h-screen bg-canvas text-text-primary">
+        <BroadcastToast />
         <OnboardingModal
           user={currentUser}
           onComplete={() => setOnboardingDone(true)}
@@ -203,6 +211,7 @@ function AppContent() {
       className="min-h-screen flex flex-col transition-colors duration-200 bg-canvas text-text-primary"
       data-theme={cinemaMode ? 'cinema' : 'default'}
     >
+      <BroadcastToast />
       {/* Sticky Top Header Nav - Always Stays across the entire screen */}
       <Header
         currentView={currentView}
