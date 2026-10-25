@@ -32,7 +32,8 @@ export default function AdminDashboard() {
     deleteSharedRoutine,
     broadcastAnnouncement,
     deleteAnnouncement,
-    announcements
+    announcements,
+    openUserProfile
   } = useDatabase();
   const [activeTab, setActiveTab] = useState('verification');
   const [userSearchQuery, setUserSearchQuery] = useState('');
@@ -363,7 +364,29 @@ export default function AdminDashboard() {
                     <tbody>
                       {pendingCreators.map(creator => (
                         <tr key={creator.id} style={styles.tableRow}>
-                          <td style={styles.td}><strong>{creator.name}</strong></td>
+                          <td style={styles.td}>
+                            <div
+                              onClick={() => openUserProfile && openUserProfile(creator)}
+                              className="flex items-center gap-2.5 cursor-pointer group hover:opacity-80 transition-opacity"
+                              title="Click to view full applicant profile"
+                            >
+                              <div className="w-7 h-7 rounded-full overflow-hidden border border-border-subtle bg-subtle shrink-0 flex items-center justify-center font-bold text-xs">
+                                {creator.picture ? (
+                                  <img
+                                    src={creator.picture}
+                                    alt={creator.name}
+                                    className="w-full h-full object-cover object-center"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  (creator.name || 'C').slice(0, 2).toUpperCase()
+                                )}
+                              </div>
+                              <strong className="group-hover:text-accent-forest group-hover:underline transition-colors">{creator.name}</strong>
+                            </div>
+                          </td>
                           <td style={styles.td}>{creator.email}</td>
                           <td style={styles.td}>
                             <span className="badge badge-creator" style={{ fontSize: '0.65rem', textTransform: 'capitalize' }}>
@@ -372,6 +395,14 @@ export default function AdminDashboard() {
                           </td>
                           <td style={styles.td}>
                             <div style={{ display: 'flex', gap: '8px' }}>
+                              <button
+                                onClick={() => openUserProfile && openUserProfile(creator)}
+                                className="btn btn-secondary"
+                                style={{ padding: '6px 10px', fontSize: '0.75rem', gap: '4px' }}
+                                title="Inspect creator profile"
+                              >
+                                <Eye size={12} /> Profile
+                              </button>
                               <button 
                                 onClick={() => approveCreator(creator.id)}
                                 className="btn btn-primary"
@@ -425,8 +456,30 @@ export default function AdminDashboard() {
                       {pendingStudentVerifications.map(student => (
                         <tr key={student.id} style={styles.tableRow}>
                           <td style={styles.td}>
-                            <strong>{student.name}</strong>
-                            <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{student.email}</span>
+                            <div
+                              onClick={() => openUserProfile && openUserProfile(student)}
+                              className="flex items-center gap-2.5 cursor-pointer group hover:opacity-80 transition-opacity"
+                              title="Click to view applicant profile"
+                            >
+                              <div className="w-8 h-8 rounded-full overflow-hidden border border-border-subtle bg-subtle shrink-0 flex items-center justify-center font-bold text-xs">
+                                {student.picture ? (
+                                  <img
+                                    src={student.picture}
+                                    alt={student.name}
+                                    className="w-full h-full object-cover object-center"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  (student.name || 'S').slice(0, 2).toUpperCase()
+                                )}
+                              </div>
+                              <div>
+                                <strong className="group-hover:text-accent-forest group-hover:underline transition-colors block leading-tight">{student.name}</strong>
+                                <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{student.email}</span>
+                              </div>
+                            </div>
                           </td>
                           <td style={styles.td}>
                             <span className="badge badge-learner" style={{ fontSize: '0.65rem', marginBottom: '4px', display: 'inline-block' }}>
@@ -456,7 +509,7 @@ export default function AdminDashboard() {
                           <td style={styles.td}>
                             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                               <button
-                                onClick={() => setSelectedInspectStudent(student)}
+                                onClick={() => openUserProfile ? openUserProfile(student) : setSelectedInspectStudent(student)}
                                 className="btn btn-secondary btn-sm"
                                 style={{ padding: '6px 10px', fontSize: '0.75rem', gap: '4px', color: '#38bdf8' }}
                                 title="Inspect all profile details alongside ID card proof"
@@ -716,7 +769,34 @@ export default function AdminDashboard() {
                     {filteredUsers.map(user => (
                       <tr key={user.id} style={styles.tableRow}>
                         <td style={styles.td}>
-                          <strong>{user.name}</strong>
+                          <div
+                            onClick={() => openUserProfile && openUserProfile(user)}
+                            className="flex items-center gap-2.5 cursor-pointer group hover:opacity-80 transition-opacity"
+                            title="Click to view full user profile details"
+                          >
+                            <div className="w-8 h-8 rounded-full overflow-hidden border border-border-subtle bg-subtle shrink-0 flex items-center justify-center font-bold text-xs">
+                              {user.picture ? (
+                                <img
+                                  src={user.picture}
+                                  alt={user.name}
+                                  className="w-full h-full object-cover object-center"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                (user.name || 'U').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+                              )}
+                            </div>
+                            <div>
+                              <strong className="group-hover:text-accent-forest group-hover:underline transition-colors block leading-tight">
+                                {user.name}
+                              </strong>
+                              <span className="text-[11px] font-mono-tabular text-text-muted">
+                                {user.username || `@${(user.name || 'user').toLowerCase().replace(/\s+/g, '')}`}
+                              </span>
+                            </div>
+                          </div>
                         </td>
                         <td style={styles.td}>{user.email}</td>
                         <td style={styles.td}>
@@ -739,6 +819,14 @@ export default function AdminDashboard() {
                         </td>
                         <td style={styles.td}>
                           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            <button
+                              onClick={() => openUserProfile && openUserProfile(user)}
+                              className="btn btn-secondary"
+                              style={{ padding: '4px 8px', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              title="Inspect complete profile details"
+                            >
+                              <Eye size={12} /> Profile
+                            </button>
                             {user.role !== 'admin' && user.role !== 'owner' && (
                               <button 
                                 onClick={() => makeAdmin(user.id)}

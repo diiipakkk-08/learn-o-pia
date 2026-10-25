@@ -98,6 +98,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
 
   // Edit Profile Form State
   const [name, setName] = useState(currentUser?.name || '');
+  const [picture, setPicture] = useState(currentUser?.picture || '');
   const [countryCode, setCountryCode] = useState('+91');
   const [phoneNumber, setPhoneNumber] = useState(() => {
     if (currentUser?.phone) {
@@ -119,6 +120,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
   useEffect(() => {
     if (currentUser) {
       setName(currentUser.name || '');
+      setPicture(currentUser.picture || '');
       if (currentUser.phone) {
         setPhoneNumber(currentUser.phone.replace(/^\+\d+\s*/, ''));
       }
@@ -166,6 +168,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
 
     const res = await updateUserProfile(currentUser.id, {
       name,
+      picture: picture.trim(),
       phone: fullPhone,
       dob,
       educationLevel,
@@ -249,8 +252,19 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
       {/* Top Banner & Status */}
       <div className="glass-panel" style={{ padding: '20px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', textAlign: 'left' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={styles.avatarCircle}>
-            <User size={36} color="#ffffff" />
+          <div style={styles.avatarCircle} className="overflow-hidden shrink-0">
+            {currentUser.picture ? (
+              <img
+                src={currentUser.picture}
+                alt={currentUser.name}
+                className="w-full h-full object-cover object-center"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            ) : (
+              <User size={36} color="currentColor" />
+            )}
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -466,6 +480,42 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
           )}
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+            {/* Profile Picture (DP) Image Link */}
+            <div className="col-span-full p-3.5 rounded-xl border border-border-subtle bg-surface-sunken">
+              <label className="form-label" style={{ fontSize: '0.78rem', marginBottom: '8px', display: 'block' }}>
+                Profile Picture (DP) Image Link
+              </label>
+              <div className="flex flex-col sm:flex-row items-center gap-3.5">
+                {/* Live Cropped Center Preview */}
+                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-border-strong bg-surface flex items-center justify-center shrink-0 shadow-sm relative group">
+                  {picture.trim() ? (
+                    <img
+                      src={picture.trim()}
+                      alt="DP Preview"
+                      className="w-full h-full object-cover object-center"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <User size={26} className="text-text-muted" />
+                  )}
+                </div>
+                <div className="flex-1 w-full space-y-1">
+                  <input
+                    type="url"
+                    className="form-input"
+                    placeholder="Paste direct image URL (e.g. https://images.unsplash.com/... or Google Drive public image link)"
+                    value={picture}
+                    onChange={(e) => setPicture(e.target.value)}
+                  />
+                  <span className="text-[11px] text-text-muted block">
+                    Share any public image link. Regardless of the original image dimensions or aspect ratio, Learnopia automatically crops and centers it into a clean circular DP.
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {/* Full Name */}
             <div>
               <label className="form-label" style={{ fontSize: '0.78rem' }}>

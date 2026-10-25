@@ -349,22 +349,49 @@ export default function Header({
           <div className="relative" ref={profileMenuRef}>
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border border-border-strong bg-subtle text-text-primary hover:border-accent-forest hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-xs"
+              className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border border-border-strong bg-subtle text-text-primary hover:border-accent-forest hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-xs overflow-hidden"
               title="Student Profile & Settings"
               aria-label="User Profile"
             >
-              {userInitials}
+              {currentUser.picture ? (
+                <img
+                  src={currentUser.picture}
+                  alt={currentUser.name}
+                  className="w-full h-full object-cover object-center"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                userInitials
+              )}
             </button>
 
             {/* Profile Dropdown Menu */}
             {showProfileMenu && (
               <div className="absolute right-0 mt-2 w-56 rounded-xl border border-border-subtle bg-surface p-1.5 shadow-modal z-50 animate-fade-in text-text-primary">
-                <div className="px-3 py-2 border-b border-border-subtle mb-1">
-                  <div className="font-semibold text-xs text-text-primary truncate">
-                    {currentUser.name || 'Student Account'}
+                <div className="px-3 py-2 border-b border-border-subtle mb-1 flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full overflow-hidden border border-border-subtle bg-subtle shrink-0 flex items-center justify-center font-bold text-xs">
+                    {currentUser.picture ? (
+                      <img
+                        src={currentUser.picture}
+                        alt={currentUser.name}
+                        className="w-full h-full object-cover object-center"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      userInitials
+                    )}
                   </div>
-                  <div className="text-[11px] text-text-muted truncate font-mono-tabular">
-                    {currentUser.email}
+                  <div className="min-w-0">
+                    <div className="font-semibold text-xs text-text-primary truncate">
+                      {currentUser.name || 'Student Account'}
+                    </div>
+                    <div className="text-[11px] text-text-muted truncate font-mono-tabular">
+                      {currentUser.email}
+                    </div>
                   </div>
                 </div>
 

@@ -29,7 +29,7 @@ import {
 import { getActiveMarketplaceItems, deleteMarketplaceListing } from '../../utils/marketplaceStorage';
 
 export default function MarketplaceView({ setCurrentView }) {
-  const { currentUser, globalSearchQuery, setGlobalSearchQuery } = useDatabase();
+  const { currentUser, users, globalSearchQuery, setGlobalSearchQuery, openUserProfile } = useDatabase();
 
   const [items, setItems] = useState(() => getActiveMarketplaceItems());
 
@@ -317,11 +317,38 @@ export default function MarketplaceView({ setCurrentView }) {
                       {item.title}
                     </h3>
 
-                    {/* Simple Author Line */}
-                    <div className="flex items-center gap-1.5 text-xs text-text-muted">
-                      <User size={13} className="shrink-0" />
-                      <span className="truncate">By {item.author}</span>
-                    </div>
+                    {/* Simple Author Line (Clickable to view seller profile) */}
+                    {(() => {
+                      const sellerUser = users?.find(u => u.id === item.sellerId || u.name === item.author || u.email === item.author);
+                      return (
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (openUserProfile) {
+                              openUserProfile(sellerUser || { name: item.author, role: 'seller' });
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-text-primary hover:underline cursor-pointer transition-colors group/author"
+                          title="Click to view seller profile details"
+                        >
+                          <div className="w-4 h-4 rounded-full overflow-hidden border border-border-subtle bg-subtle shrink-0 flex items-center justify-center font-bold text-[9px]">
+                            {sellerUser?.picture ? (
+                              <img
+                                src={sellerUser.picture}
+                                alt={item.author}
+                                className="w-full h-full object-cover object-center"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <User size={10} className="shrink-0" />
+                            )}
+                          </div>
+                          <span className="truncate">By {item.author}</span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -430,9 +457,24 @@ export default function MarketplaceView({ setCurrentView }) {
                 <h4 className="text-sm font-bold text-text-primary">
                   {activeBuyItem.title}
                 </h4>
-                <p className="text-[11px] text-text-muted">
-                  Seller: <strong>{activeBuyItem.author}</strong>
-                </p>
+                <div className="flex items-center justify-between text-[11px] text-text-muted pt-1">
+                  <span>
+                    Seller: <strong className="text-text-primary">{activeBuyItem.author}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (openUserProfile) {
+                        const sellerUser = users?.find(u => u.id === activeBuyItem.sellerId || u.name === activeBuyItem.author || u.email === activeBuyItem.author);
+                        openUserProfile(sellerUser || { name: activeBuyItem.author, role: 'seller' });
+                      }
+                    }}
+                    className="text-accent-forest hover:underline font-semibold cursor-pointer text-[11px] inline-flex items-center gap-1"
+                    title="View seller full profile"
+                  >
+                    <span>View Profile</span> &rarr;
+                  </button>
+                </div>
               </div>
 
               {/* Item Details / Description */}

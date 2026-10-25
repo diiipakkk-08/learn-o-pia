@@ -152,8 +152,19 @@ export default function Sidebar({
           title="View Student Profile & Settings"
         >
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 border border-border-strong bg-subtle text-text-primary">
-              {userInitials}
+            <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 border border-border-strong bg-subtle text-text-primary overflow-hidden">
+              {currentUser.picture ? (
+                <img
+                  src={currentUser.picture}
+                  alt={currentUser.name}
+                  className="w-full h-full object-cover object-center"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                userInitials
+              )}
             </div>
             <div className="min-w-0">
               <div className="text-xs font-semibold leading-tight truncate text-text-primary">

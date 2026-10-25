@@ -476,7 +476,7 @@ const mapProfile = (dbProfile) => {
     username: dbProfile.username || `@${(dbProfile.name || (dbProfile.email ? dbProfile.email.split('@')[0] : 'user')).toLowerCase().replace(/\s+/g, '')}`,
     email: dbProfile.email,
     password: dbProfile.password || '',
-    picture: dbProfile.picture || dbProfile.avatar_url || null,
+    picture: dbProfile.picture || dbProfile.avatar_url || dbProfile.avatar || dbProfile.dpUrl || dbProfile.dp || null,
     phone: dbProfile.phone || '',
     college: dbProfile.college || '',
     department: dbProfile.department || '',
@@ -678,6 +678,42 @@ export function DatabaseProvider({ children }) {
     return saved ? JSON.parse(saved) : [];
   });
   const [authLoading, setAuthLoading] = useState(false);
+  const [viewingProfileUser, setViewingProfileUser] = useState(null);
+
+  const openUserProfile = (userOrId) => {
+    if (!userOrId) return;
+    if (typeof userOrId === 'object') {
+      const matched = users.find(u => u.id === userOrId.id || (u.email && u.email.toLowerCase() === userOrId.email?.toLowerCase()));
+      setViewingProfileUser(matched || userOrId);
+    } else if (typeof userOrId === 'string') {
+      const q = userOrId.toLowerCase().trim();
+      const matched = users.find(u => u.id === userOrId || (u.email && u.email.toLowerCase() === q) || (u.name && u.name.toLowerCase() === q));
+      if (matched) {
+        setViewingProfileUser(matched);
+      } else {
+        setViewingProfileUser({
+          id: `usr-${Date.now()}`,
+          name: userOrId,
+          email: `${userOrId.toLowerCase().replace(/\s+/g, '')}@learnopia.edu`,
+          role: 'learner',
+          status: 'active'
+        });
+      }
+    }
+  };
+
+  const closeUserProfile = () => {
+    setViewingProfileUser(null);
+  };
+
+  useEffect(() => {
+    if (viewingProfileUser?.id) {
+      const updated = users.find(u => u.id === viewingProfileUser.id);
+      if (updated && updated !== viewingProfileUser) {
+        setViewingProfileUser(updated);
+      }
+    }
+  }, [users, viewingProfileUser?.id]);
 
   const [standaloneResources, setStandaloneResources] = useState(() => {
     const saved = localStorage.getItem('learnopia_standalone_resources');
@@ -1960,6 +1996,7 @@ export function DatabaseProvider({ children }) {
       ...userToUpdate,
       ...profileData,
       id: userId,
+      picture: profileData.picture ?? profileData.avatar_url ?? profileData.dpUrl ?? userToUpdate.picture ?? null,
       email: userToUpdate.email || currentUser?.email || profileData.email || '',
       password: profileData.password || userToUpdate.password || currentUser?.password || '',
       onboardingCompleted: true,
@@ -2001,6 +2038,8 @@ export function DatabaseProvider({ children }) {
           id: userId,
           email: userEmail.toLowerCase(),
           name: updatedUser.name || '',
+          picture: updatedUser.picture || null,
+          avatar_url: updatedUser.picture || null,
           phone: updatedUser.phone || null,
           college: updatedUser.college || null,
           department: updatedUser.department || null,
@@ -3940,7 +3979,10 @@ export function DatabaseProvider({ children }) {
       getDiscussionThreadsFromDb,
       deleteUserAccount,
       saveUserFoldersToDb,
-      isSupabaseLive
+      isSupabaseLive,
+      viewingProfileUser,
+      openUserProfile,
+      closeUserProfile
     }}>
       {children}
     </DatabaseContext.Provider>

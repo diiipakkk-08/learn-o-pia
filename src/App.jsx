@@ -23,6 +23,7 @@ import NotFound404 from './components/NotFound404';
 import OnboardingModal from './components/OnboardingModal';
 import AdDonationModal from './components/AdDonationModal';
 import BroadcastToast from './components/BroadcastToast';
+import UserProfileModal from './components/common/UserProfileModal';
 
 import { ShieldAlert, ArrowLeft, PanelLeftOpen } from 'lucide-react';
 
@@ -47,7 +48,7 @@ function AccessDenied({ requiredRole, setCurrentView }) {
 
 
 function AppContent() {
-  const { currentUser, authLoading, logout } = useDatabase();
+  const { currentUser, authLoading, logout, viewingProfileUser, closeUserProfile } = useDatabase();
 
   const [currentView, setCurrentView] = useState(() => {
     return localStorage.getItem('learnopia_view') || 'landing';
@@ -372,6 +373,14 @@ function AppContent() {
         <AdDonationModal
           isOpen={showAdModal}
           onClose={() => setShowAdModal(false)}
+        />
+      )}
+
+      {/* Dynamic Profile Viewer Modal */}
+      {viewingProfileUser && (
+        <UserProfileModal
+          user={viewingProfileUser}
+          onClose={closeUserProfile}
         />
       )}
     </div>
