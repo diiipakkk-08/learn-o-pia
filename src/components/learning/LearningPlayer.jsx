@@ -4,7 +4,13 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useDatabase, fetchYoutubePlaylistVideos, extractYoutubePlaylistId } from '../../context/DatabaseContext';
+import {
+  useDatabase,
+  fetchYoutubePlaylistVideos,
+  fetchYoutubePlaylistTitle,
+  cleanCourseTitle,
+  extractYoutubePlaylistId
+} from '../../context/DatabaseContext';
 import {
   Play,
   Check,
@@ -15,7 +21,8 @@ import {
   ChevronRight,
   ChevronLeft,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  BookOpen
 } from 'lucide-react';
 
 export default function LearningPlayer({
@@ -151,6 +158,7 @@ export default function LearningPlayer({
 
   const [dynamicVideos, setDynamicVideos] = useState([]);
   const [loadingVideos, setLoadingVideos] = useState(false);
+  const [resolvedPlaylistTitle, setResolvedPlaylistTitle] = useState(null);
 
   const cleanYtPlaylistId = useMemo(() => {
     let yt = extractYoutubePlaylistId(playlist?.youtubePlaylistId || playlist?.youtube_playlist_id || '');
@@ -169,6 +177,36 @@ export default function LearningPlayer({
     }
     return '';
   }, [playlist, foundSubject, playlistId]);
+
+  // If playlist title looks suspect (generic or matches a video title), fetch real playlist title
+  useEffect(() => {
+    let isMounted = true;
+    if (cleanYtPlaylistId) {
+      const raw = foundSubject?.title || playlist?.title || '';
+      const isSuspect =
+        !raw ||
+        raw === 'University Lecture Series' ||
+        raw === 'YouTube Lecture Series' ||
+        /^(lecture|lec|video|day|part|ep|episode|class)\s*#?1[:\s-]/i.test(raw);
+
+      if (isSuspect) {
+        fetchYoutubePlaylistTitle(cleanYtPlaylistId).then((realTitle) => {
+          if (isMounted && realTitle) {
+            setResolvedPlaylistTitle(realTitle);
+          }
+        });
+      }
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [cleanYtPlaylistId, foundSubject?.title, playlist?.title]);
+
+  const displayCourseTitle = useMemo(() => {
+    if (resolvedPlaylistTitle) return resolvedPlaylistTitle;
+    const base = foundSubject?.title || playlist?.title || 'Course Lecture Series';
+    return cleanCourseTitle(base);
+  }, [resolvedPlaylistTitle, foundSubject, playlist]);
 
   // Dynamically load YouTube playlist lectures only if database videos are absent
   useEffect(() => {
@@ -216,15 +254,15 @@ export default function LearningPlayer({
       const vidId = currentVideo.youtubeId || '';
       updateLastPlayed({
         playlistId: playlist.id,
-        playlistTitle: playlist.title,
+        playlistTitle: displayCourseTitle,
         videoIndex: currentIndex,
-        videoTitle: currentVideo.title || playlist.title,
+        videoTitle: currentVideo.title || displayCourseTitle,
         youtubeId: vidId,
         thumbnail: vidId ? `https://i.ytimg.com/vi/${vidId}/hqdefault.jpg` : '',
         progress: Math.round(((currentIndex + 1) / Math.max(videos.length, 1)) * 100)
       });
     }
-  }, [playlist.id, currentVideo?.youtubeId, currentIndex, videos.length]);
+  }, [playlist.id, currentVideo?.youtubeId, currentIndex, videos.length, displayCourseTitle]);
 
   const youtubeVideoUrl = currentVideo?.youtubeId
     ? `https://www.youtube.com/watch?v=${currentVideo.youtubeId}${cleanYtPlaylistId ? `&list=${cleanYtPlaylistId}` : ''}`
@@ -290,11 +328,11 @@ export default function LearningPlayer({
 
             {/* UNIFIED SINGLE ACTION & DETAILS BOX DIRECTLY BELOW VIDEO */}
             <div className="rounded-xl border border-border-subtle bg-surface p-4 space-y-3 shadow-xs">
-              {/* Line 1: Lecture Breadcrumb & Prev/Next Navigation */}
+              {/* Line 1: Course Breadcrumb & Prev/Next Navigation */}
               <div className="flex items-center justify-between gap-2 border-b border-border-subtle pb-2.5">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-[11px] font-mono-tabular font-bold text-accent-forest uppercase tracking-wider truncate">
-                    LECTURE {currentIndex + 1} OF {videos.length} • {foundSubject ? foundSubject.title : playlist.title}
+                    {displayCourseTitle} • LECTURE {currentIndex + 1} OF {videos.length}
                   </span>
                 </div>
 
@@ -321,10 +359,16 @@ export default function LearningPlayer({
                 </div>
               </div>
 
-              {/* Line 2: Prominent Lecture Title */}
-              <h1 className="text-base sm:text-lg lg:text-xl font-bold text-text-primary leading-snug">
-                {currentVideo.title}
-              </h1>
+              {/* Line 2: Prominent Course Title and Lecture Subheading */}
+              <div className="space-y-1">
+                <div className="text-xs font-semibold text-text-muted flex items-center gap-1.5">
+                  <BookOpen size={13} className="text-accent-forest shrink-0" />
+                  <span className="font-bold text-text-secondary truncate">{displayCourseTitle}</span>
+                </div>
+                <h1 className="text-base sm:text-lg lg:text-xl font-bold text-text-primary leading-snug">
+                  {currentVideo.title}
+                </h1>
+              </div>
 
               {/* Line 3: Actions Row: Catalog, YouTube, Share, More Details Toggle */}
               <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-border-subtle">
@@ -377,10 +421,10 @@ export default function LearningPlayer({
               {showDetails && (
                 <div className="pt-2 border-t border-border-subtle space-y-2 text-xs text-text-secondary animate-fade-in">
                   <p className="leading-relaxed whitespace-pre-line">
-                    {currentVideo.description || playlist.description || `Lecture series for ${foundSubject ? foundSubject.title : playlist.title}.`}
+                    {currentVideo.description || playlist.description || `Lecture series for ${displayCourseTitle}.`}
                   </p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] font-mono-tabular pt-1 text-text-muted">
-                    <div><span className="text-text-primary font-bold">Subject:</span> {foundSubject?.title || playlist.title}</div>
+                    <div><span className="text-text-primary font-bold">Course / Subject:</span> {displayCourseTitle}</div>
                     <div><span className="text-text-primary font-bold">Instructor:</span> {playlist.author || 'Faculty'}</div>
                     <div><span className="text-text-primary font-bold">Video ID:</span> {currentVideo.youtubeId || 'Stream'}</div>
                   </div>

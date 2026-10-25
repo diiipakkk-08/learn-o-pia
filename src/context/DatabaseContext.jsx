@@ -300,6 +300,85 @@ export const extractYoutubeVideoId = (url) => {
   return '';
 };
 
+export const cleanCourseTitle = (rawTitle) => {
+  if (!rawTitle || typeof rawTitle !== 'string') return '';
+  let clean = rawTitle.trim();
+  clean = clean
+    .replace(/^(lecture|lec|video|day|part|ep|episode|class)\s*#?1[:\s-]+/i, '')
+    .replace(/^#?1[:\s-]+/i, '')
+    .replace(/\s*-\s*YouTube\s*$/i, '')
+    .trim();
+  return clean || rawTitle;
+};
+
+export const extractPlaylistTitleFromVideos = (videos, fallbackChannel) => {
+  if (!Array.isArray(videos) || videos.length === 0) return '';
+  const titles = videos.map(v => (typeof v === 'string' ? v : v.title || '')).filter(Boolean);
+  if (titles.length === 0) return '';
+
+  // 1. Try finding common prefix before delimiter (e.g. "Python Tutorial | Lecture 1", "Python Tutorial | Lecture 2")
+  const delimiters = [' | ', ' - ', ' — ', ' // ', ' : ', ' • ', ': '];
+
+  for (const delim of delimiters) {
+    const parts0 = titles[0].split(delim);
+    if (parts0.length >= 2) {
+      const candidatePrefix = parts0[0].trim();
+      if (!candidatePrefix.match(/^(lecture|lec|video|day|part|ep|episode|class|#|\d+)\s*#?\d*$/i) && candidatePrefix.length > 3) {
+        const matches = titles.filter(t => t.startsWith(candidatePrefix + delim) || t.startsWith(candidatePrefix + ' '));
+        if (matches.length >= Math.min(2, titles.length)) {
+          return candidatePrefix;
+        }
+      }
+
+      const candidateSuffix = parts0[parts0.length - 1].trim();
+      if (!candidateSuffix.match(/^(lecture|lec|video|day|part|ep|episode|class|#|\d+)\s*#?\d*$/i) && candidateSuffix.length > 3) {
+        const matchesSuffix = titles.filter(t => t.endsWith(delim + candidateSuffix) || t.endsWith(' ' + candidateSuffix));
+        if (matchesSuffix.length >= Math.min(2, titles.length)) {
+          if (!fallbackChannel || candidateSuffix.toLowerCase() !== fallbackChannel.toLowerCase()) {
+            return candidateSuffix;
+          }
+        }
+      }
+    }
+  }
+
+  // 2. Fallback: Clean up first video title by removing lecture numbers and episode tags
+  let clean = titles[0];
+  if (fallbackChannel) {
+    clean = clean.replace(new RegExp(`\\s*[-|•]\\s*${fallbackChannel}\\s*$`, 'i'), '');
+  }
+  clean = clean
+    .replace(/^(lecture|lec|video|day|part|ep|episode|class)\s*#?\d*[:\s-]+/i, '')
+    .replace(/^#?\d+[:\s-]+/i, '')
+    .replace(/\s*[-|•]\s*(lecture|lec|video|day|part|ep|episode|class)\s*#?\d*.*/i, '')
+    .replace(/\s*[-|•]\s*#?\d+.*$/i, '')
+    .trim();
+
+  return clean || titles[0];
+};
+
+export const fetchYoutubePlaylistTitle = async (playlistId) => {
+  if (!playlistId) return null;
+  try {
+    const res = await fetchWithTimeout(
+      `https://r.jina.ai/https://www.youtube.com/playlist?list=${playlistId}`,
+      { headers: { 'Accept': 'application/json' } },
+      4500
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const rawTitle = data.data ? data.data.title : data.title;
+      if (rawTitle && typeof rawTitle === 'string') {
+        const clean = rawTitle.replace(/\s*-\s*YouTube\s*$/i, '').trim();
+        if (clean && clean !== 'YouTube' && clean !== 'undefined' && !clean.toLowerCase().includes('before you continue')) {
+          return clean;
+        }
+      }
+    }
+  } catch {}
+  return null;
+};
+
 export const fetchYoutubeMetadata = async (urlOrId) => {
   if (!urlOrId) return null;
   const trimmed = urlOrId.trim();
@@ -316,56 +395,62 @@ export const fetchYoutubeMetadata = async (urlOrId) => {
     videoCount: 0
   };
 
-  // 1. If videoId exists, use YouTube oEmbed directly (CORS friendly in modern browsers)
-  if (videoId) {
+  let targetVideoId = videoId;
+
+  // CASE 1: PLAYLIST / COURSE
+  if (playlistId) {
+    // 1. Fetch real playlist title from YouTube
     try {
-      const res = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
-      if (res.ok) {
-        const data = await res.json();
-        result.title = data.title || '';
-        result.author = data.author_name || '';
-        result.thumbnailUrl = data.thumbnail_url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
-        if (result.author) {
-          result.description = `Curated university course and lecture series by ${result.author}.`;
-        }
+      const plTitle = await fetchYoutubePlaylistTitle(playlistId);
+      if (plTitle) {
+        result.title = plTitle;
       }
     } catch {}
-  }
 
-  // 2. If it is a playlist and title/author are still missing, query playlist videos
-  if (playlistId && (!result.title || !result.author)) {
+    // 2. Fetch playlist videos to determine videoCount, author, and fallback title
     try {
       const videos = await fetchYoutubePlaylistVideos(playlistId);
       if (Array.isArray(videos) && videos.length > 0) {
         result.videoCount = videos.length;
         const firstVid = videos[0];
-        if (!result.videoId && firstVid.youtubeId) {
-          result.videoId = firstVid.youtubeId;
-          result.thumbnailUrl = `https://i.ytimg.com/vi/${firstVid.youtubeId}/hqdefault.jpg`;
+        if (!targetVideoId && firstVid?.youtubeId) {
+          targetVideoId = firstVid.youtubeId;
         }
-        if (!result.title && firstVid.title) {
-          result.title = firstVid.title
-            .replace(/\s*[-|]\s*Lecture\s*\d+.*/i, '')
-            .replace(/\s*[-|]\s*Day\s*#?\d+.*/i, '')
-            .replace(/\s*[-|]\s*Video\s*\d+.*/i, '')
-            .trim();
-        }
-        if (firstVid.youtubeId) {
-          try {
-            const oeRes = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${firstVid.youtubeId}&format=json`);
-            if (oeRes.ok) {
-              const oeData = await oeRes.json();
-              if (!result.author && oeData.author_name) result.author = oeData.author_name;
-              if (!result.title && oeData.title) result.title = oeData.title;
-              if (!result.thumbnailUrl && oeData.thumbnail_url) result.thumbnailUrl = oeData.thumbnail_url;
-            }
-          } catch {}
-        }
-        if (result.author && !result.description) {
-          result.description = `Comprehensive curriculum playlist (${videos.length} lectures) by ${result.author}.`;
+
+        // If title still not resolved, extract common playlist name across videos
+        if (!result.title) {
+          result.title = extractPlaylistTitleFromVideos(videos, result.author);
         }
       }
     } catch {}
+  }
+
+  // CASE 2: oEmbed query for author & thumbnail (and title ONLY IF NOT a playlist)
+  if (targetVideoId) {
+    try {
+      const res = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${targetVideoId}&format=json`);
+      if (res.ok) {
+        const data = await res.json();
+        if (!result.author && data.author_name) result.author = data.author_name;
+        if (!result.thumbnailUrl && data.thumbnail_url) result.thumbnailUrl = data.thumbnail_url;
+        
+        // ONLY if this is a standalone single video (NOT a playlist), use the video's title
+        if (!playlistId && data.title) {
+          result.title = data.title;
+        }
+
+        if (result.author && !result.description) {
+          result.description = playlistId
+            ? `Curated comprehensive curriculum series (${result.videoCount || 'full'} lectures) by ${result.author}.`
+            : `Educational lecture video by ${result.author}.`;
+        }
+      }
+    } catch {}
+  }
+
+  // CASE 3: Final safety fallbacks
+  if (!result.title) {
+    result.title = playlistId ? 'Curated University Course' : 'University Lecture';
   }
 
   return result;

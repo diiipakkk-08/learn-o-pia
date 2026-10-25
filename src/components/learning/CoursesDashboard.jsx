@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useDatabase } from '../../context/DatabaseContext';
+import { useDatabase, cleanCourseTitle } from '../../context/DatabaseContext';
 import { getWorkspaceFolders, saveWorkspaceFolders, getPinnedSemester } from '../../utils/workspaceFolders';
 import {
   FileText,
@@ -228,7 +228,7 @@ function CoursesDashboardInner({
         id: targetPlaylistId,
         subjectId: sub.id,
         playlistId: targetPlaylistId,
-        title: sub.title,
+        title: cleanCourseTitle(sub.title),
         description:
           primaryPl?.description ||
           `Comprehensive university lecture series and curriculum syllabus for ${sub.title}.`,
@@ -265,7 +265,7 @@ function CoursesDashboardInner({
           id: c.id,
           subjectId: c.id,
           playlistId: c.youtubePlaylistId || c.id,
-          title: c.title,
+          title: cleanCourseTitle(c.title),
           description: c.description || 'Comprehensive university subject course.',
           category: c.department || 'Computer Science',
           department: c.department || 'Computer Science',
