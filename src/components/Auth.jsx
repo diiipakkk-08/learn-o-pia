@@ -18,9 +18,38 @@ function GoogleIcon() {
 
 const formatAuthError = (err) => {
   if (!err) return 'An unexpected authentication error occurred.';
-  if (typeof err === 'string') return err;
-  const msg = err.message || err.error_description || err.msg || err.details;
-  if (msg && typeof msg === 'string' && msg.trim() !== '' && msg !== '{}') return msg;
+  if (typeof err === 'string') {
+    const lower = err.toLowerCase();
+    if (lower.includes('suspended')) {
+      return 'Your account is suspended. Please contact the administrator.';
+    }
+    if (lower.includes('not registered') || lower.includes('user not found') || lower.includes('no user matching') || lower.includes('email not registered')) {
+      return 'This email is not registered. Please create an account first.';
+    }
+    if (lower.includes('already exists') || lower.includes('already registered') || lower.includes('user already exists')) {
+      return 'This email address already exists. Please sign in instead.';
+    }
+    if (lower.includes('incorrect password') || lower.includes('invalid login credentials') || lower.includes('invalid credentials')) {
+      return 'Incorrect password. Please verify your password or use forgot password.';
+    }
+    return err;
+  }
+  const msg = (err.message || err.error_description || err.msg || err.details || '').trim();
+  const lower = msg.toLowerCase();
+
+  if (lower.includes('suspended')) {
+    return 'Your account is suspended. Please contact the administrator.';
+  }
+  if (lower.includes('not registered') || lower.includes('user not found') || lower.includes('no user matching') || lower.includes('email not registered')) {
+    return 'This email is not registered. Please create an account first.';
+  }
+  if (lower.includes('already exists') || lower.includes('already registered') || lower.includes('user already exists')) {
+    return 'This email address already exists. Please sign in instead.';
+  }
+  if (lower.includes('incorrect password') || lower.includes('invalid login credentials') || lower.includes('invalid credentials')) {
+    return 'Incorrect password. Please verify your password or use forgot password.';
+  }
+  if (msg && msg !== '{}') return msg;
   return 'Authentication failed. Please check your credentials or network connection.';
 };
 
@@ -75,6 +104,42 @@ export default function Auth({ setCurrentView }) {
     }).catch(() => {});
     return () => { isMounted = false; };
   }, []);
+
+  // Listen for external auth notices (e.g. account suspension on redirect) & read sessionStorage
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('learnopia_auth_notice');
+      if (stored) {
+        sessionStorage.removeItem('learnopia_auth_notice');
+        const parsed = JSON.parse(stored);
+        if (parsed?.message) {
+          setError(parsed.message);
+        }
+      }
+    } catch {}
+
+    const handleAuthNotice = (e) => {
+      if (e.detail?.message) {
+        if (e.detail.type === 'success') {
+          setSuccess(e.detail.message);
+        } else {
+          setError(e.detail.message);
+        }
+      }
+    };
+    window.addEventListener('learnopia_auth_notice', handleAuthNotice);
+    return () => window.removeEventListener('learnopia_auth_notice', handleAuthNotice);
+  }, []);
+
+  // Auto-dismiss floating notifications after 5 seconds
+  useEffect(() => {
+    if (!error && !success) return;
+    const timer = setTimeout(() => {
+      setError(null);
+      setSuccess(null);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [error, success]);
 
   const handleCycleQuote = async () => {
     if (quoteLoading) return;
@@ -206,7 +271,36 @@ export default function Auth({ setCurrentView }) {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-canvas text-text-primary flex flex-col lg:flex-row">
+    <div className="h-screen w-screen overflow-hidden bg-canvas text-text-primary flex flex-col lg:flex-row relative">
+      {/* Floating Top Notification (Fixed overlay — zero layout shift, zero DOM height changes) */}
+      {(error || success) && (
+        <div
+          role="alert"
+          className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] max-w-lg w-[92%] sm:w-auto px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-md flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 border transition-all pointer-events-auto ${
+            error
+              ? 'bg-red-50/95 dark:bg-[#251010]/95 border-red-300 dark:border-red-900/60 text-red-900 dark:text-red-200 shadow-red-500/10'
+              : 'bg-emerald-50/95 dark:bg-[#0c2214]/95 border-emerald-300 dark:border-emerald-900/60 text-emerald-900 dark:text-emerald-200 shadow-emerald-500/10'
+          }`}
+        >
+          {error ? (
+            <AlertCircle size={18} className="text-red-600 dark:text-red-400 shrink-0" />
+          ) : (
+            <CheckCircle size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+          )}
+          <span className="text-xs sm:text-sm font-semibold leading-snug flex-1">
+            {error || success}
+          </span>
+          <button
+            type="button"
+            onClick={() => { setError(null); setSuccess(null); }}
+            className="p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 text-current/60 hover:text-current transition-colors cursor-pointer"
+            aria-label="Close notification"
+          >
+            <X size={15} />
+          </button>
+        </div>
+      )}
+
       {/* =========================================================================
           LEFT PANEL: Sleek Authentication Form (Full-width mobile, 45-50% desktop)
       ========================================================================= */}
@@ -280,21 +374,6 @@ export default function Auth({ setCurrentView }) {
               Register Free
             </button>
           </div>
-
-          {/* Notifications */}
-          {error && (
-            <div className="p-2.5 rounded-lg border border-[#F8C8C8] bg-accent-danger-bg text-accent-danger text-xs flex items-start gap-2 animate-fade-in">
-              <AlertCircle size={14} className="shrink-0 mt-0.5" />
-              <span className="leading-snug">{error}</span>
-            </div>
-          )}
-
-          {success && (
-            <div className="p-2.5 rounded-lg border border-[#C2DEC9] bg-accent-forest-bg text-accent-forest text-xs flex items-start gap-2 animate-fade-in">
-              <CheckCircle size={14} className="shrink-0 mt-0.5" />
-              <span className="leading-snug">{success}</span>
-            </div>
-          )}
 
           {/* Quick Access Actions: Google OAuth & Guest Explorer */}
           <div className="space-y-2">

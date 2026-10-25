@@ -1006,6 +1006,15 @@ export function DatabaseProvider({ children }) {
             await supabase.auth.signOut();
             setCurrentUser(null);
             localStorage.removeItem('learnopia_current_user_stable');
+            try {
+              sessionStorage.setItem('learnopia_auth_notice', JSON.stringify({
+                type: 'error',
+                message: 'Your account is suspended. Please contact the administrator.'
+              }));
+              window.dispatchEvent(new CustomEvent('learnopia_auth_notice', {
+                detail: { type: 'error', message: 'Your account is suspended. Please contact the administrator.' }
+              }));
+            } catch {}
           } else {
             setCurrentUser(mapped);
             localStorage.setItem('learnopia_current_user_stable', JSON.stringify(mapped));
@@ -1319,6 +1328,16 @@ export function DatabaseProvider({ children }) {
               if (mapped.status === 'suspended') {
                 await supabase.auth.signOut();
                 setCurrentUser(null);
+                localStorage.removeItem('learnopia_current_user_stable');
+                try {
+                  sessionStorage.setItem('learnopia_auth_notice', JSON.stringify({
+                    type: 'error',
+                    message: 'Your account is suspended. Please contact the administrator.'
+                  }));
+                  window.dispatchEvent(new CustomEvent('learnopia_auth_notice', {
+                    detail: { type: 'error', message: 'Your account is suspended. Please contact the administrator.' }
+                  }));
+                } catch {}
               } else {
                 setCurrentUser(mapped);
                 localStorage.setItem('learnopia_current_user_stable', JSON.stringify(mapped));
@@ -1409,33 +1428,48 @@ export function DatabaseProvider({ children }) {
       // If Supabase Auth signInWithPassword didn't match (e.g. Google OAuth user who set a profile password),
       // check if profiles table has matching email & password
       if (!authUser) {
+        let existingProfile = null;
         try {
-          const { data: matchedProfile } = await supabase
+          const { data: foundProfile } = await supabase
             .from('profiles')
             .select('*')
-            .eq('email', email.toLowerCase())
-            .eq('password', password)
+            .ilike('email', email.trim().toLowerCase())
             .maybeSingle();
-
-          if (matchedProfile) {
-            if (matchedProfile.status === 'suspended') {
-              throw new Error('Your account has been suspended by an administrator.');
-            }
-            const mapped = mapProfile(matchedProfile);
-            setCurrentUser(mapped);
-            addLog(`User logged in: ${mapped.name} (${mapped.role.toUpperCase()})`);
-            return mapped;
-          }
+          existingProfile = foundProfile;
         } catch (dbErr) {
-          console.warn('[Database Login Fallback Error]', dbErr);
+          console.warn('[Database Login Profile Check Error]', dbErr);
         }
 
-        const errMsg = loginErr?.message || '';
-        const userFriendlyMsg = (errMsg.toLowerCase().includes('invalid login credentials') || errMsg.toLowerCase().includes('user not found'))
-          ? 'Invalid email or password. If this account was deleted from Supabase, please click "Create one now" below to register it again.'
-          : (errMsg || 'Invalid email or password. If your account was deleted or you are a new user, please click "Create one now" below to register.');
+        const localUser = (users || []).find(u => u.email.toLowerCase() === email.trim().toLowerCase());
 
-        throw new Error(userFriendlyMsg);
+        // 1. Account is not registered / not created
+        if (!existingProfile && !localUser) {
+          throw new Error('This email is not registered. Please create an account first.');
+        }
+
+        // 2. Account is suspended
+        if ((existingProfile && existingProfile.status === 'suspended') || (localUser && localUser.status === 'suspended')) {
+          throw new Error('Your account is suspended. Please contact the administrator.');
+        }
+
+        // 3. Fallback: check profile password or localUser password
+        if (existingProfile && existingProfile.password && existingProfile.password === password) {
+          const mapped = mapProfile(existingProfile);
+          setCurrentUser(mapped);
+          localStorage.setItem('learnopia_current_user_stable', JSON.stringify(mapped));
+          addLog(`User logged in: ${mapped.name} (${mapped.role.toUpperCase()})`);
+          return mapped;
+        }
+
+        if (localUser && localUser.password && localUser.password === password) {
+          setCurrentUser(localUser);
+          localStorage.setItem('learnopia_current_user_stable', JSON.stringify(localUser));
+          addLog(`User logged in: ${localUser.name} (${localUser.role.toUpperCase()})`);
+          return localUser;
+        }
+
+        // 4. Account exists and is active, but password was incorrect
+        throw new Error('Incorrect password. Please verify your password or use forgot password.');
       }
 
       let { data: profile } = await supabase
@@ -1481,7 +1515,7 @@ export function DatabaseProvider({ children }) {
 
       if (profile.status === 'suspended') {
         await supabase.auth.signOut();
-        throw new Error('Your account has been suspended by an administrator.');
+        throw new Error('Your account is suspended. Please contact the administrator.');
       }
 
       // Sync password to profile if not yet stored
@@ -1498,10 +1532,19 @@ export function DatabaseProvider({ children }) {
       addLog(`User logged in: ${mapped.name} (${mapped.role.toUpperCase()})`);
       return mapped;
     } else {
-      const found = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
-      if (!found) throw new Error('Invalid email or password.');
-      if (found.status === 'suspended') throw new Error('Your account has been suspended.');
+      const cleanEmail = (email || '').trim().toLowerCase();
+      const found = users.find(u => u.email.toLowerCase() === cleanEmail);
+      if (!found) {
+        throw new Error('This email is not registered. Please create an account first.');
+      }
+      if (found.status === 'suspended') {
+        throw new Error('Your account is suspended. Please contact the administrator.');
+      }
+      if (found.password !== password) {
+        throw new Error('Incorrect password. Please verify your password or use forgot password.');
+      }
       setCurrentUser(found);
+      localStorage.setItem('learnopia_current_user_stable', JSON.stringify(found));
       addLog(`User logged in: ${found.name} (${found.role.toUpperCase()})`);
       return found;
     }
@@ -1550,8 +1593,12 @@ export function DatabaseProvider({ children }) {
         const name = googleUser.name || email.split('@')[0];
         const picture = googleUser.picture || null;
         
-        const existing = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+        const cleanGoogleEmail = (email || '').trim().toLowerCase();
+        const existing = users.find(u => u.email.toLowerCase() === cleanGoogleEmail);
         if (existing) {
+          if (existing.status === 'suspended') {
+            throw new Error('Your account is suspended. Please contact the administrator.');
+          }
           setCurrentUser(existing);
           localStorage.setItem('learnopia_current_user_stable', JSON.stringify(existing));
           addLog(`User logged in via Google: ${existing.name}`);
@@ -1583,21 +1630,34 @@ export function DatabaseProvider({ children }) {
   };
 
   const registerUser = async (email, name, password) => {
-    if (isSupabaseLive) {
-      // 1. Check if email already exists in profiles
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id, email')
-        .eq('email', email.toLowerCase())
-        .maybeSingle();
+    const cleanEmail = (email || '').trim().toLowerCase();
+    if (!cleanEmail) {
+      throw new Error('Please enter a valid email address.');
+    }
 
-      if (existingProfile) {
-        throw new Error('This email address is already registered. Please sign in instead.');
+    if (isSupabaseLive) {
+      // 1. Check if email already exists in profiles or local state
+      let existingProfile = null;
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, email')
+          .ilike('email', cleanEmail)
+          .maybeSingle();
+        existingProfile = data;
+      } catch (e) {
+        console.warn('[Check profile on register warn]', e);
+      }
+
+      const localExists = (users || []).some(u => u.email.toLowerCase() === cleanEmail);
+
+      if (existingProfile || localExists) {
+        throw new Error('This email address already exists. Please sign in instead.');
       }
 
       // 2. Attempt auth signUp
       const { data, error } = await supabase.auth.signUp({
-        email: email.toLowerCase(),
+        email: cleanEmail,
         password
       });
 
@@ -1608,7 +1668,7 @@ export function DatabaseProvider({ children }) {
       if (isAlreadyInAuth) {
         // Try sign in with the provided password first (handles re-registration after password-based delete)
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: email.toLowerCase(),
+          email: cleanEmail,
           password
         });
 
@@ -1616,7 +1676,7 @@ export function DatabaseProvider({ children }) {
           // Signed in — upsert profile (covers case where profile was deleted but auth record remained)
           const newProfile = {
             id: signInData.user.id,
-            email: email.toLowerCase(),
+            email: cleanEmail,
             name: name.trim(),
             role: 'learner',
             status: 'active',
@@ -1635,10 +1695,13 @@ export function DatabaseProvider({ children }) {
           return mapped;
         }
 
-        throw new Error('This email address is already registered in Supabase. Please Sign In with your email and password, or use Google Sign-In if you previously used Google.');
+        throw new Error('This email address already exists. Please sign in instead.');
       }
 
       if (error) {
+        if (error.message?.toLowerCase().includes('already registered') || error.message?.toLowerCase().includes('already exists')) {
+          throw new Error('This email address already exists. Please sign in instead.');
+        }
         throw new Error(error.message || 'Registration failed.');
       }
       if (!data || !data.user) {
@@ -1650,7 +1713,7 @@ export function DatabaseProvider({ children }) {
 
       const newProfile = {
         id: data.user.id,
-        email: email.toLowerCase(),
+        email: cleanEmail,
         name: name.trim(),
         role: 'learner',
         status: 'active',
@@ -1678,12 +1741,12 @@ export function DatabaseProvider({ children }) {
       setCurrentUser(mapped);
       return mapped;
     } else {
-      const exists = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-      if (exists) throw new Error('Email is already registered.');
+      const exists = users.find(u => u.email.toLowerCase() === cleanEmail);
+      if (exists) throw new Error('This email address already exists. Please sign in instead.');
 
       const newUser = {
         id: 'u-' + (users.length + 1),
-        email: email.toLowerCase(),
+        email: cleanEmail,
         name,
         role: 'learner',
         status: 'active',

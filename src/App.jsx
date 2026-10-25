@@ -46,7 +46,7 @@ function AccessDenied({ requiredRole, setCurrentView }) {
 
 
 function AppContent() {
-  const { currentUser, authLoading } = useDatabase();
+  const { currentUser, authLoading, logout } = useDatabase();
 
   const [currentView, setCurrentView] = useState(() => {
     return localStorage.getItem('learnopia_view') || 'landing';
@@ -102,6 +102,20 @@ function AppContent() {
       setOnboardingDone(false);
     }
   }, [currentUser?.id, currentUser?.onboardingCompleted]);
+
+  // Immediately eject and notify if account is marked suspended
+  useEffect(() => {
+    if (currentUser && currentUser.status === 'suspended') {
+      try {
+        sessionStorage.setItem('learnopia_auth_notice', JSON.stringify({
+          type: 'error',
+          message: 'Your account is suspended. Please contact the administrator.'
+        }));
+      } catch {}
+      if (typeof logout === 'function') logout();
+      setCurrentView('auth');
+    }
+  }, [currentUser, logout]);
 
   // Handle Supabase OAuth / recovery hash
   useEffect(() => {
