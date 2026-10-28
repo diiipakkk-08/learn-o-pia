@@ -6,6 +6,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useDatabase, cleanCourseTitle } from '../../context/DatabaseContext';
 import { getWorkspaceFolders, saveWorkspaceFolders, getPinnedSemester } from '../../utils/workspaceFolders';
+import { resolveCourseBanner, resolveCourseLectureCount } from '../../utils/courseMetadata';
 import {
   FileText,
   Search,
@@ -223,13 +224,8 @@ function CoursesDashboardInner({
         ? firstVid.youtubeId
         : (firstVid?.url ? (firstVid.url.match(/[?&]v=([^#&]+)/) || [])[1] : null);
 
-      const thumb =
-        primaryPl?.bannerUrl ||
-        sub?.bannerUrl ||
-        (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null) ||
-        getCuratedCourseThumbnail(sub.title, parentCourse?.department);
-
-      const totalVideos = (sub.playlists || []).reduce((acc, pl) => acc + (pl.videos?.length || 0), 0);
+      const thumb = resolveCourseBanner(primaryPl || sub);
+      const totalVideos = resolveCourseLectureCount(primaryPl || sub);
 
       const isEnrolled =
         (currentUser?.enrolledPlaylists || []).includes(primaryPl?.id) ||
@@ -251,7 +247,7 @@ function CoursesDashboardInner({
         category: sub.semester ? `Semester ${sub.semester}` : (parentCourse?.department || 'Core Engineering'),
         department: parentCourse?.department || (sub.title.toLowerCase().includes('physics') || sub.title.toLowerCase().includes('math') ? 'Physics & Math' : 'Engineering Core'),
         author: primaryPl?.author || parentCourse?.creatorName || 'Faculty Instructor',
-        lectureCount: totalVideos || (primaryPl?.videos?.length || 16),
+        lectureCount: totalVideos,
         thumbnailUrl: thumb,
         isEnrolled,
         semester: sub.semester,
@@ -298,17 +294,10 @@ function CoursesDashboardInner({
       const semMatch = String(c.semester || c.department || c.title || '').match(/Semester\s*(\d+)|Sem\s*(\d+)/i);
       const semNum = semMatch ? parseInt(semMatch[1] || semMatch[2], 10) : (c.semester ? parseInt(c.semester, 10) : null);
 
-      // Extract lecture count if present in description or title
-      const lecMatch = String(c.description || c.title || '').match(/(\d+)\s*lectures?/i);
-      const lectureCount = lecMatch ? parseInt(lecMatch[1], 10) : 24;
-
+      // Resolve accurate lecture count and first-video playlist banner
+      const lectureCount = resolveCourseLectureCount(c);
       const rawPlaylistId = c.youtubePlaylistId || c.youtube_playlist_id || c.id;
-
-      const thumb =
-        c.bannerUrl ||
-        c.banner_url ||
-        (c.youtubePlaylistId ? `https://i.ytimg.com/vi/${c.youtubePlaylistId}/hqdefault.jpg` : null) ||
-        getCuratedCourseThumbnail(c.title, c.department);
+      const thumb = resolveCourseBanner(c);
 
       const rawKw = Array.isArray(c.keywords) ? c.keywords : (c.keywords ? String(c.keywords).split(',').map(s => s.trim().toLowerCase()) : []);
       const kwList = [

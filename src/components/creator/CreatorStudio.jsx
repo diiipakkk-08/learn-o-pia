@@ -30,6 +30,7 @@ import {
   relistMarketplaceListing,
   deleteMarketplaceListing
 } from '../../utils/marketplaceStorage';
+import { resolveCourseBanner, resolveCourseLectureCount } from '../../utils/courseMetadata';
 
 // ── Portal Dropdown Helper ──────────────────────────────────────────────────
 function PortalDropdown({ triggerRef, menuRef, isOpen, children }) {
@@ -342,10 +343,10 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
             author: pl.author || 'Educator',
             description: pl.description || '',
             category: sub.title || 'University Course',
-            lectureCount: pl.videos?.length || 0,
+            lectureCount: resolveCourseLectureCount(pl),
             isPublic: pl.isPublic !== false && pl.is_public !== false,
             youtubePlaylistId: pl.youtubePlaylistId || pl.youtube_playlist_id || '',
-            bannerUrl: pl.bannerUrl || sub.bannerUrl || ''
+            bannerUrl: resolveCourseBanner(pl)
           });
         }
       });
@@ -368,10 +369,10 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
             author: c.author || c.creatorName || 'Instructor',
             description: c.description || '',
             category: c.department || 'Core Engineering',
-            lectureCount: 24,
+            lectureCount: resolveCourseLectureCount(c),
             isPublic: c.isPublic !== false && c.is_public !== false,
             youtubePlaylistId: c.youtubePlaylistId || '',
-            bannerUrl: c.bannerUrl || '',
+            bannerUrl: resolveCourseBanner(c),
             keywords: c.keywords || ''
           });
         }
@@ -974,9 +975,9 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
                   >
                     {/* Course Title & Details */}
                     <div className="sm:col-span-5 flex items-center gap-3 min-w-0">
-                      <div className="w-12 h-8 rounded-md overflow-hidden bg-black shrink-0 border border-border-subtle relative">
+                      <div className="w-14 h-9 rounded-md overflow-hidden bg-black shrink-0 border border-border-subtle relative shadow-2xs">
                         {c.bannerUrl ? (
-                          <img src={c.bannerUrl} alt={c.title} className="w-full h-full object-cover opacity-85" />
+                          <img src={c.bannerUrl} alt={c.title} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-text-muted">
                             <Video size={13} />
@@ -984,9 +985,16 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="text-xs sm:text-sm font-bold text-text-primary truncate group-hover:text-accent-forest transition-colors" title={c.title}>
-                          {c.title}
-                        </h4>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-xs sm:text-sm font-bold text-text-primary truncate group-hover:text-accent-forest transition-colors" title={c.title}>
+                            {c.title}
+                          </h4>
+                          {c.lectureCount > 0 && (
+                            <span className="text-[10px] font-mono-tabular text-text-muted shrink-0 hidden md:inline">
+                              • {c.lectureCount} videos
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[11px] text-text-muted truncate mt-0.5">
                           {c.description || 'University syllabus playlist series.'}
                         </p>
@@ -1056,68 +1064,99 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
                 {filteredStudioCourses.map((c) => (
                   <div
                     key={c.id}
-                    className="rounded-xl border border-border-subtle bg-surface p-4 flex flex-col justify-between space-y-3 shadow-xs hover:border-border-strong transition-all group"
+                    className="rounded-xl border border-border-subtle bg-surface overflow-hidden flex flex-col justify-between shadow-xs hover:border-border-strong transition-all group"
                   >
-                    <div className="space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono-tabular font-bold px-2 py-0.5 rounded bg-subtle text-text-secondary truncate max-w-[140px]">
+                    {/* Top First-Video Playlist Banner */}
+                    <div className="relative aspect-video w-full bg-zinc-950 overflow-hidden">
+                      {c.bannerUrl ? (
+                        <img
+                          src={c.bannerUrl}
+                          alt={c.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=60';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-text-muted">
+                          <Video size={24} />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+                      <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                        <span className="text-[10px] font-mono-tabular font-bold px-2 py-0.5 rounded bg-black/75 backdrop-blur-sm text-white truncate max-w-[150px] shadow-sm">
                           {c.category}
                         </span>
-                        <span className={`text-[10px] font-mono-tabular font-bold px-2 py-0.5 rounded flex items-center gap-1 ${
-                          c.isPublic ? 'bg-accent-forest/15 text-accent-forest' : 'bg-subtle text-text-muted'
+                      </div>
+                      <div className="absolute top-2.5 right-2.5">
+                        <span className={`text-[10px] font-mono-tabular font-bold px-2 py-0.5 rounded backdrop-blur-sm flex items-center gap-1 shadow-sm ${
+                          c.isPublic ? 'bg-emerald-950/85 text-emerald-300 border border-emerald-500/30' : 'bg-black/75 text-zinc-300 border border-white/10'
                         }`}>
                           {c.isPublic ? <Globe size={10} /> : <Lock size={10} />}
                           <span>{c.isPublic ? 'Public' : 'Private'}</span>
                         </span>
                       </div>
-
-                      <h4 className="text-sm font-bold text-text-primary line-clamp-1 group-hover:text-accent-forest transition-colors">
-                        {c.title}
-                      </h4>
-                      <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed">
-                        {c.description || 'Comprehensive university course series.'}
-                      </p>
+                      {c.lectureCount > 0 && (
+                        <div className="absolute bottom-2 right-2.5">
+                          <span className="text-[10px] font-mono-tabular font-bold px-2 py-0.5 rounded bg-black/80 backdrop-blur-sm text-white border border-white/10 flex items-center gap-1">
+                            <Video size={10} />
+                            <span>{c.lectureCount} videos</span>
+                          </span>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="pt-2 flex items-center justify-between gap-2 border-t border-border-subtle">
-                      <span className="text-[11px] font-mono-tabular text-text-muted truncate max-w-[130px]">
-                        {c.author}
-                      </span>
+                    <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
+                      <div className="space-y-1.5">
+                        <h4 className="text-sm font-bold text-text-primary line-clamp-1 group-hover:text-accent-forest transition-colors" title={c.title}>
+                          {c.title}
+                        </h4>
+                        <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed">
+                          {c.description || 'Comprehensive university course series.'}
+                        </p>
+                      </div>
 
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => {
-                            const ytLink = `https://www.youtube.com/playlist?list=${(c.playlistId || c.id).replace('pl-', '')}`;
-                            navigator.clipboard.writeText(ytLink);
-                            setCourseToast(`Copied playlist link!`);
-                            setTimeout(() => setCourseToast(''), 3000);
-                          }}
-                          className="p-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-text-muted hover:text-text-primary cursor-pointer transition-colors"
-                          title="Copy Playlist link"
-                        >
-                          <Copy size={12} />
-                        </button>
+                      <div className="pt-3 flex items-center justify-between gap-2 border-t border-border-subtle mt-3">
+                        <span className="text-[11px] font-mono-tabular text-text-muted truncate max-w-[130px]">
+                          {c.author}
+                        </span>
 
-                        <button
-                          onClick={() => handleDeleteCourseItem(c)}
-                          className="p-1.5 rounded-lg border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-500 cursor-pointer transition-colors"
-                          title="Delete Course from catalog"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-
-                        {setSelectedPlaylistId && setCurrentView && (
+                        <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => {
-                              setSelectedPlaylistId(c.playlistId || c.id);
-                              setCurrentView('learning-player');
+                              const ytLink = `https://www.youtube.com/playlist?list=${(c.playlistId || c.id).replace('pl-', '')}`;
+                              navigator.clipboard.writeText(ytLink);
+                              setCourseToast(`Copied playlist link!`);
+                              setTimeout(() => setCourseToast(''), 3000);
                             }}
-                            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-accent-ink text-text-on-dark flex items-center gap-1.5 hover:opacity-95 cursor-pointer shadow-xs"
+                            className="p-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-text-muted hover:text-text-primary cursor-pointer transition-colors"
+                            title="Copy Playlist link"
                           >
-                            <Play size={11} fill="currentColor" />
-                            <span>Watch</span>
+                            <Copy size={12} />
                           </button>
-                        )}
+
+                          <button
+                            onClick={() => handleDeleteCourseItem(c)}
+                            className="p-1.5 rounded-lg border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-500 cursor-pointer transition-colors"
+                            title="Delete Course from catalog"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+
+                          {setSelectedPlaylistId && setCurrentView && (
+                            <button
+                              onClick={() => {
+                                setSelectedPlaylistId(c.playlistId || c.id);
+                                setCurrentView('learning-player');
+                              }}
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-accent-ink text-text-on-dark flex items-center gap-1.5 hover:opacity-95 cursor-pointer shadow-xs"
+                            >
+                              <Play size={11} fill="currentColor" />
+                              <span>Watch</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

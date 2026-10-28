@@ -43,6 +43,7 @@ import {
   setPinnedSemester,
   setAcademicSemestersCount
 } from '../../utils/workspaceFolders';
+import { resolveCourseBanner, resolveCourseLectureCount } from '../../utils/courseMetadata';
 
 export default function MyLearningView({
   setCurrentView,
@@ -75,12 +76,8 @@ export default function MyLearningView({
         const isEnrolled = enrolledPlIds.includes(pl.id) || enrolledCourseIds.includes(sub.courseId);
         if (isEnrolled) {
           seen.add(pl.id);
-          const firstVid = pl.videos && pl.videos[0];
-          const yId =
-            (firstVid?.youtubeId && !firstVid.youtubeId.startsWith('PL'))
-              ? firstVid.youtubeId
-              : (firstVid?.url ? (firstVid.url.match(/[?&]v=([^#&]+)/) || [])[1] : null);
-          const thumb = pl.bannerUrl || (yId ? `https://i.ytimg.com/vi/${yId}/hqdefault.jpg` : null);
+          const thumb = resolveCourseBanner(pl);
+          const vCount = resolveCourseLectureCount(pl);
 
           list.push({
             id: pl.id,
@@ -88,7 +85,7 @@ export default function MyLearningView({
             title: pl.title,
             subjectTitle: sub.title,
             author: pl.author || 'Faculty',
-            videoCount: pl.videos?.length || 0,
+            videoCount: vCount,
             thumbnailUrl: thumb,
             progress: 35
           });
@@ -105,8 +102,8 @@ export default function MyLearningView({
           title: c.title,
           subjectTitle: c.department || 'Computer Science',
           author: c.creatorName || 'Instructor',
-          videoCount: 24,
-          thumbnailUrl: c.bannerUrl,
+          videoCount: resolveCourseLectureCount(c),
+          thumbnailUrl: resolveCourseBanner(c),
           progress: 40
         });
       }
@@ -1321,15 +1318,13 @@ export default function MyLearningView({
             </div>
 
             {/* 4 Multi-Gradient Tactical Tiles */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {folders.map((folder) => {
                 const config = {
                   academic: {
-                    title: 'Academic Vault',
-                    badge: 'CURRICULUM',
+                    title: 'Academics',
                     bgGradient: 'bg-gradient-to-br from-emerald-500/15 via-teal-500/[0.06] to-surface dark:from-emerald-950/40 dark:via-teal-950/15 dark:to-[#121212]',
                     border: 'border-emerald-500/30 hover:border-emerald-500/60 border-t-2 border-t-emerald-500',
-                    badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
                     iconBox: 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
                     icon: <GraduationCap size={18} />,
                     subtitle: pinnedSemesterState
@@ -1337,41 +1332,33 @@ export default function MyLearningView({
                       : `${folder.subfolders?.length || 8} Semesters`
                   },
                   document: {
-                    title: 'Study Documents',
-                    badge: 'STUDY VAULT',
+                    title: 'Docs',
                     bgGradient: 'bg-gradient-to-br from-amber-500/15 via-orange-500/[0.06] to-surface dark:from-amber-950/40 dark:via-orange-950/15 dark:to-[#121212]',
                     border: 'border-amber-500/30 hover:border-amber-500/60 border-t-2 border-t-amber-500',
-                    badgeClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30',
                     iconBox: 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30',
                     icon: <FileText size={18} />,
-                    subtitle: `${(folder.subfolders?.length || 0) + (folder.items?.length || 0)} resources`
+                    subtitle: `${(folder.subfolders?.length || 0) + (folder.items?.length || 0)} files`
                   },
                   links: {
-                    title: 'Important Links',
-                    badge: 'PORTALS',
+                    title: 'Links',
                     bgGradient: 'bg-gradient-to-br from-sky-500/15 via-blue-500/[0.06] to-surface dark:from-sky-950/40 dark:via-blue-950/15 dark:to-[#121212]',
                     border: 'border-sky-500/30 hover:border-sky-500/60 border-t-2 border-t-sky-500',
-                    badgeClass: 'bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30',
                     iconBox: 'bg-sky-500/20 text-sky-600 dark:text-sky-400 border-sky-500/30',
                     icon: <Link2 size={18} />,
                     subtitle: `${folder.items?.length || 0} quick links`
                   },
                   personal: {
-                    title: 'Personal Vault',
-                    badge: 'PRIVATE',
+                    title: 'Personal',
                     bgGradient: 'bg-gradient-to-br from-purple-500/15 via-indigo-500/[0.06] to-surface dark:from-purple-950/40 dark:via-indigo-950/15 dark:to-[#121212]',
                     border: 'border-purple-500/30 hover:border-purple-500/60 border-t-2 border-t-purple-500',
-                    badgeClass: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30',
                     iconBox: 'bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30',
                     icon: <Lock size={18} />,
                     subtitle: `${folder.items?.length || 0} private items`
                   }
                 }[folder.id] || {
                   title: folder.title,
-                  badge: 'FOLDER',
                   bgGradient: 'bg-surface hover:bg-surface-hover/80',
                   border: 'border-border-subtle hover:border-border-strong',
-                  badgeClass: 'bg-subtle text-text-muted border-border-subtle',
                   iconBox: 'bg-subtle text-text-primary border-border-subtle',
                   icon: <Folder size={18} />,
                   subtitle: `${folder.items?.length || 0} items`
@@ -1384,24 +1371,31 @@ export default function MyLearningView({
                       setActiveRootFolderId(folder.id);
                       setSubfolderPath([]);
                     }}
-                    className={`p-4 rounded-xl border ${config.bgGradient} ${config.border} transition-all cursor-pointer flex flex-col justify-between group shadow-xs hover:shadow-md active:scale-[0.98] min-h-[140px] relative overflow-hidden`}
+                    className={`p-3.5 sm:p-4 rounded-xl border ${config.bgGradient} ${config.border} transition-all cursor-pointer flex items-center gap-3 group shadow-xs hover:shadow-md active:scale-[0.98] min-h-[72px] relative overflow-hidden`}
                   >
-                    {/* Top: Icon & Category Badge */}
-                    <div className="flex items-center justify-between w-full">
-                      <div className={`w-9 h-9 rounded-xl border ${config.iconBox} flex items-center justify-center transition-transform group-hover:scale-105 shadow-2xs shrink-0`}>
-                        {config.icon}
-                      </div>
-                      <span className={`text-[9px] font-mono-tabular font-bold tracking-wider px-2 py-0.5 rounded-full border ${config.badgeClass} shrink-0`}>
-                        {config.badge}
-                      </span>
+                    {/* Icon on the left */}
+                    <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl border ${config.iconBox} flex items-center justify-center transition-transform group-hover:scale-105 shadow-2xs shrink-0`}>
+                      {config.icon}
                     </div>
 
-                    {/* Title & Metadata */}
-                    <div className="w-full min-w-0 mt-3">
-                      <h3 className="text-xs sm:text-sm font-bold text-text-primary group-hover:text-accent-forest transition-colors truncate">
-                        {config.title}
-                      </h3>
-                      <span className="text-[11px] font-mono-tabular text-text-muted block truncate mt-0.5">
+                    {/* Single-word text and subtitle attached directly beside icon */}
+                    <div className="min-w-0 flex-1 text-left">
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="text-xs sm:text-sm font-bold text-text-primary group-hover:text-accent-forest transition-colors truncate">
+                          {config.title}
+                        </h3>
+                        {folder.id === 'academic' && pinnedSemesterState && (
+                          <span className="text-amber-500 inline-flex items-center" title="Current Pinned Semester">
+                            <Star size={10} className="fill-amber-500" />
+                          </span>
+                        )}
+                        {folder.id === 'personal' && (
+                          <span className="text-text-muted inline-flex items-center opacity-60" title="Private Vault">
+                            <Lock size={10} />
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] sm:text-[11px] font-mono-tabular text-text-muted block truncate mt-0.5">
                         {config.subtitle}
                       </span>
                     </div>
