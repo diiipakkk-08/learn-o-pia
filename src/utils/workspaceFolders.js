@@ -1,5 +1,6 @@
 // Unified workspace folders utility for Learnopia
 // Manages the 4 core folders: Academic, Docs, Links, Personal
+import { supabase, isSupabaseLive } from '../lib/supabaseClient';
 
 export const DEFAULT_WORKSPACE_FOLDERS = [
   {
@@ -208,13 +209,23 @@ export function getPinnedSemester(userId = 'guest') {
   }
 }
 
-export function setPinnedSemester(userId = 'guest', semId) {
+export async function setPinnedSemester(userId = 'guest', semId) {
   try {
     localStorage.setItem(`learnopia_pinned_semester_${userId}`, semId);
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('learnopia_pinned_semester_updated', {
         detail: { userId, pinnedSemester: semId }
       }));
+    }
+    if (userId && userId !== 'guest' && isSupabaseLive && supabase) {
+      try {
+        await supabase.from('profiles').update({
+          pinned_semester: semId,
+          updated_at: new Date().toISOString()
+        }).eq('id', userId);
+      } catch (dbErr) {
+        console.warn('Could not sync pinned_semester to Supabase:', dbErr);
+      }
     }
   } catch (err) {
     console.error('Failed to set pinned semester:', err);

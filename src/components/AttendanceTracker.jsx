@@ -1532,7 +1532,7 @@ export default function AttendanceTracker() {
                   style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', padding: '4px 10px', gap: '4px', borderColor: 'rgba(245,158,11,0.4)', color: '#fcd34d' }}
                 >
                   {showExtraClassForm ? <X size={12} /> : <Plus size={12} />}
-                  {showExtraClassForm ? 'Cancel' : '+ Add Extra Class'}
+                  {showExtraClassForm ? 'Cancel' : 'Add Extra Class'}
                 </button>
               </div>
 
@@ -1832,7 +1832,7 @@ export default function AttendanceTracker() {
                 style={{ padding: isMobile ? '8px 14px' : '9px 18px', fontSize: isMobile ? '0.8rem' : '0.86rem', gap: '6px' }}
               >
                 {showAddClassForm ? <X size={16} /> : <Plus size={16} />}
-                {showAddClassForm ? 'Hide Form' : '+ Add Class'}
+                {showAddClassForm ? 'Hide Form' : 'Add Class'}
               </button>
             </div>
           </div>

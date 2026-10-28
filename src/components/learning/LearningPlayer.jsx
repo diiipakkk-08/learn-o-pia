@@ -92,9 +92,19 @@ export default function LearningPlayer({
 
       // 3. Check if playlistId matches a course in courses
       if (!p) {
-        const directCourse = (courses || []).find(
-          (cr) => cr.id === playlistId || cr.title?.toLowerCase() === playlistId?.toLowerCase()
-        );
+        const targetCleanYt = extractYoutubePlaylistId(playlistId);
+        const directCourse = (courses || []).find((cr) => {
+          if (!cr) return false;
+          if (cr.id === playlistId) return true;
+          if (cr.youtubePlaylistId && cr.youtubePlaylistId === playlistId) return true;
+          if (cr.youtube_playlist_id && cr.youtube_playlist_id === playlistId) return true;
+          if (targetCleanYt) {
+            const crCleanYt = extractYoutubePlaylistId(cr.youtubePlaylistId || cr.youtube_playlist_id || cr.youtubePlaylistUrl || '');
+            if (crCleanYt && crCleanYt === targetCleanYt) return true;
+          }
+          if (cr.title && cr.title.toLowerCase() === playlistId.toLowerCase()) return true;
+          return false;
+        });
         if (directCourse) {
           const courseSub = (subjects || []).find((sub) => sub.courseId === directCourse.id);
           if (courseSub && courseSub.playlists && courseSub.playlists.length > 0) {
@@ -106,6 +116,8 @@ export default function LearningPlayer({
               directCourse.youtube_playlist_id ||
               directCourse.playlist_url ||
               directCourse.playlistUrl ||
+              directCourse.youtubePlaylistUrl ||
+              playlistId ||
               ''
             );
             p = {
@@ -203,8 +215,13 @@ export default function LearningPlayer({
   }, [cleanYtPlaylistId, foundSubject?.title, playlist?.title]);
 
   const displayCourseTitle = useMemo(() => {
-    if (resolvedPlaylistTitle) return resolvedPlaylistTitle;
-    const base = foundSubject?.title || playlist?.title || 'Course Lecture Series';
+    // If the playlist has a known, non-generic curated title, prioritize it over video title
+    const curated = playlist?.title || foundSubject?.title;
+    if (curated && curated !== 'University Lecture Series' && curated !== 'YouTube Lecture Series' && !/^(lecture|lec|video|day|part|ep|episode|class)\s*#?1[:\s-]/i.test(curated)) {
+      return cleanCourseTitle(curated);
+    }
+    if (resolvedPlaylistTitle) return cleanCourseTitle(resolvedPlaylistTitle);
+    const base = curated || 'Course Lecture Series';
     return cleanCourseTitle(base);
   }, [resolvedPlaylistTitle, foundSubject, playlist]);
 

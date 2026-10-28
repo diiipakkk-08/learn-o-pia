@@ -498,6 +498,7 @@ const mapProfile = (dbProfile) => {
     creatorStatus: dbProfile.creator_status || dbProfile.creatorStatus || null,
     enrolledCourses: dbProfile.enrolled_courses || dbProfile.enrolledCourses || [],
     enrolledPlaylists: dbProfile.enrolled_playlists || dbProfile.enrolledPlaylists || ['pl-1'],
+    pinnedSemester: dbProfile.pinned_semester || dbProfile.pinnedSemester || 'sem-1',
     folderAcademic: dbProfile.folder_academic || dbProfile.folderAcademic || null,
     folderDocument: dbProfile.folder_document || dbProfile.folderDocument || null,
     folderLinks: dbProfile.folder_links || dbProfile.folderLinks || null,
@@ -533,17 +534,6 @@ const SEED_COURSES = [
     creatorName: 'Prof. Sarah Miller',
     isDegree: true,
     bannerUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=800&auto=format&fit=crop'
-  },
-  {
-    id: 'c-3',
-    title: 'Full-Stack JavaScript Web Development',
-    department: 'Computer Science',
-    description: 'Learn MERN stack, state management, and modern server frameworks from scratch with unified subjects and zero semester partitioning.',
-    price: 499,
-    creatorId: 'u-2',
-    creatorName: 'Prof. Sarah Miller',
-    isDegree: false,
-    bannerUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=800&auto=format&fit=crop'
   }
 ];
 
@@ -660,7 +650,15 @@ export function DatabaseProvider({ children }) {
   const [courses, setCourses] = useState(() => {
     if (typeof window === 'undefined') return SEED_COURSES;
     const saved = localStorage.getItem('learnopia_courses_stable');
-    return saved ? JSON.parse(saved) : SEED_COURSES;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(c => c && c.id !== 'c-3');
+        }
+      } catch {}
+    }
+    return SEED_COURSES;
   });
   const [subjects, setSubjects] = useState(() => {
     if (typeof window === 'undefined') return SEED_SUBJECTS;
@@ -1105,6 +1103,15 @@ export function DatabaseProvider({ children }) {
           } else {
             setCurrentUser(mapped);
             localStorage.setItem('learnopia_current_user_stable', JSON.stringify(mapped));
+            const pSem = dbProfile.pinned_semester || dbProfile.pinnedSemester;
+            if (pSem) {
+              localStorage.setItem(`learnopia_pinned_semester_${mapped.id}`, pSem);
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('learnopia_pinned_semester_updated', {
+                  detail: { userId: mapped.id, pinnedSemester: pSem }
+                }));
+              }
+            }
           }
         }
       } else {
@@ -1157,13 +1164,22 @@ export function DatabaseProvider({ children }) {
         setUsers(mappedUsers);
         localStorage.setItem('learnopia_users_stable', JSON.stringify(mappedUsers));
 
-        // If current user is logged in, sync their 4 folders from profile if available
+        // If current user is logged in, sync their 4 folders and pinned semester from profile if available
         if (currentUser?.id) {
           const userProfile = profiles.find(p => p.id === currentUser.id);
           if (userProfile) {
             const remoteFolders = profilePayloadToFolders(userProfile);
             if (remoteFolders) {
               saveWorkspaceFolders(currentUser.id, remoteFolders);
+            }
+            const pSem = userProfile.pinned_semester || userProfile.pinnedSemester;
+            if (pSem) {
+              localStorage.setItem(`learnopia_pinned_semester_${currentUser.id}`, pSem);
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('learnopia_pinned_semester_updated', {
+                  detail: { userId: currentUser.id, pinnedSemester: pSem }
+                }));
+              }
             }
           }
         }
@@ -1201,12 +1217,17 @@ export function DatabaseProvider({ children }) {
           isPublic: c.is_public !== false,
           youtubePlaylistId: c.youtube_playlist_id || c.youtubePlaylistId || '',
           bannerUrl: c.banner_url || c.bannerUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=800&auto=format&fit=crop',
-          keywords: c.keywords || ''
+          keywords: c.keywords || '',
+          semester: c.semester || '',
+          subjectCode: c.subject_code || '',
+          courseCategory: c.course_category || '',
+          youtubePlaylistUrl: c.youtube_playlist_url || ''
         }));
 
         setCourses(prev => {
           const remoteIds = new Set(mappedCourses.map(c => c.id));
-          const localOnly = prev.filter(c => !remoteIds.has(c.id));
+          // Filter out legacy mock seeds (c-3, c-1, c-2) when remote courses exist
+          const localOnly = prev.filter(c => !remoteIds.has(c.id) && c.id !== 'c-3' && c.id !== 'c-1' && c.id !== 'c-2');
           const merged = [...mappedCourses, ...localOnly];
           try {
             localStorage.setItem('learnopia_courses_stable', JSON.stringify(merged));
@@ -1428,6 +1449,15 @@ export function DatabaseProvider({ children }) {
               } else {
                 setCurrentUser(mapped);
                 localStorage.setItem('learnopia_current_user_stable', JSON.stringify(mapped));
+                const pSem = dbProfile.pinned_semester || dbProfile.pinnedSemester;
+                if (pSem) {
+                  localStorage.setItem(`learnopia_pinned_semester_${mapped.id}`, pSem);
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('learnopia_pinned_semester_updated', {
+                      detail: { userId: mapped.id, pinnedSemester: pSem }
+                    }));
+                  }
+                }
               }
             }
           } catch (err) {
@@ -1690,6 +1720,15 @@ export function DatabaseProvider({ children }) {
       const mapped = mapProfile(profile);
       setCurrentUser(mapped);
       localStorage.setItem('learnopia_current_user_stable', JSON.stringify(mapped));
+      const pSem = profile.pinned_semester || profile.pinnedSemester;
+      if (pSem) {
+        localStorage.setItem(`learnopia_pinned_semester_${mapped.id}`, pSem);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('learnopia_pinned_semester_updated', {
+            detail: { userId: mapped.id, pinnedSemester: pSem }
+          }));
+        }
+      }
       addLog(`User logged in: ${mapped.name} (${mapped.role.toUpperCase()})`);
       return mapped;
     } else {
@@ -2241,7 +2280,7 @@ export function DatabaseProvider({ children }) {
 
     const updated = [...currentEnrolled, courseId];
 
-    if (isSupabaseLive) {
+    if (isSupabaseLive && currentUser.id !== 'guest' && !currentUser.isGuest) {
       await supabase
         .from('profiles')
         .update({ enrolled_courses: updated })
@@ -2250,7 +2289,11 @@ export function DatabaseProvider({ children }) {
       syncSupabase();
     } else {
       setUsers(prev => prev.map(u => u.id === currentUser.id ? { ...u, enrolledCourses: updated } : u));
-      setCurrentUser(prev => ({ ...prev, enrolledCourses: updated }));
+      setCurrentUser(prev => {
+        const next = { ...prev, enrolledCourses: updated };
+        try { localStorage.setItem('learnopia_current_user_stable', JSON.stringify(next)); } catch {}
+        return next;
+      });
       addLog(`Student enrolled in course.`);
     }
   };
@@ -2261,7 +2304,7 @@ export function DatabaseProvider({ children }) {
     const currentEnrolled = target.enrolledCourses || [];
     const updated = currentEnrolled.filter(id => id !== courseId);
 
-    if (isSupabaseLive) {
+    if (isSupabaseLive && userId !== 'guest' && target.role !== 'guest') {
       await supabase
         .from('profiles')
         .update({ enrolled_courses: updated })
@@ -2272,7 +2315,11 @@ export function DatabaseProvider({ children }) {
     } else {
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, enrolledCourses: updated } : u));
       if (currentUser && currentUser.id === userId) {
-        setCurrentUser(prev => ({ ...prev, enrolledCourses: updated }));
+        setCurrentUser(prev => {
+          const next = { ...prev, enrolledCourses: updated };
+          try { localStorage.setItem('learnopia_current_user_stable', JSON.stringify(next)); } catch {}
+          return next;
+        });
       }
       const adminName = currentUser ? `${currentUser.name} (${currentUser.email})` : 'System';
       addLog(`Enrollment of student ${target.name} (${target.email}) was REMOVED by ${adminName}`);
@@ -2286,7 +2333,7 @@ export function DatabaseProvider({ children }) {
 
     const updated = [...currentEnrolled, playlistId];
 
-    if (isSupabaseLive) {
+    if (isSupabaseLive && currentUser.id !== 'guest' && !currentUser.isGuest) {
       try {
         await supabase
           .from('profiles')
@@ -2297,7 +2344,11 @@ export function DatabaseProvider({ children }) {
       syncSupabase();
     } else {
       setUsers(prev => prev.map(u => u.id === currentUser.id ? { ...u, enrolledPlaylists: updated } : u));
-      setCurrentUser(prev => ({ ...prev, enrolledPlaylists: updated }));
+      setCurrentUser(prev => {
+        const next = { ...prev, enrolledPlaylists: updated };
+        try { localStorage.setItem('learnopia_current_user_stable', JSON.stringify(next)); } catch {}
+        return next;
+      });
       addLog(`Playlist added to My Learning.`);
     }
   };
@@ -2308,7 +2359,7 @@ export function DatabaseProvider({ children }) {
     const currentEnrolled = target.enrolledPlaylists || [];
     const updated = currentEnrolled.filter(id => id !== playlistId);
 
-    if (isSupabaseLive) {
+    if (isSupabaseLive && target.id !== 'guest' && !target.isGuest) {
       try {
         await supabase
           .from('profiles')
@@ -2320,7 +2371,11 @@ export function DatabaseProvider({ children }) {
     } else {
       setUsers(prev => prev.map(u => u.id === target.id ? { ...u, enrolledPlaylists: updated } : u));
       if (currentUser && currentUser.id === target.id) {
-        setCurrentUser(prev => ({ ...prev, enrolledPlaylists: updated }));
+        setCurrentUser(prev => {
+          const next = { ...prev, enrolledPlaylists: updated };
+          try { localStorage.setItem('learnopia_current_user_stable', JSON.stringify(next)); } catch {}
+          return next;
+        });
       }
       addLog(`Playlist removed from My Learning.`);
     }

@@ -407,11 +407,15 @@ export default function Auth({ setCurrentView }) {
 
             <button
               type="button"
-              onClick={() => setShowGuestModal(true)}
+              onClick={() => {
+                if (loginAsGuest) loginAsGuest();
+                if (setCurrentView) setCurrentView('my-learning');
+              }}
               className="w-full py-2 px-3 rounded-lg border border-dashed border-border-strong bg-surface hover:bg-surface-hover text-xs font-semibold text-text-secondary hover:text-text-primary flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs group"
+              title="Explore all features in local guest mode"
             >
               <Sparkles size={13} className="text-accent-forest group-hover:scale-110 transition-transform shrink-0" />
-              <span>Explore as Guest / Recruiter (Instant Preview)</span>
+              <span>Guest</span>
             </button>
           </div>
 

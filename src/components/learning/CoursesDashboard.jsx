@@ -271,37 +271,74 @@ function CoursesDashboardInner({
       seen.add(sub.id);
     });
 
-    // 2. Ingest standalone professional courses
+    // 2. Ingest all catalog courses and playlists from courses
     (courses || []).forEach((c) => {
-      if (!c.isDegree && !seen.has(c.id)) {
-        const isEnrolled = (currentUser?.enrolledCourses || []).includes(c.id);
-        const baseLikes = 0; // Strictly 0!
+      if (!c || seen.has(c.id)) return;
+      const isPublic = c.isPublic !== false && c.is_public !== false;
+      if (!isPublic && !isAdmin) return;
 
-        list.push({
-          id: c.id,
-          subjectId: c.id,
-          playlistId: c.youtubePlaylistId || c.id,
-          title: cleanCourseTitle(c.title),
-          description: c.description || 'Comprehensive university subject course.',
-          category: c.department || 'Computer Science',
-          department: c.department || 'Computer Science',
-          author: c.author || c.creatorName || 'Instructor',
-          lectureCount: 24,
-          thumbnailUrl:
-            c.bannerUrl ||
-            getCuratedCourseThumbnail(c.title, c.department),
-          isEnrolled,
-          semester: null,
-          baseLikes,
-          keywords: [
-            'makaut', 'course', 'certification', 'programming',
-            c.title.toLowerCase(),
-            (c.department || '').toLowerCase(),
-            (c.creatorName || '').toLowerCase(),
-            ...(Array.isArray(c.keywords) ? c.keywords : (c.keywords ? String(c.keywords).split(',').map(s => s.trim().toLowerCase()) : []))
-          ].filter(Boolean)
-        });
-      }
+      // Skip container-only degree shells that have no playlist, no URL, and no videos
+      const hasContent = Boolean(
+        c.youtubePlaylistId ||
+        c.youtube_playlist_id ||
+        c.youtubePlaylistUrl ||
+        c.youtube_playlist_url ||
+        c.playlistUrl ||
+        c.playlist_url ||
+        (Array.isArray(c.videos) && c.videos.length > 0) ||
+        !c.isDegree
+      );
+      if (!hasContent) return;
+
+      seen.add(c.id);
+      const isEnrolled = (currentUser?.enrolledCourses || []).includes(c.id);
+      const baseLikes = 0; // Strictly 0!
+
+      // Resolve semester number
+      const semMatch = String(c.semester || c.department || c.title || '').match(/Semester\s*(\d+)|Sem\s*(\d+)/i);
+      const semNum = semMatch ? parseInt(semMatch[1] || semMatch[2], 10) : (c.semester ? parseInt(c.semester, 10) : null);
+
+      // Extract lecture count if present in description or title
+      const lecMatch = String(c.description || c.title || '').match(/(\d+)\s*lectures?/i);
+      const lectureCount = lecMatch ? parseInt(lecMatch[1], 10) : 24;
+
+      const rawPlaylistId = c.youtubePlaylistId || c.youtube_playlist_id || c.id;
+
+      const thumb =
+        c.bannerUrl ||
+        c.banner_url ||
+        (c.youtubePlaylistId ? `https://i.ytimg.com/vi/${c.youtubePlaylistId}/hqdefault.jpg` : null) ||
+        getCuratedCourseThumbnail(c.title, c.department);
+
+      const rawKw = Array.isArray(c.keywords) ? c.keywords : (c.keywords ? String(c.keywords).split(',').map(s => s.trim().toLowerCase()) : []);
+      const kwList = [
+        'makaut', 'wbut', 'btech', 'engineering',
+        c.title.toLowerCase(),
+        (c.department || '').toLowerCase(),
+        (c.author || c.creatorName || '').toLowerCase(),
+        semNum ? `semester ${semNum}` : '',
+        semNum ? `sem ${semNum}` : '',
+        c.subjectCode ? String(c.subjectCode).toLowerCase() : '',
+        c.courseCategory ? String(c.courseCategory).toLowerCase() : '',
+        ...rawKw
+      ].filter(Boolean);
+
+      list.push({
+        id: c.id,
+        subjectId: c.id,
+        playlistId: rawPlaylistId,
+        title: cleanCourseTitle(c.title),
+        description: c.description || 'Comprehensive university subject course.',
+        category: c.department || (semNum ? `Semester ${semNum}` : 'Core Engineering'),
+        department: c.department || (semNum ? `CSE & IT (Semester ${semNum})` : 'Engineering Core'),
+        author: c.author || c.creatorName || 'Faculty Instructor',
+        lectureCount,
+        thumbnailUrl: thumb,
+        isEnrolled,
+        semester: semNum,
+        baseLikes,
+        keywords: kwList
+      });
     });
 
     return list;
@@ -344,25 +381,54 @@ function CoursesDashboardInner({
       if (selectedCategory === 'enrolled') {
         return course.isEnrolled;
       }
+      if (selectedCategory.startsWith('sem-')) {
+        const semNum = parseInt(selectedCategory.replace('sem-', ''), 10);
+        return (
+          course.semester === semNum ||
+          (course.category && course.category.toLowerCase().includes(`semester ${semNum}`)) ||
+          (course.department && course.department.toLowerCase().includes(`semester ${semNum}`)) ||
+          (course.title && (course.title.toLowerCase().includes(`sem ${semNum}`) || course.title.toLowerCase().includes(`sem-${semNum}`) || course.title.toLowerCase().includes(`semester ${semNum}`))) ||
+          (course.keywords || []).some(k => k.includes(`sem ${semNum}`) || k.includes(`semester ${semNum}`) || k.includes(`sem${semNum}`))
+        );
+      }
+      if (selectedCategory === 'labs') {
+        return (
+          course.title.toLowerCase().includes('lab') ||
+          course.title.toLowerCase().includes('practical') ||
+          course.category.toLowerCase().includes('lab') ||
+          (course.keywords || []).some(k => k.includes('lab') || k.includes('practical'))
+        );
+      }
       if (selectedCategory === 'cs') {
         return (
-          course.department.toLowerCase().includes('computer') ||
-          course.category.toLowerCase().includes('computer') ||
+          (course.department && (course.department.toLowerCase().includes('computer') || course.department.toLowerCase().includes('cse') || course.department.toLowerCase().includes('it'))) ||
+          (course.category && (course.category.toLowerCase().includes('computer') || course.category.toLowerCase().includes('cse') || course.category.toLowerCase().includes('it'))) ||
           course.title.toLowerCase().includes('data') ||
           course.title.toLowerCase().includes('algorithm') ||
-          course.title.toLowerCase().includes('programming')
+          course.title.toLowerCase().includes('programming') ||
+          course.title.toLowerCase().includes('java') ||
+          course.title.toLowerCase().includes('c++') ||
+          course.title.toLowerCase().includes('python') ||
+          course.title.toLowerCase().includes('web')
         );
       }
       if (selectedCategory === 'math-physics') {
         return (
-          course.department.toLowerCase().includes('physics') ||
-          course.department.toLowerCase().includes('math') ||
+          (course.department && (course.department.toLowerCase().includes('physics') || course.department.toLowerCase().includes('math'))) ||
           course.title.toLowerCase().includes('physics') ||
-          course.title.toLowerCase().includes('mathematics')
+          course.title.toLowerCase().includes('mathematics') ||
+          course.title.toLowerCase().includes('calculus') ||
+          course.title.toLowerCase().includes('algebra')
         );
       }
       if (selectedCategory === 'core') {
-        return course.department.toLowerCase().includes('engineering') || course.category.toLowerCase().includes('semester');
+        return (
+          (course.department && course.department.toLowerCase().includes('engineering')) ||
+          (course.category && course.category.toLowerCase().includes('semester')) ||
+          course.title.toLowerCase().includes('electrical') ||
+          course.title.toLowerCase().includes('electronics') ||
+          course.title.toLowerCase().includes('mechanical')
+        );
       }
 
       return true;
@@ -505,9 +571,18 @@ function CoursesDashboardInner({
   const CATEGORIES = [
     { id: 'all', label: `All Courses (${allSubjectCourses.length})` },
     { id: 'enrolled', label: `Enrolled (${enrolledCoursesList.length})` },
-    { id: 'cs', label: 'Computer Science' },
+    { id: 'sem-1', label: 'Semester 1' },
+    { id: 'sem-2', label: 'Semester 2' },
+    { id: 'sem-3', label: 'Semester 3' },
+    { id: 'sem-4', label: 'Semester 4' },
+    { id: 'sem-5', label: 'Semester 5' },
+    { id: 'sem-6', label: 'Semester 6' },
+    { id: 'sem-7', label: 'Semester 7' },
+    { id: 'sem-8', label: 'Semester 8' },
+    { id: 'cs', label: 'Computer Science & IT' },
     { id: 'math-physics', label: 'Physics & Math' },
-    { id: 'core', label: 'Engineering Core' }
+    { id: 'core', label: 'Engineering Core' },
+    { id: 'labs', label: 'Practical & Labs' }
   ];
 
   return (
@@ -675,7 +750,7 @@ function CoursesDashboardInner({
 
           {/* Filter Popover Dropdown */}
           {showFilterMenu && (
-            <div className="absolute right-0 mt-2 w-52 rounded-xl border border-border-strong bg-surface p-2 shadow-modal z-30 space-y-1 animate-fade-in">
+            <div className="absolute right-0 mt-2 w-56 max-h-80 overflow-y-auto rounded-xl border border-border-strong bg-surface p-2 shadow-modal z-30 space-y-1 animate-fade-in">
               <div className="px-2.5 py-1 text-[10px] font-mono-tabular font-bold uppercase tracking-wider text-text-muted">
                 Filter by Category
               </div>
