@@ -28,7 +28,7 @@ export function AcademicSticker({ type = 'verified', label, className = '', styl
   if (type === 'verified') {
     return (
       <div
-        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono-tabular font-bold uppercase tracking-wider select-none shadow-xs transform hover:scale-105 transition-transform ${className}`}
+        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-mono-tabular font-bold uppercase tracking-wider select-none shadow-xs transform hover:scale-105 transition-transform ${className}`}
         style={{
           background: '#FEF3C7',
           color: '#92400E',
@@ -64,7 +64,7 @@ export function AcademicSticker({ type = 'verified', label, className = '', styl
   if (type === 'attendance') {
     return (
       <div
-        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono-tabular font-bold uppercase tracking-wider select-none shadow-xs transform hover:scale-105 transition-transform ${className}`}
+        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-mono-tabular font-bold uppercase tracking-wider select-none shadow-xs transform hover:scale-105 transition-transform ${className}`}
         style={{
           background: '#E0E7FF',
           color: '#3730A3',

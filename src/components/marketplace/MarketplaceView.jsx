@@ -279,7 +279,7 @@ export default function MarketplaceView({ setCurrentView }) {
             return (
               <div
                 key={item.id}
-                className="rounded-2xl border border-border-subtle bg-surface hover:border-border-strong hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group"
+                className="rounded-xl border border-border-subtle bg-surface hover:border-border-strong hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group"
               >
                 <div>
                   {/* Card Image Header (if provided) or Category Hero Banner */}
@@ -392,7 +392,7 @@ export default function MarketplaceView({ setCurrentView }) {
           })}
         </div>
       ) : (
-        <div className="text-center py-16 p-8 rounded-2xl border border-border-subtle bg-surface space-y-3">
+        <div className="text-center py-16 p-8 rounded-xl border border-border-subtle bg-surface space-y-3">
           <ShoppingBag size={36} className="text-text-muted mx-auto" />
           <h3 className="text-base font-bold text-text-primary">No marketplace listings match your filter</h3>
           <p className="text-xs text-text-secondary max-w-sm mx-auto">
@@ -405,7 +405,7 @@ export default function MarketplaceView({ setCurrentView }) {
                 setSelectedCategory('all');
                 if (setGlobalSearchQuery) setGlobalSearchQuery('');
               }}
-              className="px-4 py-2 rounded-xl text-xs font-semibold border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary cursor-pointer"
+              className="px-4 py-2 rounded-md text-xs font-semibold border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary cursor-pointer"
             >
               Reset Filters
             </button>
@@ -423,7 +423,7 @@ export default function MarketplaceView({ setCurrentView }) {
             onClick={() => setActiveBuyItem(null)}
           >
             <div
-              className="w-full max-w-md max-h-[90vh] bg-surface border border-border-strong rounded-2xl shadow-2xl p-5 sm:p-6 relative mb-8 overflow-y-auto space-y-4"
+              className="w-full max-w-md max-h-[90vh] bg-surface border border-border-strong rounded-xl shadow-2xl p-5 sm:p-6 relative mb-8 overflow-y-auto space-y-4"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between pb-3 border-b border-border-subtle">

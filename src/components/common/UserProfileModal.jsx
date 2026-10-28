@@ -84,7 +84,7 @@ export default function UserProfileModal({ user, onClose }) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-xl max-h-[92vh] overflow-y-auto bg-surface border border-border-subtle rounded-2xl shadow-modal text-text-primary my-auto relative space-y-5 p-5 sm:p-7"
+        className="w-full max-w-xl max-h-[92vh] overflow-y-auto bg-surface border border-border-subtle rounded-xl shadow-modal text-text-primary my-auto relative space-y-5 p-5 sm:p-7"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Floating Close Button */}
@@ -125,7 +125,7 @@ export default function UserProfileModal({ user, onClose }) {
 
               {/* Verification Badge */}
               {activeUser.isVerified ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-accent-forest-bg text-accent-forest border border-border-pill-safe">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-accent-forest-bg text-accent-forest border border-border-pill-safe">
                   <CheckCircle2 size={12} />
                   <span>
                     {activeUser.verificationType === 'professor'
@@ -136,28 +136,28 @@ export default function UserProfileModal({ user, onClose }) {
                   </span>
                 </span>
               ) : activeUser.verificationStatus === 'pending' ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-accent-amber-bg text-accent-amber border border-border-pill-alert">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-accent-amber-bg text-accent-amber border border-border-pill-alert">
                   <Clock size={12} />
                   <span>ID Verification Pending</span>
                 </span>
               ) : activeUser.verificationStatus === 'rejected' ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-accent-danger-bg text-accent-danger border border-border-pill-danger">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-accent-danger-bg text-accent-danger border border-border-pill-danger">
                   <XCircle size={12} />
                   <span>Verification Rejected</span>
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-subtle text-text-muted border border-border-subtle">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-subtle text-text-muted border border-border-subtle">
                   Unverified Account
                 </span>
               )}
 
               {/* Status Badge */}
               {activeUser.status === 'suspended' ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-accent-danger-bg text-accent-danger border border-border-pill-danger">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-accent-danger-bg text-accent-danger border border-border-pill-danger">
                   Suspended
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-subtle text-text-secondary border border-border-subtle">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-subtle text-text-secondary border border-border-subtle">
                   Active
                 </span>
               )}
@@ -294,7 +294,7 @@ export default function UserProfileModal({ user, onClose }) {
                 <ShoppingBag size={14} className="text-accent-forest" />
                 <span>Active Marketplace Listings</span>
               </div>
-              <span className="text-[10px] font-mono-tabular font-bold px-2 py-0.5 rounded-full bg-subtle text-text-secondary">
+              <span className="text-[10px] font-mono-tabular font-bold px-2 py-0.5 rounded-md bg-subtle text-text-secondary border border-border-subtle">
                 {sellerListings.length} {sellerListings.length === 1 ? 'item' : 'items'}
               </span>
             </div>

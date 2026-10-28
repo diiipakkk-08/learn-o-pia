@@ -88,7 +88,7 @@ export default function BroadcastToast() {
       role="alert"
       onMouseEnter={() => { isPausedRef.current = true; }}
       onMouseLeave={() => { isPausedRef.current = false; }}
-      className="fixed top-4 right-4 sm:top-5 sm:right-6 z-[99999] max-w-sm sm:max-w-md w-[92%] sm:w-full rounded-2xl border border-border-strong bg-surface text-text-primary p-4 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-auto"
+      className="fixed top-4 right-4 sm:top-5 sm:right-6 z-[99999] max-w-sm sm:max-w-md w-[92%] sm:w-full rounded-xl border border-border-strong bg-surface text-text-primary p-4 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-4 duration-300 pointer-events-auto"
       style={{
         boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.08)'
       }}

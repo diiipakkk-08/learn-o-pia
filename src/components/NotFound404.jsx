@@ -17,13 +17,9 @@ export default function NotFound404({ setCurrentView }) {
 
   return (
     <div className="min-h-[85vh] bg-canvas text-text-primary flex flex-col items-center justify-center p-4 sm:p-6 text-center animate-fade-in">
-      <div className="w-full max-w-lg rounded-2xl border border-border-subtle bg-surface p-8 sm:p-10 shadow-modal space-y-6 relative overflow-hidden">
-        {/* Subtle decorative background glow */}
-        <div className="absolute -top-12 -right-12 w-36 h-36 bg-accent-forest/5 rounded-full blur-2xl pointer-events-none" />
-        <div className="absolute -bottom-12 -left-12 w-36 h-36 bg-accent-amber/5 rounded-full blur-2xl pointer-events-none" />
-
+      <div className="w-full max-w-lg rounded-xl border border-border-subtle bg-surface p-8 sm:p-10 shadow-sm space-y-6 relative overflow-hidden">
         {/* Status Tag */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border-subtle bg-canvas text-[11px] font-mono-tabular font-bold uppercase tracking-wider text-text-muted">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md border border-border-subtle bg-canvas text-[11px] font-mono-tabular font-bold uppercase tracking-wider text-text-muted">
           <Compass size={13} className="text-accent-forest" />
           <span>404 • UNRESOLVED ACADEMIC ROUTE</span>
         </div>
@@ -45,7 +41,7 @@ export default function NotFound404({ setCurrentView }) {
         <div className="pt-2">
           <button
             onClick={() => navigate('my-learning')}
-            className="w-full py-3 px-5 rounded-xl text-xs sm:text-sm font-semibold bg-accent-ink text-text-on-dark flex items-center justify-center gap-2.5 hover:opacity-95 shadow-sm transition-opacity cursor-pointer"
+            className="w-full py-2.5 px-5 rounded-md text-xs sm:text-sm font-semibold bg-accent-ink text-text-on-dark flex items-center justify-center gap-2.5 hover:opacity-95 shadow-xs transition-opacity cursor-pointer"
           >
             <ArrowLeft size={15} />
             <span>Return to Academic Dashboard</span>

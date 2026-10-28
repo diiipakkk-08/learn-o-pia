@@ -319,7 +319,7 @@ export default function Profile({ setCurrentView, setSelectedPlaylistId }) {
           onClick={() => setShowInstallModal(false)}
         >
           <div
-            className="w-full max-w-md rounded-2xl border border-border-subtle bg-surface p-6 space-y-4 shadow-modal text-left"
+            className="w-full max-w-md rounded-xl border border-border-subtle bg-surface p-6 space-y-4 shadow-modal text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-3 border-b border-border-subtle">

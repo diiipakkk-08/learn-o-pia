@@ -9,7 +9,7 @@ import { Wrench, RefreshCw } from 'lucide-react';
 export default function Maintenance404({ onRefresh, onAdminClick }) {
   return (
     <div className="min-h-screen bg-canvas text-text-primary flex flex-col items-center justify-center p-6 text-center">
-      <div className="w-full max-w-lg rounded-2xl border border-border-subtle bg-surface p-8 sm:p-10 shadow-modal space-y-6">
+      <div className="w-full max-w-lg rounded-xl border border-border-subtle bg-surface p-8 sm:p-10 shadow-modal space-y-6">
         <div className="w-12 h-12 rounded-xl border border-border-strong bg-[#EFECE6] flex items-center justify-center mx-auto text-accent-amber">
           <Wrench size={24} />
         </div>

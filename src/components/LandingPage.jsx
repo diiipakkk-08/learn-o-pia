@@ -164,7 +164,7 @@ export default function LandingPage({
 
         {/* Top Spacer Badge with Logo */}
         <div className="w-full flex justify-center pt-2 relative z-10">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border-subtle bg-surface text-text-primary text-xs font-mono-tabular shadow-xs">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md border border-border-subtle bg-surface text-text-primary text-xs font-mono-tabular shadow-2xs">
             <img
               src={cinemaMode ? '/learnopia-logo-dark-on.svg' : '/learnopia-logo-light-off.svg'}
               alt="Logo"
@@ -189,14 +189,14 @@ export default function LandingPage({
           <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 pt-2 sm:pt-3">
             <button
               onClick={enterApp}
-              className="px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-semibold bg-accent-ink text-text-on-dark inline-flex items-center gap-2 shadow-sm transition-all hover:opacity-95 active:scale-[0.98] cursor-pointer"
+              className="px-4 sm:px-6 py-2.5 sm:py-3 rounded-md text-xs sm:text-sm font-semibold bg-accent-ink text-text-on-dark inline-flex items-center gap-2 shadow-xs transition-all hover:opacity-95 active:scale-[0.98] cursor-pointer"
             >
               <span>Start Learning Now</span>
               <ArrowRight size={15} />
             </button>
             <button
               onClick={browseCourses}
-              className="px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-semibold border border-border-strong bg-surface hover:bg-surface-hover text-text-primary transition-colors cursor-pointer shadow-xs"
+              className="px-4 sm:px-5 py-2.5 sm:py-3 rounded-md text-xs sm:text-sm font-semibold border border-border-strong bg-surface hover:bg-surface-hover text-text-primary transition-colors cursor-pointer shadow-xs"
             >
               Explore Catalog
             </button>
@@ -228,7 +228,7 @@ export default function LandingPage({
           </div>
 
           {/* Interactive Frame */}
-          <div className="rounded-2xl border border-border-subtle bg-surface shadow-modal overflow-hidden">
+          <div className="rounded-xl border border-border-subtle bg-surface shadow-sm overflow-hidden">
             {/* Simulated Browser Chrome / Tab Switcher */}
             <div className="px-4 py-2.5 bg-subtle border-b border-border-subtle flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-1.5">
@@ -476,8 +476,8 @@ export default function LandingPage({
 
           {/* 3 Pillars */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div className="p-5 sm:p-6 rounded-2xl border border-border-subtle bg-surface space-y-3 shadow-xs hover:border-border-strong transition-all">
-              <div className="w-9 h-9 rounded-xl bg-subtle flex items-center justify-center text-text-primary">
+            <div className="p-5 sm:p-6 rounded-xl border border-border-subtle bg-surface space-y-3 shadow-xs hover:border-border-strong transition-all">
+              <div className="w-9 h-9 rounded-lg bg-subtle flex items-center justify-center text-text-primary">
                 <Play size={16} />
               </div>
               <h3 className="text-sm sm:text-base font-bold text-text-primary">Distraction-Free Video IDE</h3>
@@ -486,8 +486,8 @@ export default function LandingPage({
               </p>
             </div>
 
-            <div className="p-5 sm:p-6 rounded-2xl border border-border-subtle bg-surface space-y-3 shadow-xs hover:border-border-strong transition-all">
-              <div className="w-9 h-9 rounded-xl bg-subtle flex items-center justify-center text-accent-forest">
+            <div className="p-5 sm:p-6 rounded-xl border border-border-subtle bg-surface space-y-3 shadow-xs hover:border-border-strong transition-all">
+              <div className="w-9 h-9 rounded-lg bg-subtle flex items-center justify-center text-accent-forest">
                 <Calendar size={16} />
               </div>
               <h3 className="text-sm sm:text-base font-bold text-text-primary">Predictive Attendance Ledger</h3>
@@ -496,8 +496,8 @@ export default function LandingPage({
               </p>
             </div>
 
-            <div className="p-5 sm:p-6 rounded-2xl border border-border-subtle bg-surface space-y-3 shadow-xs hover:border-border-strong transition-all">
-              <div className="w-9 h-9 rounded-xl bg-subtle flex items-center justify-center text-text-primary">
+            <div className="p-5 sm:p-6 rounded-xl border border-border-subtle bg-surface space-y-3 shadow-xs hover:border-border-strong transition-all">
+              <div className="w-9 h-9 rounded-lg bg-subtle flex items-center justify-center text-text-primary">
                 <ShieldCheck size={16} />
               </div>
               <h3 className="text-base font-bold text-text-primary">Community-Backed & 100% Free</h3>
@@ -508,7 +508,7 @@ export default function LandingPage({
           </div>
 
           {/* Bottom Call to Action Card */}
-          <div className="p-5 sm:p-10 rounded-2xl border border-border-subtle bg-surface text-center space-y-3 shadow-sm">
+          <div className="p-5 sm:p-10 rounded-xl border border-border-subtle bg-surface text-center space-y-3 shadow-sm">
             <h3 className="font-editorial text-lg sm:text-2xl md:text-3xl font-bold text-text-primary leading-snug">
               Ready to take control of your academic semester?
             </h3>
@@ -518,14 +518,14 @@ export default function LandingPage({
             <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
               <button
                 onClick={enterApp}
-                className="px-6 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-accent-ink text-text-on-dark inline-flex items-center gap-2 hover:opacity-95 cursor-pointer shadow-xs"
+                className="px-6 py-2.5 rounded-md text-xs sm:text-sm font-semibold bg-accent-ink text-text-on-dark inline-flex items-center gap-2 hover:opacity-95 cursor-pointer shadow-xs"
               >
                 <span>Enter Workspace — Free</span>
                 <ArrowRight size={14} />
               </button>
               <button
                 onClick={openAuth}
-                className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-border-strong bg-surface hover:bg-surface-hover text-text-primary cursor-pointer shadow-xs"
+                className="px-5 py-2.5 rounded-md text-xs sm:text-sm font-semibold border border-border-strong bg-surface hover:bg-surface-hover text-text-primary cursor-pointer shadow-xs"
               >
                 Sign In to Account
               </button>

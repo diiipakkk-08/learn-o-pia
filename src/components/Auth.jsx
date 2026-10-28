@@ -278,7 +278,7 @@ export default function Auth({ setCurrentView }) {
       {(error || success) && (
         <div
           role="alert"
-          className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] max-w-lg w-[92%] sm:w-auto px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-md flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 border transition-all pointer-events-auto ${
+          className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] max-w-lg w-[92%] sm:w-auto px-4 py-3 rounded-xl shadow-2xl backdrop-blur-md flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 border transition-all pointer-events-auto ${
             error
               ? 'bg-red-50/95 dark:bg-[#251010]/95 border-red-300 dark:border-red-900/60 text-red-900 dark:text-red-200 shadow-red-500/10'
               : 'bg-emerald-50/95 dark:bg-[#0c2214]/95 border-emerald-300 dark:border-emerald-900/60 text-emerald-900 dark:text-emerald-200 shadow-emerald-500/10'
@@ -571,11 +571,6 @@ export default function Auth({ setCurrentView }) {
       <div className={`hidden lg:flex flex-1 ${
         isDark ? 'bg-black text-text-primary border-border-subtle' : 'bg-[#ECE7DC] text-[#2C261E] border-[#DCD5C5]'
       } h-full overflow-hidden flex-col justify-center items-center p-8 xl:p-14 relative select-none border-l`}>
-        {/* Subtle warm ambient lighting */}
-        <div className={`absolute top-1/4 left-1/4 w-96 h-96 ${
-          isDark ? 'bg-yellow-400/10' : 'bg-amber-100/50'
-        } rounded-full blur-3xl pointer-events-none`} />
-
         {/* Clean Lined Notebook Copy-Page */}
         <div
           className={`w-full max-w-lg rounded-xl overflow-hidden relative shadow-xl border ${
@@ -642,7 +637,7 @@ export default function Auth({ setCurrentView }) {
           }}
           className="fixed inset-0 z-50 flex items-start justify-center pt-8 sm:pt-12 p-4 overflow-y-auto bg-black/60 animate-fade-in"
         >
-          <div className="w-full max-w-md mb-8 rounded-2xl border border-border-subtle bg-surface p-6 sm:p-8 shadow-modal space-y-4">
+          <div className="w-full max-w-md mb-8 rounded-xl border border-border-subtle bg-surface p-6 sm:p-8 shadow-modal space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
               <div>
                 <span className="font-editorial text-2xl font-bold tracking-tight block">
@@ -749,7 +744,7 @@ export default function Auth({ setCurrentView }) {
       {/* Guest / Recruiter Mode Confirmation Modal */}
       {showGuestModal && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center pt-8 sm:pt-14 p-4 animate-fade-in">
-          <div className="w-full max-w-md rounded-2xl border border-border-strong bg-surface p-6 shadow-modal space-y-4">
+          <div className="w-full max-w-md rounded-xl border border-border-strong bg-surface p-6 shadow-modal space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-accent-forest/10 text-accent-forest flex items-center justify-center shrink-0">

@@ -375,7 +375,7 @@ export default function OnboardingModal({ user, onComplete, cinemaMode, onToggle
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-6">
         {/* Welcome Headline */}
         <div className="text-left space-y-1">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-accent-forest/15 text-accent-forest border border-accent-forest/20">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-accent-forest/15 text-accent-forest border border-accent-forest/20">
             <Sparkles size={12} />
             <span>Official Workspace Onboarding</span>
           </div>
@@ -444,7 +444,7 @@ export default function OnboardingModal({ user, onComplete, cinemaMode, onToggle
 
         {/* ── STEP 1: PERSONAL INFORMATION ─────────────────────────────── */}
         {step === 1 && (
-          <form onSubmit={handleStep1Next} className="bg-surface border border-border-subtle rounded-2xl p-6 sm:p-8 space-y-5 text-left shadow-xs">
+          <form onSubmit={handleStep1Next} className="bg-surface border border-border-subtle rounded-xl p-6 sm:p-8 space-y-5 text-left shadow-xs">
             <div className="border-b border-border-subtle pb-3">
               <h3 className="text-base font-bold text-text-primary">Personal Information</h3>
               <p className="text-xs text-text-muted">All fields are mandatory to secure and verify your student account.</p>
@@ -556,7 +556,7 @@ export default function OnboardingModal({ user, onComplete, cinemaMode, onToggle
 
         {/* ── STEP 2: ACADEMIC & QUALIFICATION ─────────────────────────── */}
         {step === 2 && (
-          <form onSubmit={handleSubmit} className="bg-surface border border-border-subtle rounded-2xl p-6 sm:p-8 space-y-5 text-left shadow-xs">
+          <form onSubmit={handleSubmit} className="bg-surface border border-border-subtle rounded-xl p-6 sm:p-8 space-y-5 text-left shadow-xs">
             <div className="border-b border-border-subtle pb-3">
               <h3 className="text-base font-bold text-text-primary">Academic Qualifications</h3>
               <p className="text-xs text-text-muted">Select your highest qualification to configure relevant subjects and semester organizers.</p>

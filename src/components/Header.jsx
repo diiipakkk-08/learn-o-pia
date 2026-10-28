@@ -227,7 +227,7 @@ export default function Header({
         {setCinemaMode && (
           <button
             onClick={() => setCinemaMode(!cinemaMode)}
-            className="p-2 rounded-full hover:bg-surface-hover text-text-primary transition-colors cursor-pointer"
+            className="p-2 rounded-lg hover:bg-surface-hover text-text-primary transition-colors cursor-pointer"
             title={cinemaMode ? 'Switch to Light Mode' : 'Switch to Dim Mode'}
             aria-label="Toggle theme mode"
           >
@@ -247,7 +247,7 @@ export default function Header({
                 setShowAnnouncementsDropdown(!showAnnouncementsDropdown);
                 if (markAnnouncementsRead) markAnnouncementsRead();
               }}
-              className="relative p-2 rounded-full hover:bg-surface-hover text-text-primary transition-colors cursor-pointer"
+              className="relative p-2 rounded-lg hover:bg-surface-hover text-text-primary transition-colors cursor-pointer"
               title="Academic Notices & Updates"
               aria-label="Announcements"
             >

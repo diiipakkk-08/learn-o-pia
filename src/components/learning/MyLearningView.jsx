@@ -961,7 +961,7 @@ export default function MyLearningView({
                             {sf.title}
                           </h4>
                           {isPinned && (
-                            <span className="shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-0.5">
+                            <span className="shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-0.5">
                               <Star size={8} className="fill-amber-500" /> Current
                             </span>
                           )}
@@ -1088,8 +1088,8 @@ export default function MyLearningView({
 
           {/* Section 3: Clean Empty State (When both empty) */}
           {filteredSubfolders.length === 0 && filteredItems.length === 0 && (
-            <div className="rounded-2xl border-2 border-dashed border-border-strong bg-surface/50 p-8 sm:p-12 text-center space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-subtle flex items-center justify-center text-text-muted mx-auto border border-border-subtle">
+            <div className="rounded-xl border border-dashed border-border-strong bg-surface/50 p-8 sm:p-12 text-center space-y-4">
+              <div className="w-12 h-12 rounded-lg bg-subtle flex items-center justify-center text-text-muted mx-auto border border-border-subtle">
                 <FolderOpen size={24} />
               </div>
               <div className="max-w-md mx-auto space-y-1">
@@ -1226,6 +1226,17 @@ export default function MyLearningView({
                         <Lock size={18} />
                       );
 
+                    const itemCountText =
+                      folder.id === 'academic'
+                        ? pinnedSemesterState
+                          ? `Sem ${pinnedSemesterState.replace('sem-', '')} (Pinned)`
+                          : `${folder.subfolders?.length || 0} Semesters`
+                        : folder.id === 'document'
+                        ? `${(folder.subfolders?.length || 0) + (folder.items?.length || 0)} resources`
+                        : folder.id === 'links'
+                        ? `${folder.items?.length || 0} links`
+                        : `${folder.items?.length || 0} items`;
+
                     return (
                       <div
                         key={folder.id}
@@ -1233,14 +1244,19 @@ export default function MyLearningView({
                           setActiveRootFolderId(folder.id);
                           setSubfolderPath([]);
                         }}
-                        className="p-3.5 sm:p-4 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover/80 hover:border-border-strong transition-all cursor-pointer flex flex-col items-center justify-center text-center gap-2.5 group shadow-xs active:scale-[0.98]"
+                        className="p-3.5 sm:p-4 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover/80 hover:border-border-strong transition-all cursor-pointer flex flex-col items-center justify-center text-center gap-2 group shadow-xs active:scale-[0.98]"
                       >
-                        <div className="w-10 h-10 rounded-xl bg-subtle flex items-center justify-center text-text-primary group-hover:bg-accent-ink group-hover:text-text-on-dark transition-colors shadow-2xs">
+                        <div className="w-10 h-10 rounded-lg bg-subtle flex items-center justify-center text-text-primary group-hover:bg-accent-ink group-hover:text-text-on-dark transition-colors shadow-2xs">
                           {icon}
                         </div>
-                        <h3 className="text-xs sm:text-sm font-bold text-text-primary group-hover:text-accent-forest transition-colors truncate w-full">
-                          {folder.id === 'document' ? 'Docs' : folder.id === 'links' ? 'Links' : folder.title}
-                        </h3>
+                        <div className="w-full min-w-0">
+                          <h3 className="text-xs sm:text-sm font-bold text-text-primary group-hover:text-accent-forest transition-colors truncate w-full">
+                            {folder.id === 'document' ? 'Docs' : folder.id === 'links' ? 'Links' : folder.title}
+                          </h3>
+                          <span className="text-[10px] font-mono-tabular text-text-muted block truncate mt-0.5">
+                            {itemCountText}
+                          </span>
+                        </div>
                       </div>
                     );
                   })}
@@ -1346,7 +1362,7 @@ export default function MyLearningView({
                   </div>
                 ) : (
                   <div className="flex-1 flex flex-col items-center justify-center py-10 text-center text-xs text-text-muted">
-                    <div className="w-11 h-11 rounded-2xl bg-surface-sunken border border-border-subtle flex items-center justify-center text-text-muted mb-3 shadow-2xs">
+                    <div className="w-11 h-11 rounded-lg bg-surface-sunken border border-border-subtle flex items-center justify-center text-text-muted mb-3 shadow-2xs">
                       <Clock size={20} />
                     </div>
                     <p className="font-bold text-text-primary text-sm">No classes scheduled today</p>
@@ -1355,7 +1371,7 @@ export default function MyLearningView({
                     </p>
                     <button
                       onClick={() => setCurrentView('attendance')}
-                      className="mt-4 px-3.5 py-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold text-text-primary hover:text-accent-forest cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs"
+                      className="mt-4 px-3.5 py-1.5 rounded-md border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold text-text-primary hover:text-accent-forest cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs"
                     >
                       <span>Configure Routine</span>
                       <ArrowRight size={12} />

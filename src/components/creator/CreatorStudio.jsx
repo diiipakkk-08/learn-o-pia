@@ -152,7 +152,7 @@ class StudioErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="w-full max-w-4xl mx-auto p-8 my-10 rounded-2xl border border-border-subtle bg-surface text-center space-y-4 shadow-sm animate-fade-in">
+        <div className="w-full max-w-4xl mx-auto p-8 my-10 rounded-xl border border-border-subtle bg-surface text-center space-y-4 shadow-sm animate-fade-in">
           <div className="w-12 h-12 rounded-full bg-accent-forest/10 text-accent-forest flex items-center justify-center mx-auto font-bold">
             <Sparkles size={24} />
           </div>
@@ -590,7 +590,7 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
       ================================================================= */}
       {activeTab === 'courses' && (
         showCourseModal ? (
-          <div className="rounded-2xl border border-border-subtle bg-surface p-6 space-y-5 animate-fade-in max-w-3xl">
+          <div className="rounded-xl border border-border-subtle bg-surface p-6 space-y-5 animate-fade-in max-w-3xl">
             <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
               <button
                 type="button"
@@ -816,7 +816,7 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
           </div>
 
           {allStudioCourses.length === 0 ? (
-            <div className="text-center py-16 p-8 rounded-2xl border border-border-subtle bg-surface space-y-3">
+            <div className="text-center py-16 p-8 rounded-xl border border-border-subtle bg-surface space-y-3">
               <Video size={36} className="text-text-muted mx-auto" />
               <h4 className="text-base font-bold text-text-primary">No Courses or Playlists in Studio</h4>
               <p className="text-xs text-text-secondary max-w-sm mx-auto leading-relaxed">
@@ -835,7 +835,7 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
               {allStudioCourses.map((c) => (
                 <div
                   key={c.id}
-                  className="rounded-2xl border border-border-subtle bg-surface p-4 flex flex-col justify-between space-y-3 shadow-xs hover:border-border-strong transition-all"
+                  className="rounded-xl border border-border-subtle bg-surface p-4 flex flex-col justify-between space-y-3 shadow-xs hover:border-border-strong transition-all"
                 >
                   <div className="space-y-2.5">
                     <div className="flex items-center justify-between">
@@ -897,7 +897,7 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
       ================================================================= */}
       {activeTab === 'resources' && (
         showResourceModal ? (
-          <div className="rounded-2xl border border-border-subtle bg-surface p-6 space-y-5 animate-fade-in max-w-2xl">
+          <div className="rounded-xl border border-border-subtle bg-surface p-6 space-y-5 animate-fade-in max-w-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
               <button
                 type="button"
@@ -1076,7 +1076,7 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
           </div>
 
           {myVaultResources.length === 0 ? (
-            <div className="text-center py-16 p-8 rounded-2xl border border-border-subtle bg-surface space-y-3">
+            <div className="text-center py-16 p-8 rounded-xl border border-border-subtle bg-surface space-y-3">
               <FileText size={36} className="text-text-muted mx-auto" />
               <h4 className="text-base font-bold text-text-primary">No Documents in Your Vault</h4>
               <p className="text-xs text-text-secondary max-w-sm mx-auto leading-relaxed">
@@ -1151,7 +1151,7 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
       ================================================================= */}
       {activeTab === 'marketplace' && (
         showSellModal ? (
-          <div className="rounded-2xl border border-border-subtle bg-surface p-6 space-y-5 animate-fade-in max-w-2xl">
+          <div className="rounded-xl border border-border-subtle bg-surface p-6 space-y-5 animate-fade-in max-w-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
               <button
                 type="button"
@@ -1331,7 +1331,7 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
           </div>
 
           {marketplaceListings.length === 0 ? (
-            <div className="text-center py-14 p-6 rounded-2xl border border-border-subtle bg-surface space-y-3">
+            <div className="text-center py-14 p-6 rounded-xl border border-border-subtle bg-surface space-y-3">
               <ShoppingBag size={32} className="text-text-muted mx-auto" />
               <h4 className="text-sm font-bold text-text-primary">No Marketplace Items Listed</h4>
               <p className="text-xs text-text-secondary max-w-sm mx-auto">
@@ -1350,7 +1350,7 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
               {marketplaceListings.map((item) => (
                 <div
                   key={item.id}
-                  className="rounded-2xl border border-border-subtle bg-surface hover:border-border-strong p-4 sm:p-5 flex flex-col justify-between space-y-3 shadow-xs transition-all"
+                  className="rounded-xl border border-border-subtle bg-surface hover:border-border-strong p-4 sm:p-5 flex flex-col justify-between space-y-3 shadow-xs transition-all"
                 >
                   <div className="space-y-2.5">
                     <div className="flex items-center justify-between gap-2 pb-2 border-b border-border-subtle">

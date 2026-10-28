@@ -493,7 +493,7 @@ export default function ResourcesView() {
           onClick={() => setResourceToAddToFolder(null)}
         >
           <div
-            className="w-full max-w-md rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal mb-8 text-left"
+            className="w-full max-w-md rounded-xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal mb-8 text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-2 border-b border-border-subtle">

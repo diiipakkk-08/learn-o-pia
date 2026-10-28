@@ -96,8 +96,8 @@ export default function About({ setCurrentView }) {
       </button>
 
       {/* Hero Header */}
-      <div className="rounded-2xl border border-border-subtle bg-surface p-8 sm:p-12 text-center space-y-4 shadow-sm relative overflow-hidden">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-mono-tabular font-semibold border border-border-strong bg-subtle text-text-primary">
+      <div className="rounded-xl border border-border-subtle bg-surface p-8 sm:p-12 text-center space-y-4 shadow-sm relative overflow-hidden">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md text-xs font-mono-tabular font-semibold border border-border-strong bg-subtle text-text-primary">
           <span className="w-2 h-2 rounded-full bg-accent-forest animate-pulse" />
           <span>100% FREE ACADEMIC DESK & OPERATING SYSTEM</span>
         </div>
@@ -114,7 +114,7 @@ export default function About({ setCurrentView }) {
       {/* =================================================================
           INTERACTIVE MODULE 1: FOCUS SIMULATOR (YouTube Chaos vs Learnopia)
       ================================================================= */}
-      <div className="rounded-2xl border border-border-subtle bg-surface p-6 sm:p-8 space-y-6 shadow-sm">
+      <div className="rounded-xl border border-border-subtle bg-surface p-6 sm:p-8 space-y-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border-subtle pb-4">
           <div>
             <h2 className="text-lg sm:text-xl font-bold font-editorial">
@@ -209,7 +209,7 @@ export default function About({ setCurrentView }) {
       {/* =================================================================
           INTERACTIVE MODULE 2: ATTENDANCE SAFETY SANDBOX
       ================================================================= */}
-      <div className="rounded-2xl border border-border-subtle bg-surface p-6 sm:p-8 space-y-6 shadow-sm">
+      <div className="rounded-xl border border-border-subtle bg-surface p-6 sm:p-8 space-y-6 shadow-sm">
         <div className="border-b border-border-subtle pb-4">
           <div className="flex items-center gap-2 text-xs font-mono-tabular text-accent-forest uppercase font-bold tracking-wider mb-1">
             <Target size={14} />
@@ -320,7 +320,7 @@ export default function About({ setCurrentView }) {
       {/* =================================================================
           MODULE 3: SYSTEM ARCHITECTURE INSPECTOR
       ================================================================= */}
-      <div className="rounded-2xl border border-border-subtle bg-surface p-6 sm:p-8 space-y-6 shadow-sm">
+      <div className="rounded-xl border border-border-subtle bg-surface p-6 sm:p-8 space-y-6 shadow-sm">
         <div className="border-b border-border-subtle pb-4">
           <div className="flex items-center gap-2 text-xs font-mono-tabular text-accent-forest uppercase font-bold tracking-wider mb-1">
             <Layers size={14} />
@@ -396,7 +396,7 @@ export default function About({ setCurrentView }) {
       {/* =================================================================
           MODULE 4: INTERACTIVE FAQ ACCORDION
       ================================================================= */}
-      <div className="rounded-2xl border border-border-subtle bg-surface p-6 sm:p-8 space-y-6 shadow-sm">
+      <div className="rounded-xl border border-border-subtle bg-surface p-6 sm:p-8 space-y-6 shadow-sm">
         <div className="border-b border-border-subtle pb-4">
           <div className="flex items-center gap-2 text-xs font-mono-tabular text-accent-forest uppercase font-bold tracking-wider mb-1">
             <HelpCircle size={14} />

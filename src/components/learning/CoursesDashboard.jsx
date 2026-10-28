@@ -55,7 +55,7 @@ class CoursesDashboardErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="w-full max-w-4xl mx-auto p-8 my-10 rounded-2xl border border-border-subtle bg-surface text-center space-y-4 shadow-sm animate-fade-in">
+        <div className="w-full max-w-4xl mx-auto p-8 my-10 rounded-xl border border-border-subtle bg-surface text-center space-y-4 shadow-sm animate-fade-in">
           <h2 className="text-xl font-bold text-text-primary font-editorial">Course Catalog</h2>
           <p className="text-xs text-text-secondary max-w-md mx-auto">
             The course catalog was updated. Click below to reload.
@@ -873,7 +873,7 @@ function CoursesDashboardInner({
           onClick={() => setCourseToAddToFolder(null)}
         >
           <div
-            className="w-full max-w-md rounded-2xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal mb-8 text-left"
+            className="w-full max-w-md rounded-xl border border-border-strong bg-surface p-6 space-y-4 shadow-modal mb-8 text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
@@ -1011,11 +1011,11 @@ function CoursesDashboardInner({
           onClick={() => setDeleteConfirmItem(null)}
         >
           <div
-            className="w-full max-w-md rounded-2xl border border-red-500/30 bg-surface p-6 space-y-4 shadow-modal mb-8 text-left"
+            className="w-full max-w-md rounded-xl border border-red-500/30 bg-surface p-6 space-y-4 shadow-modal mb-8 text-left"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3 pb-2 border-b border-border-subtle">
-              <div className="w-10 h-10 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center shrink-0">
                 <AlertTriangle size={20} />
               </div>
               <div>

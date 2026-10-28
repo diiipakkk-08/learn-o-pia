@@ -35,10 +35,10 @@
   --accent-danger-bg: #FDECEC;   /* Soft rose background for critical alerts */
   --border-pill-danger: #F8C8C8;
 
-  /* 5. Geometry & Elevation */
-  --radius-sm: 6px;              /* Badges, small +/- buttons, kbd shortcuts */
-  --radius-md: 8px;              /* Primary buttons, inputs, thumbnails */
-  --radius-lg: 12px;             /* Cards, containers, panels */
+  /* 5. Geometry & Elevation (Architectural, disciplined radii) */
+  --radius-sm: 4px;              /* Badges, tabular tags, small +/- adjusters, kbd shortcuts */
+  --radius-md: 6px;              /* Functional buttons, form inputs, thumbnails */
+  --radius-lg: 10px;             /* Panels, toolbars, cards */
   --shadow-modal: 0 12px 32px -8px rgba(20, 20, 19, 0.12); /* ONLY for floating modals */
 
   /* Compatibility Tokens for components expecting previous variable names */
