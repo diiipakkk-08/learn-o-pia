@@ -454,8 +454,22 @@ export default function AttendanceTracker() {
       if (savedUserRoutine) {
         try {
           const parsed = JSON.parse(savedUserRoutine);
-          const hasClasses = parsed && typeof parsed === 'object' && Object.values(parsed).some(arr => Array.isArray(arr) && arr.length > 0);
-          if (hasClasses) return parsed;
+          if (parsed && typeof parsed === 'object') {
+            // Check if user has classes; also ensure default days like Wednesday are populated if empty
+            const merged = { ...DEFAULT_ROUTINE, ...parsed };
+            // If any specific default day is empty in parsed but present in default, keep default
+            ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].forEach((day) => {
+              if ((!merged[day] || merged[day].length === 0) && DEFAULT_ROUTINE[day]?.length > 0) {
+                merged[day] = DEFAULT_ROUTINE[day];
+              }
+            });
+            const hasClasses = Object.values(merged).some(arr => Array.isArray(arr) && arr.length > 0);
+            if (hasClasses) {
+              // Persist back merged routine so future reads have full timetable
+              localStorage.setItem(routineKey, JSON.stringify(merged));
+              return merged;
+            }
+          }
         } catch {}
       }
     }

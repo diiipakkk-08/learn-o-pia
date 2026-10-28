@@ -21,7 +21,8 @@ import {
 import {
   Plus, BookOpen, Trash2, ChevronDown, Check, X, Copy,
   Video, Tag, ShoppingBag, Globe, Lock, Clock, RotateCw, ExternalLink,
-  Sparkles, FileText, Megaphone, Loader2, Play, AlertCircle, ArrowLeft
+  Sparkles, FileText, Megaphone, Loader2, Play, AlertCircle, ArrowLeft,
+  Search, LayoutList, LayoutGrid, SlidersHorizontal
 } from 'lucide-react';
 import {
   getUserStudioListings,
@@ -379,6 +380,41 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
 
     return list;
   }, [subjects, courses, currentUser, isAdmin]);
+
+  // ── STUDIO COURSES FILTER & VIEW STATE ────────────────────────────────────
+  const [studioSearch, setStudioSearch] = useState('');
+  const [studioCategory, setStudioCategory] = useState('all');
+  const [studioViewMode, setStudioViewMode] = useState('list'); // 'list' (default directory ledger) | 'grid'
+
+  const filteredStudioCourses = useMemo(() => {
+    let res = allStudioCourses;
+    const q = (studioSearch || '').trim().toLowerCase();
+    if (q) {
+      res = res.filter(c =>
+        (c.title && c.title.toLowerCase().includes(q)) ||
+        (c.author && c.author.toLowerCase().includes(q)) ||
+        (c.category && c.category.toLowerCase().includes(q)) ||
+        (c.description && c.description.toLowerCase().includes(q))
+      );
+    }
+    if (studioCategory !== 'all') {
+      res = res.filter(c => {
+        const text = ((c.category || '') + ' ' + (c.title || '') + ' ' + (c.description || '')).toLowerCase();
+        if (studioCategory === 'sem-1') return text.includes('sem 1') || text.includes('semester 1') || text.includes('first year') || text.includes('1st sem');
+        if (studioCategory === 'sem-2') return text.includes('sem 2') || text.includes('semester 2') || text.includes('2nd sem');
+        if (studioCategory === 'sem-3') return text.includes('sem 3') || text.includes('semester 3') || text.includes('3rd sem');
+        if (studioCategory === 'sem-4') return text.includes('sem 4') || text.includes('semester 4') || text.includes('4th sem');
+        if (studioCategory === 'sem-5') return text.includes('sem 5') || text.includes('semester 5') || text.includes('5th sem');
+        if (studioCategory === 'sem-6') return text.includes('sem 6') || text.includes('semester 6') || text.includes('6th sem');
+        if (studioCategory === 'sem-7') return text.includes('sem 7') || text.includes('semester 7') || text.includes('7th sem');
+        if (studioCategory === 'sem-8') return text.includes('sem 8') || text.includes('semester 8') || text.includes('8th sem');
+        if (studioCategory === 'cs') return text.includes('cs') || text.includes('computer') || text.includes('web') || text.includes('dsa') || text.includes('programming') || text.includes('software');
+        if (studioCategory === 'math-physics') return text.includes('math') || text.includes('physic') || text.includes('calculus');
+        return true;
+      });
+    }
+    return res;
+  }, [allStudioCourses, studioSearch, studioCategory]);
 
   // ── STUDY VAULT & RESOURCES STATE ──────────────────────────────────────────
   const [showResourceModal, setShowResourceModal] = useState(false);
@@ -799,73 +835,201 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
           </div>
         ) : (
           <div className="space-y-4 animate-fade-in">
-          <div className="flex items-center justify-between pb-1 flex-wrap gap-2">
-            <div>
-              <h3 className="text-sm font-bold text-text-primary">Curated Courses & Lecture Series</h3>
-              <p className="text-xs text-text-muted mt-0.5 font-mono-tabular">
-                ALL PLAYLISTS ARE STREAMED DIRECTLY VIA YOUTUBE WITH SYLLABUS LECTURE CHAPTERS
-              </p>
-            </div>
-            <button
-              onClick={() => setShowCourseModal(true)}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-accent-ink text-text-on-dark flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-95"
-            >
-              <Plus size={14} />
-              <span>Curate New Course / Playlist</span>
-            </button>
-          </div>
+            {/* Header & Controls Toolbar */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2 border-b border-border-subtle">
+              <div>
+                <h3 className="text-sm font-bold text-text-primary">
+                  Curated Courses & Lecture Series
+                </h3>
+                <p className="text-xs text-text-muted mt-0.5 font-mono-tabular">
+                  {filteredStudioCourses.length} of {allStudioCourses.length} Curated Courses Available
+                </p>
+              </div>
 
-          {allStudioCourses.length === 0 ? (
-            <div className="text-center py-16 p-8 rounded-xl border border-border-subtle bg-surface space-y-3">
-              <Video size={36} className="text-text-muted mx-auto" />
-              <h4 className="text-base font-bold text-text-primary">No Courses or Playlists in Studio</h4>
-              <p className="text-xs text-text-secondary max-w-sm mx-auto leading-relaxed">
-                Add your first playlist link. Learn-O-Pia will automatically curate the channel credits, syllabus titles, and stream them inside the player.
-              </p>
-              <button
-                onClick={() => setShowCourseModal(true)}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs inline-flex items-center gap-1.5"
-              >
-                <Plus size={14} />
-                <span>Add First Course</span>
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {allStudioCourses.map((c) => (
-                <div
-                  key={c.id}
-                  className="rounded-xl border border-border-subtle bg-surface p-4 flex flex-col justify-between space-y-3 shadow-xs hover:border-border-strong transition-all"
+              <div className="flex flex-wrap items-center gap-2">
+                {/* In-Studio Search Input */}
+                <div className="relative min-w-[200px] sm:min-w-[240px]">
+                  <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                  <input
+                    type="text"
+                    placeholder="Search courses or instructor..."
+                    value={studioSearch}
+                    onChange={(e) => setStudioSearch(e.target.value)}
+                    className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-border-subtle bg-canvas text-text-primary text-xs focus:outline-none focus:border-border-strong font-mono-tabular"
+                  />
+                  {studioSearch && (
+                    <button
+                      onClick={() => setStudioSearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary cursor-pointer"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Category Select */}
+                <select
+                  value={studioCategory}
+                  onChange={(e) => setStudioCategory(e.target.value)}
+                  className="px-2.5 py-1.5 rounded-lg border border-border-subtle bg-surface text-text-primary text-xs focus:outline-none cursor-pointer font-mono-tabular"
                 >
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono-tabular font-bold px-2 py-0.5 rounded bg-subtle text-text-secondary">
+                  <option value="all">All Departments</option>
+                  <option value="sem-1">Semester 1</option>
+                  <option value="sem-2">Semester 2</option>
+                  <option value="sem-3">Semester 3</option>
+                  <option value="sem-4">Semester 4</option>
+                  <option value="sem-5">Semester 5</option>
+                  <option value="sem-6">Semester 6</option>
+                  <option value="sem-7">Semester 7</option>
+                  <option value="sem-8">Semester 8</option>
+                  <option value="cs">Computer Science & IT</option>
+                  <option value="math-physics">Math & Physics</option>
+                </select>
+
+                {/* View Mode Switcher (List vs Grid) */}
+                <div className="flex items-center rounded-lg border border-border-subtle bg-surface p-0.5">
+                  <button
+                    onClick={() => setStudioViewMode('list')}
+                    className={`p-1.5 rounded-md transition-colors cursor-pointer ${
+                      studioViewMode === 'list'
+                        ? 'bg-accent-ink text-text-on-dark'
+                        : 'text-text-muted hover:text-text-primary'
+                    }`}
+                    title="Directory List View (Default)"
+                  >
+                    <LayoutList size={13} />
+                  </button>
+                  <button
+                    onClick={() => setStudioViewMode('grid')}
+                    className={`p-1.5 rounded-md transition-colors cursor-pointer ${
+                      studioViewMode === 'grid'
+                        ? 'bg-accent-ink text-text-on-dark'
+                        : 'text-text-muted hover:text-text-primary'
+                    }`}
+                    title="Grid Showcase View"
+                  >
+                    <LayoutGrid size={13} />
+                  </button>
+                </div>
+
+                {/* Add Course CTA */}
+                <button
+                  onClick={() => setShowCourseModal(true)}
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-accent-ink text-text-on-dark flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-95"
+                >
+                  <Plus size={13} />
+                  <span>Curate Course</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Zero results */}
+            {filteredStudioCourses.length === 0 ? (
+              <div className="text-center py-16 p-8 rounded-xl border border-dashed border-border-strong bg-surface space-y-3">
+                <Video size={36} className="text-text-muted mx-auto" />
+                <h4 className="text-base font-bold text-text-primary">
+                  {studioSearch || studioCategory !== 'all' ? 'No matching courses found' : 'No Courses in Studio'}
+                </h4>
+                <p className="text-xs text-text-secondary max-w-sm mx-auto leading-relaxed">
+                  {studioSearch || studioCategory !== 'all'
+                    ? 'Try adjusting your search terms or department filters to see courses.'
+                    : 'Add your first playlist link. Learnopia will automatically import chapters and structure.'}
+                </p>
+                {studioSearch || studioCategory !== 'all' ? (
+                  <button
+                    onClick={() => {
+                      setStudioSearch('');
+                      setStudioCategory('all');
+                    }}
+                    className="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-border-subtle bg-surface hover:bg-surface-hover text-text-primary cursor-pointer shadow-xs"
+                  >
+                    Reset Filters
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowCourseModal(true)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-accent-ink text-text-on-dark hover:opacity-95 cursor-pointer shadow-xs inline-flex items-center gap-1.5"
+                  >
+                    <Plus size={14} />
+                    <span>Add First Course</span>
+                  </button>
+                )}
+              </div>
+            ) : studioViewMode === 'list' ? (
+              /* VIEW MODE 1: CURATED LEDGER / DIRECTORY TABLE VIEW (DE-BOXED) */
+              <div className="rounded-xl border border-border-subtle bg-surface overflow-hidden shadow-xs divide-y divide-border-subtle">
+                {/* Table Header */}
+                <div className="hidden sm:grid sm:grid-cols-12 gap-3 px-4 py-2.5 bg-subtle/50 text-[10px] font-mono-tabular font-bold uppercase tracking-wider text-text-muted border-b border-border-subtle">
+                  <div className="sm:col-span-5">Course / Lecture Series</div>
+                  <div className="sm:col-span-3">Department / Category</div>
+                  <div className="sm:col-span-2">Instructor / Channel</div>
+                  <div className="sm:col-span-2 text-right">Actions</div>
+                </div>
+
+                {/* Table Rows */}
+                {filteredStudioCourses.map((c) => (
+                  <div
+                    key={c.id}
+                    className="p-3.5 sm:px-4 sm:py-3 grid grid-cols-1 sm:grid-cols-12 gap-3 sm:items-center hover:bg-surface-hover/60 transition-colors group"
+                  >
+                    {/* Course Title & Details */}
+                    <div className="sm:col-span-5 flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-8 rounded-md overflow-hidden bg-black shrink-0 border border-border-subtle relative">
+                        {c.bannerUrl ? (
+                          <img src={c.bannerUrl} alt={c.title} className="w-full h-full object-cover opacity-85" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-text-muted">
+                            <Video size={13} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs sm:text-sm font-bold text-text-primary truncate group-hover:text-accent-forest transition-colors" title={c.title}>
+                          {c.title}
+                        </h4>
+                        <p className="text-[11px] text-text-muted truncate mt-0.5">
+                          {c.description || 'University syllabus playlist series.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Department / Category */}
+                    <div className="sm:col-span-3 flex items-center gap-2">
+                      <span className="text-[10px] font-mono-tabular font-bold px-2 py-0.5 rounded bg-subtle text-text-secondary truncate max-w-[180px]">
                         {c.category}
                       </span>
-                      <span className={`text-[10px] font-mono-tabular font-bold px-2 py-0.5 rounded flex items-center gap-1 ${
+                      <span className={`text-[9px] font-mono-tabular font-bold px-1.5 py-0.2 rounded flex items-center gap-1 shrink-0 ${
                         c.isPublic ? 'bg-accent-forest/15 text-accent-forest' : 'bg-subtle text-text-muted'
                       }`}>
-                        {c.isPublic ? <Globe size={10} /> : <Lock size={10} />}
+                        {c.isPublic ? <Globe size={9} /> : <Lock size={9} />}
                         <span>{c.isPublic ? 'Public' : 'Private'}</span>
                       </span>
                     </div>
 
-                    <h4 className="text-sm font-bold text-text-primary line-clamp-1">{c.title}</h4>
-                    <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed">
-                      {c.description || 'Comprehensive university course series.'}
-                    </p>
-                  </div>
-
-                  <div className="pt-2 flex items-center justify-between gap-2 border-t border-border-subtle">
-                    <span className="text-[11px] font-mono-tabular text-text-muted truncate max-w-[130px]">
+                    {/* Instructor */}
+                    <div className="sm:col-span-2 text-[11px] font-mono-tabular text-text-muted truncate">
                       {c.author}
-                    </span>
+                    </div>
 
-                    <div className="flex items-center gap-1.5">
+                    {/* Action Buttons */}
+                    <div className="sm:col-span-2 flex items-center justify-end gap-1.5 shrink-0">
+                      <button
+                        onClick={() => {
+                          const ytLink = `https://www.youtube.com/playlist?list=${(c.playlistId || c.id).replace('pl-', '')}`;
+                          navigator.clipboard.writeText(ytLink);
+                          setCourseToast(`Copied playlist link for "${c.title}"!`);
+                          setTimeout(() => setCourseToast(''), 3000);
+                        }}
+                        className="p-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+                        title="Copy YouTube Playlist URL"
+                      >
+                        <Copy size={12} />
+                      </button>
+
                       <button
                         onClick={() => handleDeleteCourseItem(c)}
-                        className="p-1.5 rounded-lg border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-500 cursor-pointer transition-colors shadow-xs"
-                        title="Delete Course from catalog"
+                        className="p-1.5 rounded-lg border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-500 cursor-pointer transition-colors"
+                        title="Delete Course from Catalog"
                       >
                         <Trash2 size={12} />
                       </button>
@@ -876,19 +1040,91 @@ function CreatorStudioInner({ setCurrentView, setSelectedPlaylistId }) {
                             setSelectedPlaylistId(c.playlistId || c.id);
                             setCurrentView('learning-player');
                           }}
-                          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-accent-ink text-text-on-dark flex items-center gap-1.5 hover:opacity-95 cursor-pointer shadow-xs"
+                          className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-accent-ink text-text-on-dark flex items-center gap-1 hover:opacity-95 cursor-pointer shadow-xs"
                         >
-                          <Play size={11} fill="currentColor" />
+                          <Play size={10} fill="currentColor" />
                           <span>Watch</span>
                         </button>
                       )}
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            ) : (
+              /* VIEW MODE 2: SHOWCASE GRID (DE-BOXED SLEEK TILES) */
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredStudioCourses.map((c) => (
+                  <div
+                    key={c.id}
+                    className="rounded-xl border border-border-subtle bg-surface p-4 flex flex-col justify-between space-y-3 shadow-xs hover:border-border-strong transition-all group"
+                  >
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono-tabular font-bold px-2 py-0.5 rounded bg-subtle text-text-secondary truncate max-w-[140px]">
+                          {c.category}
+                        </span>
+                        <span className={`text-[10px] font-mono-tabular font-bold px-2 py-0.5 rounded flex items-center gap-1 ${
+                          c.isPublic ? 'bg-accent-forest/15 text-accent-forest' : 'bg-subtle text-text-muted'
+                        }`}>
+                          {c.isPublic ? <Globe size={10} /> : <Lock size={10} />}
+                          <span>{c.isPublic ? 'Public' : 'Private'}</span>
+                        </span>
+                      </div>
+
+                      <h4 className="text-sm font-bold text-text-primary line-clamp-1 group-hover:text-accent-forest transition-colors">
+                        {c.title}
+                      </h4>
+                      <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed">
+                        {c.description || 'Comprehensive university course series.'}
+                      </p>
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-between gap-2 border-t border-border-subtle">
+                      <span className="text-[11px] font-mono-tabular text-text-muted truncate max-w-[130px]">
+                        {c.author}
+                      </span>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => {
+                            const ytLink = `https://www.youtube.com/playlist?list=${(c.playlistId || c.id).replace('pl-', '')}`;
+                            navigator.clipboard.writeText(ytLink);
+                            setCourseToast(`Copied playlist link!`);
+                            setTimeout(() => setCourseToast(''), 3000);
+                          }}
+                          className="p-1.5 rounded-lg border border-border-subtle bg-surface hover:bg-surface-hover text-text-muted hover:text-text-primary cursor-pointer transition-colors"
+                          title="Copy Playlist link"
+                        >
+                          <Copy size={12} />
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteCourseItem(c)}
+                          className="p-1.5 rounded-lg border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-500 cursor-pointer transition-colors"
+                          title="Delete Course from catalog"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+
+                        {setSelectedPlaylistId && setCurrentView && (
+                          <button
+                            onClick={() => {
+                              setSelectedPlaylistId(c.playlistId || c.id);
+                              setCurrentView('learning-player');
+                            }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-accent-ink text-text-on-dark flex items-center gap-1.5 hover:opacity-95 cursor-pointer shadow-xs"
+                          >
+                            <Play size={11} fill="currentColor" />
+                            <span>Watch</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )
       )}
 

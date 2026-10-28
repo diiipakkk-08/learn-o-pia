@@ -241,8 +241,14 @@ export default function MyLearningView({
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && typeof parsed === 'object') {
-          const hasClasses = Object.values(parsed).some(arr => Array.isArray(arr) && arr.length > 0);
-          if (hasClasses) return parsed;
+          const merged = { ...DEFAULT_ROUTINE, ...parsed };
+          ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].forEach((day) => {
+            if ((!merged[day] || merged[day].length === 0) && DEFAULT_ROUTINE[day]?.length > 0) {
+              merged[day] = DEFAULT_ROUTINE[day];
+            }
+          });
+          const hasClasses = Object.values(merged).some(arr => Array.isArray(arr) && arr.length > 0);
+          if (hasClasses) return merged;
         }
       }
       if (userId !== 'guest') {
@@ -250,8 +256,14 @@ export default function MyLearningView({
         if (guestSaved) {
           const parsed = JSON.parse(guestSaved);
           if (parsed && typeof parsed === 'object') {
-            const hasClasses = Object.values(parsed).some(arr => Array.isArray(arr) && arr.length > 0);
-            if (hasClasses) return parsed;
+            const merged = { ...DEFAULT_ROUTINE, ...parsed };
+            ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].forEach((day) => {
+              if ((!merged[day] || merged[day].length === 0) && DEFAULT_ROUTINE[day]?.length > 0) {
+                merged[day] = DEFAULT_ROUTINE[day];
+              }
+            });
+            const hasClasses = Object.values(merged).some(arr => Array.isArray(arr) && arr.length > 0);
+            if (hasClasses) return merged;
           }
         }
       }
@@ -266,9 +278,15 @@ export default function MyLearningView({
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed && typeof parsed === 'object') {
-            const hasClasses = Object.values(parsed).some(arr => Array.isArray(arr) && arr.length > 0);
+            const merged = { ...DEFAULT_ROUTINE, ...parsed };
+            ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].forEach((day) => {
+              if ((!merged[day] || merged[day].length === 0) && DEFAULT_ROUTINE[day]?.length > 0) {
+                merged[day] = DEFAULT_ROUTINE[day];
+              }
+            });
+            const hasClasses = Object.values(merged).some(arr => Array.isArray(arr) && arr.length > 0);
             if (hasClasses) {
-              setUserRoutine(parsed);
+              setUserRoutine(merged);
               return;
             }
           }
@@ -298,7 +316,12 @@ export default function MyLearningView({
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const currentDay = days[new Date().getDay()];
     const activeSchedule = userRoutine || DEFAULT_ROUTINE;
-    const rawClasses = activeSchedule ? activeSchedule[currentDay] || [] : [];
+    let rawClasses = activeSchedule ? activeSchedule[currentDay] || [] : [];
+
+    // Fallback to DEFAULT_ROUTINE for today if schedule is empty but default has classes
+    if ((!rawClasses || rawClasses.length === 0) && DEFAULT_ROUTINE[currentDay]?.length > 0) {
+      rawClasses = DEFAULT_ROUTINE[currentDay];
+    }
 
     // Check today's marked status in attendance logs
     let todayLogMap = {};
@@ -1207,332 +1230,347 @@ export default function MyLearningView({
         </div>
       ) : (
         /* =================================================================
-            VIEW CONDITION 2: HOME DASHBOARD VIEW
+            VIEW CONDITION 2: HOME DASHBOARD VIEW (DE-BOXED EDITORIAL ARCHITECTURE)
         ================================================================= */
-        <div className="w-full space-y-5">
-          {/* TOP HERO: COMPACT CONTINUE LEARNING BAR */}
+        <div className="w-full space-y-6">
+          {/* 1. EDITORIAL ACTIVE STUDY BAR */}
           <div
             onClick={handleResumeHero}
-            className="rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover/80 p-3 sm:p-4 transition-all cursor-pointer group shadow-sm"
+            className="rounded-2xl border border-border-subtle bg-surface hover:border-border-strong hover:shadow-md p-3.5 sm:p-5 transition-all cursor-pointer group relative overflow-hidden"
           >
-            <div className="flex items-center gap-3 sm:gap-4">
-              {/* 16:9 Thumbnail */}
-              <div className="relative w-24 sm:w-44 md:w-52 aspect-video rounded-lg overflow-hidden shrink-0 bg-black border border-border-subtle">
-                <img
-                  src={activeHero.thumbnail}
-                  alt={activeHero.title}
-                  className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                  <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center bg-black/80 text-white shadow-md">
-                    <Play size={13} fill="#FFFFFF" className="ml-0.5" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4 min-w-0">
+                {/* 16:9 Thumbnail Preview */}
+                <div className="relative w-28 sm:w-44 md:w-48 aspect-video rounded-xl overflow-hidden shrink-0 bg-black border border-border-subtle shadow-xs">
+                  <img
+                    src={activeHero.thumbnail}
+                    alt={activeHero.title}
+                    className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-black/85 text-white shadow-md">
+                      <Play size={13} fill="#FFFFFF" className="ml-0.5" />
+                    </div>
                   </div>
+                  <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded text-[9px] font-mono-tabular bg-black/85 text-white">
+                    {activeHero.duration}
+                  </span>
                 </div>
-                <span className="absolute bottom-1 right-1 px-1 py-0.2 rounded text-[9px] sm:text-[10px] font-mono-tabular bg-black/85 text-white">
-                  {activeHero.duration}
-                </span>
-              </div>
 
-              {/* Module Information & Progress */}
-              <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                <div>
+                {/* Module Details & Progress */}
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-accent-forest animate-pulse" />
                     <span className="text-[10px] font-mono-tabular font-bold text-accent-forest uppercase tracking-wider">
-                      CONTINUE LEARNING
+                      ACTIVE STUDY TRACK
                     </span>
                     <span className="hidden sm:inline text-[11px] text-text-muted font-mono-tabular">
                       • {activeHero.progress}% Completed
                     </span>
                   </div>
-                  <h3 className="text-xs sm:text-base font-bold text-text-primary truncate mt-0.5 group-hover:text-accent-forest transition-colors">
+
+                  <h3 className="text-sm sm:text-base font-bold text-text-primary truncate mt-1 group-hover:text-accent-forest transition-colors">
                     {activeHero.title}
                   </h3>
-                  <p className="text-[11px] sm:text-xs text-text-muted truncate mt-0.5">
+                  <p className="text-xs text-text-secondary truncate mt-0.5">
                     {activeHero.moduleTitle}
                   </p>
-                </div>
 
-                {/* Hairline Progress Track */}
-                <div className="mt-2 flex items-center gap-2">
-                  <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-subtle">
-                    <div
-                      className="h-full rounded-full bg-accent-forest transition-all duration-300"
-                      style={{ width: `${activeHero.progress}%` }}
-                    />
+                  {/* Hairline Progress Track */}
+                  <div className="mt-2.5 flex items-center gap-2.5 max-w-md">
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-subtle">
+                      <div
+                        className="h-full rounded-full bg-accent-forest transition-all duration-300"
+                        style={{ width: `${activeHero.progress}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-mono-tabular text-text-muted font-bold shrink-0">
+                      {activeHero.progress}%
+                    </span>
                   </div>
-                  <span className="sm:hidden text-[10px] font-mono-tabular text-text-muted shrink-0">
-                    {activeHero.progress}%
-                  </span>
                 </div>
               </div>
 
-              {/* Desktop Right CTA Pill */}
-              <div className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-accent-ink text-text-on-dark shrink-0 transition-transform group-hover:translate-x-0.5">
-                <span>Resume</span>
+              {/* Action Button */}
+              <div className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-accent-ink text-text-on-dark shrink-0 transition-transform group-hover:translate-x-0.5 shadow-xs">
+                <span>Resume Study</span>
                 <ArrowRight size={13} />
               </div>
             </div>
           </div>
 
-          {/* MAIN BALANCED 2-COLUMN STUDIO GRID */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-            {/* LEFT COLUMN (7 cols): Workspace Folders on top, Attendance Buffer below */}
-            <div className="lg:col-span-7 xl:col-span-7 flex flex-col gap-5">
-              {/* SECTION: WORKSPACE 4-FOLDERS BLOCK */}
-              <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-                  <div className="flex items-center gap-2">
-                    <Folder size={16} className="text-text-primary" />
-                    <h2 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
-                      Workspace Folders
-                    </h2>
-                  </div>
-                  <span className="text-[11px] font-mono-tabular text-text-muted">
-                    4 Core Folders
-                  </span>
-                </div>
+          {/* 2. WORKSPACE DIRECTORY (OPEN SHELF - NO NESTED CONTAINER BOX) */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between px-0.5">
+              <div className="flex items-center gap-2">
+                <Folder size={15} className="text-text-primary" />
+                <h2 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
+                  Workspace Directory
+                </h2>
+                <span className="text-[11px] font-mono-tabular text-text-muted">
+                  • 4 Core Hubs
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] font-mono-tabular text-text-muted">
+                <span>Program:</span>
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25 font-bold flex items-center gap-1">
+                  <Star size={9} className="fill-amber-500" />
+                  {pinnedSemesterState ? `Sem ${pinnedSemesterState.replace('sem-', '')} Active` : 'Sem 1 Active'}
+                </span>
+              </div>
+            </div>
 
-                {/* Mobile 2x2 grid (Academic & Document, then Important Links & Personal), Desktop 4 in a row */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {folders.map((folder) => {
-                    const config = {
-                      academic: {
-                        title: 'Academic',
-                        badge: 'CURRICULUM',
-                        bgGradient: 'bg-gradient-to-br from-emerald-500/[0.08] via-emerald-500/[0.03] to-surface hover:from-emerald-500/[0.13]',
-                        border: 'border-emerald-500/25 hover:border-emerald-500/50',
-                        badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
-                        iconBox: 'bg-gradient-to-br from-emerald-500/20 to-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
-                        icon: <GraduationCap size={19} />,
-                        subtitle: pinnedSemesterState
-                          ? `Sem ${pinnedSemesterState.replace('sem-', '')} (Pinned)`
-                          : `${folder.subfolders?.length || 8} Semesters`
-                      },
-                      document: {
-                        title: 'Docs',
-                        badge: 'STUDY VAULT',
-                        bgGradient: 'bg-gradient-to-br from-amber-500/[0.08] via-amber-500/[0.03] to-surface hover:from-amber-500/[0.13]',
-                        border: 'border-amber-500/25 hover:border-amber-500/50',
-                        badgeClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30',
-                        iconBox: 'bg-gradient-to-br from-amber-500/20 to-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30',
-                        icon: <FileText size={19} />,
-                        subtitle: `${(folder.subfolders?.length || 0) + (folder.items?.length || 0)} resources`
-                      },
-                      links: {
-                        title: 'Important Links',
-                        badge: 'PORTALS',
-                        bgGradient: 'bg-gradient-to-br from-sky-500/[0.08] via-sky-500/[0.03] to-surface hover:from-sky-500/[0.13]',
-                        border: 'border-sky-500/25 hover:border-sky-500/50',
-                        badgeClass: 'bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30',
-                        iconBox: 'bg-gradient-to-br from-sky-500/20 to-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/30',
-                        icon: <Link2 size={19} />,
-                        subtitle: `${folder.items?.length || 0} quick links`
-                      },
-                      personal: {
-                        title: 'Personal Vault',
-                        badge: 'PRIVATE',
-                        bgGradient: 'bg-gradient-to-br from-purple-500/[0.08] via-purple-500/[0.03] to-surface hover:from-purple-500/[0.13]',
-                        border: 'border-purple-500/25 hover:border-purple-500/50',
-                        badgeClass: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30',
-                        iconBox: 'bg-gradient-to-br from-purple-500/20 to-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30',
-                        icon: <Lock size={19} />,
-                        subtitle: `${folder.items?.length || 0} private items`
-                      }
-                    }[folder.id] || {
-                      title: folder.title,
-                      badge: 'FOLDER',
-                      bgGradient: 'bg-surface hover:bg-surface-hover/80',
-                      border: 'border-border-subtle hover:border-border-strong',
-                      badgeClass: 'bg-subtle text-text-muted border-border-subtle',
-                      iconBox: 'bg-subtle text-text-primary border-border-subtle',
-                      icon: <Folder size={19} />,
-                      subtitle: `${folder.items?.length || 0} items`
-                    };
+            {/* 4 Multi-Gradient Tactical Tiles */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+              {folders.map((folder) => {
+                const config = {
+                  academic: {
+                    title: 'Academic Vault',
+                    badge: 'CURRICULUM',
+                    bgGradient: 'bg-gradient-to-br from-emerald-500/15 via-teal-500/[0.06] to-surface dark:from-emerald-950/40 dark:via-teal-950/15 dark:to-[#121212]',
+                    border: 'border-emerald-500/30 hover:border-emerald-500/60 border-t-2 border-t-emerald-500',
+                    badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
+                    iconBox: 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
+                    icon: <GraduationCap size={18} />,
+                    subtitle: pinnedSemesterState
+                      ? `Sem ${pinnedSemesterState.replace('sem-', '')} (Pinned)`
+                      : `${folder.subfolders?.length || 8} Semesters`
+                  },
+                  document: {
+                    title: 'Study Documents',
+                    badge: 'STUDY VAULT',
+                    bgGradient: 'bg-gradient-to-br from-amber-500/15 via-orange-500/[0.06] to-surface dark:from-amber-950/40 dark:via-orange-950/15 dark:to-[#121212]',
+                    border: 'border-amber-500/30 hover:border-amber-500/60 border-t-2 border-t-amber-500',
+                    badgeClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30',
+                    iconBox: 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30',
+                    icon: <FileText size={18} />,
+                    subtitle: `${(folder.subfolders?.length || 0) + (folder.items?.length || 0)} resources`
+                  },
+                  links: {
+                    title: 'Important Links',
+                    badge: 'PORTALS',
+                    bgGradient: 'bg-gradient-to-br from-sky-500/15 via-blue-500/[0.06] to-surface dark:from-sky-950/40 dark:via-blue-950/15 dark:to-[#121212]',
+                    border: 'border-sky-500/30 hover:border-sky-500/60 border-t-2 border-t-sky-500',
+                    badgeClass: 'bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30',
+                    iconBox: 'bg-sky-500/20 text-sky-600 dark:text-sky-400 border-sky-500/30',
+                    icon: <Link2 size={18} />,
+                    subtitle: `${folder.items?.length || 0} quick links`
+                  },
+                  personal: {
+                    title: 'Personal Vault',
+                    badge: 'PRIVATE',
+                    bgGradient: 'bg-gradient-to-br from-purple-500/15 via-indigo-500/[0.06] to-surface dark:from-purple-950/40 dark:via-indigo-950/15 dark:to-[#121212]',
+                    border: 'border-purple-500/30 hover:border-purple-500/60 border-t-2 border-t-purple-500',
+                    badgeClass: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30',
+                    iconBox: 'bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30',
+                    icon: <Lock size={18} />,
+                    subtitle: `${folder.items?.length || 0} private items`
+                  }
+                }[folder.id] || {
+                  title: folder.title,
+                  badge: 'FOLDER',
+                  bgGradient: 'bg-surface hover:bg-surface-hover/80',
+                  border: 'border-border-subtle hover:border-border-strong',
+                  badgeClass: 'bg-subtle text-text-muted border-border-subtle',
+                  iconBox: 'bg-subtle text-text-primary border-border-subtle',
+                  icon: <Folder size={18} />,
+                  subtitle: `${folder.items?.length || 0} items`
+                };
 
-                    return (
-                      <div
-                        key={folder.id}
-                        onClick={() => {
-                          setActiveRootFolderId(folder.id);
-                          setSubfolderPath([]);
-                        }}
-                        className={`p-3.5 sm:p-4 rounded-xl border ${config.bgGradient} ${config.border} transition-all cursor-pointer flex flex-col justify-between group shadow-xs hover:shadow-md active:scale-[0.98] min-h-[135px] relative overflow-hidden`}
-                      >
-                        {/* Top Header: Icon & Category Badge */}
-                        <div className="flex items-center justify-between w-full">
-                          <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl border ${config.iconBox} flex items-center justify-center transition-transform group-hover:scale-105 shadow-2xs shrink-0`}>
-                            {config.icon}
-                          </div>
-                          <span className={`text-[9px] font-mono-tabular font-bold tracking-wider px-2 py-0.5 rounded-full border ${config.badgeClass} shrink-0`}>
-                            {config.badge}
-                          </span>
-                        </div>
-
-                        {/* Title & Metadata */}
-                        <div className="w-full min-w-0 mt-2">
-                          <h3 className="text-xs sm:text-sm font-bold text-text-primary group-hover:text-accent-forest transition-colors truncate">
-                            {config.title}
-                          </h3>
-                          <span className="text-[10px] font-mono-tabular text-text-muted block truncate mt-0.5">
-                            {config.subtitle}
-                          </span>
-                        </div>
+                return (
+                  <div
+                    key={folder.id}
+                    onClick={() => {
+                      setActiveRootFolderId(folder.id);
+                      setSubfolderPath([]);
+                    }}
+                    className={`p-4 rounded-xl border ${config.bgGradient} ${config.border} transition-all cursor-pointer flex flex-col justify-between group shadow-xs hover:shadow-md active:scale-[0.98] min-h-[140px] relative overflow-hidden`}
+                  >
+                    {/* Top: Icon & Category Badge */}
+                    <div className="flex items-center justify-between w-full">
+                      <div className={`w-9 h-9 rounded-xl border ${config.iconBox} flex items-center justify-center transition-transform group-hover:scale-105 shadow-2xs shrink-0`}>
+                        {config.icon}
                       </div>
-                    );
-                  })}
-                </div>
-              </section>
+                      <span className={`text-[9px] font-mono-tabular font-bold tracking-wider px-2 py-0.5 rounded-full border ${config.badgeClass} shrink-0`}>
+                        {config.badge}
+                      </span>
+                    </div>
 
-              {/* SECTION: ATTENDANCE BUFFER (DIRECTLY BELOW WORKSPACE FOLDERS) */}
-              <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
-                  <div className="flex items-center gap-2">
-                    <Calendar size={16} className="text-accent-forest" />
-                    <h2 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
-                      Attendance Buffer
-                    </h2>
+                    {/* Title & Metadata */}
+                    <div className="w-full min-w-0 mt-3">
+                      <h3 className="text-xs sm:text-sm font-bold text-text-primary group-hover:text-accent-forest transition-colors truncate">
+                        {config.title}
+                      </h3>
+                      <span className="text-[11px] font-mono-tabular text-text-muted block truncate mt-0.5">
+                        {config.subtitle}
+                      </span>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => setCurrentView('attendance')}
-                    className="text-xs font-semibold text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
-                  >
-                    Full Ledger &rarr;
-                  </button>
-                </div>
+                );
+              })}
+            </div>
+          </section>
 
-                {/* Attendance Percentage & Metric */}
-                <div className="flex items-baseline justify-between">
-                  <div>
-                    <span className="text-3xl font-extrabold font-mono-tabular text-text-primary">
-                      {attendanceMetrics.percentage}%
-                    </span>
-                    <span className="text-xs text-text-muted ml-2 font-mono-tabular">
-                      ({attendanceMetrics.attended}/{attendanceMetrics.total} classes)
-                    </span>
+          {/* 3. UNIFIED DAILY COMMAND CENTER: ATTENDANCE BUFFER + TODAY'S SCHEDULE */}
+          <section className="rounded-2xl border border-border-subtle bg-surface shadow-sm overflow-hidden">
+            <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-border-subtle">
+              {/* LEFT HALF (5 cols): ATTENDANCE BUFFER & METRICS */}
+              <div className="lg:col-span-5 p-4 sm:p-5 flex flex-col justify-between space-y-4">
+                <div>
+                  <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+                    <div className="flex items-center gap-2">
+                      <Calendar size={15} className="text-accent-forest" />
+                      <h2 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
+                        Attendance Buffer
+                      </h2>
+                    </div>
+                    <button
+                      onClick={() => setCurrentView('attendance')}
+                      className="text-xs font-semibold text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
+                    >
+                      Full Ledger &rarr;
+                    </button>
                   </div>
-                  <span
-                    className={`px-2.5 py-0.5 rounded text-xs font-bold font-mono-tabular border ${
-                      attendanceMetrics.isSafe ? 'pill-safe' : 'pill-alert'
-                    }`}
-                  >
-                    {attendanceMetrics.isSafe ? 'SAFE' : 'ALERT'}
-                  </span>
-                </div>
 
-                {/* Target Visual Indicator */}
-                <div className="space-y-1.5">
-                  <div className="w-full h-1.5 rounded-full overflow-hidden bg-subtle">
-                    <div
-                      className={`h-full rounded-full transition-all duration-300 ${
-                        attendanceMetrics.isSafe ? 'bg-accent-forest' : 'bg-accent-danger'
+                  {/* Attendance Percentage & Metric */}
+                  <div className="flex items-baseline justify-between mt-3.5">
+                    <div>
+                      <span className="text-3xl font-extrabold font-mono-tabular text-text-primary">
+                        {attendanceMetrics.percentage}%
+                      </span>
+                      <span className="text-xs text-text-muted ml-2 font-mono-tabular">
+                        ({attendanceMetrics.attended} / {attendanceMetrics.total} classes)
+                      </span>
+                    </div>
+                    <span
+                      className={`px-2.5 py-0.5 rounded text-xs font-bold font-mono-tabular border ${
+                        attendanceMetrics.isSafe ? 'pill-safe' : 'pill-alert'
                       }`}
-                      style={{ width: `${Math.min(100, Math.max(5, parseFloat(attendanceMetrics.percentage)))}%` }}
-                    />
+                    >
+                      {attendanceMetrics.isSafe ? 'SAFE' : 'ALERT'}
+                    </span>
                   </div>
-                  <p className="text-xs text-text-secondary leading-relaxed">
-                    {attendanceMetrics.pillText}
-                  </p>
+
+                  {/* Visual Progress Bar */}
+                  <div className="mt-3 space-y-1.5">
+                    <div className="w-full h-1.5 rounded-full overflow-hidden bg-subtle">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          attendanceMetrics.isSafe ? 'bg-accent-forest' : 'bg-accent-danger'
+                        }`}
+                        style={{ width: `${Math.min(100, Math.max(5, parseFloat(attendanceMetrics.percentage)))}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-text-secondary leading-relaxed">
+                      {attendanceMetrics.pillText}
+                    </p>
+                  </div>
                 </div>
 
                 <button
                   onClick={() => setCurrentView('attendance')}
-                  className="w-full py-2 rounded-lg text-xs font-semibold border border-border-subtle bg-surface-hover hover:bg-subtle text-text-primary flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                  className="w-full py-2.5 rounded-xl text-xs font-semibold border border-border-subtle bg-surface-hover hover:bg-subtle text-text-primary flex items-center justify-center gap-2 cursor-pointer transition-colors"
                 >
-                  <CalendarDays size={13} />
-                  <span>Log Today's Classes</span>
+                  <CalendarDays size={14} />
+                  <span>Log Attendance Records</span>
                 </button>
-              </section>
-            </div>
+              </div>
 
-            {/* RIGHT COLUMN (5 cols): TODAY'S ROUTINE / TIMETABLE TAKING COMPLETE BALANCED HEIGHT */}
-            <div className="lg:col-span-5 xl:col-span-5 flex flex-col">
-              <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm flex flex-col h-full max-h-[395px] overflow-hidden">
-                <div className="flex items-center justify-between pb-3 border-b border-border-subtle shrink-0">
-                  <div className="flex items-center gap-2">
-                    <Clock size={16} className="text-text-primary" />
-                    <h2 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
-                      Today • {todayClasses.currentDay} {todayClasses.dayClasses.length > 0 && `(${todayClasses.dayClasses.length})`}
-                    </h2>
-                  </div>
-                  <button
-                    onClick={() => setCurrentView('attendance')}
-                    className="text-xs font-semibold text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
-                  >
-                    Timetable &rarr;
-                  </button>
-                </div>
-
-                {todayClasses.dayClasses.length > 0 ? (
-                  <div className="overflow-y-auto flex-1 divide-y divide-border-subtle pr-1 mt-1 space-y-1" style={{ scrollbarWidth: 'thin' }}>
-                    {todayClasses.dayClasses.map((item, idx) => {
-                      const isAttended = item.status === 'attended';
-                      const isAbsent = item.status === 'absent';
-                      const isBunked = item.status === 'bunked';
-                      const isCancelled = item.status === 'cancelled';
-
-                      return (
-                        <div key={item.id || idx} className="py-2.5 flex items-center justify-between gap-3 hover:bg-surface-hover/50 px-1 rounded-lg transition-colors group">
-                          <div className="min-w-0">
-                            <h4 className="text-xs font-bold text-text-primary truncate flex items-center gap-1.5">
-                              <span>{item.subject || item.subjectName || item.title || 'Lecture'}</span>
-                              {item.isLab && (
-                                <span className="text-[9px] font-mono-tabular font-bold px-1 rounded bg-accent-forest/15 text-accent-forest border border-accent-forest/25 shrink-0">
-                                  LAB
-                                </span>
-                              )}
-                            </h4>
-                            <span className="text-[11px] text-text-muted font-mono-tabular block truncate mt-0.5">
-                              {item.startTime || '10:00 AM'} - {item.endTime || '11:00 AM'} • {item.room || 'Room 101'}
-                            </span>
-                          </div>
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-mono-tabular font-bold shrink-0 border ${
-                              isAttended
-                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                                : isAbsent
-                                ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
-                                : isBunked
-                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                                : isCancelled
-                                ? 'bg-zinc-500/10 text-zinc-500 border border-zinc-500/30'
-                                : 'bg-surface-hover text-text-secondary border-border-subtle'
-                            }`}
-                          >
-                            {isAttended
-                              ? 'ATTENDED'
-                              : isAbsent
-                              ? 'ABSENT'
-                              : isBunked
-                              ? 'BUNKED'
-                              : isCancelled
-                              ? 'CANCELLED'
-                              : 'SCHEDULED'}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center py-8 text-center text-xs text-text-muted">
-                    <div className="w-11 h-11 rounded-lg bg-surface-sunken border border-border-subtle flex items-center justify-center text-text-muted mb-3 shadow-2xs">
-                      <Clock size={20} />
+              {/* RIGHT HALF (7 cols): TODAY'S ROUTINE / TIMETABLE (FIXED HEIGHT SCROLLABLE) */}
+              <div className="lg:col-span-7 p-4 sm:p-5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+                    <div className="flex items-center gap-2">
+                      <Clock size={15} className="text-text-primary" />
+                      <h2 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
+                        Today • {todayClasses.currentDay} {todayClasses.dayClasses.length > 0 && `(${todayClasses.dayClasses.length} Classes)`}
+                      </h2>
                     </div>
-                    <p className="font-bold text-text-primary text-sm">No classes scheduled today</p>
-                    <p className="text-xs text-text-muted max-w-xs mt-1">
-                      No routine lectures scheduled for {todayClasses.currentDay}. Take time to study or review your coursework.
-                    </p>
                     <button
                       onClick={() => setCurrentView('attendance')}
-                      className="mt-4 px-3.5 py-1.5 rounded-md border border-border-subtle bg-surface hover:bg-surface-hover text-xs font-semibold text-text-primary hover:text-accent-forest cursor-pointer transition-colors flex items-center gap-1.5 shadow-xs"
+                      className="text-xs font-semibold text-text-secondary hover:text-text-primary cursor-pointer transition-colors"
                     >
-                      <span>Configure Routine</span>
-                      <ArrowRight size={12} />
+                      Timetable &rarr;
                     </button>
                   </div>
-                )}
-              </section>
+
+                  {/* Scrollable Classes List (Fixed max-height to avoid dashboard distortion) */}
+                  {todayClasses.dayClasses.length > 0 ? (
+                    <div
+                      className="overflow-y-auto max-h-[175px] divide-y divide-border-subtle mt-2 pr-1"
+                      style={{ scrollbarWidth: 'thin' }}
+                    >
+                      {todayClasses.dayClasses.map((item, idx) => {
+                        const isAttended = item.status === 'attended';
+                        const isAbsent = item.status === 'absent';
+                        const isBunked = item.status === 'bunked';
+                        const isCancelled = item.status === 'cancelled';
+
+                        return (
+                          <div
+                            key={item.id || idx}
+                            onClick={() => setCurrentView('attendance')}
+                            className="py-2.5 px-2 flex items-center justify-between gap-3 hover:bg-surface-hover/60 rounded-lg transition-colors cursor-pointer group"
+                          >
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-bold text-text-primary truncate flex items-center gap-1.5 group-hover:text-accent-forest transition-colors">
+                                <span>{item.subject || item.subjectName || item.title || 'Lecture'}</span>
+                                {item.isLab && (
+                                  <span className="text-[9px] font-mono-tabular font-bold px-1 rounded bg-accent-forest/15 text-accent-forest border border-accent-forest/25 shrink-0">
+                                    LAB
+                                  </span>
+                                )}
+                              </h4>
+                              <span className="text-[11px] text-text-muted font-mono-tabular block truncate mt-0.5">
+                                {item.startTime || '10:00 AM'} - {item.endTime || '11:00 AM'} • {item.room || 'Room 101'}
+                              </span>
+                            </div>
+
+                            <span
+                              className={`px-2.5 py-0.5 rounded text-[10px] font-mono-tabular font-bold shrink-0 border ${
+                                isAttended
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                                  : isAbsent
+                                  ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                                  : isBunked
+                                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                                  : isCancelled
+                                  ? 'bg-zinc-500/10 text-zinc-500 border border-zinc-500/30'
+                                  : 'bg-surface-hover text-text-secondary border-border-subtle'
+                              }`}
+                            >
+                              {isAttended
+                                ? 'ATTENDED'
+                                : isAbsent
+                                ? 'ABSENT'
+                                : isBunked
+                                ? 'BUNKED'
+                                : isCancelled
+                                ? 'CANCELLED'
+                                : 'SCHEDULED'}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="py-8 text-center text-xs text-text-muted space-y-1">
+                      <p className="font-bold text-text-primary text-sm">No lectures scheduled today</p>
+                      <p className="text-xs text-text-muted max-w-xs mx-auto">
+                        Enjoy your study day for {todayClasses.currentDay}. Review course notes or practice problem sets.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 text-right">
+                  <span className="text-[10px] font-mono-tabular text-text-muted">
+                    Syncs automatically with Attendance Ledger
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
+          </section>
         </div>
       )}
     </div>
