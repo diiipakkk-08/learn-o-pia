@@ -35,6 +35,7 @@ import {
   Star
 } from 'lucide-react';
 import { calculateAttendanceMetrics, getLiveAttendanceSummary } from '../../utils/attendanceMath';
+import { DEFAULT_ROUTINE, formatLocalDate } from '../AttendanceTracker';
 import {
   getWorkspaceFolders,
   saveWorkspaceFolders,
@@ -233,13 +234,92 @@ export default function MyLearningView({
     };
   }, [userId, attendanceSyncVersion]);
 
-  // Today's Routine Schedule
+  // Timetable Routine Management & Today's Schedule
+  const [userRoutine, setUserRoutine] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`learnopia_attendance_routine_${userId}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          const hasClasses = Object.values(parsed).some(arr => Array.isArray(arr) && arr.length > 0);
+          if (hasClasses) return parsed;
+        }
+      }
+      if (userId !== 'guest') {
+        const guestSaved = localStorage.getItem('learnopia_attendance_routine_guest');
+        if (guestSaved) {
+          const parsed = JSON.parse(guestSaved);
+          if (parsed && typeof parsed === 'object') {
+            const hasClasses = Object.values(parsed).some(arr => Array.isArray(arr) && arr.length > 0);
+            if (hasClasses) return parsed;
+          }
+        }
+      }
+    } catch {}
+    return DEFAULT_ROUTINE;
+  });
+
+  useEffect(() => {
+    const syncRoutine = () => {
+      try {
+        const saved = localStorage.getItem(`learnopia_attendance_routine_${userId}`);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') {
+            const hasClasses = Object.values(parsed).some(arr => Array.isArray(arr) && arr.length > 0);
+            if (hasClasses) {
+              setUserRoutine(parsed);
+              return;
+            }
+          }
+        }
+      } catch {}
+      setUserRoutine(DEFAULT_ROUTINE);
+    };
+
+    const handleRoutineEvent = (e) => {
+      if (e?.detail?.routine) {
+        setUserRoutine(e.detail.routine);
+      } else {
+        syncRoutine();
+      }
+    };
+
+    window.addEventListener('learnopia_routine_updated', handleRoutineEvent);
+    window.addEventListener('storage', syncRoutine);
+    return () => {
+      window.removeEventListener('learnopia_routine_updated', handleRoutineEvent);
+      window.removeEventListener('storage', syncRoutine);
+    };
+  }, [userId]);
+
+  // Today's Routine Schedule with live status from Attendance logs
   const todayClasses = useMemo(() => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const currentDay = days[new Date().getDay()];
-    const dayClasses = routine ? routine[currentDay] || [] : [];
-    return { currentDay, dayClasses };
-  }, [routine]);
+    const activeSchedule = userRoutine || DEFAULT_ROUTINE;
+    const rawClasses = activeSchedule ? activeSchedule[currentDay] || [] : [];
+
+    // Check today's marked status in attendance logs
+    let todayLogMap = {};
+    try {
+      const todayDateStr = formatLocalDate(new Date());
+      const logsRaw = localStorage.getItem(`learnopia_attendance_logs_${userId}`);
+      if (logsRaw) {
+        const parsedLogs = JSON.parse(logsRaw);
+        if (parsedLogs[todayDateStr]?.classes) {
+          todayLogMap = parsedLogs[todayDateStr].classes;
+        }
+      }
+    } catch {}
+
+    const classesWithStatus = rawClasses.map(cls => ({
+      ...cls,
+      status: todayLogMap[cls.id] || null
+    }));
+
+    return { currentDay, dayClasses: classesWithStatus };
+  }, [userRoutine, userId, attendanceSyncVersion]);
 
   // =================================================================
   // 4 FIXED ROOT FOLDERS SYSTEM: Academic, Docs, Links, Personal
@@ -1215,27 +1295,59 @@ export default function MyLearningView({
                 {/* Mobile 2x2 grid (Academic & Document, then Important Links & Personal), Desktop 4 in a row */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {folders.map((folder) => {
-                    const icon =
-                      folder.id === 'academic' ? (
-                        <GraduationCap size={18} />
-                      ) : folder.id === 'document' ? (
-                        <FileText size={18} />
-                      ) : folder.id === 'links' ? (
-                        <Link2 size={18} />
-                      ) : (
-                        <Lock size={18} />
-                      );
-
-                    const itemCountText =
-                      folder.id === 'academic'
-                        ? pinnedSemesterState
+                    const config = {
+                      academic: {
+                        title: 'Academic',
+                        badge: 'CURRICULUM',
+                        bgGradient: 'bg-gradient-to-br from-emerald-500/[0.08] via-emerald-500/[0.03] to-surface hover:from-emerald-500/[0.13]',
+                        border: 'border-emerald-500/25 hover:border-emerald-500/50',
+                        badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
+                        iconBox: 'bg-gradient-to-br from-emerald-500/20 to-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
+                        icon: <GraduationCap size={19} />,
+                        subtitle: pinnedSemesterState
                           ? `Sem ${pinnedSemesterState.replace('sem-', '')} (Pinned)`
-                          : `${folder.subfolders?.length || 0} Semesters`
-                        : folder.id === 'document'
-                        ? `${(folder.subfolders?.length || 0) + (folder.items?.length || 0)} resources`
-                        : folder.id === 'links'
-                        ? `${folder.items?.length || 0} links`
-                        : `${folder.items?.length || 0} items`;
+                          : `${folder.subfolders?.length || 8} Semesters`
+                      },
+                      document: {
+                        title: 'Docs',
+                        badge: 'STUDY VAULT',
+                        bgGradient: 'bg-gradient-to-br from-amber-500/[0.08] via-amber-500/[0.03] to-surface hover:from-amber-500/[0.13]',
+                        border: 'border-amber-500/25 hover:border-amber-500/50',
+                        badgeClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30',
+                        iconBox: 'bg-gradient-to-br from-amber-500/20 to-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30',
+                        icon: <FileText size={19} />,
+                        subtitle: `${(folder.subfolders?.length || 0) + (folder.items?.length || 0)} resources`
+                      },
+                      links: {
+                        title: 'Important Links',
+                        badge: 'PORTALS',
+                        bgGradient: 'bg-gradient-to-br from-sky-500/[0.08] via-sky-500/[0.03] to-surface hover:from-sky-500/[0.13]',
+                        border: 'border-sky-500/25 hover:border-sky-500/50',
+                        badgeClass: 'bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30',
+                        iconBox: 'bg-gradient-to-br from-sky-500/20 to-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/30',
+                        icon: <Link2 size={19} />,
+                        subtitle: `${folder.items?.length || 0} quick links`
+                      },
+                      personal: {
+                        title: 'Personal Vault',
+                        badge: 'PRIVATE',
+                        bgGradient: 'bg-gradient-to-br from-purple-500/[0.08] via-purple-500/[0.03] to-surface hover:from-purple-500/[0.13]',
+                        border: 'border-purple-500/25 hover:border-purple-500/50',
+                        badgeClass: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30',
+                        iconBox: 'bg-gradient-to-br from-purple-500/20 to-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30',
+                        icon: <Lock size={19} />,
+                        subtitle: `${folder.items?.length || 0} private items`
+                      }
+                    }[folder.id] || {
+                      title: folder.title,
+                      badge: 'FOLDER',
+                      bgGradient: 'bg-surface hover:bg-surface-hover/80',
+                      border: 'border-border-subtle hover:border-border-strong',
+                      badgeClass: 'bg-subtle text-text-muted border-border-subtle',
+                      iconBox: 'bg-subtle text-text-primary border-border-subtle',
+                      icon: <Folder size={19} />,
+                      subtitle: `${folder.items?.length || 0} items`
+                    };
 
                     return (
                       <div
@@ -1244,17 +1356,25 @@ export default function MyLearningView({
                           setActiveRootFolderId(folder.id);
                           setSubfolderPath([]);
                         }}
-                        className="p-3.5 sm:p-4 rounded-xl border border-border-subtle bg-surface hover:bg-surface-hover/80 hover:border-border-strong transition-all cursor-pointer flex flex-col items-center justify-center text-center gap-2 group shadow-xs active:scale-[0.98]"
+                        className={`p-3.5 sm:p-4 rounded-xl border ${config.bgGradient} ${config.border} transition-all cursor-pointer flex flex-col justify-between group shadow-xs hover:shadow-md active:scale-[0.98] min-h-[135px] relative overflow-hidden`}
                       >
-                        <div className="w-10 h-10 rounded-lg bg-subtle flex items-center justify-center text-text-primary group-hover:bg-accent-ink group-hover:text-text-on-dark transition-colors shadow-2xs">
-                          {icon}
+                        {/* Top Header: Icon & Category Badge */}
+                        <div className="flex items-center justify-between w-full">
+                          <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl border ${config.iconBox} flex items-center justify-center transition-transform group-hover:scale-105 shadow-2xs shrink-0`}>
+                            {config.icon}
+                          </div>
+                          <span className={`text-[9px] font-mono-tabular font-bold tracking-wider px-2 py-0.5 rounded-full border ${config.badgeClass} shrink-0`}>
+                            {config.badge}
+                          </span>
                         </div>
-                        <div className="w-full min-w-0">
-                          <h3 className="text-xs sm:text-sm font-bold text-text-primary group-hover:text-accent-forest transition-colors truncate w-full">
-                            {folder.id === 'document' ? 'Docs' : folder.id === 'links' ? 'Links' : folder.title}
+
+                        {/* Title & Metadata */}
+                        <div className="w-full min-w-0 mt-2">
+                          <h3 className="text-xs sm:text-sm font-bold text-text-primary group-hover:text-accent-forest transition-colors truncate">
+                            {config.title}
                           </h3>
                           <span className="text-[10px] font-mono-tabular text-text-muted block truncate mt-0.5">
-                            {itemCountText}
+                            {config.subtitle}
                           </span>
                         </div>
                       </div>
@@ -1324,14 +1444,14 @@ export default function MyLearningView({
               </section>
             </div>
 
-            {/* RIGHT COLUMN (5 cols): TODAY'S ROUTINE / TIMETABLE TAKING COMPLETE HEIGHT */}
+            {/* RIGHT COLUMN (5 cols): TODAY'S ROUTINE / TIMETABLE TAKING COMPLETE BALANCED HEIGHT */}
             <div className="lg:col-span-5 xl:col-span-5 flex flex-col">
-              <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm space-y-4 flex flex-col h-full min-h-[340px]">
-                <div className="flex items-center justify-between pb-3 border-b border-border-subtle">
+              <section className="rounded-xl border border-border-subtle bg-surface p-4 sm:p-5 shadow-sm flex flex-col h-full max-h-[395px] overflow-hidden">
+                <div className="flex items-center justify-between pb-3 border-b border-border-subtle shrink-0">
                   <div className="flex items-center gap-2">
                     <Clock size={16} className="text-text-primary" />
                     <h2 className="text-xs font-bold tracking-wider uppercase text-text-secondary font-mono-tabular">
-                      Today • {todayClasses.currentDay}
+                      Today • {todayClasses.currentDay} {todayClasses.dayClasses.length > 0 && `(${todayClasses.dayClasses.length})`}
                     </h2>
                   </div>
                   <button
@@ -1343,25 +1463,57 @@ export default function MyLearningView({
                 </div>
 
                 {todayClasses.dayClasses.length > 0 ? (
-                  <div className="divide-y divide-border-subtle flex-1">
-                    {todayClasses.dayClasses.slice(0, 5).map((item, idx) => (
-                      <div key={item.id || idx} className="py-2.5 flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <h4 className="text-xs font-bold text-text-primary truncate">
-                            {item.subjectName || item.title || 'Lecture'}
-                          </h4>
-                          <span className="text-[11px] text-text-muted font-mono-tabular">
-                            {item.startTime || '10:00 AM'} - {item.endTime || '11:00 AM'} • {item.room || 'Room 101'}
+                  <div className="overflow-y-auto flex-1 divide-y divide-border-subtle pr-1 mt-1 space-y-1" style={{ scrollbarWidth: 'thin' }}>
+                    {todayClasses.dayClasses.map((item, idx) => {
+                      const isAttended = item.status === 'attended';
+                      const isAbsent = item.status === 'absent';
+                      const isBunked = item.status === 'bunked';
+                      const isCancelled = item.status === 'cancelled';
+
+                      return (
+                        <div key={item.id || idx} className="py-2.5 flex items-center justify-between gap-3 hover:bg-surface-hover/50 px-1 rounded-lg transition-colors group">
+                          <div className="min-w-0">
+                            <h4 className="text-xs font-bold text-text-primary truncate flex items-center gap-1.5">
+                              <span>{item.subject || item.subjectName || item.title || 'Lecture'}</span>
+                              {item.isLab && (
+                                <span className="text-[9px] font-mono-tabular font-bold px-1 rounded bg-accent-forest/15 text-accent-forest border border-accent-forest/25 shrink-0">
+                                  LAB
+                                </span>
+                              )}
+                            </h4>
+                            <span className="text-[11px] text-text-muted font-mono-tabular block truncate mt-0.5">
+                              {item.startTime || '10:00 AM'} - {item.endTime || '11:00 AM'} • {item.room || 'Room 101'}
+                            </span>
+                          </div>
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-mono-tabular font-bold shrink-0 border ${
+                              isAttended
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                                : isAbsent
+                                ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                                : isBunked
+                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                                : isCancelled
+                                ? 'bg-zinc-500/10 text-zinc-500 border border-zinc-500/30'
+                                : 'bg-surface-hover text-text-secondary border-border-subtle'
+                            }`}
+                          >
+                            {isAttended
+                              ? 'ATTENDED'
+                              : isAbsent
+                              ? 'ABSENT'
+                              : isBunked
+                              ? 'BUNKED'
+                              : isCancelled
+                              ? 'CANCELLED'
+                              : 'SCHEDULED'}
                           </span>
                         </div>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono-tabular font-bold pill-safe shrink-0 border">
-                          SCHEDULED
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center py-10 text-center text-xs text-text-muted">
+                  <div className="flex-1 flex flex-col items-center justify-center py-8 text-center text-xs text-text-muted">
                     <div className="w-11 h-11 rounded-lg bg-surface-sunken border border-border-subtle flex items-center justify-center text-text-muted mb-3 shadow-2xs">
                       <Clock size={20} />
                     </div>

@@ -38,12 +38,27 @@ import {
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-const DEFAULT_ROUTINE = {
-  Monday: [],
-  Tuesday: [],
-  Wednesday: [],
-  Thursday: [],
-  Friday: [],
+export const DEFAULT_ROUTINE = {
+  Monday: [
+    { id: 'cls-mon-0', subject: 'Data Structures & Algorithms', startTime24: '09:30', durationHours: 1, durationMins: 30, startTime: '09:30 AM', endTime: '11:00 AM', room: 'Lab 3', isLab: true, points: 2, minTarget: 75 },
+    { id: 'cls-mon-1', subject: 'Database Management Systems', startTime24: '11:15', durationHours: 1, durationMins: 0, startTime: '11:15 AM', endTime: '12:15 PM', room: 'Room 402', isLab: false, points: 1, minTarget: 75 }
+  ],
+  Tuesday: [
+    { id: 'cls-tue-0', subject: 'Computer Organization & Architecture', startTime24: '10:00', durationHours: 1, durationMins: 0, startTime: '10:00 AM', endTime: '11:00 AM', room: 'Room 201', isLab: false, points: 1, minTarget: 75 },
+    { id: 'cls-tue-1', subject: 'Formal Language & Automata Theory', startTime24: '11:15', durationHours: 1, durationMins: 0, startTime: '11:15 AM', endTime: '12:15 PM', room: 'Room 201', isLab: false, points: 1, minTarget: 75 }
+  ],
+  Wednesday: [
+    { id: 'cls-wed-0', subject: 'Discrete Mathematics', startTime24: '09:00', durationHours: 1, durationMins: 30, startTime: '09:00 AM', endTime: '10:30 AM', room: 'Room 105', isLab: false, points: 1, minTarget: 75 },
+    { id: 'cls-wed-1', subject: 'Object Oriented Programming (Java)', startTime24: '11:00', durationHours: 1, durationMins: 30, startTime: '11:00 AM', endTime: '12:30 PM', room: 'Software Lab 2', isLab: true, points: 2, minTarget: 75 }
+  ],
+  Thursday: [
+    { id: 'cls-thu-0', subject: 'Operating Systems', startTime24: '10:30', durationHours: 1, durationMins: 30, startTime: '10:30 AM', endTime: '12:00 PM', room: 'Room 304', isLab: false, points: 1, minTarget: 75 },
+    { id: 'cls-thu-1', subject: 'Design & Analysis of Algorithms', startTime24: '13:00', durationHours: 2, durationMins: 0, startTime: '01:00 PM', endTime: '03:00 PM', room: 'Room 304', isLab: true, points: 2, minTarget: 75 }
+  ],
+  Friday: [
+    { id: 'cls-fri-0', subject: 'Software Engineering', startTime24: '10:00', durationHours: 1, durationMins: 0, startTime: '10:00 AM', endTime: '11:00 AM', room: 'Room 302', isLab: false, points: 1, minTarget: 75 },
+    { id: 'cls-fri-1', subject: 'Web Development Lab', startTime24: '14:00', durationHours: 2, durationMins: 0, startTime: '02:00 PM', endTime: '04:00 PM', room: 'Web Lab 1', isLab: true, points: 2, minTarget: 75 }
+  ],
   Saturday: [],
   Sunday: []
 };
@@ -174,7 +189,7 @@ function ensureRoutineHasUniqueIds(routineObj) {
 }
 
 // Safe Local Date Helpers (prevents UTC shifts)
-const formatLocalDate = (date) => {
+export const formatLocalDate = (date) => {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
@@ -437,7 +452,11 @@ export default function AttendanceTracker() {
     if (typeof window !== 'undefined') {
       const savedUserRoutine = localStorage.getItem(routineKey);
       if (savedUserRoutine) {
-        try { return JSON.parse(savedUserRoutine); } catch {}
+        try {
+          const parsed = JSON.parse(savedUserRoutine);
+          const hasClasses = parsed && typeof parsed === 'object' && Object.values(parsed).some(arr => Array.isArray(arr) && arr.length > 0);
+          if (hasClasses) return parsed;
+        } catch {}
       }
     }
     return DEFAULT_ROUTINE;
@@ -505,6 +524,9 @@ export default function AttendanceTracker() {
     if (typeof window !== 'undefined' && userId && isLoaded) {
       localStorage.setItem(routineKey, JSON.stringify(routine));
       localStorage.setItem(startDateKey, semesterStartDate);
+      window.dispatchEvent(new CustomEvent('learnopia_routine_updated', {
+        detail: { userId, routine }
+      }));
       if (saveUserRoutineToDb) {
         saveUserRoutineToDb(userId, routine, semesterStartDate);
       }
@@ -514,6 +536,9 @@ export default function AttendanceTracker() {
   useEffect(() => {
     if (typeof window !== 'undefined' && userId && isLoaded) {
       localStorage.setItem(logsKey, JSON.stringify(logs));
+      window.dispatchEvent(new CustomEvent('learnopia_attendance_updated', {
+        detail: { userId, logs }
+      }));
       if (saveUserLogsToDb) {
         saveUserLogsToDb(userId, logs);
       }
